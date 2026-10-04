@@ -81,4 +81,6 @@ Recorded 2026-10-04 on the primary development PC (Windows 11, i7-13650HX, RTX 4
 | Release build (`build/pack.ps1 -Version 0.1.0`) | Produced Setup.exe (103.7 MB), Portable.zip (96.3 MB), full nupkg (96.5 MB), releases.win.json |
 | Installer | `Vystral-win-Setup.exe --silent` → exit 0; installed per-user to `%LOCALAPPDATA%\Vystral` with no admin prompt; Desktop and Start-menu shortcuts; "VYSTRAL 0.1.0" uninstall entry |
 | Installed app | Launches; updater reports an installed version (0.1.0) with update checks enabled |
-| Not verified | Physical controller hands-on; sleep/resume, DPI and monitor hot-plug; live installs of Epic/GOG/Battle.net/Xbox games; an update from 0.1.0 to a newer version (first possible once 0.1.1 is published) |
+| Published release (CI) | `v0.1.0` and `v0.1.1` built and published by GitHub Actions; CI (type-check, unit, e2e, axe, visual, .NET) green on GitHub's Windows runner |
+| **Auto-update end to end** | Installed v0.1.0 from the GitHub download link, then in-app: *Check* found 0.1.1 → *Download* showed live %, bytes, speed (2.4 MB/s) and ETA → *Restart and install* relaunched VYSTRAL as **0.1.1** (0.3 MB delta package; registry, packages and binaries all report 0.1.1) |
+| Not verified | Physical controller hands-on; sleep/resume, DPI and monitor hot-plug; live installs of Epic/GOG/Battle.net/Xbox games; — |

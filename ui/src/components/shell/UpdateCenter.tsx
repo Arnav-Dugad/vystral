@@ -6,6 +6,7 @@ import { formatBytes, formatRelative } from '../../lib/format';
 import { useStore } from '../../state/store';
 import { Dialog } from '../ui/Dialog';
 import { Button, ProgressBar } from '../ui/primitives';
+import { RichText } from '../../views/assistant/RichText';
 
 const OPEN_EVENT = 'vystral:open-updates';
 export const openUpdateCenter = () => window.dispatchEvent(new CustomEvent(OPEN_EVENT));
@@ -136,7 +137,7 @@ export function UpdatePanel() {
       {update.notes && (update.phase === 'available' || update.phase === 'downloading' || update.phase === 'ready') && (
         <div>
           <div className="caps" style={{ marginBottom: 8 }}>What’s new</div>
-          <div className="update-panel__notes selectable">{update.notes}</div>
+          <div className="update-panel__notes selectable"><RichText text={update.notes} /></div>
         </div>
       )}
 
@@ -148,7 +149,7 @@ export function UpdatePanel() {
         )}
         {update.phase === 'available' && (
           <Button variant="primary" icon={<ArrowDownToLine size={16} />} loading={busy} onClick={() => act('update.download')} disabled={gameRunning}>
-            Download {update.totalBytes ? `(${formatBytes(update.totalBytes)})` : ''}
+            Download {update.totalBytes ? `(${formatBytes(update.totalBytes)}${update.delta ? ', changes only' : ''})` : ''}
           </Button>
         )}
         {update.phase === 'downloading' && (

@@ -153,6 +153,8 @@ export interface UpdateState {
   notes: string | null;
   message: string | null;
   checkedAt: string | null;
+  /** True when only a small delta package is downloaded. */
+  delta?: boolean;
 }
 
 export interface WindowState {

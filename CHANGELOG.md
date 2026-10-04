@@ -2,6 +2,12 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
+## [0.1.2] — 2026-10-04
+
+### Improved
+- The update viewer shows the real download size. Small "changes only" (delta) updates no longer show the full package size.
+- Release notes in the update viewer are formatted instead of shown as raw text.
+
 ## [0.1.1] — 2026-10-04
 
 ### Changed

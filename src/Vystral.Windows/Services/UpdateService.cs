@@ -14,7 +14,8 @@ public sealed record UpdateStateDto(
     double? BytesPerSecond = null,
     string? Notes = null,
     string? Message = null,
-    string? CheckedAt = null);
+    string? CheckedAt = null,
+    bool Delta = false);
 
 /// <summary>
 /// Updates from the project's GitHub Releases through Velopack. Packages are verified by
@@ -74,11 +75,15 @@ public sealed class UpdateService
                 return Set(State with { Phase = "upToDate", NewVersion = null, Progress = 0, CheckedAt = now });
             _pending = info;
             var target = info.TargetFullRelease;
+            // Velopack downloads only the deltas when they chain from the installed version.
+            var deltas = info.DeltasToTarget ?? [];
+            var downloadSize = deltas.Length > 0 ? deltas.Sum(d => d.Size) : target.Size;
             return Set(State with
             {
                 Phase = _manager.UpdatePendingRestart is not null ? "ready" : "available",
                 NewVersion = target.Version.ToString(),
-                TotalBytes = target.Size,
+                TotalBytes = downloadSize,
+                Delta = deltas.Length > 0,
                 Notes = Truncate(target.NotesMarkdown, 6000),
                 CheckedAt = now,
             });
@@ -101,7 +106,7 @@ public sealed class UpdateService
         if (IsGameRunning()) return Set(State with { Message = "Updates download after your game closes." });
         var cts = _downloadCts = new CancellationTokenSource();
         var sw = Stopwatch.StartNew();
-        var total = _pending.TargetFullRelease.Size;
+        var total = State.TotalBytes ?? _pending.TargetFullRelease.Size;
         Set(State with { Phase = "downloading", Progress = 0, Message = null, BytesPerSecond = null });
         try
         {
