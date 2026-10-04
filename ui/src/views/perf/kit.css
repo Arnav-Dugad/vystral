@@ -1,0 +1,110 @@
+/* Shared pieces for the Journal and Performance views (stat tiles, thumbs, chart chrome). */
+
+/* ===== Stat tiles ===== */
+.vx-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--s-3);
+}
+.vx-tile {
+  display: grid;
+  align-content: start;
+  gap: var(--s-1);
+  padding: var(--s-4) var(--s-5) var(--s-4);
+  border-radius: var(--r-lg);
+  min-width: 0;
+}
+.vx-tile__label { display: flex; align-items: center; gap: var(--s-2); min-width: 0; }
+.vx-tile__icon { display: inline-grid; place-items: center; color: var(--text-3); }
+.vx-tile__value {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vx-tile__value small { font-size: var(--fs-md); font-weight: var(--fw-medium); color: var(--text-3); margin-left: 4px; letter-spacing: 0; }
+.vx-tile__sub { font-size: var(--fs-sm); color: var(--text-3); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vx-tile[data-unavailable] .vx-tile__value { font-size: var(--fs-lg); color: var(--text-3); font-weight: var(--fw-medium); }
+
+/* ===== Game thumbnails ===== */
+.vx-thumb {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  overflow: hidden;
+  border-radius: var(--r-xs);
+  background: var(--bg-2);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-1);
+}
+.vx-thumb .gen-cover__title { display: none; }
+.vx-thumb__missing { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); }
+
+/* ===== Cards ===== */
+.vx-card { padding: var(--s-5) var(--s-6) var(--s-6); border-radius: var(--r-xl); min-width: 0; }
+.vx-card .section-head { margin-bottom: var(--s-4); }
+
+/* ===== Charts ===== */
+.vx-chart { position: relative; width: 100%; border-radius: var(--r-md); }
+.vx-chart:focus-visible { box-shadow: var(--focus-ring); }
+.vx-chart svg { display: block; overflow: visible; }
+.vx-chart__grid { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
+.vx-chart__baseline { stroke: var(--line-strong); stroke-width: 1; shape-rendering: crispEdges; }
+.vx-chart__tick { fill: var(--text-3); font-family: var(--font-mono); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.vx-chart__line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.vx-chart__cross { stroke: var(--text-3); stroke-width: 1; shape-rendering: crispEdges; }
+.vx-chart__dot { stroke: var(--bg-1); stroke-width: 2; }
+.vx-chart__hit { fill: transparent; cursor: crosshair; touch-action: none; }
+
+.vx-tip {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  pointer-events: none;
+  padding: 6px 10px 7px;
+  border-radius: var(--r-sm);
+  background: var(--glass-strong);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-2), 0 0 0 1px var(--line-strong);
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  line-height: 1.35;
+}
+.vx-tip strong { display: block; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text-1); }
+.vx-tip__key { display: inline-block; width: 12px; height: 2px; border-radius: 1px; vertical-align: middle; margin-right: 6px; }
+
+/* ===== Horizontal bar lists ===== */
+.vx-bar { position: relative; height: 6px; border-radius: 3px; background: var(--bg-3); overflow: hidden; }
+.vx-bar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  transform-origin: left;
+}
+
+/* ===== Notes ===== */
+.vx-note { display: flex; gap: var(--s-3); align-items: flex-start; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5; }
+.vx-note svg { flex: none; margin-top: 2px; color: var(--text-3); }
+
+.vx-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.vx-source--tracked { background: var(--accent-ghost); color: var(--accent-text); }
+.vx-source--store { background: var(--bg-3); color: var(--text-2); box-shadow: inset 0 0 0 1px var(--line); }
+.vx-source svg { flex: none; }
+
+.vx-select { width: auto; min-width: 200px; max-width: 320px; height: 34px; }

@@ -1,0 +1,194 @@
+/* VYSTRAL design tokens. Documented in docs/DESIGN-SYSTEM.md.
+   Colours are authored in OKLCH so accent shifts between games interpolate perceptually. */
+
+@property --game {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.7 0.17 292);
+}
+@property --game-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.66 0.15 255);
+}
+
+:root {
+  /* ---- Brand ---- */
+  --violet: oklch(0.7 0.17 292);
+  --violet-hi: oklch(0.8 0.12 292);
+  --blue: oklch(0.68 0.15 255);
+  --blue-hi: oklch(0.8 0.1 250);
+  --star: oklch(0.97 0.02 292);
+
+  /* ---- Surfaces (Obsidian, the flagship theme) ---- */
+  --bg-0: oklch(0.13 0.012 282);          /* window */
+  --bg-1: oklch(0.165 0.014 282);         /* panels */
+  --bg-2: oklch(0.2 0.016 282);           /* raised */
+  --bg-3: oklch(0.245 0.018 282);         /* hover / inputs */
+  --bg-inverse: oklch(0.96 0.005 282);
+  --scrim: oklch(0.1 0.01 282 / 0.72);
+  --glass: oklch(0.2 0.016 282 / 0.62);
+  --glass-strong: oklch(0.18 0.016 282 / 0.86);
+  --line: oklch(1 0 0 / 0.075);
+  --line-strong: oklch(1 0 0 / 0.14);
+
+  /* ---- Text: every pair is checked for ≥4.5:1 on --bg-1 in tests ---- */
+  --text-1: oklch(0.97 0.004 282);
+  --text-2: oklch(0.82 0.012 282);
+  --text-3: oklch(0.68 0.014 282);
+  --text-on-accent: oklch(0.16 0.02 282);
+
+  /* ---- Accent: --game is animated by the Living Canvas from artwork ---- */
+  --accent: var(--game);
+  --accent-2: var(--game-2);
+  --accent-hi: oklch(from var(--accent) calc(l + 0.08) c h);
+  --accent-ghost: oklch(from var(--accent) l c h / 0.14);
+  --accent-line: oklch(from var(--accent) l c h / 0.45);
+  --accent-text: oklch(from var(--accent) max(l, 0.78) min(c, 0.14) h);
+
+  /* ---- Status (always paired with an icon or label, never colour alone) ---- */
+  --ok: oklch(0.78 0.14 158);
+  --warn: oklch(0.83 0.14 80);
+  --danger: oklch(0.7 0.18 25);
+  --info: oklch(0.76 0.11 240);
+
+  /* ---- Platform hues, used only for small badges ---- */
+  --p-steam: oklch(0.72 0.09 240);
+  --p-xbox: oklch(0.74 0.17 145);
+  --p-epic: oklch(0.86 0.01 282);
+  --p-gog: oklch(0.7 0.16 310);
+  --p-ea: oklch(0.72 0.17 20);
+  --p-ubisoft: oklch(0.72 0.13 250);
+  --p-battlenet: oklch(0.74 0.13 230);
+  --p-manual: oklch(0.8 0.08 80);
+
+  /* ---- Type ---- */
+  --font-ui: 'Geist Variable', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Unbounded Variable', 'Geist Variable', 'Segoe UI Variable Display', sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Cascadia Mono', Consolas, monospace;
+  --fs-2xs: 0.6875rem; /* 11 */
+  --fs-xs: 0.75rem;    /* 12 */
+  --fs-sm: 0.8125rem;  /* 13 */
+  --fs-md: 0.875rem;   /* 14 body */
+  --fs-lg: 1rem;       /* 16 */
+  --fs-xl: 1.25rem;    /* 20 */
+  --fs-2xl: 1.625rem;  /* 26 */
+  --fs-3xl: 2.125rem;  /* 34 */
+  --fs-4xl: 3rem;      /* 48 */
+  --fs-hero: clamp(2.25rem, 4.2vw, 4.25rem);
+  --fw-regular: 450;   /* slightly heavier than 400: light text on dark looks thin */
+  --fw-medium: 540;
+  --fw-semibold: 620;
+  --fw-bold: 720;
+  --tracking-tight: -0.02em;
+  --tracking-caps: 0.08em;
+
+  /* ---- Space (4px grid) ---- */
+  --s-0: 2px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+  --gutter: clamp(20px, 3vw, 44px);
+
+  /* ---- Shape ---- */
+  --r-xs: 6px;
+  --r-sm: 9px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-2xl: 30px;
+  --r-pill: 999px;
+
+  /* ---- Elevation ---- */
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.35), 0 1px 1px oklch(0 0 0 / 0.2);
+  --shadow-2: 0 6px 18px -6px oklch(0 0 0 / 0.55), 0 2px 6px oklch(0 0 0 / 0.25);
+  --shadow-3: 0 24px 60px -18px oklch(0 0 0 / 0.75), 0 8px 20px -8px oklch(0 0 0 / 0.5);
+  --shadow-glow: 0 0 0 1px var(--accent-line), 0 10px 40px -8px oklch(from var(--accent) l c h / 0.55);
+  --inner-hi: inset 0 1px 0 oklch(1 0 0 / 0.06);
+
+  /* ---- Motion (mirrors src/lib/motion.ts) ---- */
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 360ms;
+  --dur-ambient: 900ms;
+  --ease-out: cubic-bezier(0.33, 0, 0.1, 1);
+  --ease-emph: cubic-bezier(0.1, 0.9, 0.2, 1);
+  --ease-in: cubic-bezier(0.8, 0, 0.78, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ---- Layout ---- */
+  --titlebar-h: 48px;
+  --sidebar-w: 236px;
+  --sidebar-w-collapsed: 72px;
+  --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent-hi);
+  --hit: 36px;
+
+  color-scheme: dark;
+  transition: --game var(--dur-ambient) var(--ease-out), --game-2 var(--dur-ambient) var(--ease-out);
+}
+
+/* OLED: true black for per-pixel-lit displays, fewer translucent layers. */
+:root[data-theme='oled'] {
+  --bg-0: oklch(0 0 0);
+  --bg-1: oklch(0.11 0.006 282);
+  --bg-2: oklch(0.15 0.01 282);
+  --bg-3: oklch(0.2 0.012 282);
+  --glass: oklch(0.12 0.01 282 / 0.8);
+  --glass-strong: oklch(0.1 0.01 282 / 0.94);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg-0: oklch(0.965 0.006 282);
+  --bg-1: oklch(0.99 0.003 282);
+  --bg-2: oklch(1 0 0);
+  --bg-3: oklch(0.93 0.008 282);
+  --bg-inverse: oklch(0.18 0.014 282);
+  --scrim: oklch(0.2 0.02 282 / 0.36);
+  --glass: oklch(1 0 0 / 0.7);
+  --glass-strong: oklch(1 0 0 / 0.9);
+  --line: oklch(0.2 0.02 282 / 0.1);
+  --line-strong: oklch(0.2 0.02 282 / 0.18);
+  --text-1: oklch(0.2 0.018 282);
+  --text-2: oklch(0.36 0.02 282);
+  --text-3: oklch(0.47 0.02 282);
+  --text-on-accent: oklch(0.99 0 0);
+  --accent-text: oklch(from var(--accent) min(l, 0.48) c h);
+  --accent-hi: oklch(from var(--accent) calc(l - 0.08) c h);
+  --shadow-2: 0 8px 22px -10px oklch(0.2 0.03 282 / 0.3);
+  --shadow-3: 0 26px 60px -24px oklch(0.2 0.03 282 / 0.4);
+  --inner-hi: inset 0 1px 0 oklch(1 0 0 / 0.7);
+}
+
+/* High contrast: no translucency, solid strong borders, maximum text contrast. */
+:root[data-theme='contrast'] {
+  --bg-0: oklch(0 0 0);
+  --bg-1: oklch(0 0 0);
+  --bg-2: oklch(0.12 0 0);
+  --bg-3: oklch(0.2 0 0);
+  --glass: oklch(0 0 0);
+  --glass-strong: oklch(0 0 0);
+  --line: oklch(1 0 0 / 0.6);
+  --line-strong: oklch(1 0 0);
+  --text-1: oklch(1 0 0);
+  --text-2: oklch(1 0 0);
+  --text-3: oklch(0.9 0 0);
+  --accent: oklch(0.88 0.16 100);
+  --accent-2: oklch(0.88 0.16 100);
+  --accent-text: oklch(0.9 0.16 100);
+  --focus-ring: 0 0 0 3px oklch(0 0 0), 0 0 0 6px oklch(0.9 0.18 100);
+}
+
+/* Immersive (10-foot) mode scales the whole system up. */
+:root[data-mode='immersive'] {
+  font-size: clamp(18px, 1.35vw, 26px);
+  --hit: 48px;
+}

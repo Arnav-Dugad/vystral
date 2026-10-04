@@ -1,0 +1,589 @@
+﻿{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:a70996fc-5f75-41f2-bfd2-fd1d3aa1301a",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-10-04T17:15:36.682Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "tools": [
+      {
+        "vendor": "npm",
+        "name": "cli",
+        "version": "11.13.0"
+      }
+    ],
+    "component": {
+      "bom-ref": "vystral-ui@0.1.0",
+      "type": "library",
+      "name": "ui",
+      "version": "0.1.0",
+      "scope": "required",
+      "purl": "pkg:npm/vystral-ui@0.1.0",
+      "properties": [
+        {
+          "name": "cdx:npm:package:private",
+          "value": "true"
+        }
+      ],
+      "externalReferences": []
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "@fontsource-variable/geist@5.3.0",
+      "type": "library",
+      "name": "@fontsource-variable/geist",
+      "version": "5.3.0",
+      "scope": "required",
+      "author": "Google Inc.",
+      "description": "Self-host the Geist font in a neatly bundled NPM package.",
+      "purl": "pkg:npm/%40fontsource-variable/geist@5.3.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@fontsource-variable/geist/-/geist-5.3.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/fontsource/font-files.git"
+        },
+        {
+          "type": "website",
+          "url": "https://fontsource.org/fonts/geist"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "8f49bebcb42e1b95c06281ed18256ed2ca6f946ade477133a44094573905988d664d59c03b7f25fcd10f0c2160675efb271cd82422d29934226c88983e2946ac"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "OFL-1.1"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@fontsource-variable/geist-mono@5.3.0",
+      "type": "library",
+      "name": "@fontsource-variable/geist-mono",
+      "version": "5.3.0",
+      "scope": "required",
+      "author": "Google Inc.",
+      "description": "Self-host the Geist Mono font in a neatly bundled NPM package.",
+      "purl": "pkg:npm/%40fontsource-variable/geist-mono@5.3.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@fontsource-variable/geist-mono/-/geist-mono-5.3.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/fontsource/font-files.git"
+        },
+        {
+          "type": "website",
+          "url": "https://fontsource.org/fonts/geist-mono"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "bc16eec03128f4092ba800cc5ceae5011dc315c262e3f2717ae538dc5a22404467370b1f5cd9efc6f45e646d367102a6ca4e0366465d0595f7a130efcb6cc103"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "OFL-1.1"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@fontsource-variable/unbounded@5.3.0",
+      "type": "library",
+      "name": "@fontsource-variable/unbounded",
+      "version": "5.3.0",
+      "scope": "required",
+      "author": "Google Inc.",
+      "description": "Self-host the Unbounded font in a neatly bundled NPM package.",
+      "purl": "pkg:npm/%40fontsource-variable/unbounded@5.3.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@fontsource-variable/unbounded/-/unbounded-5.3.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/fontsource/font-files.git"
+        },
+        {
+          "type": "website",
+          "url": "https://fontsource.org/fonts/unbounded"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "79ae7ae4d727e2bee03dd0441dc99a177d55d758437e42fb6ff2429252e86d06cc7dbbb665942b55636075e1055852ea361dfaca189e6563a0c5d027313ceb2e"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "OFL-1.1"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@tanstack/react-virtual@3.14.13",
+      "type": "library",
+      "name": "@tanstack/react-virtual",
+      "version": "3.14.13",
+      "scope": "required",
+      "author": "Tanner Linsley",
+      "description": "Headless UI for virtualizing scrollable elements in React",
+      "purl": "pkg:npm/%40tanstack/react-virtual@3.14.13",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@tanstack/react-virtual/-/react-virtual-3.14.13.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/TanStack/virtual.git"
+        },
+        {
+          "type": "website",
+          "url": "https://tanstack.com/virtual"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "25b0d3030b7367df5a39e0ab01f5b912c139292ab945687a01fd9db45c322c8224e3c25aeef9ba9f86b1bbfe374f7bdf8c59c41896a5c49d70c988d2403e9b4a"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@tanstack/virtual-core@3.17.11",
+      "type": "library",
+      "name": "@tanstack/virtual-core",
+      "version": "3.17.11",
+      "scope": "required",
+      "author": "Tanner Linsley",
+      "description": "Headless UI for virtualizing scrollable elements in TS/JS + Frameworks",
+      "purl": "pkg:npm/%40tanstack/virtual-core@3.17.11",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@tanstack/virtual-core/-/virtual-core-3.17.11.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/TanStack/virtual.git"
+        },
+        {
+          "type": "website",
+          "url": "https://tanstack.com/virtual"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f882e3bed1eea7a63687343a633c0c817d50fa8429c4418e5c212c08d68fa083f457131b8b32014e66130ed91eae42104bcfc26cfd4146ecadf15ffc042b32d6"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "framer-motion@14.0.0",
+      "type": "library",
+      "name": "framer-motion",
+      "version": "14.0.0",
+      "scope": "required",
+      "author": "Matt Perry",
+      "description": "A simple and powerful JavaScript animation library",
+      "purl": "pkg:npm/framer-motion@14.0.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/framer-motion/-/framer-motion-14.0.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "400b479b26eb0c54a58b25b5b1ec4cb5241341dfb58f0d9a8e26c49b3a6e2385dd3d5cd0927f9d03324c9b6b16de997d309b924b8c4de7576343b86e8653ff54"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "lucide-react@1.52.0",
+      "type": "library",
+      "name": "lucide-react",
+      "version": "1.52.0",
+      "scope": "required",
+      "author": "Eric Fennis",
+      "description": "A Lucide icon library package for React applications.",
+      "purl": "pkg:npm/lucide-react@1.52.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/lucide-react/-/lucide-react-1.52.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/lucide-icons/lucide.git"
+        },
+        {
+          "type": "website",
+          "url": "https://lucide.dev"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "4d480fb65e5923d5a0c4e71bbb8724682e41de5d6ac4f42b08c81be8e7d407da30c7f3af4897dc7fddd2320516031470e7fd570df87db88e45e623465c27060d"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "motion@14.0.0",
+      "type": "library",
+      "name": "motion",
+      "version": "14.0.0",
+      "scope": "required",
+      "author": "Matt Perry",
+      "description": "An animation library for JavaScript and React.",
+      "purl": "pkg:npm/motion@14.0.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/motion/-/motion-14.0.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a0673696481eda59116423fe27cfc9b2762ee0d163a8fd4cb578ab35d7ad9f741bbcad89ab033d036d3411d4f80b9f7c29fcc38632d3d76cc5db5c433383a297"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "motion-dom@14.0.0",
+      "type": "library",
+      "name": "motion-dom",
+      "version": "14.0.0",
+      "scope": "required",
+      "author": "Matt Perry",
+      "purl": "pkg:npm/motion-dom@14.0.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/motion-dom/-/motion-dom-14.0.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "694dc0a57a35c93a5e522dc953e8db0e4d9310b8f13c4dcc6c13143fb9d91e50116fa4707892bea2398b8e9b81d18b18eb385b065d58586a3c2ccb08d7f2e5ab"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "motion-utils@14.0.0",
+      "type": "library",
+      "name": "motion-utils",
+      "version": "14.0.0",
+      "scope": "required",
+      "author": "Matt Perry",
+      "purl": "pkg:npm/motion-utils@14.0.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/motion-utils/-/motion-utils-14.0.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "8c1b328d5c534d164d7aebddfeff9bb555ebf742d09189781e146ef53d8045cf8f327be49a3b23455780838426d746fa4e54f0fa4ca4588f20bbfe8bbafa4b49"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "three@0.186.1",
+      "type": "library",
+      "name": "three",
+      "version": "0.186.1",
+      "scope": "required",
+      "author": "mrdoob",
+      "description": "JavaScript 3D library",
+      "purl": "pkg:npm/three@0.186.1",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/three/-/three-0.186.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/mrdoob/three.js"
+        },
+        {
+          "type": "website",
+          "url": "https://threejs.org/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/mrdoob/three.js/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "6e515ea9be3dc110921941a3ee0b697e74861f2da5c0393de11854992d5cfe14dbcbbd24bc285b5a9909e0f9b5dfdd0bab3cef4e6ce05ca1cf11a7c9c026fc8c"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "tslib@2.8.1",
+      "type": "library",
+      "name": "tslib",
+      "version": "2.8.1",
+      "scope": "required",
+      "author": "Microsoft Corp.",
+      "description": "Runtime library for TypeScript helper functions",
+      "purl": "pkg:npm/tslib@2.8.1",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Microsoft/tslib.git"
+        },
+        {
+          "type": "website",
+          "url": "https://www.typescriptlang.org/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/Microsoft/TypeScript/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a0916ef781d06fe29576e49440bef09e99aa9df98bb0e03f9c087a6fa107d30084a0ad3f98f79753a737c0a0d5f373243ae1cf447b525ca294f7d2016b34bfdb"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "0BSD"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "zustand@5.0.15",
+      "type": "library",
+      "name": "zustand",
+      "version": "5.0.15",
+      "scope": "required",
+      "author": "Paul Henschel",
+      "description": "🐻 Bear necessities for state management in React",
+      "purl": "pkg:npm/zustand@5.0.15",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/zustand/-/zustand-5.0.15.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/pmndrs/zustand.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/pmndrs/zustand"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/pmndrs/zustand/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3294848d1881900f5cad261e3941f7dab242ed256a01b9b416a72a81efdb522d8f3e82dc05628eb06f82f267af9a9afc4f05c705590285b6c98b2be413e8bfdc"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "vystral-ui@0.1.0",
+      "dependsOn": [
+        "@fontsource-variable/geist@5.3.0",
+        "@fontsource-variable/geist-mono@5.3.0",
+        "@fontsource-variable/unbounded@5.3.0",
+        "@tanstack/react-virtual@3.14.13",
+        "lucide-react@1.52.0",
+        "motion@14.0.0",
+        "three@0.186.1",
+        "zustand@5.0.15"
+      ]
+    },
+    {
+      "ref": "@fontsource-variable/geist@5.3.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "@fontsource-variable/geist-mono@5.3.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "@fontsource-variable/unbounded@5.3.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "@tanstack/react-virtual@3.14.13",
+      "dependsOn": [
+        "@tanstack/virtual-core@3.17.11"
+      ]
+    },
+    {
+      "ref": "@tanstack/virtual-core@3.17.11",
+      "dependsOn": []
+    },
+    {
+      "ref": "framer-motion@14.0.0",
+      "dependsOn": [
+        "motion-dom@14.0.0",
+        "motion-utils@14.0.0",
+        "tslib@2.8.1"
+      ]
+    },
+    {
+      "ref": "lucide-react@1.52.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "motion@14.0.0",
+      "dependsOn": [
+        "framer-motion@14.0.0",
+        "tslib@2.8.1"
+      ]
+    },
+    {
+      "ref": "motion-dom@14.0.0",
+      "dependsOn": [
+        "motion-utils@14.0.0"
+      ]
+    },
+    {
+      "ref": "motion-utils@14.0.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "three@0.186.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "tslib@2.8.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "zustand@5.0.15",
+      "dependsOn": []
+    }
+  ]
+}

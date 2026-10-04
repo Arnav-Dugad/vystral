@@ -1,0 +1,19 @@
+.shelf { margin-top: var(--s-10); }
+.shelf__track {
+  display: grid;
+  grid-auto-flow: column;
+  gap: var(--s-5);
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 10px 6px 18px;
+  margin: -10px -6px 0;
+  scroll-snap-type: x proximity;
+  scroll-padding: 6px;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.shelf__track::-webkit-scrollbar { display: none; }
+.shelf__track--portrait { grid-auto-columns: clamp(140px, 11.5vw, 200px); }
+.shelf__track--landscape { grid-auto-columns: clamp(280px, 24vw, 420px); }
+.shelf__item { scroll-snap-align: start; min-width: 0; }
+.shelf__caption { margin-top: 6px; font-size: var(--fs-xs); color: var(--text-3); line-height: 1.4; }

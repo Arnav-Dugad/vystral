@@ -22,8 +22,9 @@ public static partial class TitleNormalizer
     private static readonly string[] EditionPhrases =
     [
         "game of the year edition", "game of the year", "goty edition", "goty",
-        "definitive edition", "complete edition", "deluxe edition", "ultimate edition",
-        "gold edition", "premium edition", "standard edition", "digital deluxe edition",
+        // Longer phrases must precede phrases they contain ("digital deluxe edition" before "deluxe edition").
+        "definitive edition", "complete edition", "digital deluxe edition", "deluxe edition", "ultimate edition",
+        "gold edition", "premium edition", "standard edition",
         "collectors edition", "enhanced edition", "special edition", "legendary edition",
         "director's cut", "directors cut", "windows edition", "pc edition", "for windows 10", "for windows",
         "(pc)", "(windows)", "- windows", "steam edition", "epic edition", "xbox edition",

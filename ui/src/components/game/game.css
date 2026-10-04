@@ -1,0 +1,153 @@
+/* ===== Cover ===== */
+.cover {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.cover__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 320ms var(--ease-out);
+}
+.cover[data-loaded='true'] .cover__img { opacity: 1; }
+.cover__icon {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  width: 34%;
+  transform: translateX(-50%);
+  border-radius: 18%;
+  box-shadow: var(--shadow-2);
+}
+
+.gen-cover {
+  position: absolute;
+  inset: 0;
+  container-type: inline-size;
+  color: oklch(0.85 0.08 var(--h2));
+  background:
+    radial-gradient(120% 80% at 85% 10%, oklch(0.42 0.12 var(--h2) / 0.9), transparent 60%),
+    radial-gradient(110% 90% at 0% 100%, oklch(0.34 0.13 var(--h1)), transparent 70%),
+    linear-gradient(160deg, oklch(0.26 0.07 var(--h1)), oklch(0.14 0.03 var(--h2)));
+}
+.gen-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, oklch(0.08 0.02 var(--h1) / 0.75));
+}
+.gen-cover__motif { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gen-cover__title {
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  bottom: 8%;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-weight: 600;
+  /* Largest size at which the longest word still fits on one line (Unbounded ≈ 0.72em per glyph). */
+  font-size: clamp(7px, min(12.5cqi, calc(112cqi / var(--chars))), 30px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: oklch(0.97 0.02 var(--h2));
+  text-wrap: balance;
+  overflow-wrap: normal;
+  text-shadow: 0 2px 18px oklch(0.1 0.05 var(--h1) / 0.8);
+}
+.gen-cover__title--long { font-size: clamp(7px, min(10cqi, calc(112cqi / var(--chars))), 24px); }
+
+/* ===== Card ===== */
+.card {
+  --card-accent: var(--accent);
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--r-lg);
+  transform: perspective(900px) translateZ(0) scale(var(--s, 1)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 260ms var(--ease-emph);
+  will-change: auto;
+  text-align: left;
+  outline: none;
+}
+.card__frame {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: var(--shadow-2), 0 0 0 1px var(--line);
+}
+.card::before {
+  /* focus/hover glow, pre-rendered and faded (cheaper than animating box-shadow) */
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--r-lg) + 2px);
+  box-shadow: 0 0 0 2px oklch(from var(--card-accent) 0.86 c h), 0 18px 48px -10px oklch(from var(--card-accent) l c h / 0.7);
+  opacity: 0;
+  transition: opacity 180ms var(--ease-out);
+  pointer-events: none;
+}
+.card::after {
+  /* specular sheen that follows the tilt */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 35%, oklch(1 0 0 / 0.14) 48%, transparent 62%);
+  transform: translateX(calc(var(--sheen, 0) * 1%));
+  opacity: 0;
+  transition: opacity 200ms;
+  pointer-events: none;
+}
+.card:hover,
+.card:focus-visible,
+.card[data-focused='true'] { --s: 1.045; z-index: 2; will-change: transform; }
+.card:hover::before,
+.card:focus-visible::before,
+.card[data-focused='true']::before { opacity: 1; }
+.card:hover::after,
+.card:focus-visible::after,
+.card[data-focused='true']::after { opacity: 1; }
+.card:focus-visible { box-shadow: none; }
+.card:active { --s: 0.98; transition-duration: 90ms; }
+.card[data-dim='true'] .cover { filter: saturate(0.35) brightness(0.7); }
+
+.card__badges { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; pointer-events: none; z-index: 1; }
+.card__fav { color: oklch(0.85 0.14 20); filter: drop-shadow(0 1px 4px oklch(0 0 0 / 0.6)); }
+.card__state { position: absolute; left: 8px; top: 8px; z-index: 1; }
+.card__meta { margin-top: 10px; padding: 0 2px; }
+.card__title { font-weight: var(--fw-medium); font-size: var(--fs-sm); color: var(--text-1); }
+.card__sub { font-size: var(--fs-xs); color: var(--text-3); display: flex; gap: 8px; align-items: center; margin-top: 2px; }
+
+:root[data-reduced-motion='true'] .card { transform: none !important; }
+:root[data-reduced-motion='true'] .card::after { display: none; }
+
+/* Landscape tile used in rows */
+.tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--r-lg);
+  overflow: visible;
+  transform: translateZ(0) scale(var(--s, 1));
+  transition: transform 260ms var(--ease-emph);
+  text-align: left;
+}
+.tile .card__frame { border-radius: var(--r-lg); }
+.tile:hover, .tile:focus-visible, .tile[data-focused='true'] { --s: 1.035; z-index: 2; }
+.tile::before { content: ''; position: absolute; inset: -2px; border-radius: calc(var(--r-lg) + 2px); box-shadow: 0 0 0 2px oklch(from var(--card-accent, var(--accent)) 0.86 c h), 0 16px 44px -12px oklch(from var(--card-accent, var(--accent)) l c h / 0.7); opacity: 0; transition: opacity 180ms; pointer-events: none; }
+.tile:hover::before, .tile:focus-visible::before, .tile[data-focused='true']::before { opacity: 1; }
+.tile:focus-visible { box-shadow: none; }
+.tile__overlay { position: absolute; inset: 0; border-radius: var(--r-lg); background: linear-gradient(180deg, transparent 45%, oklch(0.08 0.01 282 / 0.85)); display: flex; flex-direction: column; justify-content: flex-end; padding: 14px 16px; }
+.tile__title { font-weight: var(--fw-semibold); color: oklch(0.98 0 0); text-shadow: 0 1px 8px oklch(0 0 0 / 0.6); }
+.tile__sub { font-size: var(--fs-xs); color: oklch(0.88 0 0); display: flex; gap: 10px; align-items: center; }
+.tile__logo { position: absolute; left: 16px; bottom: 40px; max-width: 55%; max-height: 38%; object-fit: contain; filter: drop-shadow(0 2px 12px oklch(0 0 0 / 0.6)); }

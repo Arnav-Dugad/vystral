@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install UI dependencies
+        working-directory: ui
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check, unit-test and build the UI
+        working-directory: ui
+        run: |
+          npx tsc -b
+          npx vitest run
+          npx vite build
+
+      - name: End-to-end, accessibility and visual tests (preview data)
+        working-directory: ui
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
+        continue-on-error: false
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ui/playwright-report
+
+      - name: Build and test the native app
+        run: |
+          dotnet build Vystral.slnx -c Release -p:Platform=x64
+          dotnet test tests/Vystral.Tests -c Release

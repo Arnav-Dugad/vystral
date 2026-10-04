@@ -122,6 +122,6 @@ public static partial class LaunchValidator
     }
 
     // PackageFamilyName (Name_PublisherId) + "!" + ApplicationId
-    [GeneratedRegex(@"^[A-Za-z0-9.\-]{3,50}_[a-z0-9]{13}![A-Za-z][A-Za-z0-9.\-]{0,63}$")]
+    [GeneratedRegex(@"^[A-Za-z0-9.\-]{3,50}_[a-z0-9]{13}![A-Za-z][A-Za-z0-9.\-]{0,63}\z")]
     private static partial Regex AumidPattern();
 }

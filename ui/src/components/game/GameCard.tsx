@@ -1,0 +1,107 @@
+import { memo, useCallback, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
+import { Heart } from 'lucide-react';
+import type { Game } from '../../bridge/types';
+import { formatRelative, isInstalled, lastPlayed, PLATFORM_NAMES } from '../../lib/format';
+import { peekPalette, titleHue } from '../../lib/palette';
+import { useReducedMotion, useStore } from '../../state/store';
+import { Badge } from '../ui/primitives';
+import { GameCover } from './GameCover';
+import { useGameMenu } from './useGameMenu';
+
+/** Portrait library card. Hover/focus lifts and tilts it; Enter opens; context menu has quick actions. */
+export const GameCard = memo(function GameCard({
+  game,
+  focused,
+  showMeta = true,
+  onFocusGame,
+  tabIndex,
+}: {
+  game: Game;
+  focused?: boolean;
+  showMeta?: boolean;
+  onFocusGame?: (id: string) => void;
+  tabIndex?: number;
+}) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const navigate = useStore((s) => s.navigate);
+  const setFocusGame = useStore((s) => s.setFocusGame);
+  const reduce = useReducedMotion();
+  const { open: openMenu, element: menu } = useGameMenu(game);
+  const [tilt, setTilt] = useState<CSSProperties>({});
+  const installed = isInstalled(game);
+  const lp = lastPlayed(game);
+  const accent = peekPalette(game)?.accent ?? `oklch(0.72 0.15 ${titleHue(game.title)})`;
+  const platforms = [...new Set(game.installations.map((i) => i.platform))];
+
+  const onMove = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      if (reduce) return;
+      const r = e.currentTarget.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      setTilt({ ['--rx' as string]: `${(-y * 6).toFixed(2)}deg`, ['--ry' as string]: `${(x * 7).toFixed(2)}deg`, ['--sheen' as string]: (x * 60).toFixed(1) });
+    },
+    [reduce],
+  );
+
+  const activate = () => {
+    setFocusGame(game.id);
+    onFocusGame?.(game.id);
+  };
+
+  return (
+    <div>
+      <button
+        ref={ref}
+        className="card"
+        data-focused={focused || undefined}
+        data-dim={!installed || undefined}
+        data-game-id={game.id}
+        tabIndex={tabIndex}
+        style={{ ['--card-accent' as string]: accent, ...tilt }}
+        aria-label={`${game.title}${installed ? '' : ', not installed'}${game.favorite ? ', favorite' : ''}`}
+        onMouseMove={onMove}
+        onMouseEnter={activate}
+        onFocus={activate}
+        onMouseLeave={() => setTilt({})}
+        onClick={() => navigate({ name: 'game', id: game.id })}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          openMenu({ x: e.clientX, y: e.clientY });
+        }}
+        onKeyDown={(e: KeyboardEvent) => {
+          if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+            e.preventDefault();
+            const r = ref.current!.getBoundingClientRect();
+            openMenu({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+          }
+        }}
+      >
+        <div className="card__frame">
+          <GameCover game={game} />
+        </div>
+        <div className="card__badges">
+          <span />
+          {game.favorite && <Heart className="card__fav" size={16} fill="currentColor" aria-hidden />}
+        </div>
+        {!installed && (
+          <div className="card__state">
+            <Badge tone="glass">Not installed</Badge>
+          </div>
+        )}
+      </button>
+      {showMeta && (
+        <div className="card__meta">
+          <div className="card__title truncate" title={game.title}>
+            {game.title}
+          </div>
+          <div className="card__sub">
+            <span className="truncate">{platforms.map((p) => PLATFORM_NAMES[p]).join(' · ')}</span>
+            {lp.at && <span className="truncate">· {formatRelative(lp.at)}</span>}
+          </div>
+        </div>
+      )}
+      {menu}
+    </div>
+  );
+});

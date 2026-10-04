@@ -1,0 +1,58 @@
+name: Release
+
+# Push a tag like v0.2.0 to build, package and publish a release.
+# The installer link in the README always points at the latest release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 0.2.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Resolve version
+        shell: pwsh
+        run: |
+          $v = '${{ github.event.inputs.version }}'
+          if (-not $v) { $v = '${{ github.ref_name }}'.TrimStart('v') }
+          "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Run tests
+        run: dotnet test tests/Vystral.Tests -c Release
+
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk --version 1.2.161
+
+      - name: Build and package
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./build/pack.ps1 -Version $env:VERSION -DownloadPrevious -Repo "https://github.com/${{ github.repository }}"
+
+      - name: Publish GitHub release
+        shell: pwsh
+        run: |
+          vpk upload github --repoUrl "https://github.com/${{ github.repository }}" `
+            --token "${{ secrets.GITHUB_TOKEN }}" --publish --merge `
+            --releaseName "VYSTRAL $env:VERSION" --tag "v$env:VERSION" -o Releases

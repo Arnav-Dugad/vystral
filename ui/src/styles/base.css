@@ -1,0 +1,143 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg-0);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-regular);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  user-select: none;
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+/* Allow selecting meaningful text such as descriptions and notes. */
+.selectable,
+input,
+textarea {
+  user-select: text;
+}
+
+h1, h2, h3, h4, p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+:focus {
+  outline: none;
+}
+
+/* One focus language everywhere: visible ring only for keyboard/controller focus. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--r-sm);
+}
+
+::selection {
+  background: var(--accent-ghost);
+  color: var(--text-1);
+}
+
+/* Slim, quiet scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(1 0 0 / 0.16) transparent;
+}
+:root[data-theme='light'] * {
+  scrollbar-color: oklch(0.2 0.02 282 / 0.22) transparent;
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.caps {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  color: var(--text-3);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Reduced motion: transitions collapse to near-instant cross-fades. */
+:root[data-reduced-motion='true'] *,
+:root[data-reduced-motion='true'] *::before,
+:root[data-reduced-motion='true'] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Performance mode: everything decorative stops. */
+:root[data-performance='true'] *,
+:root[data-performance='true'] *::before,
+:root[data-performance='true'] *::after {
+  animation-play-state: paused !important;
+}

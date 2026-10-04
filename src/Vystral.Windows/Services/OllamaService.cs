@@ -205,16 +205,18 @@ public sealed partial class OllamaService
     {
         if (o is null) return null;
         var result = new JsonObject();
-        var intent = o["intent"]?.GetValue<string>();
+        // Model output is untrusted: a wrongly-typed node must yield null, never throw.
+        static string? Str(JsonNode? n) => n is JsonValue v && v.TryGetValue<string>(out var s) ? s : null;
+        var intent = Str(o["intent"]);
         if (intent is not ("filter" or "launch" or "recommend")) return null;
         result["intent"] = intent;
         if (o["title"] is JsonValue t && t.TryGetValue<string>(out var title) && title.Length <= 120) result["title"] = title;
         if (o["installed"] is JsonValue i && i.TryGetValue<bool>(out var inst)) result["installed"] = inst;
         if (o["favorite"] is JsonValue f && f.TryGetValue<bool>(out var fav)) result["favorite"] = fav;
         if (o["platforms"] is JsonArray ps)
-            result["platforms"] = new JsonArray(ps.Select(p => p?.GetValue<string>()).Where(p => p is "steam" or "xbox" or "epic" or "gog" or "ea" or "ubisoft" or "battlenet" or "manual").Select(p => (JsonNode)p!).ToArray());
+            result["platforms"] = new JsonArray(ps.Select(Str).Where(p => p is "steam" or "xbox" or "epic" or "gog" or "ea" or "ubisoft" or "battlenet" or "manual").Select(p => (JsonNode)p!).ToArray());
         if (o["genres"] is JsonArray gs)
-            result["genres"] = new JsonArray(gs.Select(g => g?.GetValue<string>()).Where(g => g is { Length: > 0 and <= 40 }).Take(5).Select(g => (JsonNode)g!).ToArray());
+            result["genres"] = new JsonArray(gs.Select(Str).Where(g => g is { Length: > 0 and <= 40 }).Take(5).Select(g => (JsonNode)g!).ToArray());
         foreach (var key in new[] { "maxSizeGb", "minSizeGb", "notPlayedDays", "playedWithinDays" })
             if (o[key] is JsonValue n && n.TryGetValue<double>(out var d) && d is >= 0 and <= 100000) result[key] = d;
         if (o["drive"] is JsonValue dv && dv.TryGetValue<string>(out var drive) && DriveLetter().IsMatch(drive)) result["drive"] = drive.ToUpperInvariant()[..1] + ":";
@@ -260,12 +262,14 @@ public sealed partial class OllamaService
                      .Take(maxGames))
         {
             var store = g.Installations.Max(i => i.ImportedPlaytimeMinutes) is int m ? (m / 60.0).ToString("0.#") : "unknown";
-            var last = new[] { g.LastTrackedPlay }.Concat(g.Installations.Select(i => i.ImportedLastPlayed)).Where(x => x is not null).Max() ?? "never/unknown";
+            // Only real timestamps are cut to their date part; the fallback text must stay intact.
+            var lastPlayed = new[] { g.LastTrackedPlay }.Concat(g.Installations.Select(i => i.ImportedLastPlayed)).Where(x => x is not null).Max();
+            var last = lastPlayed is null ? "never/unknown" : lastPlayed.Length > 10 ? lastPlayed[..10] : lastPlayed;
             sb.Append(g.Title).Append(" | ").Append(string.Join("+", g.Installations.Select(i => i.Platform).Distinct()))
               .Append(" | ").Append(g.Installations.Any(i => i.State == "installed") ? "yes" : "no")
               .Append(" | ").Append(g.Genres.Count == 0 ? "unknown" : string.Join(", ", g.Genres))
               .Append(" | ").Append((g.TrackedSeconds / 3600.0).ToString("0.#"))
-              .Append(" | ").Append(store).Append(" | ").AppendLine(last.Length > 10 ? last[..10] : last);
+              .Append(" | ").Append(store).Append(" | ").AppendLine(last);
         }
         return sb.ToString();
     }
@@ -292,9 +296,9 @@ public sealed partial class OllamaService
          "required":["intent"]}
         """;
 
-    [GeneratedRegex(@"^[a-zA-Z0-9][a-zA-Z0-9._\-/]*(:[a-zA-Z0-9._\-]+)?$")]
+    [GeneratedRegex(@"^[a-zA-Z0-9][a-zA-Z0-9._\-/]*(:[a-zA-Z0-9._\-]+)?\z")]
     private static partial Regex ModelName();
 
-    [GeneratedRegex(@"^[A-Za-z]:?$")]
+    [GeneratedRegex(@"^[A-Za-z]:?\z")]
     private static partial Regex DriveLetter();
 }

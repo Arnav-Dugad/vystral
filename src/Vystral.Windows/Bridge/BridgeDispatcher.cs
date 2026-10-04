@@ -116,9 +116,9 @@ public sealed partial class BridgeDispatcher
         return s;
     }
 
-    [GeneratedRegex("^[A-Za-z0-9_-]{1,40}$")]
+    [GeneratedRegex(@"^[A-Za-z0-9_-]{1,40}\z")]
     private static partial Regex RequestId();
 
-    [GeneratedRegex("^[0-9a-f]{32}$")]
+    [GeneratedRegex(@"^[0-9a-f]{32}\z")]
     private static partial Regex EntityId();
 }

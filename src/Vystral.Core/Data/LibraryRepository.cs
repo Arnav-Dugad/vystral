@@ -499,12 +499,20 @@ public sealed class LibraryRepository(Database db)
     public int RecoverOpenSessions()
     {
         using var conn = db.Open();
-        return conn.Execute("""
-            UPDATE sessions SET
-              duration_seconds = COALESCE((SELECT MAX(t_offset_ms)/1000 FROM perf_samples p WHERE p.session_id = sessions.id), 0),
-              end = start
-            WHERE end IS NULL
-            """);
+        using var tx = conn.BeginTransaction();
+        var open = conn.Query<(string Id, string Start, long? LastMs)>("""
+            SELECT s.id, s.start, (SELECT MAX(t_offset_ms) FROM perf_samples p WHERE p.session_id = s.id)
+            FROM sessions s WHERE s.end IS NULL
+            """, transaction: tx).ToList();
+        foreach (var (id, start, lastMs) in open)
+        {
+            // The last performance sample is the best evidence of how long the game ran.
+            var duration = (int)((lastMs ?? 0) / 1000);
+            var end = DateTimeOffset.TryParse(start, out var s) ? s.AddSeconds(duration).ToString("O") : start;
+            conn.Execute("UPDATE sessions SET duration_seconds=@duration, end=@end WHERE id=@id", new { id, duration, end }, tx);
+        }
+        tx.Commit();
+        return open.Count;
     }
 
     public void AddPerfSamples(string sessionId, IEnumerable<PerfSampleDto> samples)

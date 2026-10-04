@@ -1,0 +1,174 @@
+/* ===== Gaming Journal ===== */
+.jr { display: grid; gap: var(--s-5); align-content: start; max-width: 1480px; }
+
+.jr-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--s-4); flex-wrap: wrap; }
+.jr-head__text { display: grid; gap: 4px; min-width: 0; }
+.jr-title { font-family: var(--font-display); font-size: var(--fs-3xl); font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+.jr-lede { color: var(--text-2); display: flex; align-items: center; flex-wrap: wrap; row-gap: 6px; margin-top: 2px; }
+.jr-head__actions { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+
+.jr-toolbar { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
+.jr-toolbar__meta { font-size: var(--fs-sm); color: var(--text-3); }
+
+.jr-tiles .vx-tile { background: linear-gradient(180deg, oklch(1 0 0 / 0.025), transparent 70%), var(--bg-1); }
+
+.jr-provenance {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+  padding: var(--s-3) var(--s-5);
+  border-radius: var(--r-lg);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  line-height: 1.9;
+}
+.jr-provenance > svg { flex: none; margin-top: 6px; color: var(--text-3); }
+.jr-provenance strong { color: var(--text-1); font-weight: var(--fw-semibold); }
+
+.jr-range-empty { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
+.jr-range-empty > svg { color: var(--text-3); flex: none; }
+.jr-range-empty > div { flex: 1; min-width: 220px; }
+.jr-range-empty h2 { font-size: var(--fs-lg); font-weight: var(--fw-semibold); }
+.jr-range-empty p { color: var(--text-3); font-size: var(--fs-sm); }
+
+.jr-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--s-5); }
+.jr-split { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: var(--s-5); align-items: start; }
+@media (max-width: 1180px) {
+  .jr-grid, .jr-split { grid-template-columns: minmax(0, 1fr); }
+}
+
+.jr-muted { color: var(--text-3); font-size: var(--fs-sm); }
+.jr-footnote { margin-top: var(--s-4); font-size: var(--fs-xs); color: var(--text-3); }
+
+/* ----- Top games ----- */
+.jr-top { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.jr-top__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: 8px 10px 8px 6px;
+  border-radius: var(--r-md);
+  text-align: left;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+button.jr-top__row:hover { background: oklch(1 0 0 / 0.035); }
+:root[data-theme='light'] button.jr-top__row:hover { background: oklch(0.2 0.02 282 / 0.04); }
+.jr-top__rank { width: 20px; text-align: center; color: var(--text-3); font-size: var(--fs-xs); flex: none; }
+.jr-top__body { display: grid; gap: 6px; flex: 1; min-width: 0; }
+.jr-top__line { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); min-width: 0; }
+.jr-top__title { font-weight: var(--fw-medium); color: var(--text-1); min-width: 0; }
+.jr-top__value { font-size: var(--fs-sm); color: var(--text-1); flex: none; }
+.jr-top__meta { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; font-size: var(--fs-xs); color: var(--text-3); }
+
+/* ----- Genres ----- */
+.jr-genres { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
+.jr-genres li + li { margin-top: 2px; }
+.jr-genres li { display: grid; gap: 6px; }
+.jr-genres__row { display: flex; justify-content: space-between; gap: var(--s-3); align-items: baseline; }
+.jr-genres__name { font-weight: var(--fw-medium); }
+.jr-genres__value { font-size: var(--fs-sm); color: var(--text-1); }
+.jr-genres__meta { font-size: var(--fs-xs); color: var(--text-3); font-weight: var(--fw-regular); }
+
+/* ----- Year in review ----- */
+.jr-year { position: relative; overflow: hidden; padding: var(--s-6) var(--s-8) var(--s-6); border-radius: var(--r-2xl); isolation: isolate; }
+.jr-year__glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(60% 120% at 0% 0%, oklch(from var(--accent) l c h / 0.2), transparent 60%),
+    radial-gradient(50% 120% at 100% 100%, oklch(from var(--accent-2) l c h / 0.16), transparent 60%);
+}
+.jr-year__head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--s-6); flex-wrap: wrap; }
+.jr-year__title { font-family: var(--font-display); font-size: var(--fs-2xl); font-weight: 600; letter-spacing: -0.03em; margin-top: 4px; }
+.jr-year__hero { display: grid; justify-items: end; gap: 2px; }
+.jr-year__big { font-size: var(--fs-4xl); font-weight: var(--fw-semibold); letter-spacing: -0.035em; line-height: 1; }
+.jr-year__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.8fr) minmax(220px, 1fr);
+  gap: var(--s-8);
+  margin-top: var(--s-6);
+  align-items: end;
+}
+@media (max-width: 1180px) {
+  .jr-year__body { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); }
+  .jr-year__hero { justify-items: start; }
+}
+.jr-year__facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--s-4) var(--s-5); margin: 0; }
+.jr-year__facts div { display: grid; gap: 2px; min-width: 0; }
+.jr-year__facts dd { margin: 0; font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--text-1); }
+.jr-year__top { display: flex; gap: var(--s-3); align-items: center; padding: var(--s-3); border-radius: var(--r-lg); background: oklch(from var(--bg-2) l c h / 0.6); box-shadow: inset 0 0 0 1px var(--line); min-width: 0; }
+.jr-year__top-text { display: grid; gap: 2px; min-width: 0; }
+.jr-year__top-title { font-weight: var(--fw-semibold); font-size: var(--fs-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jr-year__months { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; height: 96px; align-items: end; }
+.jr-year__month { display: grid; grid-template-rows: 1fr auto; height: 100%; gap: 4px; justify-items: center; }
+.jr-year__bar { align-self: end; width: 100%; max-width: 18px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--accent), oklch(from var(--accent-2) l c h / 0.7)); opacity: 0.55; }
+.jr-year__month[data-best] .jr-year__bar { opacity: 1; box-shadow: 0 0 16px -2px oklch(from var(--accent) l c h / 0.6); }
+.jr-year__month[data-future] .jr-year__mlabel { opacity: 0.45; }
+.jr-year__mlabel { font-size: 10px; color: var(--text-3); font-family: var(--font-mono); }
+
+/* ----- Timeline ----- */
+.jr-timeline { display: grid; gap: var(--s-5); }
+.jr-day { display: grid; gap: var(--s-2); }
+.jr-day__head { display: flex; align-items: center; gap: var(--s-3); }
+.jr-day__head h3 { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text-1); }
+.jr-day__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-ghost); flex: none; }
+.jr-day__total { margin-left: auto; font-size: var(--fs-xs); color: var(--text-3); }
+.jr-day__list { list-style: none; margin: 0 0 0 3px; padding: 0 0 0 var(--s-4); border-left: 1px solid var(--line); display: grid; gap: 2px; }
+.jr-session {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  text-align: left;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+button.jr-session:hover { background: oklch(1 0 0 / 0.035); }
+:root[data-theme='light'] button.jr-session:hover { background: oklch(0.2 0.02 282 / 0.04); }
+.jr-session__time { width: 64px; flex: none; font-size: var(--fs-xs); color: var(--text-3); }
+.jr-session__title { flex: 1; min-width: 0; font-weight: var(--fw-medium); }
+.jr-session__metrics { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--text-2); padding: 2px 7px; border-radius: var(--r-pill); background: var(--bg-3); flex: none; }
+.jr-session__dur { font-size: var(--fs-sm); color: var(--text-1); flex: none; min-width: 56px; text-align: right; }
+.jr-session__chev { color: var(--text-3); flex: none; transition: transform var(--dur-fast) var(--ease-out); }
+button.jr-session:hover .jr-session__chev { transform: translateX(2px); color: var(--text-2); }
+.jr-more { display: flex; align-items: center; gap: var(--s-3); padding-left: var(--s-5); }
+
+/* ----- Time capsule ----- */
+.jr-capsule .jr-more { padding-left: 0; margin-top: var(--s-2); }
+.jr-milestones { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-1); position: relative; }
+.jr-milestone { display: flex; gap: var(--s-3); align-items: flex-start; padding: 8px 4px; position: relative; }
+.jr-milestone:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 44px;
+  bottom: -6px;
+  width: 1px;
+  background: var(--line);
+}
+.jr-milestone__icon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--accent-text);
+  background: radial-gradient(circle at 50% 30%, var(--accent-ghost), transparent 80%), var(--bg-2);
+  box-shadow: var(--inner-hi), 0 0 0 1px var(--line);
+}
+.jr-milestone__body { display: grid; gap: 1px; flex: 1; min-width: 0; padding-top: 2px; }
+.jr-milestone__title { font-weight: var(--fw-medium); color: var(--text-1); line-height: 1.35; }
+.jr-milestone__detail { font-size: var(--fs-xs); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jr-milestone__date { font-size: var(--fs-xs); color: var(--text-3); flex: none; padding-top: 4px; }
+
+/* ----- Delete dialog ----- */
+.jr-delete { display: grid; gap: var(--s-3); }
+.jr-delete ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.jr-delete strong { color: var(--text-1); }
+
+.jr-skeleton { display: grid; gap: var(--s-5); }

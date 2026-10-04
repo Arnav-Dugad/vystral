@@ -1,0 +1,495 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
+import {
+  AlertTriangle, ArrowLeft, BarChart3, Check, ChevronDown, Clock3, Eye, EyeOff, FolderOpen, FolderPlus, Heart, HardDrive,
+  ImagePlus, MoreHorizontal, Play, Split, Store, Trash2,
+} from 'lucide-react';
+import { call, errorMessage } from '../bridge/bridge';
+import type { Game, Installation, PerfSummary, Session } from '../bridge/types';
+import {
+  formatBytes, formatDate, formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural, primaryInstallation, sizeOf,
+} from '../lib/format';
+import { ease, spring } from '../lib/motion';
+import { paletteFor } from '../lib/palette';
+import { openFolder, removeManualGame, setCollection, setHidden, setNotes, setPreferred, setRating, toggleFavorite } from '../state/actions';
+import { useReducedMotion, useStore } from '../state/store';
+import { GameCover } from '../components/game/GameCover';
+import { GameCard } from '../components/game/GameCard';
+import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, SectionHead, Stars, Tabs } from '../components/ui/primitives';
+import { Menu, type MenuEntry } from '../components/ui/Menu';
+import { Dialog } from '../components/ui/Dialog';
+import './detail.css';
+
+type Tab = 'overview' | 'sessions' | 'versions' | 'artwork';
+
+export function GameDetailView({ id }: { id: string }) {
+  const game = useStore((s) => s.gamesById.get(id));
+  const loaded = useStore((s) => s.libraryLoaded);
+  const navigate = useStore((s) => s.navigate);
+  const setFocusGame = useStore((s) => s.setFocusGame);
+  const [tab, setTab] = useState<Tab>('overview');
+
+  useEffect(() => {
+    if (game) {
+      setFocusGame(game.id);
+      void paletteFor(game);
+    }
+  }, [game, setFocusGame]);
+
+  if (!game) {
+    return (
+      <div className="page">
+        <EmptyState
+          icon={<AlertTriangle size={32} />}
+          title={loaded ? 'This game is no longer in your library' : 'Loading…'}
+          body={loaded ? 'It may have been merged with another entry or removed.' : ''}
+          actions={loaded ? <Button onClick={() => navigate({ name: 'library' })}>Go to library</Button> : undefined}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="detail">
+      <DetailHero game={game} />
+      <div className="page detail__body">
+        <StatsRow game={game} />
+        <div style={{ marginTop: 'var(--s-8)' }}>
+          <Tabs
+            label="Game sections"
+            value={tab}
+            onChange={setTab}
+            tabs={[
+              { value: 'overview', label: 'Overview' },
+              { value: 'sessions', label: `Sessions${game.sessionCount ? ` · ${game.sessionCount}` : ''}` },
+              { value: 'versions', label: `Versions${game.installations.length > 1 ? ` · ${game.installations.length}` : ''}` },
+              { value: 'artwork', label: 'Artwork' },
+            ]}
+          />
+        </div>
+        <div className="detail__panel">
+          {tab === 'overview' && <Overview game={game} />}
+          {tab === 'sessions' && <Sessions game={game} />}
+          {tab === 'versions' && <Versions game={game} />}
+          {tab === 'artwork' && <ArtworkTab game={game} />}
+        </div>
+        <Related game={game} />
+      </div>
+    </div>
+  );
+}
+
+function DetailHero({ game }: { game: Game }) {
+  const goBack = useStore((s) => s.goBack);
+  const launchGame = useStore((s) => s.launchGame);
+  const launch = useStore((s) => s.launch);
+  const collections = useStore((s) => s.library.collections);
+  const reduce = useReducedMotion();
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const [chooseAt, setChooseAt] = useState<{ x: number; y: number } | null>(null);
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const chooserRef = useRef<HTMLButtonElement>(null);
+
+  const installed = game.installations.filter((i) => i.state === 'installed');
+  const primary = primaryInstallation(game);
+  const busy = launch?.gameId === game.id && ['validating', 'starting', 'waiting'].includes(launch.phase);
+  const running = launch?.gameId === game.id && launch.phase === 'running';
+  const manual = game.installations.every((i) => i.platform === 'manual');
+
+  const status = describeStatus(game, primary);
+
+  const more: MenuEntry[] = [
+    { label: game.favorite ? 'Remove from favorites' : 'Add to favorites', icon: <Heart size={16} />, onSelect: () => void toggleFavorite(game) },
+    { label: 'Open install folder', icon: <FolderOpen size={16} />, onSelect: () => void openFolder(game), disabled: !installed.length },
+    ...installed.filter((i) => i.platform !== 'manual').map<MenuEntry>((i) => ({
+      label: `Open in ${PLATFORM_NAMES[i.platform]}`,
+      icon: <Store size={16} />,
+      onSelect: () => void call('game.openInStore', { installationId: i.id }).catch((err) => useStore.getState().toast({ tone: 'info', title: errorMessage(err) })),
+    })),
+    { kind: 'separator' },
+    ...(collections.length
+      ? collections.slice(0, 10).map<MenuEntry>((c) => ({
+          label: c.name,
+          icon: game.collections.includes(c.id) ? <Check size={16} /> : <FolderPlus size={16} />,
+          onSelect: () => void setCollection(game, c.id, !game.collections.includes(c.id)),
+        }))
+      : []),
+    { label: 'New collection…', icon: <FolderPlus size={16} />, onSelect: () => window.dispatchEvent(new CustomEvent('vystral:new-collection')) },
+    { kind: 'separator' },
+    game.hidden
+      ? { label: 'Show in library', icon: <Eye size={16} />, onSelect: () => void setHidden(game, false) }
+      : { label: 'Hide from library', icon: <EyeOff size={16} />, onSelect: () => void setHidden(game, true) },
+    ...(manual ? [{ label: 'Remove from VYSTRAL…', icon: <Trash2 size={16} />, danger: true, onSelect: () => setRemoveOpen(true) } as MenuEntry] : []),
+  ];
+
+  return (
+    <section className="dhero">
+      <motion.div className="dhero__art" initial={reduce ? false : { opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, ease: ease.cinematic }}>
+        <GameCover game={game} kind="hero" eager />
+      </motion.div>
+      <div className="dhero__scrim" />
+      <div className="dhero__top">
+        <Button variant="ghost" size="sm" icon={<ArrowLeft size={16} />} onClick={goBack} className="dhero__back">
+          Back
+        </Button>
+      </div>
+      <motion.div className="dhero__content" initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring.hero, delay: 0.05 }}>
+        <div className="dhero__cover">
+          <GameCover game={game} eager />
+        </div>
+        <div className="dhero__info">
+          {game.art.logo ? <img className="dhero__logo" src={game.art.logo} alt={game.title} /> : <h1 className="dhero__title">{game.title}</h1>}
+          {game.art.logo && <h1 className="visually-hidden">{game.title}</h1>}
+          <div className="dhero__badges">
+            {[...new Set(game.installations.map((i) => i.platform))].map((p) => <PlatformBadge key={p} platform={p} />)}
+            {game.genres.slice(0, 3).map((g) => <Badge key={g}>{g}</Badge>)}
+          </div>
+          <div className={`dhero__status dhero__status--${status.tone}`} role="status">
+            {status.tone === 'warn' ? <AlertTriangle size={15} aria-hidden /> : <HardDrive size={15} aria-hidden />}
+            <span>{status.text}</span>
+          </div>
+          <div className="dhero__actions">
+            <div className="split-btn">
+              <Button
+                variant="primary"
+                size="xl"
+                icon={<Play size={22} fill="currentColor" />}
+                disabled={!installed.length || running}
+                loading={busy}
+                onClick={() => void launchGame(game.id)}
+                data-autofocus
+              >
+                {running ? 'Playing' : installed.length ? (installed.length > 1 && primary ? `Play · ${PLATFORM_NAMES[primary.platform]}` : 'Play') : 'Not installed'}
+              </Button>
+              {installed.length > 1 && (
+                <button
+                  ref={chooserRef}
+                  className="split-btn__more"
+                  aria-label="Choose which store to play from"
+                  onClick={() => {
+                    const r = chooserRef.current!.getBoundingClientRect();
+                    setChooseAt({ x: r.left, y: r.bottom + 6 });
+                  }}
+                >
+                  <ChevronDown size={18} />
+                </button>
+              )}
+            </div>
+            <IconButton label={game.favorite ? 'Remove from favorites' : 'Add to favorites'} pressed={game.favorite} onClick={() => void toggleFavorite(game)} className="dhero__icon">
+              <Heart size={19} fill={game.favorite ? 'currentColor' : 'none'} />
+            </IconButton>
+            <IconButton
+              ref={moreRef}
+              label="More actions"
+              className="dhero__icon"
+              onClick={() => {
+                const r = moreRef.current!.getBoundingClientRect();
+                setMenuAt({ x: r.left, y: r.bottom + 6 });
+              }}
+            >
+              <MoreHorizontal size={19} />
+            </IconButton>
+          </div>
+        </div>
+      </motion.div>
+      <Menu at={menuAt} entries={more} onClose={() => setMenuAt(null)} label="Game actions" />
+      <Menu
+        at={chooseAt}
+        onClose={() => setChooseAt(null)}
+        label="Play from"
+        entries={[
+          { kind: 'label', label: 'Play from' },
+          ...installed.map<MenuEntry>((i) => ({
+            label: `${PLATFORM_NAMES[i.platform]}${i.id === game.preferredInstallationId ? ' (preferred)' : ''}`,
+            icon: <Play size={16} />,
+            onSelect: () => void launchGame(game.id, i.id),
+          })),
+          { kind: 'separator' },
+          ...installed.map<MenuEntry>((i) => ({
+            label: `Always use ${PLATFORM_NAMES[i.platform]}`,
+            icon: i.id === game.preferredInstallationId ? <Check size={16} /> : <span style={{ width: 16 }} />,
+            onSelect: () => void setPreferred(game, i.id),
+          })),
+        ]}
+      />
+      <Dialog
+        open={removeOpen}
+        onClose={() => setRemoveOpen(false)}
+        title={`Remove ${game.title} from VYSTRAL?`}
+        actions={<><Button variant="ghost" onClick={() => setRemoveOpen(false)}>Cancel</Button><Button variant="danger" onClick={() => { setRemoveOpen(false); void removeManualGame(game); }}>Remove from VYSTRAL</Button></>}
+      >
+        VYSTRAL forgets this entry and its tracked sessions. The program and its files on your PC are not touched.
+      </Dialog>
+    </section>
+  );
+}
+
+function describeStatus(game: Game, primary: Installation | undefined): { text: string; tone: 'ok' | 'warn' | 'muted' } {
+  if (!isInstalled(game)) {
+    const missing = game.installations.find((i) => i.state === 'missing');
+    return missing
+      ? { text: `Not found during the last scan of ${PLATFORM_NAMES[missing.platform]}. Reinstall it there or rescan.`, tone: 'warn' }
+      : { text: 'Not installed on this PC', tone: 'muted' };
+  }
+  const parts: string[] = ['Installed'];
+  if (primary?.drive) parts.push(`on ${primary.drive}`);
+  const size = sizeOf(game);
+  if (size) parts.push(`· ${formatBytes(size)}`);
+  if (primary?.clientRequired) parts.push(`· starts through ${PLATFORM_NAMES[primary.platform]}`);
+  else if (primary) parts.push('· launches directly');
+  return { text: parts.join(' '), tone: 'ok' };
+}
+
+function StatsRow({ game }: { game: Game }) {
+  const lp = lastPlayed(game);
+  const imported = importedMinutes(game);
+  const importedFrom = game.installations.find((i) => i.importedPlaytimeMinutes != null)?.platform;
+  const stats = [
+    { label: 'Last played', value: lp.at ? formatRelative(lp.at) : 'Never', hint: lp.source === 'imported' ? 'from the store' : lp.source === 'tracked' ? 'tracked by VYSTRAL' : undefined },
+    { label: 'Tracked by VYSTRAL', value: game.trackedSeconds ? formatDuration(game.trackedSeconds) : '—', hint: game.sessionCount ? plural(game.sessionCount, 'session') : 'No sessions yet' },
+    { label: importedFrom ? `${PLATFORM_NAMES[importedFrom]} playtime` : 'Store playtime', value: imported != null ? formatDuration(imported * 60) : '—', hint: imported != null ? 'reported by the store' : 'not available from this store' },
+    { label: 'Size on disk', value: formatBytes(sizeOf(game)), hint: game.installations.length > 1 ? 'largest installed version' : undefined },
+  ];
+  return (
+    <div className="stats-row">
+      {stats.map((s) => (
+        <div key={s.label} className="stat">
+          <div className="caps">{s.label}</div>
+          <div className="stat__value">{s.value}</div>
+          {s.hint && <div className="stat__hint">{s.hint}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Overview({ game }: { game: Game }) {
+  const [notes, setNotesText] = useState(game.notes ?? '');
+  const [saved, setSaved] = useState(true);
+  useEffect(() => {
+    setNotesText(game.notes ?? '');
+    setSaved(true);
+  }, [game.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Autosave notes shortly after typing stops.
+  useEffect(() => {
+    if (saved) return;
+    const t = window.setTimeout(async () => {
+      if (await setNotes(game, notes)) setSaved(true);
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, [notes, saved, game]);
+
+  const facts = [
+    ['Developer', game.developer],
+    ['Publisher', game.publisher],
+    ['Released', game.releaseDate],
+    ['Genres', game.genres.join(', ') || null],
+  ].filter(([, v]) => v);
+
+  return (
+    <div className="overview">
+      <div className="overview__main">
+        {game.description ? <p className="overview__desc selectable">{game.description}</p> : <p className="overview__desc" style={{ color: 'var(--text-3)' }}>No description available. VYSTRAL only shows information it can source reliably.</p>}
+        <div style={{ marginTop: 'var(--s-6)' }}>
+          <Field label="Your notes" hint={saved ? 'Saved on this PC' : 'Saving…'} htmlFor="notes">
+            <textarea id="notes" className="input selectable" value={notes} maxLength={20000} placeholder="Where you left off, tips, codes, mods…" onChange={(e) => { setNotesText(e.target.value); setSaved(false); }} />
+          </Field>
+        </div>
+      </div>
+      <aside className="overview__side surface">
+        <div className="field__label" style={{ marginBottom: 8 }}>Your rating</div>
+        <Stars value={game.userRating} onChange={(v) => void setRating(game, v)} label="Your rating" />
+        <dl className="facts">
+          {facts.map(([k, v]) => (
+            <div key={k}>
+              <dt className="caps">{k}</dt>
+              <dd className="selectable">{v}</dd>
+            </div>
+          ))}
+          <div>
+            <dt className="caps">Added to VYSTRAL</dt>
+            <dd>{formatDate(game.added)}</dd>
+          </div>
+        </dl>
+        <p className="provenance">
+          {game.metadataSource ? <>Details from {game.metadataSource}.</> : <>Details come from your store apps.</>} Artwork and descriptions belong to their respective owners.
+        </p>
+      </aside>
+    </div>
+  );
+}
+
+function Sessions({ game }: { game: Game }) {
+  const [sessions, setSessions] = useState<Session[] | null>(null);
+  const navigate = useStore((s) => s.navigate);
+  useEffect(() => {
+    let alive = true;
+    call<Session[]>('sessions.list', { gameId: game.id, limit: 200 }).then((s) => alive && setSessions(s)).catch(() => alive && setSessions([]));
+    return () => { alive = false; };
+  }, [game.id, game.sessionCount]);
+
+  if (!sessions) return <div className="skeleton" style={{ height: 160 }} />;
+  if (!sessions.length)
+    return <EmptyState icon={<Clock3 size={30} />} title="No tracked sessions yet" body="When you start this game from VYSTRAL, each session’s length — and, if enabled, its CPU/GPU load — is recorded here, on this PC only." />;
+
+  return (
+    <div className="sessions">
+      {sessions.map((s) => {
+        let perf: PerfSummary | null = null;
+        try { perf = s.perfSummary ? JSON.parse(s.perfSummary) : null; } catch { perf = null; }
+        return (
+          <button key={s.id} className="session-row" onClick={() => perf && navigate({ name: 'performance', sessionId: s.id })} disabled={!perf}>
+            <div>
+              <div className="session-row__date">{formatDate(s.start, { dateStyle: 'medium', timeStyle: 'short' })}</div>
+              <div className="stat__hint">{formatRelative(s.start)}</div>
+            </div>
+            <div className="num session-row__dur">{formatDuration(s.durationSeconds)}</div>
+            <div className="session-row__perf">
+              {perf?.gpuAvg != null && <Badge>GPU {Math.round(perf.gpuAvg)}%</Badge>}
+              {perf?.cpuAvg != null && <Badge>CPU {Math.round(perf.cpuAvg)}%</Badge>}
+              {perf?.gpuTempMaxC != null && <Badge>{Math.round(perf.gpuTempMaxC)}°C peak</Badge>}
+              {perf && <BarChart3 size={16} aria-label="Open performance details" />}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Versions({ game }: { game: Game }) {
+  const toast = useStore((s) => s.toast);
+  const refresh = useStore((s) => s.refreshLibrary);
+  return (
+    <div className="versions">
+      <p className="stat__hint" style={{ marginBottom: 16 }}>
+        Each store version keeps its own install details. {game.installations.length > 1 ? 'Choose which one Play uses by default.' : ''}
+      </p>
+      {game.installations.map((i) => (
+        <VersionCard
+          key={i.id}
+          game={game}
+          inst={i}
+          onUnmerge={async () => {
+            try {
+              await call('game.unmerge', { installationId: i.id });
+              toast({ tone: 'success', title: 'Separated into its own entry' });
+              await refresh();
+            } catch (err) {
+              toast({ tone: 'danger', title: 'Couldn’t separate', body: errorMessage(err) });
+            }
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function VersionCard({ game, inst, onUnmerge }: { game: Game; inst: Installation; onUnmerge: () => void }) {
+  const [args, setArgs] = useState(inst.userLaunchArgs ?? '');
+  const toast = useStore((s) => s.toast);
+  const supportsArgs = inst.launchKind !== 'Uri' || inst.platform === 'steam';
+  const preferred = game.preferredInstallationId === inst.id;
+  const saveArgs = async () => {
+    try {
+      await call('game.setLaunchArgs', { installationId: inst.id, args: args.trim() || null });
+      toast({ tone: 'success', title: args.trim() ? 'Launch options saved' : 'Launch options cleared' });
+    } catch (err) {
+      toast({ tone: 'danger', title: 'Couldn’t save launch options', body: errorMessage(err) });
+    }
+  };
+  return (
+    <div className="version surface">
+      <div className="version__head">
+        <PlatformBadge platform={inst.platform} />
+        {inst.state === 'installed' ? <Badge tone="ok">Installed</Badge> : inst.state === 'missing' ? <Badge tone="warn">Missing</Badge> : <Badge>Not installed</Badge>}
+        {preferred && <Badge tone="accent">Preferred</Badge>}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+          {game.installations.length > 1 && !preferred && inst.state === 'installed' && <Button size="sm" variant="ghost" onClick={() => void setPreferred(game, inst.id)}>Make preferred</Button>}
+          {game.installations.length > 1 && <Button size="sm" variant="ghost" icon={<Split size={14} />} onClick={onUnmerge}>Separate</Button>}
+        </div>
+      </div>
+      <dl className="version__facts">
+        <div><dt className="caps">Title in store</dt><dd>{inst.title}</dd></div>
+        <div><dt className="caps">Location</dt><dd className="selectable truncate" title={inst.installPath ?? ''}>{inst.installPath ?? '—'}</dd></div>
+        <div><dt className="caps">Size</dt><dd className="num">{formatBytes(inst.sizeBytes)}</dd></div>
+        <div><dt className="caps">Starts via</dt><dd>{inst.launchKind === 'Uri' ? `${PLATFORM_NAMES[inst.platform]} (store app required)` : inst.launchKind === 'PackagedApp' ? 'Windows (Xbox app identity)' : 'Direct program launch'}</dd></div>
+        <div><dt className="caps">Store ID</dt><dd className="num selectable">{inst.platformGameId}</dd></div>
+        <div><dt className="caps">Last seen</dt><dd>{formatRelative(inst.lastSeen)}</dd></div>
+      </dl>
+      {supportsArgs && (
+        <div className="version__args">
+          <Field label="Launch options" hint="Passed to the game exactly as typed. Only use options the game or store documents." htmlFor={`args-${inst.id}`}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input id={`args-${inst.id}`} className="input num" value={args} maxLength={1024} placeholder="e.g. -fullscreen -dx12" onChange={(e) => setArgs(e.target.value)} />
+              <Button onClick={saveArgs} disabled={(inst.userLaunchArgs ?? '') === args.trim()}>Save</Button>
+            </div>
+          </Field>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ArtworkTab({ game }: { game: Game }) {
+  const toast = useStore((s) => s.toast);
+  const refresh = useStore((s) => s.refreshLibrary);
+  const choose = async (kind: 'cover' | 'hero' | 'logo') => {
+    try {
+      if (await call<boolean>('game.chooseArtwork', { gameId: game.id, kind }, 300_000)) {
+        await refresh();
+        toast({ tone: 'success', title: 'Artwork updated' });
+      }
+    } catch (err) {
+      toast({ tone: 'danger', title: 'Couldn’t use that image', body: errorMessage(err) });
+    }
+  };
+  const slots: { kind: 'cover' | 'hero' | 'logo'; label: string; hint: string; ratio: string }[] = [
+    { kind: 'cover', label: 'Cover', hint: 'Portrait, ideally 600×900', ratio: '2 / 3' },
+    { kind: 'hero', label: 'Background', hint: 'Wide, ideally 1920×620 or larger', ratio: '16 / 7' },
+    { kind: 'logo', label: 'Logo', hint: 'Transparent PNG', ratio: '16 / 7' },
+  ];
+  return (
+    <div className="art-slots">
+      {slots.map((s) => (
+        <div key={s.kind} className="art-slot">
+          <div className="art-slot__preview" style={{ aspectRatio: s.ratio }}>
+            {s.kind === 'logo' ? (game.art.logo ? <img src={game.art.logo} alt="" /> : <span className="stat__hint">No logo</span>) : <GameCover game={game} kind={s.kind} />}
+          </div>
+          <div className="art-slot__meta">
+            <div className="field__label">{s.label}</div>
+            <div className="stat__hint">{s.hint}</div>
+          </div>
+          <Button size="sm" icon={<ImagePlus size={14} />} onClick={() => void choose(s.kind)}>Choose image…</Button>
+        </div>
+      ))}
+      <p className="provenance" style={{ gridColumn: '1 / -1' }}>Images you choose are copied into VYSTRAL’s private cache and always take priority. Store artwork is never replaced in the store itself.</p>
+    </div>
+  );
+}
+
+function Related({ game }: { game: Game }) {
+  const games = useStore((s) => s.library.games);
+  const related = useMemo(() => {
+    const genres = new Set(game.genres);
+    if (!genres.size) return [];
+    return games
+      .filter((g) => g.id !== game.id && !g.hidden)
+      .map((g) => ({ g, score: g.genres.filter((x) => genres.has(x)).length + (isInstalled(g) ? 0.5 : 0) }))
+      .filter((x) => x.score >= 1)
+      .sort((a, b) => b.score - a.score || a.g.sortTitle.localeCompare(b.g.sortTitle))
+      .slice(0, 6)
+      .map((x) => x.g);
+  }, [games, game]);
+  if (!related.length) return null;
+  return (
+    <section style={{ marginTop: 'var(--s-12)' }}>
+      <SectionHead title="More like this in your library" meta={`Sharing ${game.genres.slice(0, 2).join(' & ')}`} />
+      <div className="related">
+        {related.map((g) => <GameCard key={g.id} game={g} />)}
+      </div>
+    </section>
+  );
+}
