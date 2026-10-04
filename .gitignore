@@ -1,0 +1,16 @@
+bin/
+obj/
+*.user
+.vs/
+node_modules/
+ui/dist/
+ui/test-results/
+ui/playwright-report/
+ui/blob-report/
+src/Vystral.App/wwwroot/
+artifacts/
+Releases/
+publish/
+*.log
+.env
+*.pfx

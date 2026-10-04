@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Vystral.App/Vystral.App.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Vystral.Core/Vystral.Core.csproj" />
+    <Project Path="src/Vystral.Windows/Vystral.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Vystral.Tests/Vystral.Tests.csproj" />
+  </Folder>
+</Solution>
