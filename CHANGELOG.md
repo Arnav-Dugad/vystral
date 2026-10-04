@@ -4,12 +4,11 @@ All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). Th
 
 ## [0.1.1] — 2026-10-04
 
-### Fixed
-- Crash-recovered sessions now record a sensible end time (start + the last recorded activity), instead of ending at the moment they started.
-- The release pipeline uses current GitHub Actions versions.
+### Changed
+- The build and release pipeline now uses current GitHub Actions versions.
 
 ### Notes
-- This is the first update delivered through VYSTRAL's built-in updater, which downloads only the difference from 0.1.0.
+- This is the first update delivered through VYSTRAL's built-in updater. It downloads only the difference from 0.1.0, and your library, settings and history carry over.
 
 ## [0.1.0] — 2026-10-04
 
