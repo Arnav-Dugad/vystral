@@ -1,9 +1,9 @@
-﻿{
+{
   "version": 1,
   "parameters": "--include-transitive",
   "projects": [
     {
-      "path": "C:/Users/rduga/Desktop/VYSTRAL Windows App/src/Vystral.App/Vystral.App.csproj",
+      "path": "./src/Vystral.App/Vystral.App.csproj",
       "frameworks": [
         {
           "framework": "net10.0-windows10.0.22621.0",
