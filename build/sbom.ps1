@@ -8,6 +8,6 @@ npm sbom --sbom-format cyclonedx --omit dev | Out-File -Encoding utf8 (Join-Path
 Pop-Location
 # Paths are made repository-relative so no machine-specific folders are published.
 $json = dotnet list (Join-Path $root 'src\Vystral.App\Vystral.App.csproj') package --include-transitive --format json | Out-String
-$json.Replace(($root -replace '\', '/'), '.').Replace($root.Replace('', '\'), '.') |
+$json.Replace($root.Replace('\', '/'), '.').Replace($root.Replace('\', '\\'), '.') |
   Out-File -Encoding utf8 (Join-Path $out 'dotnet-packages.json')
 Write-Host "SBOM written to $out"
