@@ -17,6 +17,9 @@ import { SteamWebApiSettings } from './settings/SteamWebApiSettings';
 import { FpsCaptureSettings } from './settings/FpsCaptureSettings';
 import { WindowsIntegrationSettings } from './settings/WindowsIntegrationSettings';
 import { DataSaverSettings } from './settings/DataSaverSettings';
+import { NetworkHealthSettings } from './settings/NetworkHealthSettings';
+import { NewBadge, NewBadgeGroup } from '../whatsnew/NewBadge';
+import { openWhatsNew } from '../whatsnew/state';
 import './settings.css';
 
 interface Section {
@@ -50,6 +53,12 @@ export function SettingsView({ section }: { section?: string }) {
   useEffect(() => {
     if (shown.length && !shown.some((s) => s.id === active)) setActive(shown[0].id);
   }, [shown, active]);
+  // A deep link (e.g. from "What's new") to another section while Settings is already open.
+  const [linked, setLinked] = useState(section);
+  if (section !== linked) {
+    setLinked(section);
+    if (section) setActive(section);
+  }
 
   if (!settings) return null;
   return (
@@ -65,6 +74,7 @@ export function SettingsView({ section }: { section?: string }) {
             <button key={s.id} className="settings__navitem" aria-current={active === s.id ? 'true' : undefined} onClick={() => setActive(s.id)}>
               {s.icon}
               {s.label}
+              <NewBadgeGroup prefix={`settings.${s.id}.`} />
             </button>
           ))}
           {shown.length === 0 && <p className="stat__hint" style={{ padding: 12 }}>No settings match “{query}”.</p>}
@@ -76,7 +86,7 @@ export function SettingsView({ section }: { section?: string }) {
           {active === 'controller' && <Controller s={settings} />}
           {active === 'ai' && <AiSection s={settings} />}
           {active === 'updates' && <Updates s={settings} />}
-          {active === 'privacy' && <><Privacy s={settings} /><DataSaverSettings /></>}
+          {active === 'privacy' && <><Privacy s={settings} /><DataSaverSettings /><NetworkHealthSettings /></>}
           {active === 'windows' && <WindowsIntegrationSettings />}
           {active === 'data' && <DataSection />}
           {active === 'about' && <About />}
@@ -112,9 +122,10 @@ function Row({ label, hint, control, id }: { label: ReactNode; hint?: ReactNode;
   );
 }
 
-function BoolRow({ s, k, label, hint }: { s: Settings; k: SettingKey; label: string; hint?: ReactNode }) {
+function BoolRow({ s, k, label, hint, badge }: { s: Settings; k: SettingKey; label: string; hint?: ReactNode; badge?: string }) {
   const set = useSet();
-  return <Row id={k} label={label} hint={hint} control={<Toggle id={k} label={label} checked={!!s[k]} onChange={(v) => void set(k, v as never)} />} />;
+  const shown = badge ? <>{label}<NewBadge k={badge} variant="pill" seenWhenVisible /></> : label;
+  return <Row id={k} label={shown} hint={hint} control={<Toggle id={k} label={label} checked={!!s[k]} onChange={(v) => void set(k, v as never)} />} />;
 }
 
 function Appearance({ s }: { s: Settings }) {
@@ -142,7 +153,7 @@ function Appearance({ s }: { s: Settings }) {
           ))}
         </div>
         <Row
-          label="Accent colour"
+          label={<>Accent colour<NewBadge k="settings.appearance.windows-accent" variant="pill" seenWhenVisible /></>}
           hint="Automatic follows the artwork of the game you’re looking at; Windows accent follows your Windows colour. Both are adjusted so text always stays readable."
           control={
             <div className="accent-picker" role="radiogroup" aria-label="Accent colour">
@@ -156,7 +167,7 @@ function Appearance({ s }: { s: Settings }) {
       <Group title="Living Canvas" description={<>A subtle animated background that takes on each game’s colours and mood ({Object.values(MOOD_LABEL).map((m) => m.split(' —')[0]).join(', ')}). It pauses whenever VYSTRAL is hidden or a game is running.</>}>
         <BoolRow s={s} k="appearance.livingCanvas" label="Living Canvas" hint={<BackdropHint />} />
         <Row label="Intensity" control={<div style={{ width: 200 }}><Slider label="Living Canvas intensity" value={s['appearance.canvasIntensity']} min={0} max={1} step={0.05} onChange={(v) => void set('appearance.canvasIntensity', v)} /></div>} />
-        <BoolRow s={s} k="canvas.followTrailer" label="Follow trailer colours" hint="While a game’s trailer plays, the background slowly takes on its colours, then returns to the artwork. Off with reduced motion or low quality." />
+        <BoolRow s={s} k="canvas.followTrailer" label="Follow trailer colours" badge="settings.appearance.follow-trailer" hint="While a game’s trailer plays, the background slowly takes on its colours, then returns to the artwork. Off with reduced motion or low quality." />
         <Row
           label="Visual quality"
           hint="Low turns off blur and animated backgrounds — best for older or battery-powered PCs."
@@ -249,7 +260,7 @@ function Launching({ s }: { s: Settings }) {
       </Group>
       <Group title="Sessions & performance" description="Readings come from Windows performance counters (and NVIDIA’s driver for GPU temperature when present). They are read-only: VYSTRAL never changes clocks, fans, power limits or game files.">
         <BoolRow s={s} k="performance.collectMetrics" label="Record CPU, GPU and memory while playing" hint="One light reading every two seconds, stored only on this PC. Frame rate needs the optional frame-rate capture below." />
-        <BoolRow s={s} k="performance.backgroundApps" label="Note which other apps are running" hint="About every 30 seconds, VYSTRAL notes the program names of the heaviest other apps (memory and CPU only — no window titles or paths), so the Performance page can show which ones tend to run during rough sessions. Read-only, without opening any process. Needs the recording above." />
+        <BoolRow s={s} k="performance.backgroundApps" label="Note which other apps are running" badge="settings.launching.background-apps" hint="About every 30 seconds, VYSTRAL notes the program names of the heaviest other apps (memory and CPU only — no window titles or paths), so the Performance page can show which ones tend to run during rough sessions. Read-only, without opening any process. Needs the recording above." />
         <BoolRow s={s} k="pulse.enabled" label="Show the Pulse window during games" hint="A tiny always-on-top window with your session timer and system load. It’s a normal window — nothing is injected into games. It can’t appear over exclusive-fullscreen games." />
         <Row label="Preview the Pulse window" control={<Button size="sm" onClick={() => void call('window.pulse', { visible: true }).catch(() => {})}>Show preview</Button>} />
       </Group>
@@ -410,6 +421,9 @@ function About() {
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
           <Button size="sm" onClick={() => void call('app.openExternal', { url: 'https://github.com/Arnav-Dugad/vystral' }).catch(() => {})}>GitHub</Button>
           <Button size="sm" variant="ghost" onClick={() => void call('update.openReleases').catch(() => {})}>Release notes</Button>
+          <Button size="sm" variant="ghost" icon={<Sparkles size={14} />} onClick={openWhatsNew}>
+            See what’s new<NewBadge k="settings.about.whats-new" variant="pill" seenWhenVisible />
+          </Button>
         </div>
         {info?.os && <p className="srow__hint num" style={{ marginTop: 16 }}>{info.os} · {info.cpuCount} logical CPUs</p>}
       </div>

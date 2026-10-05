@@ -11,6 +11,7 @@ import { CommandBar } from './components/shell/CommandBar';
 import { LaunchOverlay } from './components/shell/LaunchOverlay';
 import { Intro, rememberIntroPreference } from './components/shell/Intro';
 import { UpdateCenterDialog } from './components/shell/UpdateCenter';
+import { WhatsNewHost } from './whatsnew/WhatsNewHost';
 import { Toaster } from './components/ui/Toaster';
 import { Dialog } from './components/ui/Dialog';
 import { Button, Skeleton } from './components/ui/primitives';
@@ -108,6 +109,7 @@ export default function App() {
       <CommandBar />
       <LaunchOverlay />
       <UpdateCenterDialog />
+      <WhatsNewHost />
       <NewCollectionDialog />
       <Toaster />
     </>

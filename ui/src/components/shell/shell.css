@@ -122,6 +122,12 @@
 
 /* ===== Update center ===== */
 .update-pill { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--text-1); background: var(--accent-ghost); box-shadow: inset 0 0 0 1px oklch(from var(--accent) l c h / 0.35); }
+.update-pill--quiet { height: 26px; padding: 0 10px; font-weight: var(--fw-medium); color: var(--text-3); background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.update-pill--quiet:hover { color: var(--text-1); }
+.update-pill--quiet[data-phase='error'] { color: var(--warn); box-shadow: inset 0 0 0 1px oklch(from var(--warn) l c h / 0.35); }
+.update-pill__spin { animation: update-spin 1.1s linear infinite; }
+@keyframes update-spin { to { transform: rotate(360deg); } }
+[data-reduced-motion='true'] .update-pill__spin { animation: none; }
 .update-pill__ring { --p: 0; width: 16px; height: 16px; border-radius: 50%; background: conic-gradient(var(--accent) calc(var(--p) * 1%), oklch(1 0 0 / 0.15) 0); mask: radial-gradient(circle, transparent 5px, #000 5.5px); }
 .update-panel { display: grid; gap: var(--s-4); }
 .update-panel__head { display: flex; align-items: center; gap: var(--s-4); }

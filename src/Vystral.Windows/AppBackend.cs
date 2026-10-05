@@ -101,6 +101,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterStatusHandlers();         // AppBackend.Status.cs: game status tracking, trailers
         RegisterShellHandlers();          // AppBackend.Shell.cs: Windows accent colour, Mica backdrop
         RegisterDataInsightHandlers();    // AppBackend.DataInsights.cs: achievement feed, driver comparison, background apps
+        RegisterUpdateExtrasHandlers();   // AppBackend.Updates.cs: what's new, "New" badges, silent rollback, network health
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 
@@ -111,6 +112,7 @@ public sealed partial class AppBackend : IDisposable
     {
         if (_initialScanStarted) return;
         _initialScanStarted = true;
+        ConfirmStartWhenStable();
         _ = Task.Run(async () =>
         {
             try { await Library.ScanAsync(_life.Token); }
@@ -156,6 +158,7 @@ public sealed partial class AppBackend : IDisposable
         _life.Cancel();
         Sessions.StopTracking();
         Updates.ApplyOnExitIfReady();
+        RecordCleanExit();
         try { File.Delete(Paths.CrashMarker); } catch (IOException) { }
         Log.Info("app", "Clean shutdown");
     }

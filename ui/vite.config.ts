@@ -1,5 +1,8 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { parseChangelog } from './src/whatsnew/changelog.ts';
 
 // Content-Security-Policy for the packaged app. WebView2 virtual hosts can't send headers,
 // so the policy is injected as a <meta> tag at build time (the dev server keeps HMR working).
@@ -28,9 +31,26 @@ function csp(): Plugin {
   };
 }
 
+// "What's new" source: CHANGELOG.md's newest sections, parsed at build time into a virtual module
+// (the format of CHANGELOG.md doesn't change; see docs/RELEASING.md).
+const CHANGELOG_ID = 'virtual:vystral-changelog';
+function changelog(): Plugin {
+  const file = fileURLToPath(new URL('../CHANGELOG.md', import.meta.url));
+  return {
+    name: 'vystral-changelog',
+    resolveId: (id) => (id === CHANGELOG_ID ? '\0' + CHANGELOG_ID : undefined),
+    load(id) {
+      if (id !== '\0' + CHANGELOG_ID) return;
+      this.addWatchFile(file);
+      const releases = existsSync(file) ? parseChangelog(readFileSync(file, 'utf8')).slice(0, 8) : [];
+      return `export const releases = ${JSON.stringify(releases)};`;
+    },
+  };
+}
+
 export default defineConfig({
   base: './',
-  plugins: [react(), csp()],
+  plugins: [react(), csp(), changelog()],
   build: {
     target: 'es2023',
     sourcemap: false,

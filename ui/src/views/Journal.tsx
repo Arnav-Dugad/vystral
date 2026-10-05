@@ -23,6 +23,7 @@ import {
   computeTotals, currentStreak, genreTotals, groupByDay, inRange, longestStreak, milestones, normalizeSessions, playtimeBuckets, splitAcrossDays, takeGroups,
   topGames, yearInReview, type DayGroup, type JSession, type Milestone, type Range, type YearReview,
 } from './journal/stats';
+import { NewBadge } from '../whatsnew/NewBadge';
 import './journal.css';
 
 const RANGE_OPTIONS: { value: Range; label: string }[] = [
@@ -180,7 +181,7 @@ export function JournalView({ tab: routeTab }: { tab?: JournalTab } = {}) {
         onChange={switchTab}
         tabs={[
           { value: 'sessions', label: 'Sessions' },
-          { value: 'achievements', label: <><Trophy size={14} aria-hidden style={{ marginRight: 6, verticalAlign: '-2px' }} />Achievements</> },
+          { value: 'achievements', label: <><Trophy size={14} aria-hidden style={{ marginRight: 6, verticalAlign: '-2px' }} />Achievements<NewBadge k="journal.achievements" /></> },
         ]}
       />
 

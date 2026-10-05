@@ -58,6 +58,14 @@ public static class Log
         }
     }
 
+    /// <summary>Waits (bounded) for queued lines to be written, before the process exits abruptly.</summary>
+    public static void Flush(TimeSpan timeout)
+    {
+        var until = DateTime.UtcNow + timeout;
+        while (Queue.Count > 0 && DateTime.UtcNow < until) Thread.Sleep(20);
+        Thread.Sleep(30); // the line being written when the queue emptied
+    }
+
     private static void Pump()
     {
         foreach (var line in Queue.GetConsumingEnumerable())

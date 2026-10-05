@@ -2,6 +2,8 @@ using System.Diagnostics;
 using Velopack;
 using Velopack.Sources;
 using Vystral.Windows.Bridge;
+using Vystral.Windows.Services.NetworkHealth;
+using Vystral.Windows.Services.Rollback;
 
 namespace Vystral.Windows.Services;
 
@@ -35,6 +37,9 @@ public sealed class UpdateService
     private CancellationTokenSource? _downloadCts;
 
     public Func<bool> IsGameRunning { get; set; } = () => false;
+
+    /// <summary>Silent rollback: preserves the running version's package before a download, and knows blocked versions.</summary>
+    public StartupProtection? Protection { get; set; }
 
     public UpdateService(IEventSink events)
     {
@@ -79,9 +84,20 @@ public sealed class UpdateService
                 Log.Info("update", "Up to date", new { version = State.CurrentVersion, ms = sw.ElapsedMilliseconds });
                 return Set(State with { Phase = "upToDate", NewVersion = null, Progress = 0, CheckedAt = now });
             }
-            Log.Info("update", "Update available", new { from = State.CurrentVersion, to = info.TargetFullRelease.Version.ToString(), ms = sw.ElapsedMilliseconds });
-            _pending = info;
             var target = info.TargetFullRelease;
+            if (Protection?.IsBlocked(target.Version.ToString()) == true)
+            {
+                // It didn't start on this PC and we rolled back from it: wait for the next release.
+                Log.Info("update", "Skipping a version that didn't start on this PC", new { version = target.Version.ToString() });
+                _pending = null;
+                return Set(State with
+                {
+                    Phase = "upToDate", NewVersion = null, Progress = 0, CheckedAt = now,
+                    Message = $"VYSTRAL {target.Version} is skipped because it didn't start correctly on this PC. You'll get the next version automatically.",
+                });
+            }
+            Log.Info("update", "Update available", new { from = State.CurrentVersion, to = target.Version.ToString(), ms = sw.ElapsedMilliseconds });
+            _pending = info;
             // Velopack downloads only the deltas when they chain from the installed version.
             var deltas = info.DeltasToTarget ?? [];
             var downloadSize = deltas.Length > 0 ? deltas.Sum(d => d.Size) : target.Size;
@@ -93,6 +109,7 @@ public sealed class UpdateService
                 Delta = deltas.Length > 0,
                 Notes = Truncate(target.NotesMarkdown, 6000),
                 CheckedAt = now,
+                Message = null,
             });
         }
         catch (TimeoutException)
@@ -108,10 +125,11 @@ public sealed class UpdateService
         catch (Exception ex)
         {
             Log.Warn("update", "Update check failed", ex: ex);
+            var reason = NetworkErrors.Describe(ex);
             return Set(State with
             {
                 Phase = "error",
-                Message = "Couldn't reach GitHub to check for updates. VYSTRAL will try again later.",
+                Message = $"Couldn't reach GitHub to check for updates ({LowerFirst(reason.Text)}). VYSTRAL will try again later.",
                 CheckedAt = DateTimeOffset.Now.ToString("O"),
             });
         }
@@ -127,6 +145,8 @@ public sealed class UpdateService
         Set(State with { Phase = "downloading", Progress = 0, Message = null, BytesPerSecond = null });
         try
         {
+            // Velopack deletes the running version's package once the new one is downloaded: keep it for a rollback.
+            if (Protection is { } protection) await Task.Run(() => protection.PreserveCurrent(_manager), cts.Token);
             var lastEmit = TimeSpan.Zero;
             await _manager.DownloadUpdatesAsync(_pending, p =>
             {
@@ -145,7 +165,8 @@ public sealed class UpdateService
         catch (Exception ex)
         {
             Log.Warn("update", "Update download failed", ex: ex);
-            return Set(State with { Phase = "error", BytesPerSecond = null, Message = "The update couldn't be downloaded. Your current version is unaffected." });
+            var reason = NetworkErrors.Describe(ex);
+            return Set(State with { Phase = "error", BytesPerSecond = null, Message = $"The update couldn't be downloaded ({LowerFirst(reason.Text)}). Your current version is unaffected." });
         }
     }
 
@@ -181,6 +202,8 @@ public sealed class UpdateService
         _events.Emit("update.state", state);
         return state;
     }
+
+    internal static string LowerFirst(string s) => s.Length > 1 && char.IsUpper(s[0]) && !char.IsUpper(s[1]) ? char.ToLowerInvariant(s[0]) + s[1..] : s;
 
     private static string? Truncate(string? s, int max) => s is null || s.Length <= max ? s : s[..max] + "…";
 }
