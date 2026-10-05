@@ -168,8 +168,11 @@ test.describe('hold to confirm', () => {
     return dialog;
   }
 
+  // Like every other Settings test, these run with reduced motion: on GitHub's GPU-less Windows
+  // runner the full-motion Settings page stalled the renderer for minutes (not reproducible locally,
+  // even with the CPU throttled 6×). The hold logic and timing are identical either way.
   test('a tap does nothing; holding Enter fills the ring and confirms', async ({ page }) => {
-    await open(page);
+    await open(page, '?reduced');
     const dialog = await openReset(page);
     const hold = dialog.getByRole('button', { name: 'Reset settings' });
     await expect(hold).toHaveAccessibleDescription('Press and hold to confirm.');
@@ -189,7 +192,7 @@ test.describe('hold to confirm', () => {
   });
 
   test('releasing the mouse early springs back without confirming', async ({ page }) => {
-    await open(page);
+    await open(page, '?reduced');
     const dialog = await openReset(page);
     const hold = dialog.getByRole('button', { name: 'Reset settings' });
     await page.waitForTimeout(400); // let the dialog settle before aiming
