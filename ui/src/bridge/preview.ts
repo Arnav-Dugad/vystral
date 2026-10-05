@@ -9,6 +9,7 @@ import type {
 } from './types';
 import { BridgeError } from './bridge';
 import { steamPreviewHandlers } from './preview.steam';
+import { shellPreviewHandlers } from './preview.shell';
 import { INSIGHT_DEFAULT_SETTINGS, PREVIEW_EXPECTED_DETECT_MS, PREVIEW_FAILED_ACTIONS, decoratePreviewSessions, insightPreviewHandlers } from './preview.insights';
 
 type Emit = (name: string, payload: unknown) => void;
@@ -381,6 +382,8 @@ export function createPreviewBackend() {
     ...steamPreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
     // Track B: pre-flight, fixes, FPS capture, hotkey, notifications (fictional data).
     ...insight,
+    // Track G: fictional Windows accent; no Mica in a browser.
+    ...shellPreviewHandlers({ emit: () => emit, timers }),
   };
 
   return {

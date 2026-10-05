@@ -23,7 +23,8 @@
 - CPU/GPU/RAM are system-wide values while your game runs, not per-game.
 
 **Features**
-- Selecting a Windows notification doesn't open the matching page yet: `AppNotificationManager.Register()` fails in self-contained Windows App SDK 2.5.1 apps ([microsoft/WindowsAppSDK#6774](https://github.com/microsoft/WindowsAppSDK/issues/6774)). Notifications are still shown, and Settings explains this.
+- Selecting a Windows notification opens the matching page through a per-user `vystral:` URI scheme (protocol activation), because `AppNotificationManager.Register()` fails in self-contained Windows App SDK 2.5.1 apps ([microsoft/WindowsAppSDK#6774](https://github.com/microsoft/WindowsAppSDK/issues/6774)); VYSTRAL tries the SDK first and switches back automatically once it works. Each click briefly starts a second VYSTRAL process that hands the page to the running window (well under a second). If the URI scheme can't be registered, notifications are still shown and Settings says they can't open pages. Notifications have no buttons (protocol toasts can't run in-app actions).
+- The Mica backdrop (Living Canvas off) needs Windows 11 and Windows' transparency effects; with energy saver, a contrast theme, Immersive, safe mode or the OLED/High-contrast VYSTRAL themes the window stays solid. It follows VYSTRAL's light/dark theme, not Windows'.
 - Trailers are available for Steam games only (Steam's public HLS streams).
 - Storage Studio breaks down only the games VYSTRAL knows about; "everything else" on a drive is the remainder.
 - The summon shortcut can't use most Win-key combinations (Windows reserves them). If another app already registered the same shortcut, Settings says so.

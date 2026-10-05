@@ -210,7 +210,7 @@ export interface WindowState {
 
 export interface Settings {
   'appearance.theme': 'obsidian' | 'oled' | 'light' | 'contrast';
-  'appearance.accent': 'auto' | 'violet' | 'blue' | 'cyan' | 'rose' | 'amber' | 'emerald';
+  'appearance.accent': 'auto' | 'violet' | 'blue' | 'cyan' | 'rose' | 'amber' | 'emerald' | 'system';
   'appearance.livingCanvas': boolean;
   'appearance.canvasIntensity': number;
   'appearance.quality': 'auto' | 'high' | 'balanced' | 'low';
@@ -558,4 +558,31 @@ export interface BridgeEvents {
   'fps.install': { phase: 'downloading' | 'installed' | 'failed'; progress: number; error?: string };
   /** Sent when a Windows notification is clicked; route is a store Route object. */
   'app.navigate': { route: { name: string; id?: string; sessionId?: string; section?: string } };
+}
+
+// ---------- Track G: Windows shell — accent colour, Mica backdrop (mirror of SystemAppearanceDto) ----------
+
+export interface SystemAppearance {
+  /** Windows accent colour, #RRGGBB. */
+  accent: string;
+  /** AccentLight1..3 and AccentDark1..3 (#RRGGBB). */
+  accentLight: string[];
+  accentDark: string[];
+  /** Windows app mode is dark. */
+  systemDark: boolean;
+  highContrast: boolean;
+  /** Windows "Transparency effects" setting. */
+  transparencyEffects: boolean;
+  energySaver: boolean;
+  /** Mica is available (Windows 11). */
+  backdropSupported: boolean;
+  backdropRequested: boolean;
+  /** What the window draws right now: 'mica' only while the UI asked for it and Windows can show it. */
+  backdrop: 'mica' | 'none';
+  backdropReason: 'notRequested' | 'safeMode' | 'immersive' | 'unsupported' | 'highContrast' | 'transparencyOff' | 'energySaver' | 'preview' | null;
+}
+
+export interface BridgeEvents {
+  /** Windows accent, theme or backdrop state changed. Also returned by call('system.accent') and call('window.backdrop', { value }). */
+  'system.accent': SystemAppearance;
 }

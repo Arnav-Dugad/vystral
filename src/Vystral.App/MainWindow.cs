@@ -5,6 +5,7 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Web.WebView2.Core;
 using Vystral.App.Host;
@@ -29,6 +30,7 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
     private readonly WebView2 _web;
     private readonly AppBackend _backend;
     private readonly GamepadBridge _gamepad;
+    private readonly AppearanceHost _appearance;
     private readonly WindowPlacement _placement;
     private readonly List<string> _bufferedEvents = [];
     private readonly CancellationTokenSource _life = new();
@@ -62,6 +64,9 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         Content = _root;
 
         _backend = new AppBackend(this, this, safeMode);
+        // Track G: Windows accent + Mica backdrop (used when Living Canvas is off).
+        _appearance = new AppearanceHost(this, safeMode);
+        _backend.AppearanceHost = _appearance;
         _placement = new WindowPlacement(Path.Combine(_backend.Paths.Root, "window.json"));
         _placement.Restore(AppWindow);
         if (_backend.Settings.GetBool("startup.immersive") && !safeMode) SetMode("immersive");
@@ -396,6 +401,7 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
     private void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
         _closing = true;
+        _appearance.Dispose();
         _hotkey.Dispose();
         _placement.Save(AppWindow, _immersive);
         _pulse?.Close();
@@ -428,6 +434,7 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         _immersive = mode == "immersive";
         AppWindow.SetPresenter(_immersive ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Overlapped);
         if (_immersive) SetDragRegions([]);
+        _appearance?.SetImmersive(_immersive);
         return true;
     });
 
@@ -456,17 +463,59 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
 
     public void SetCaptionTheme(bool dark) => OnUi(() =>
     {
+        // Contrast-checked against VYSTRAL's own title bar and Mica in both modes (CaptionPalette).
+        static global::Windows.UI.Color C(Argb c) => global::Windows.UI.Color.FromArgb(c.A, c.R, c.G, c.B);
+        var palette = CaptionPalette.For(dark);
         var tb = AppWindow.TitleBar;
-        var fg = dark ? Colors.White : global::Windows.UI.Color.FromArgb(255, 20, 20, 28);
         tb.ButtonBackgroundColor = Colors.Transparent;
         tb.ButtonInactiveBackgroundColor = Colors.Transparent;
-        tb.ButtonForegroundColor = fg;
-        tb.ButtonInactiveForegroundColor = global::Windows.UI.Color.FromArgb(140, fg.R, fg.G, fg.B);
-        tb.ButtonHoverBackgroundColor = global::Windows.UI.Color.FromArgb(28, fg.R, fg.G, fg.B);
-        tb.ButtonHoverForegroundColor = fg;
-        tb.ButtonPressedBackgroundColor = global::Windows.UI.Color.FromArgb(48, fg.R, fg.G, fg.B);
+        tb.ButtonForegroundColor = C(palette.Foreground);
+        tb.ButtonInactiveForegroundColor = C(palette.InactiveForeground);
+        tb.ButtonHoverBackgroundColor = C(palette.HoverBackground);
+        tb.ButtonHoverForegroundColor = C(palette.Foreground);
+        tb.ButtonPressedBackgroundColor = C(palette.PressedBackground);
+        tb.ButtonPressedForegroundColor = C(palette.Foreground);
+        // Mica takes its tint from the content's theme, so it follows VYSTRAL's theme rather than Windows'.
+        if (_root is not null) _root.RequestedTheme = dark ? ElementTheme.Dark : ElementTheme.Light; // null during construction
         return true;
     });
+
+    /// <summary>
+    /// Turns the Mica backdrop on or off. While it's on, the window and WebView2 are transparent and
+    /// the page paints its own opaque background everywhere except the title bar and sidebar.
+    /// </summary>
+    internal bool SetBackdrop(bool on)
+    {
+        try
+        {
+            if (on)
+            {
+                SystemBackdrop ??= new MicaBackdrop { Kind = MicaKind.Base };
+                _root.Background = new SolidColorBrush(Colors.Transparent);
+                _web.DefaultBackgroundColor = Colors.Transparent;
+            }
+            else
+            {
+                _web.DefaultBackgroundColor = Obsidian;
+                _root.Background = new SolidColorBrush(Obsidian);
+                SystemBackdrop = null;
+            }
+            Log.Info("appearance", on ? "Mica backdrop on" : "Mica backdrop off");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("appearance", "Changing the window backdrop failed; staying opaque", ex: ex);
+            try
+            {
+                _web.DefaultBackgroundColor = Obsidian;
+                _root.Background = new SolidColorBrush(Obsidian);
+                SystemBackdrop = null;
+            }
+            catch (Exception) { }
+            return false;
+        }
+    }
 
     public void SetPulseVisible(bool visible) => OnUi(() =>
     {

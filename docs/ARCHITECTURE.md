@@ -65,6 +65,8 @@ flowchart LR
 
 **AI is a separate, optional layer.** `OllamaService` talks to `127.0.0.1:11434` from C#, not from the page (which Ollama's CORS rules would block anyway). Structured answers are validated against a whitelist schema in `ValidateQuery`. The model can only *describe* or *propose*: any action still goes through the same user-driven bridge calls. Inference is refused while a game runs.
 
+**Windows shell integration.** Notifications are toasts sent as VYSTRAL's AppUserModelID (`velopack.Vystral`, the same ID as the Start menu shortcut; `Vystral.Dev` for development builds) with `activationType="protocol"`. Selecting one opens `vystral://open?route=…`; Windows starts `Vystral.exe --uri <uri>`, single-instance redirection hands the activation to the running window, and the route is re-validated (`ActivationUri`) before the UI receives `app.navigate`. The scheme and AUMID live under `HKCU\Software\Classes` (written by the Velopack install/update hooks and repaired on every start; removed on uninstall). When Living Canvas is off, the window uses a Mica backdrop (`AppearanceHost`, `system.accent` / `window.backdrop`): WebView2's background becomes transparent and the page keeps everything opaque except the title bar and sidebar.
+
 **Updates.** Velopack reads `releases.win.json` from the latest GitHub release, downloads the full or delta package with SHA verification, and applies it on restart, or silently after exit when the user doesn't restart. Updates never apply while a game is running.
 
 ## Failure isolation

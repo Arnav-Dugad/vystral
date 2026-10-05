@@ -4,6 +4,7 @@ import { exit, pick, spring } from './lib/motion';
 import { startInput } from './lib/input';
 import { useGameRunning, useReducedMotion, useStore, type Route } from './state/store';
 import { LivingCanvas } from './components/shell/LivingCanvas';
+import { SystemBackdrop } from './components/shell/SystemBackdrop';
 import { TitleBar } from './components/shell/TitleBar';
 import { Sidebar } from './components/shell/Sidebar';
 import { CommandBar } from './components/shell/CommandBar';
@@ -84,6 +85,7 @@ export default function App() {
   return (
     <>
       <LivingCanvas />
+      <SystemBackdrop />
       <Intro />
       {mode === 'immersive' ? (
         <Suspense fallback={null}>
