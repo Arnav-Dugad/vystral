@@ -422,6 +422,9 @@ test.describe('visual regression', () => {
     test(`${name} looks right`, async ({ page }) => {
       await open(page, '?reduced');
       if (nav) await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: nav }).click();
+      // Under a full parallel run images can still be decoding/fading in after a fixed wait.
+      await page.waitForLoadState('networkidle');
+      await page.waitForFunction(() => [...document.images].every((i) => i.complete) && [...document.querySelectorAll('.cover')].every((c) => c.getAttribute('data-loaded') !== 'false'));
       await page.waitForTimeout(700);
       // Hide (not mask) the Living Canvas: it's a fixed full-screen layer, so a mask painted the
       // whole screenshot magenta and the comparison could never catch anything.

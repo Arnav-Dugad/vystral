@@ -106,7 +106,8 @@ test.describe('library sort animation', () => {
     await open(page, '?games=5000');
     await nav(page, /Library/);
     const cards = page.locator('.vgrid [data-flip-id]');
-    await expect(cards.first()).toBeVisible();
+    // 5,000 preview games take a while to build under a full parallel run (and on CI).
+    await expect(cards.first()).toBeVisible({ timeout: 20_000 });
     const mounted = await cards.count();
     expect(mounted).toBeLessThan(120);
 
