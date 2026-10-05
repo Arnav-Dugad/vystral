@@ -40,6 +40,8 @@
 | **Journal & Performance** | Private play history, playtime charts, milestones, game status (Backlog → Completed) and per-session CPU/GPU/temperature graphs. Optional real FPS, 1% lows and stutters via Intel PresentMon. Nothing is estimated or faked. |
 | **Launches that explain themselves** | A pre-flight card (disk space, pending updates, controller battery, HDR), a progress arc that learns how long each game takes, one-click fixes when something fails, and GPU heat alerts afterwards. |
 | **Storage Studio** | A map of each drive showing which games take the space, with gentle suggestions. VYSTRAL never deletes: uninstalling happens in the store. |
+| **Play calendar & achievements** | A year of play day by day with streaks, every Steam achievement on one timeline (rare ones highlighted), achievement toasts after a session, and frame rates before vs after a driver update. |
+| **Controller-first** | Gentle haptics, an on-screen keyboard with library suggestions, and hold-to-confirm for anything you can't undo. |
 | **Steam extras** | Live install progress and trailers; with your own Steam Web API key (kept in Windows Credential Manager), games you own but haven’t installed and achievements with rarity. |
 | **Windows integration** | A summon shortcut (`Ctrl+Alt+V`), Windows notifications, a notification centre and a now-playing chip. |
 | **Moments** | Your Steam screenshots and Xbox Game Bar captures in one gallery. Nothing is uploaded. |

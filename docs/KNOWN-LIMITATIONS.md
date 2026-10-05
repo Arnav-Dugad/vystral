@@ -1,4 +1,4 @@
-# Known limitations (v0.2.0)
+# Known limitations (v0.3.0)
 
 **Distribution**
 - The installer and app are **not code-signed**, so Windows SmartScreen shows an "unknown publisher" warning. Signing needs a paid certificate, or Azure Trusted Signing, which isn't set up yet. VYSTRAL does not try to bypass SmartScreen.
@@ -23,6 +23,9 @@
 - CPU/GPU/RAM are system-wide values while your game runs, not per-game.
 
 **Features**
+- Controller haptics and the on-screen keyboard were tested with simulated controller input only; how the vibration patterns feel on a physical controller hasn't been tuned by hand yet.
+- The background-app report and the driver comparison need several new sessions before they show anything; sessions from earlier versions have neither. A game's resolution isn't recorded, so driver comparisons can mix resolutions (the card says so).
+- Achievement toasts depend on Steam reporting unlocks promptly; VYSTRAL checks about 5 s after a session and once more after a minute.
 - Selecting a Windows notification opens the matching page through a per-user `vystral:` URI scheme (protocol activation), because `AppNotificationManager.Register()` fails in self-contained Windows App SDK 2.5.1 apps ([microsoft/WindowsAppSDK#6774](https://github.com/microsoft/WindowsAppSDK/issues/6774)); VYSTRAL tries the SDK first and switches back automatically once it works. Each click briefly starts a second VYSTRAL process that hands the page to the running window (well under a second). If the URI scheme can't be registered, notifications are still shown and Settings says they can't open pages. Notifications have no buttons (protocol toasts can't run in-app actions).
 - The Mica backdrop (Living Canvas off) needs Windows 11 and Windows' transparency effects; with energy saver, a contrast theme, Immersive, safe mode or the OLED/High-contrast VYSTRAL themes the window stays solid. It follows VYSTRAL's light/dark theme, not Windows'.
 - Trailers are available for Steam games only (Steam's public HLS streams).

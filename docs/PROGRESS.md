@@ -1,6 +1,6 @@
 # Progress
 
-Status as of **v0.2.0 (2026-10-05)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
+Status as of **v0.3.0 (2026-10-05)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
 
 ## Phase 1 — Foundation ✅
 - ✅ Repository, solution, CI and release workflows
@@ -70,6 +70,19 @@ Status as of **v0.2.0 (2026-10-05)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Velopack per-user installer, portable zip, delta updates, in-app update viewer
 - ✅ GitHub Releases with a stable "latest" download link
 - See "Verification record" below for the release check.
+
+## Verification record (v0.3.0)
+
+Recorded 2026-10-05 on the same PC, against the owner's real library (204 Steam games, 2 installed, Steam Web API key connected).
+
+| Check | Result |
+|---|---|
+| .NET tests | **1049 passed, 0 failed** (stable across repeated runs) |
+| UI unit tests | **303 passed, 0 failed** |
+| Playwright e2e + axe + visual regression | **53 passed, 0 failed** |
+| Library art | 204 of 204 covers present (was 10). Uniform 181×321 tiles at 1920 px |
+| Real app over CDP | Notification link `vystral://open?route=journal` moved the running window from Home to Journal (single process); a malformed link was rejected and logged. Mica on with Living Canvas off, nothing see-through. On-screen keyboard with real covers and completions. Game pages: morphing Play/Install, last-session line, trailer tint. Journal: calendar, 271 real achievements with icons. Process snapshot parser checked against the live process list (360/360) and GPU driver read as 617.14 |
+| Not verified | Physical controller feel; a live Steam achievement unlock toast; PresentMon with a live game; GPU-driver change across sessions (no driver update happened) |
 
 ## Verification record (v0.2.0)
 

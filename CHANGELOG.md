@@ -2,6 +2,48 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
+## [0.3.0] — 2026-10-05
+
+Your library, settings and history carry over.
+
+### Library
+- **Every game shows its cover.** Games you own but haven't installed now get their artwork straight away: first from Steam's own cache on your PC, then from Steam's image servers several at a time. A library of 200 owned games fills in within seconds instead of trickling in over many minutes.
+- Newer Steam games whose artwork uses Steam's newer file naming now get covers, heroes and headers too. A grey placeholder Steam sometimes serves is recognised and replaced with the real cover.
+- **Tiles are always the same size.** A long title could stretch its column; it can't any more.
+- "Not installed" is now a small icon on the cover that names itself when you hover or select the game, so it no longer sits on top of the logo.
+- Black store logos (like EA SPORTS FC) switch to their light version on dark artwork, everywhere they appear.
+
+### Game pages
+- **One Play button that morphs:** Play → Launching (with a progress ring that has learned how long the game takes) → Playing (live timer) → Installing (percentage ring) → Update needed. Games you don't have installed show a single Install button instead of a greyed-out Play.
+- **Last-session ghost:** a faint line behind the hero replays your last session's frame rate, CPU or GPU, with a short caption.
+- **Living Canvas follows the trailer:** the background gently takes on the trailer's colours while it plays, then eases back. Never strobes; text always stays readable. You can turn it off in Settings → Appearance.
+
+### Controller
+- **Haptics:** a soft bump at the end of a row, a tick when switching sections, a firmer pulse when you press Play. Only when vibration is on (Settings → Controller), never while a game runs, and always short.
+- **On-screen keyboard:** press Y in Immersive Mode to search with the controller, with live suggestions from your library (covers and word completions).
+- **Hold to confirm:** things you can't undo (deleting history, removing a game, disconnecting your Steam key, resetting settings) need a short hold with a filling ring.
+
+### Journal and performance
+- **Play calendar:** a year of play, day by day, with your current and longest streak. Select a day to see what you played.
+- **Achievements tab:** every Steam achievement you've unlocked on one timeline, rare ones highlighted, plus the games you're closest to completing. Needs your own Steam Web API key.
+- **Achievement toasts:** after a Steam session, "You unlocked 3 achievements — 1 is rarer than 2%".
+- **Before and after a driver update:** VYSTRAL notes your graphics driver version with each session and compares frame rates across a driver change.
+- **Background apps:** see which other apps tend to be running when a game plays badly (correlation, not blame). Only program names, memory and CPU share are stored, on this PC.
+
+### Windows
+- **Clicking a notification now opens the right page**, even if VYSTRAL was closed.
+- **Mica:** with the Living Canvas off, the title bar and sidebar use the Windows 11 Mica material.
+- **Windows accent colour** is now one of the accent choices.
+
+### Fixed
+- Pre-flight checks could be skipped when the PC was busy at launch.
+- The Constellation view now frames every cluster instead of cutting off the biggest one.
+- Rows on Home only show scroll arrows when there's more to see.
+- Sessions recorded before frame-rate capture existed no longer claim VYSTRAL "doesn't use PresentMon yet".
+
+### Research (no code yet)
+- Free game-data sources, and adding Xbox Cloud Gaming and GeForce NOW: see `docs/research/`.
+
 ## [0.2.0] — 2026-10-05
 
 A big polish and features release. Your library, settings and history carry over.
