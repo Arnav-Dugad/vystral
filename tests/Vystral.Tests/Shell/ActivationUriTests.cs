@@ -30,7 +30,18 @@ public class ActivationUriTests
         Assert.Equal(Id, Parse($"vystral://open?route=performance&sessionId={Id}")!["sessionId"]);
         Assert.Equal("updates", Parse("vystral://open?route=settings&section=updates")!["section"]);
         Assert.Equal("performance", Parse("vystral://open?route=performance")!["name"]);
+        Assert.Equal("achievements", Parse("vystral://open?route=journal&tab=achievements")!["tab"]);
     }
+
+    [Theory]
+    [InlineData("vystral://open?route=journal&tab=settings")]
+    [InlineData("vystral://open?route=game&tab=achievements")]
+    [InlineData("vystral://open?route=journal&tab=Achievements")]
+    public void Journal_tab_is_limited_to_its_two_tabs(string uri) => Assert.Null(Parse(uri));
+
+    [Fact]
+    public void Achievement_notifications_build_a_clickable_link() =>
+        Assert.NotNull(ActivationUri.Build(NotificationPolicy.Route("journal", ("tab", "achievements"))));
 
     [Theory]
     [InlineData(null)]

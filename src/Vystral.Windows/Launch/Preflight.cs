@@ -23,7 +23,10 @@ public interface IPreflightCheck
 public sealed class PreflightCheck(string id, Func<CancellationToken, PreflightCheckDto?> run) : IPreflightCheck
 {
     public string Id => id;
-    public Task<PreflightCheckDto?> RunAsync(CancellationToken ct) => Task.Run(() => run(ct), ct);
+    // A dedicated thread per synchronous probe: a busy thread pool (startup, scans) would otherwise
+    // queue them past the 300 ms budget. There are only a handful, once per launch.
+    public Task<PreflightCheckDto?> RunAsync(CancellationToken ct) =>
+        Task.Factory.StartNew(() => run(ct), ct, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 }
 
 /// <summary>
