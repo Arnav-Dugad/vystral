@@ -15,6 +15,7 @@ import { useTrackedSessions } from './perf/hooks';
 import { gameTitle, timeOfDay } from './perf/text';
 import { LineChart } from './perf/LineChart';
 import { FrameRatePanel, ThermalPanel } from './perf/InsightPanels';
+import { BackgroundAppsCard, DriverChangeCard } from './perf/DataInsightCards';
 import { useInsightSamples, useThrottleBands } from './perf/insightData';
 import {
   METRICS, NOISE_PCT, compareCandidates, compareValues, domainFor, downsampleSegments, extractSeries, formatMetric, parsePerfSummary,
@@ -215,6 +216,12 @@ export function PerformanceView({ sessionId }: { sessionId?: string }) {
                 Metric collection is off
               </Badge>
             )}
+          </div>
+
+          {/* Track F: GPU driver before/after and background apps, across all sessions (or the filtered game). */}
+          <div className="pf-insights">
+            <DriverChangeCard gameId={gameFilter === 'all' ? null : gameFilter} />
+            <BackgroundAppsCard />
           </div>
 
           <div className="pf-layout">

@@ -218,7 +218,7 @@ function View({ route }: { route: Route }) {
     case 'home': return <HomeView />;
     case 'library': return <LibraryView collectionId={route.collectionId} />;
     case 'game': return <GameDetailView id={route.id} />;
-    case 'journal': return <JournalView />;
+    case 'journal': return <JournalView tab={route.tab} />;
     case 'performance': return <PerformanceView sessionId={route.sessionId} />;
     case 'moments': return <MomentsView />;
     case 'constellation': return <ConstellationView />;

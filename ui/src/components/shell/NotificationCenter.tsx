@@ -6,6 +6,7 @@ import { formatRelative } from '../../lib/format';
 import { exit, pick, spring } from '../../lib/motion';
 import { useReducedMotion, useStore } from '../../state/store';
 import { Button, IconButton } from '../ui/primitives';
+import { ToastMedia } from '../ui/ToastMedia';
 
 const ICONS = { success: CheckCircle2, warning: AlertTriangle, danger: XCircle, info: Info };
 
@@ -127,6 +128,7 @@ function NotificationDrawer({ open, onClose }: { open: boolean; onClose: () => v
                           <div className="notif__text">
                             <div className="notif__title">{n.title}</div>
                             {n.body && <div className="notif__body">{n.body}</div>}
+                            {n.media && n.media.length > 0 && <ToastMedia media={n.media} />}
                             <div className="notif__time">{formatRelative(new Date(n.at).toISOString())}</div>
                             {n.action && (
                               <button className="notif__action" onClick={() => { n.action!.run(); onClose(); }}>{n.action.label}</button>

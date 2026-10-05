@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
 import { useReducedMotion, useStore } from '../../state/store';
 import { exit, pick, spring } from '../../lib/motion';
 import { IconButton } from './primitives';
+import { ToastMedia } from './ToastMedia';
 
 const ICONS = { success: CheckCircle2, warning: AlertTriangle, danger: XCircle, info: Info };
 
@@ -30,6 +31,7 @@ export function Toaster() {
               <div>
                 <div className="toast__title">{t.title}</div>
                 {t.body && <div className="toast__body">{t.body}</div>}
+                {t.media && t.media.length > 0 && <ToastMedia media={t.media} />}
                 {t.action && (
                   <button className="btn btn--ghost btn--sm" style={{ marginTop: 6, marginLeft: -10 }} onClick={() => { t.action!.run(); dismiss(t.id); }}>
                     {t.action.label}

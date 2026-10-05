@@ -32,6 +32,19 @@ Machine: ASUS ROG Strix G16 (i7-13650HX, RTX 4060 Laptop, 16 GB), Windows 11, 19
 
 **During a game,** Performance Mode additionally hides the WebView2 controller and calls `TrySuspendAsync()`. Controller polling, metadata enrichment and AI stop. When tracking is enabled, one read-only sample (performance counters plus NVML temperature, graphics clock and clock-event/throttle reasons) is taken every 2 s.
 
+### Data insights during a session (v0.3)
+
+Everything piggybacks on the existing 2 s sampling loop; nothing new wakes up on its own.
+
+| Work | When | Cost |
+|---|---|---|
+| GPU name and driver version | Once, when the session starts | Two NVML string calls (NVIDIA) or a handful of registry reads in the display-adapter class key |
+| Background-app snapshot | Every 15th tick (~30 s), first one at session start as the CPU baseline | One `NtQuerySystemInformation(SystemProcessInformation)` call into a reused buffer (512 KB–1 MB, grown only if needed), a linear parse of ~300 entries, then per-name sums. No process handles are opened. Aggregates (≤ 48 names) are kept in memory and written with the existing 30 s flush (≤ 48 small rows replaced in one transaction) |
+| Memory load | With each snapshot | One `GlobalMemoryStatusEx` call |
+| Achievement check | After the session ends, not during it | Up to two Steam Web API refreshes for that one game (~5 s and ~60 s after it closes), skipped when another game starts |
+
+The heatmap, achievement timeline, driver comparison and background-app report are all computed from SQLite when you open them (the achievement feed is paginated, 40 per page).
+
 ### Launch pre-flight
 
 When a launch starts, five read-only checks run in parallel on the thread pool with a 300 ms total budget (disk space, Steam manifest update state, controllers, display refresh/HDR, other store apps' memory). Any check that throws or doesn't finish in time is dropped; the launch never waits for them.

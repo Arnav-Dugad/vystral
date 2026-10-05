@@ -99,6 +99,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterSteamAccountHandlers();   // AppBackend.SteamAccount.cs: Steam Web API, owned games, achievements, installs, storage
         RegisterInsightHandlers();        // AppBackend.Insights.cs: pre-flight, FPS capture, hotkey, notifications
         RegisterStatusHandlers();         // AppBackend.Status.cs: game status tracking, trailers
+        RegisterDataInsightHandlers();    // AppBackend.DataInsights.cs: achievement feed, driver comparison, background apps
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

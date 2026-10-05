@@ -10,6 +10,7 @@ import type {
 import { BridgeError } from './bridge';
 import { steamPreviewHandlers } from './preview.steam';
 import { INSIGHT_DEFAULT_SETTINGS, PREVIEW_EXPECTED_DETECT_MS, PREVIEW_FAILED_ACTIONS, decoratePreviewSessions, insightPreviewHandlers } from './preview.insights';
+import { DATA_INSIGHT_DEFAULT_SETTINGS, dataInsightPreviewHandlers } from './preview.dataInsights';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -49,6 +50,7 @@ const DEFAULT_SETTINGS: Settings = {
   'trailers.autoplay': true,
   'steam.webApi.backgroundAchievements': true,
   ...INSIGHT_DEFAULT_SETTINGS,
+  ...DATA_INSIGHT_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -234,6 +236,7 @@ export function createPreviewBackend() {
     emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; }, timers,
     withFps: (id) => id === 'preview' || !!lib.sessions.find((s) => s.id === id)?.perfSummary?.includes('"fpsAvg"'),
   });
+  const dataInsights = dataInsightPreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers });
 
   const handlers: Record<string, (p: any) => unknown> = {
     'app.info': (): AppInfo => ({
@@ -300,6 +303,8 @@ export function createPreviewBackend() {
       timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'waiting', message: 'Waiting for the game window…', acceptedAt: new Date().toISOString() }), 700));
       timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'running', sessionId: 'preview', startedAt: new Date().toISOString(), message: null }), 2600));
       timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'ended', sessionId: 'preview', durationSeconds: 5400, message: null }), 7000));
+      // Track F: Steam reports two fictional unlocks a moment after the session ends.
+      timers.push(window.setTimeout(() => dataInsights.__unlocked({ gameId: g.id, sessionId: 'preview' }), 8500));
       return { ...base, phase: 'starting' };
     },
     'game.stopTracking': () => { timers.forEach(clearTimeout); if (launch) setLaunch({ ...launch, phase: 'ended', message: 'Stopped tracking. The game was not affected.' }); return true; },
@@ -381,6 +386,8 @@ export function createPreviewBackend() {
     ...steamPreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
     // Track B: pre-flight, fixes, FPS capture, hotkey, notifications (fictional data).
     ...insight,
+    // Track F: achievement feed, driver comparison, background apps (fictional data).
+    ...dataInsights,
   };
 
   return {

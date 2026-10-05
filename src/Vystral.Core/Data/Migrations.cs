@@ -205,5 +205,34 @@ internal static class Migrations
             ALTER TABLE perf_samples ADD COLUMN frame_time_p99_ms REAL;
             CREATE INDEX ix_sessions_detect ON sessions(installation_id, start) WHERE detect_ms IS NOT NULL;
             """),
+        (5, "data insights: GPU driver per session, background apps, memory pressure", """
+            -- The GPU and driver the session ran on (read-only: NVML, else the display adapter's registry entry).
+            ALTER TABLE sessions ADD COLUMN gpu_driver TEXT;
+            ALTER TABLE sessions ADD COLUMN gpu_name TEXT;
+            -- System memory load (percent, GlobalMemoryStatusEx) at the background-app snapshots.
+            ALTER TABLE sessions ADD COLUMN mem_load_avg REAL;
+            ALTER TABLE sessions ADD COLUMN mem_load_max REAL;
+            -- How many background-app snapshots were taken (about one every 30 s).
+            ALTER TABLE sessions ADD COLUMN bg_snapshots INTEGER;
+            CREATE INDEX ix_sessions_driver ON sessions(game_id, gpu_driver) WHERE gpu_driver IS NOT NULL;
+
+            -- Other apps that were among the heaviest while a session ran, aggregated per executable
+            -- file name (no paths, no window titles, no command lines). Deleted with the session.
+            CREATE TABLE session_background_apps (
+                session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+                name       TEXT NOT NULL,
+                samples    INTEGER NOT NULL,
+                avg_mb     REAL,
+                max_mb     REAL,
+                avg_cpu    REAL,
+                PRIMARY KEY (session_id, name)
+            ) WITHOUT ROWID;
+
+            -- Executable names the user chose to leave out of the background-app report.
+            CREATE TABLE hidden_background_apps (
+                name  TEXT PRIMARY KEY,
+                added TEXT NOT NULL
+            ) WITHOUT ROWID;
+            """),
     ];
 }

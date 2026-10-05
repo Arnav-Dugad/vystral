@@ -14,7 +14,7 @@ namespace Vystral.App.Host;
 public sealed class AppNotifications
 {
     private static readonly HashSet<string> RouteNames = ["home", "library", "game", "journal", "performance", "settings", "storage"];
-    private static readonly string[] RouteKeys = ["id", "sessionId", "section"];
+    private static readonly string[] RouteKeys = ["id", "sessionId", "section", "tab"];
 
     public bool Available { get; private set; }
 
