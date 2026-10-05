@@ -423,7 +423,15 @@ test.describe('visual regression', () => {
       await open(page, '?reduced');
       if (nav) await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: nav }).click();
       await page.waitForTimeout(700);
-      await expect(page).toHaveScreenshot(`${name}.png`, { mask: [page.locator('.living-canvas')], fullPage: false });
+      // Hide (not mask) the Living Canvas: it's a fixed full-screen layer, so a mask painted the
+      // whole screenshot magenta and the comparison could never catch anything.
+      await expect(page).toHaveScreenshot(`${name}.png`, {
+        style: '.living-canvas { visibility: hidden !important; } .live-tile video { visibility: hidden !important; }',
+        animations: 'disabled',
+        caret: 'hide',
+        maxDiffPixelRatio: 0.015,
+        fullPage: false,
+      });
     });
   }
 });
