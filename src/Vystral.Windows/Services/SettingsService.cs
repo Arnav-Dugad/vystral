@@ -94,6 +94,8 @@ public sealed class SettingsService
         // Track F: achievement unlock notifications, background-app snapshots during sessions.
         new BoolDef("notifications.achievements", true),
         new BoolDef("performance.backgroundApps", true),
+        // Track E: the Living Canvas follows a playing hero trailer's colours.
+        new BoolDef("canvas.followTrailer", true),
     ];
 
     private readonly LibraryRepository _repo;

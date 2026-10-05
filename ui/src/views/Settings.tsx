@@ -156,6 +156,7 @@ function Appearance({ s }: { s: Settings }) {
       <Group title="Living Canvas" description={<>A subtle animated background that takes on each game’s colours and mood ({Object.values(MOOD_LABEL).map((m) => m.split(' —')[0]).join(', ')}). It pauses whenever VYSTRAL is hidden or a game is running.</>}>
         <BoolRow s={s} k="appearance.livingCanvas" label="Living Canvas" hint={<BackdropHint />} />
         <Row label="Intensity" control={<div style={{ width: 200 }}><Slider label="Living Canvas intensity" value={s['appearance.canvasIntensity']} min={0} max={1} step={0.05} onChange={(v) => void set('appearance.canvasIntensity', v)} /></div>} />
+        <BoolRow s={s} k="canvas.followTrailer" label="Follow trailer colours" hint="While a game’s trailer plays, the background slowly takes on its colours, then returns to the artwork. Off with reduced motion or low quality." />
         <Row
           label="Visual quality"
           hint="Low turns off blur and animated backgrounds — best for older or battery-powered PCs."

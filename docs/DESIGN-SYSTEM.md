@@ -60,6 +60,10 @@ Scale: 11 / 12 / 13 / **14 body** / 16 / 20 / 26 / 34 / 48, plus a fluid hero si
 
 Exits are shorter and use an accelerate curve. Springs retarget mid-flight, so rapid input never queues animations. Only `transform`, `opacity` and `filter` are animated. **Reduced motion** (system or app setting) swaps every spatial animation for a 150ms fade, freezes the Living Canvas on one frame, removes tilt and parallax, and swaps the cinematic launch for a compact status pill. **Performance Mode** pauses every animation.
 
+Game page:
+- **Morphing Play button** (`components/game/PlayButton.tsx`, states in `playState.ts`): one button that becomes Launching (learned progress arc) → Playing (live timer; click switches to the game, ■ stops tracking) → Installing/Updating (ring + soft fill from Steam's manifests) → Install / Install in store / Rescan. It reserves the width of the widest label it can show, keeps the same `<button>` (focus never drops; busy states are `aria-disabled`, not `disabled`), and announces state changes politely.
+- **Last-session ghost** (`LastSessionGhost.tsx`, `lib/ghost.ts`): a faint replay of the last tracked session's FPS (else CPU, else GPU), ≤120 points (LTTB, gaps kept), monotone-smoothed so it never overshoots, revealed left to right over 2.5 s with a travelling head; static under reduced motion; hidden while the trailer shows; nothing at all without recorded samples.
+
 Signature moments:
 - **Startup:** about 1.2s; the blades slide in, the star ignites and the wordmark tightens. Skippable, once per launch, and off under reduced motion.
 - **Launch:** hero art expands with a slow Ken Burns drift, an accent flood, and a status line driven by real native phases.
@@ -73,6 +77,7 @@ One WebGL2 fragment shader (`components/shell/LivingCanvas.tsx`):
 - Mood overlays chosen from genre: *velocity* (light trails), *cosmos* (parallax stars), *ember* (rising motes), *dread* (fog, slower and darker), *tide* (calm bands), *drift* (base only).
 - Changing game crossfades both palette and mood over 1.2s from wherever the previous blend was.
 - Stops on `visibilitychange`, while a game runs, and in low quality; CSS gradient fallback without WebGL.
+- **Follows the trailer** (`canvas.followTrailer`, default on): while a hero trailer is visibly playing, a 32×18 copy of the frame is read ~3×/s (`lib/trailer/tint.ts`). Black fades, white flashes and flat cards are ignored; ambient colours are clamped dark and low-chroma (L 0.16–0.40, C ≤ 0.08); the accent is capped and re-checked for ≥4.5:1 contrast. A third palette layer eases toward it (time constant 1.4 s, never faster than 0.16 OKLab/s, so scene cuts can't strobe) at up to 80% weight, nudges `--game` at most every 2.6 s (half-way between artwork and trailer), and eases back over ~2 s when the trailer pauses, ends or leaves view. Off under reduced motion, low quality, safe mode, or with the Living Canvas off.
 
 ## Components
 

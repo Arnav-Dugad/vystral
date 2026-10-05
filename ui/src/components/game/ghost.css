@@ -1,0 +1,78 @@
+/* ===== "Last session" ghost line behind the game page hero =====
+   Sits above the hero scrim and below the hero content, on the right where no text is,
+   faded in from the left so it never crosses the title, badges or Play button. */
+
+.ghost {
+  position: absolute;
+  z-index: -1;
+  top: 22%;
+  bottom: 42%;
+  left: 34%;
+  right: var(--gutter);
+  pointer-events: none;
+  color: oklch(from var(--accent) 0.88 min(c, 0.12) h);
+}
+
+.ghost__plot {
+  position: absolute;
+  inset: 36px 0 0 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 30%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 30%, #000 100%);
+}
+.ghost__clip { position: absolute; inset: 0; opacity: 0.5; }
+.ghost__clip svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+.ghost__glow { fill: none; stroke: currentColor; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; opacity: 0.08; }
+.ghost__line { fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+/* The replay head travelling with the reveal, and the point where the session ended. */
+.ghost__head,
+.ghost__end {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px oklch(from currentColor l c h / 0.18), 0 0 18px 2px oklch(from currentColor l c h / 0.55);
+}
+.ghost__end { width: 6px; height: 6px; margin: -3px 0 0 -3px; opacity: 0; }
+
+.ghost__caption {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 10px 4px 9px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: oklch(0.93 0.01 282);
+  background: oklch(0.12 0.01 282 / 0.42);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+.ghost__swatch { width: 14px; height: 2px; border-radius: 1px; background: currentColor; color: oklch(from var(--accent) 0.88 min(c, 0.12) h); box-shadow: 0 0 6px currentColor; }
+
+:root[data-quality='low'] .ghost__caption { backdrop-filter: none; background: oklch(0.12 0.01 282 / 0.82); }
+:root[data-theme='oled'] .ghost__caption { background: oklch(0 0 0 / 0.6); }
+:root[data-theme='contrast'] .ghost { color: var(--accent); }
+:root[data-theme='contrast'] .ghost__glow { display: none; }
+:root[data-theme='contrast'] .ghost__clip { opacity: 0.9; }
+:root[data-theme='contrast'] .ghost__caption { backdrop-filter: none; background: #000; color: #fff; box-shadow: inset 0 0 0 1px #fff; }
+
+/* Narrow windows: the hero text needs the room. */
+@media (max-width: 1150px) {
+  .ghost { left: 46%; }
+}
+@media (max-width: 860px) {
+  .ghost { display: none; }
+}

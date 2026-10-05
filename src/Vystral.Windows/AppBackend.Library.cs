@@ -119,6 +119,7 @@ public sealed partial class AppBackend
         Dispatcher.Register<LaunchParams>("game.launch", (p, _) =>
             Task.FromResult<object?>(Sessions.Launch(RequireId(p.GameId), p.InstallationId is null ? null : RequireId(p.InstallationId, "installation"))));
         Dispatcher.Register("game.stopTracking", _ => { Sessions.StopTracking(); return Ok(true); });
+        Dispatcher.Register("game.focus", _ => Ok(Sessions.FocusGame()));
         Dispatcher.Register("launch.current", _ => Task.FromResult<object?>(Sessions.Current));
 
         Dispatcher.Register<CollectionCreateParams>("collections.create", (p, _) =>

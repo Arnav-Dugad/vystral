@@ -553,6 +553,13 @@ export interface Settings {
   'notifications.onlyInBackground': boolean;
 }
 
+// ---------- Track E: game page (trailer-following canvas, morphing Play button) ----------
+
+export interface Settings {
+  /** Living Canvas eases toward the colours of a playing hero trailer. */
+  'canvas.followTrailer': boolean;
+}
+
 export interface BridgeEvents {
   'launch.preflight': PreflightResult;
   'fps.install': { phase: 'downloading' | 'installed' | 'failed'; progress: number; error?: string };
