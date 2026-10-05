@@ -27,6 +27,8 @@ import { StatusPicker } from '../components/game/StatusPicker';
 import { HeroTrailer } from '../components/game/HeroTrailer';
 import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, SectionHead, Stars, Tabs } from '../components/ui/primitives';
 import { DriverChangeCard } from './perf/DataInsightCards';
+import { GameExtras, IdentityPanel } from '../components/game/GameDataPanels';
+import { ArtSlotActions, useUserArt } from '../components/game/ArtPicker';
 import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
 import './detail.css';
@@ -324,6 +326,8 @@ function Overview({ game }: { game: Game }) {
     <div className="overview">
       <div className="overview__main">
         {game.description ? <p className="overview__desc selectable">{game.description}</p> : <p className="overview__desc" style={{ color: 'var(--text-3)' }}>No description available. VYSTRAL only shows information it can source reliably.</p>}
+        {/* Track I: compatibility badges, IGDB/RAWG facts and deals, each with its source. */}
+        <GameExtras game={game} />
         <div style={{ marginTop: 'var(--s-6)' }}>
           <Field label="Your notes" hint={saved ? 'Saved on this PC' : 'Saving…'} htmlFor="notes">
             <textarea id="notes" className="input selectable" value={notes} maxLength={20000} placeholder="Where you left off, tips, codes, mods…" onChange={(e) => { setNotesText(e.target.value); setSaved(false); }} />
@@ -418,6 +422,8 @@ function Versions({ game }: { game: Game }) {
           }}
         />
       ))}
+      {/* Track I: the same game's IDs on other stores, from Wikidata. */}
+      <IdentityPanel game={game} />
     </div>
   );
 }
@@ -471,7 +477,8 @@ function VersionCard({ game, inst, onUnmerge }: { game: Game; inst: Installation
 function ArtworkTab({ game }: { game: Game }) {
   const toast = useStore((s) => s.toast);
   const refresh = useStore((s) => s.refreshLibrary);
-  const choose = async (kind: 'cover' | 'hero' | 'logo') => {
+  const userArt = useUserArt(game.id); // Track I
+  const choose = async (kind: 'cover' | 'hero' | 'logo' | 'icon') => {
     try {
       if (await call<boolean>('game.chooseArtwork', { gameId: game.id, kind }, 300_000)) {
         await refresh();
@@ -481,23 +488,27 @@ function ArtworkTab({ game }: { game: Game }) {
       toast({ tone: 'danger', title: 'Couldn’t use that image', body: errorMessage(err) });
     }
   };
-  const slots: { kind: 'cover' | 'hero' | 'logo'; label: string; hint: string; ratio: string }[] = [
+  const slots: { kind: 'cover' | 'hero' | 'logo' | 'icon'; label: string; hint: string; ratio: string }[] = [
     { kind: 'cover', label: 'Cover', hint: 'Portrait, ideally 600×900', ratio: '2 / 3' },
     { kind: 'hero', label: 'Background', hint: 'Wide, ideally 1920×620 or larger', ratio: '16 / 7' },
     { kind: 'logo', label: 'Logo', hint: 'Transparent PNG', ratio: '16 / 7' },
+    { kind: 'icon', label: 'Icon', hint: 'Square, ideally 256×256', ratio: '1 / 1' },
   ];
   return (
     <div className="art-slots">
       {slots.map((s) => (
         <div key={s.kind} className="art-slot">
           <div className="art-slot__preview" style={{ aspectRatio: s.ratio }}>
-            {s.kind === 'logo' ? (game.art.logo ? <img src={game.art.logo} alt="" /> : <span className="stat__hint">No logo</span>) : <GameCover game={game} kind={s.kind} />}
+            {s.kind === 'logo' || s.kind === 'icon'
+              ? (game.art[s.kind] ? <img src={game.art[s.kind]!} alt="" /> : <span className="stat__hint">No {s.kind}</span>)
+              : <GameCover game={game} kind={s.kind} />}
           </div>
           <div className="art-slot__meta">
             <div className="field__label">{s.label}</div>
             <div className="stat__hint">{s.hint}</div>
           </div>
           <Button size="sm" icon={<ImagePlus size={14} />} onClick={() => void choose(s.kind)}>Choose image…</Button>
+          <ArtSlotActions game={game} kind={s.kind} userArt={userArt} />
         </div>
       ))}
       <p className="provenance" style={{ gridColumn: '1 / -1' }}>Images you choose are copied into VYSTRAL’s private cache and always take priority. Store artwork is never replaced in the store itself.</p>

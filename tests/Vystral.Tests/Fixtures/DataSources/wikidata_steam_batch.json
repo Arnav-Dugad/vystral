@@ -1,0 +1,224 @@
+{
+  "head" : {
+    "vars" : [ "key", "item", "lbl", "game", "v_steam", "v_gog", "v_gogId", "v_epic", "v_microsoft", "v_igdb", "v_pcgamingwiki", "v_hltb", "v_steamgriddb", "v_itad", "v_rawg", "v_mobygames" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "key" : {
+        "type" : "literal",
+        "value" : "620"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q279446"
+      },
+      "lbl" : {
+        "xml:lang" : "mul",
+        "type" : "literal",
+        "value" : "Portal 2"
+      },
+      "game" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "1"
+      },
+      "v_steam" : {
+        "type" : "literal",
+        "value" : "620"
+      },
+      "v_microsoft" : {
+        "type" : "literal",
+        "value" : "bt2b17v20d1p"
+      },
+      "v_igdb" : {
+        "type" : "literal",
+        "value" : "portal-2"
+      },
+      "v_pcgamingwiki" : {
+        "type" : "literal",
+        "value" : "Portal_2"
+      },
+      "v_hltb" : {
+        "type" : "literal",
+        "value" : "7231"
+      },
+      "v_steamgriddb" : {
+        "type" : "literal",
+        "value" : "17830"
+      },
+      "v_itad" : {
+        "type" : "literal",
+        "value" : "portal-2"
+      },
+      "v_rawg" : {
+        "type" : "literal",
+        "value" : "portal-2"
+      },
+      "v_mobygames" : {
+        "type" : "literal",
+        "value" : "51233"
+      }
+    }, {
+      "key" : {
+        "type" : "literal",
+        "value" : "1086940"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q64441774"
+      },
+      "lbl" : {
+        "xml:lang" : "mul",
+        "type" : "literal",
+        "value" : "Baldur's Gate 3"
+      },
+      "game" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "1"
+      },
+      "v_steam" : {
+        "type" : "literal",
+        "value" : "1086940"
+      },
+      "v_microsoft" : {
+        "type" : "literal",
+        "value" : "9nd58lqtg09t"
+      },
+      "v_igdb" : {
+        "type" : "literal",
+        "value" : "baldurs-gate-iii"
+      },
+      "v_pcgamingwiki" : {
+        "type" : "literal",
+        "value" : "Baldur's_Gate_3"
+      },
+      "v_hltb" : {
+        "type" : "literal",
+        "value" : "68033"
+      },
+      "v_steamgriddb" : {
+        "type" : "literal",
+        "value" : "5138060"
+      },
+      "v_itad" : {
+        "type" : "literal",
+        "value" : "baldurs-gate-3"
+      },
+      "v_rawg" : {
+        "type" : "literal",
+        "value" : "baldurs-gate-3"
+      },
+      "v_mobygames" : {
+        "type" : "literal",
+        "value" : "150689"
+      },
+      "v_gog" : {
+        "type" : "literal",
+        "value" : "game/baldurs_gate_iii"
+      }
+    }, {
+      "key" : {
+        "type" : "literal",
+        "value" : "1245620"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q64826862"
+      },
+      "lbl" : {
+        "xml:lang" : "mul",
+        "type" : "literal",
+        "value" : "Elden Ring"
+      },
+      "game" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "1"
+      },
+      "v_steam" : {
+        "type" : "literal",
+        "value" : "1245620"
+      },
+      "v_microsoft" : {
+        "type" : "literal",
+        "value" : "9p3j32ctxlrz"
+      },
+      "v_igdb" : {
+        "type" : "literal",
+        "value" : "elden-ring"
+      },
+      "v_pcgamingwiki" : {
+        "type" : "literal",
+        "value" : "Elden_Ring"
+      },
+      "v_hltb" : {
+        "type" : "literal",
+        "value" : "68151"
+      },
+      "v_steamgriddb" : {
+        "type" : "literal",
+        "value" : "5277816"
+      },
+      "v_itad" : {
+        "type" : "literal",
+        "value" : "elden-ring"
+      },
+      "v_rawg" : {
+        "type" : "literal",
+        "value" : "elden-ring"
+      },
+      "v_mobygames" : {
+        "type" : "literal",
+        "value" : "174989"
+      }
+    }, {
+      "key" : {
+        "type" : "literal",
+        "value" : "3527290"
+      },
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q134992929"
+      },
+      "lbl" : {
+        "xml:lang" : "mul",
+        "type" : "literal",
+        "value" : "Peak"
+      },
+      "game" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "1"
+      },
+      "v_steam" : {
+        "type" : "literal",
+        "value" : "3527290"
+      },
+      "v_igdb" : {
+        "type" : "literal",
+        "value" : "peak--1"
+      },
+      "v_pcgamingwiki" : {
+        "type" : "literal",
+        "value" : "PEAK"
+      },
+      "v_hltb" : {
+        "type" : "literal",
+        "value" : "163535"
+      },
+      "v_steamgriddb" : {
+        "type" : "literal",
+        "value" : "5492144"
+      },
+      "v_itad" : {
+        "type" : "literal",
+        "value" : "peak--2"
+      },
+      "v_mobygames" : {
+        "type" : "literal",
+        "value" : "243696"
+      }
+    } ]
+  }
+}

@@ -96,6 +96,14 @@ public sealed class SettingsService
         new BoolDef("performance.backgroundApps", true),
         // Track E: the Living Canvas follows a playing hero trailer's colours.
         new BoolDef("canvas.followTrailer", true),
+        // Track I: third-party data sources (user keys live in Windows Credential Manager, never here).
+        new BoolDef("dataSources.enrichment", true),
+        new BoolDef("dataSources.cheapshark", true),
+        new BoolDef("dataSources.wikidata", true),
+        new BoolDef("dataSources.steamDeck", true),
+        new BoolDef("dataSources.antiCheat", true),
+        new BoolDef("dataSources.storePrices", true),
+        new StringDef("dataSources.priceCountry", "US", 2, "^[A-Z]{2}$"),
     ];
 
     private readonly LibraryRepository _repo;

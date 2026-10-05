@@ -191,6 +191,11 @@ public sealed partial class LibraryRepository(Database db)
         var suggestions = matcher.Suggestions()
             .Where(s => !dismissed.Contains((s.GameIdA, s.GameIdB)) && !dismissed.Contains((s.GameIdB, s.GameIdA)))
             .Select(s => new DuplicateSuggestionDto(s.GameIdA, s.GameIdB, s.Explanation)).ToList();
+        // Track I: Wikidata's cross-store identity is only ever a suggestion signal (never merges).
+        foreach (var (a, b, why) in WikidataDuplicatePairs())
+            if (!dismissed.Contains((a, b)) && !dismissed.Contains((b, a)) &&
+                !suggestions.Any(s => (s.GameIdA == a && s.GameIdB == b) || (s.GameIdA == b && s.GameIdB == a)))
+                suggestions.Add(new DuplicateSuggestionDto(a, b, why));
 
         var lastScan = conn.ExecuteScalar<string?>("SELECT value FROM settings WHERE key='library.lastScan'");
         return new LibrarySnapshotDto(dtos, collections, suggestions,

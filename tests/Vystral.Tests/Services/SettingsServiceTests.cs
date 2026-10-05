@@ -35,7 +35,9 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.True(all["notifications.achievements"]!.GetValue<bool>());
         Assert.True(all["performance.backgroundApps"]!.GetValue<bool>());
         Assert.True(all["canvas.followTrailer"]!.GetValue<bool>());
-        Assert.Equal(46, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1)
+        Assert.True(all["dataSources.cheapshark"]!.GetValue<bool>());
+        Assert.Equal("US", all["dataSources.priceCountry"]!.GetValue<string>());
+        Assert.Equal(53, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track I (7)
     }
 
     [Fact]

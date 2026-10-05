@@ -726,3 +726,24 @@ export interface BridgeEvents {
   /** Windows accent, theme or backdrop state changed. Also returned by call('system.accent') and call('window.backdrop', { value }). */
   'system.accent': SystemAppearance;
 }
+
+// ---------- Track I: data sources (mirror of DataSourcesService DTOs; types in ./types.dataSources) ----------
+
+export interface Settings {
+  /** Fill missing details from IGDB/RAWG when the user's own keys are set. */
+  'dataSources.enrichment': boolean;
+  'dataSources.cheapshark': boolean;
+  'dataSources.wikidata': boolean;
+  'dataSources.steamDeck': boolean;
+  'dataSources.antiCheat': boolean;
+  /** Current Steam store prices for the library value timeline. */
+  'dataSources.storePrices': boolean;
+  /** Two-letter country for prices (Steam, IsThereAnyDeal). */
+  'dataSources.priceCountry': string;
+}
+
+export interface BridgeEvents {
+  'dataSources.changed': import('./types.dataSources').DataSourcesStatus;
+}
+
+export type * from './types.dataSources';

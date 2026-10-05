@@ -9,7 +9,7 @@ export type Route =
   | { name: 'home' }
   | { name: 'library'; collectionId?: string; query?: string }
   | { name: 'game'; id: string }
-  | { name: 'journal'; tab?: 'sessions' | 'achievements' }
+  | { name: 'journal'; tab?: 'sessions' | 'achievements' | 'value' }
   | { name: 'performance'; sessionId?: string }
   | { name: 'moments' }
   | { name: 'constellation' }

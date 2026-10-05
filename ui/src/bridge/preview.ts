@@ -13,6 +13,7 @@ import { shellPreviewHandlers } from './preview.shell';
 import { controllerPreviewHandlers } from './preview.controller';
 import { INSIGHT_DEFAULT_SETTINGS, PREVIEW_EXPECTED_DETECT_MS, PREVIEW_FAILED_ACTIONS, decoratePreviewSessions, insightPreviewHandlers } from './preview.insights';
 import { DATA_INSIGHT_DEFAULT_SETTINGS, dataInsightPreviewHandlers } from './preview.dataInsights';
+import { DATA_SOURCE_DEFAULT_SETTINGS, dataSourcePreviewHandlers } from './preview.dataSources';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -54,6 +55,7 @@ const DEFAULT_SETTINGS: Settings = {
   'steam.webApi.backgroundAchievements': true,
   ...INSIGHT_DEFAULT_SETTINGS,
   ...DATA_INSIGHT_DEFAULT_SETTINGS,
+  ...DATA_SOURCE_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -422,6 +424,8 @@ export function createPreviewBackend() {
     ...controllerPreviewHandlers({ emit: () => emit }),
     // Track F: achievement feed, driver comparison, background apps (fictional data).
     ...dataInsights,
+    // Track I: data sources — art picker, enrichment, prices, identity, compatibility, value (fictional data, local placeholder images).
+    ...dataSourcePreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
   };
 
   return {

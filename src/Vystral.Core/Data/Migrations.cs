@@ -234,5 +234,72 @@ internal static class Migrations
                 added TEXT NOT NULL
             ) WITHOUT ROWID;
             """),
+        (6, "data sources: cross-store IDs, enrichment provenance, provider caches, anti-cheat", """
+            -- Cross-store identity from Wikidata (CC0), keyed by the store ID it was looked up with
+            -- ('steam' appid or 'gog' product ID). wikidata_id NULL with ids_json '{}' records that
+            -- Wikidata had no item, so it isn't asked again until the row expires.
+            CREATE TABLE external_ids (
+                key_kind    TEXT NOT NULL,
+                key_value   TEXT NOT NULL,
+                wikidata_id TEXT,
+                label       TEXT,
+                ids_json    TEXT NOT NULL DEFAULT '{}',
+                fetched     TEXT NOT NULL,
+                PRIMARY KEY (key_kind, key_value)
+            ) WITHOUT ROWID;
+
+            -- Which source filled each game field (description, genres, release_date, ...). A field a
+            -- source filled is never overwritten by another source; 'user' marks a field the user set.
+            CREATE TABLE game_field_sources (
+                game_id      TEXT NOT NULL,
+                field        TEXT NOT NULL,
+                source       TEXT NOT NULL,
+                source_id    TEXT,
+                match_method TEXT,
+                confidence   REAL,
+                updated      TEXT NOT NULL,
+                PRIMARY KEY (game_id, field)
+            ) WITHOUT ROWID;
+
+            -- Facts from opt-in providers (IGDB, RAWG) that have no column in games: themes, modes,
+            -- ratings, time to beat, franchises, similar games. Validated and clamped before storage.
+            -- matched=0 records a lookup that found no confident match (retried after it expires).
+            CREATE TABLE game_enrichment (
+                game_id      TEXT NOT NULL,
+                source       TEXT NOT NULL,
+                source_id    TEXT,
+                match_method TEXT,
+                confidence   REAL,
+                matched      INTEGER NOT NULL DEFAULT 1,
+                data_json    TEXT NOT NULL DEFAULT '{}',
+                url          TEXT,
+                fetched      TEXT NOT NULL,
+                PRIMARY KEY (game_id, source)
+            ) WITHOUT ROWID;
+
+            -- Small parsed answers from providers (prices, Steam Deck reports), with an expiry.
+            CREATE TABLE provider_cache (
+                provider  TEXT NOT NULL,
+                cache_key TEXT NOT NULL,
+                body_json TEXT NOT NULL,
+                fetched   TEXT NOT NULL,
+                expires   TEXT NOT NULL,
+                PRIMARY KEY (provider, cache_key)
+            ) WITHOUT ROWID;
+            CREATE INDEX ix_provider_cache_expires ON provider_cache(expires);
+
+            -- AreWeAntiCheatYet's public dataset (MIT), one row per store ID it lists.
+            CREATE TABLE anticheat_games (
+                store           TEXT NOT NULL,
+                store_id        TEXT NOT NULL,
+                name            TEXT NOT NULL,
+                slug            TEXT,
+                status          TEXT NOT NULL,
+                anticheats_json TEXT NOT NULL DEFAULT '[]',
+                reference       TEXT,
+                date_changed    TEXT,
+                PRIMARY KEY (store, store_id)
+            ) WITHOUT ROWID;
+            """),
     ];
 }
