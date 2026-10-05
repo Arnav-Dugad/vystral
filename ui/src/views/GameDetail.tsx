@@ -12,8 +12,10 @@ import {
 import { ease, spring } from '../lib/motion';
 import { paletteFor } from '../lib/palette';
 import { captureFlight, setLaunchOrigin, useFlightLanding } from '../lib/flight';
+import { haptic } from '../lib/haptics';
 import { openFolder, removeManualGame, setCollection, setHidden, setNotes, setPreferred, setRating, toggleFavorite } from '../state/actions';
 import { useReducedMotion, useStore } from '../state/store';
+import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { GameCover } from '../components/game/GameCover';
 import { GameCard } from '../components/game/GameCard';
 import { AchievementsPanel } from '../components/game/AchievementsPanel';
@@ -180,6 +182,7 @@ function DetailHero({ game }: { game: Game }) {
                 loading={busy}
                 onClick={(e) => {
                   setLaunchOrigin(game.id, e.currentTarget, document.querySelector(`.dhero__cover[data-game-id="${game.id}"]`));
+                  haptic('confirm'); // only buzzes when Play came from a controller
                   void launchGame(game.id);
                 }}
                 data-autofocus
@@ -243,7 +246,7 @@ function DetailHero({ game }: { game: Game }) {
         open={removeOpen}
         onClose={() => setRemoveOpen(false)}
         title={`Remove ${game.title} from VYSTRAL?`}
-        actions={<><Button variant="ghost" onClick={() => setRemoveOpen(false)}>Cancel</Button><Button variant="danger" onClick={() => { setRemoveOpen(false); void removeManualGame(game); }}>Remove from VYSTRAL</Button></>}
+        actions={<><Button variant="ghost" onClick={() => setRemoveOpen(false)}>Cancel</Button><HoldToConfirm onConfirm={() => { setRemoveOpen(false); void removeManualGame(game); }}>Remove from VYSTRAL</HoldToConfirm></>}
       >
         VYSTRAL forgets this entry and its tracked sessions. The program and its files on your PC are not touched.
       </Dialog>
@@ -435,7 +438,7 @@ function VersionCard({ game, inst, onUnmerge }: { game: Game; inst: Installation
         {preferred && <Badge tone="accent">Preferred</Badge>}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           {game.installations.length > 1 && !preferred && inst.state === 'installed' && <Button size="sm" variant="ghost" onClick={() => void setPreferred(game, inst.id)}>Make preferred</Button>}
-          {game.installations.length > 1 && <Button size="sm" variant="ghost" icon={<Split size={14} />} onClick={onUnmerge}>Separate</Button>}
+          {game.installations.length > 1 && <HoldToConfirm size="sm" variant="ghost" holdFor="pad" icon={<Split size={14} />} onConfirm={onUnmerge}>Separate</HoldToConfirm>}
         </div>
       </div>
       <dl className="version__facts">

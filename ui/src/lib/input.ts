@@ -1,7 +1,8 @@
-import { call, on } from '../bridge/bridge';
+import { on } from '../bridge/bridge';
 import type { GamepadButton } from '../bridge/types';
 import { moveFocus, type Dir } from './spatial';
 import { useStore } from '../state/store';
+import { haptic } from './haptics';
 
 /**
  * Translates controller input (forwarded natively via Windows.Gaming.Input) into navigation.
@@ -77,7 +78,7 @@ function defaultHandler(button: GamepadButton, repeat: boolean) {
     case 'A':
       if (active && active !== document.body) {
         active.click();
-        rumble(0.25, 30);
+        haptic('tick');
       } else moveFocus('down');
       break;
     case 'B':
@@ -107,8 +108,4 @@ function defaultHandler(button: GamepadButton, repeat: boolean) {
       document.querySelector<HTMLElement>('[data-scroll-main]')?.scrollBy({ top: (button === 'LT' ? -1 : 1) * innerHeight * 0.8, behavior: 'smooth' });
       break;
   }
-}
-
-export function rumble(strength: number, ms: number) {
-  if (useStore.getState().settings?.['controller.vibration']) void call('controller.rumble', { strength, durationMs: ms }).catch(() => {});
 }

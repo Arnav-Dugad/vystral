@@ -1,3 +1,5 @@
+using Vystral.Windows.Services;
+
 namespace Vystral.Windows.Bridge;
 
 public sealed record DragRect(double X, double Y, double Width, double Height);
@@ -25,5 +27,7 @@ public interface IHostShell
     void SetPulseVisible(bool visible);
     void OpenFolder(string path);
     void OpenUri(Uri uri);
-    void Rumble(double strength, int durationMs);
+    /// <summary>Plays a validated vibration pattern on the active controller; false when none is connected or input is paused.</summary>
+    bool PlayHaptic(IReadOnlyList<HapticStep> steps);
+    void StopHaptics();
 }

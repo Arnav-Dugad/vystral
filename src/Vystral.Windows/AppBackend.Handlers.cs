@@ -34,7 +34,7 @@ public sealed record DragRegionsParams(IReadOnlyList<DragRect> Regions);
 public sealed record ExternalParams(string Url);
 public sealed record PulseParams(bool Visible);
 public sealed record FlagValueParams(bool Value);
-public sealed record RumbleParams(double Strength, int DurationMs);
+public sealed record RumbleParams(string Pattern);
 public sealed record ModelParams(string Model);
 public sealed record ChatMessage(string Role, string Content);
 public sealed record ChatParams(string RequestId, IReadOnlyList<ChatMessage> Messages);
@@ -48,6 +48,9 @@ public sealed partial class AppBackend
         "github.com", "ollama.com", "store.steampowered.com", "learn.microsoft.com", "www.steamgriddb.com",
         "go.microsoft.com", "support.microsoft.com", "www.pcgamingwiki.com", "steamcommunity.com",
     ];
+
+    private HapticGovernor? _haptics;
+    private HapticGovernor Haptics => _haptics ??= new HapticGovernor(() => Settings.GetBool("controller.vibration"), () => IsGameActive);
 
     private void RegisterAppHandlers()
     {
@@ -97,11 +100,20 @@ public sealed partial class AppBackend
             _shell.SetPulseVisible(p.Visible);
             return Task.FromResult<object?>(true);
         });
-        Dispatcher.Register<RumbleParams>("controller.rumble", (p, _) =>
+        // Named, bounded vibration patterns only (see HapticPatterns). Returns whether it played.
+        Dispatcher.Register<RumbleParams>("gamepad.rumble", (p, _) =>
         {
-            if (Settings.GetBool("controller.vibration") && !IsGameActive)
-                _shell.Rumble(Math.Clamp(p.Strength, 0, 1), Math.Clamp(p.DurationMs, 10, 400));
-            return Task.FromResult<object?>(true);
+            if (!HapticPatterns.IsKnown(p.Pattern)) throw new BridgeException("invalid", "Unknown vibration pattern.");
+            switch (Haptics.Request(p.Pattern, out var steps))
+            {
+                case HapticOutcome.Stop:
+                    _shell.StopHaptics();
+                    return Task.FromResult<object?>(false);
+                case HapticOutcome.Play:
+                    return Task.FromResult<object?>(_shell.PlayHaptic(steps));
+                default:
+                    return Task.FromResult<object?>(false);
+            }
         });
         Dispatcher.Register<ExternalParams>("app.openExternal", (p, _) =>
         {

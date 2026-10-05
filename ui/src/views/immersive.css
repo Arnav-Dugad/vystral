@@ -175,6 +175,8 @@
 .imm__hints > span { display: inline-flex; align-items: center; gap: 0.5rem; }
 .imm__exit { margin-left: auto; display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.45rem 1rem 0.45rem 0.55rem; border-radius: var(--r-pill); background: oklch(1 0 0 / 0.08); font-size: 0.88rem; transition: background 160ms; }
 .imm__exit:hover { background: oklch(1 0 0 / 0.15); }
+.imm__hint-btn { display: inline-flex; align-items: center; gap: 0.5rem; margin: -0.35rem -0.6rem; padding: 0.35rem 0.6rem; border-radius: var(--r-pill); transition: background 160ms; }
+.imm__hint-btn:hover { background: oklch(1 0 0 / 0.1); }
 
 /* Controller glyphs sized in em so they scale with the 10-foot type ramp. */
 .imm .pad-glyph { width: 1.45em; height: 1.45em; font-size: 0.72rem; line-height: 1; flex: none; box-shadow: inset 0 -1px 0 oklch(0 0 0 / 0.25); }

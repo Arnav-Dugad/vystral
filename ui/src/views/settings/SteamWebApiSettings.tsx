@@ -5,6 +5,7 @@ import type { SteamActionResult, SteamApiStatus, SteamTestResult } from '../../b
 import { formatRelative } from '../../lib/format';
 import { useStore } from '../../state/store';
 import { Badge, Button, Skeleton, Toggle } from '../../components/ui/primitives';
+import { HoldToConfirm } from '../../components/controller/HoldToConfirm';
 import { Dialog } from '../../components/ui/Dialog';
 import './steam-web-api.css';
 
@@ -157,7 +158,7 @@ export function SteamWebApiSettings() {
         actions={
           <>
             <Button variant="ghost" onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
-            <Button variant="danger" onClick={() => void disconnect()}>Disconnect</Button>
+            <HoldToConfirm icon={<Unplug size={14} />} onConfirm={() => void disconnect()}>Disconnect</HoldToConfirm>
           </>
         }
       >

@@ -211,7 +211,7 @@ export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="kbd">{children}</kbd>;
 }
 
-export function PadGlyph({ button }: { button: 'A' | 'B' | 'X' | 'Y' | 'LB' | 'RB' | 'Menu' | 'View' }) {
+export function PadGlyph({ button }: { button: 'A' | 'B' | 'X' | 'Y' | 'LB' | 'RB' | 'LT' | 'RT' | 'Menu' | 'View' }) {
   const bumper = button.length > 1;
   return (
     <span className={`pad-glyph ${bumper ? 'pad-glyph--bumper' : `pad-glyph--${button}`}`} aria-label={`${button} button`}>

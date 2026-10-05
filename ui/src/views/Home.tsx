@@ -7,6 +7,7 @@ import { ease, spring } from '../lib/motion';
 import { featuredGame, suggestGames } from '../lib/recommend';
 import { addManualGame, toggleFavorite } from '../state/actions';
 import { setLaunchOrigin } from '../lib/flight';
+import { haptic } from '../lib/haptics';
 import { useReducedMotion, useStore } from '../state/store';
 import { GameCover } from '../components/game/GameCover';
 import { Shelf } from '../components/game/Shelf';
@@ -128,7 +129,7 @@ function Hero({ game }: { game: Game }) {
         </div>
         {game.description && <p className="hero__desc selectable">{game.description}</p>}
         <div className="hero__actions">
-          <Button variant="primary" size="xl" icon={<Play size={22} fill="currentColor" />} disabled={!installed} onClick={(e) => { setLaunchOrigin(game.id, e.currentTarget); void launchGame(game.id); }} data-autofocus>
+          <Button variant="primary" size="xl" icon={<Play size={22} fill="currentColor" />} disabled={!installed} onClick={(e) => { setLaunchOrigin(game.id, e.currentTarget); haptic('confirm'); void launchGame(game.id); }} data-autofocus>
             {installed ? 'Play' : 'Not installed'}
           </Button>
           <Button size="lg" icon={<Info size={18} />} onClick={() => navigate({ name: 'game', id: game.id })}>

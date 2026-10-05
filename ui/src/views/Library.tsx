@@ -14,6 +14,7 @@ import { useStore } from '../state/store';
 import { GameCard } from '../components/game/GameCard';
 import { GameCover } from '../components/game/GameCover';
 import { Badge, Button, EmptyState, IconButton, PlatformBadge, Segmented, Slider } from '../components/ui/primitives';
+import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
 import './library.css';
 
@@ -225,9 +226,9 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
             actions={
               <>
                 <Button variant="ghost" onClick={() => setDeleteOpen(false)}>Keep it</Button>
-                <Button
-                  variant="danger"
-                  onClick={async () => {
+                <HoldToConfirm
+                  icon={<Trash2 size={14} />}
+                  onConfirm={async () => {
                     await call('collections.delete', { collectionId: collection.id }).catch(() => {});
                     setDeleteOpen(false);
                     await useStore.getState().refreshLibrary();
@@ -235,7 +236,7 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
                   }}
                 >
                   Delete collection
-                </Button>
+                </HoldToConfirm>
               </>
             }
           >
