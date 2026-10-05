@@ -48,6 +48,12 @@ test.describe('store logos', () => {
 });
 
 test.describe('live tiles', () => {
+  // Live tiles stay still at "low" visual quality, which "auto" picks on PCs with 4 cores or fewer
+  // (GitHub's Windows runners): pretend to be a typical 8-core PC so the behaviour under test runs.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 }));
+  });
+
   test('only tiles at least half on screen play, two at most, muted, and they stop when scrolled away', async ({ page }) => {
     await open(page);
     const playing = page.locator('.live-layer[data-playing]');

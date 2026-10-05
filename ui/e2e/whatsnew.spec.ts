@@ -24,17 +24,17 @@ test.describe("What's new", () => {
     const sheet = page.getByTestId('whats-new');
     await expect(sheet).toBeVisible({ timeout: 10_000 });
     await expect(sheet.getByRole('heading', { name: 'What’s new in VYSTRAL 0.4' })).toBeVisible();
-    await expect(sheet.getByRole('heading', { name: 'Network health' })).toBeVisible();
+    await expect(sheet.getByRole('heading', { name: 'Tracked wherever you launch' })).toBeVisible();
 
     const axe = await new AxeBuilder({ page }).include('[data-testid="whats-new"]').analyze();
     expect(axe.violations).toEqual([]);
 
     // Keyboard paging: → and ←, and the dots say where we are.
     await page.keyboard.press('ArrowRight');
-    await expect(sheet.getByRole('heading', { name: 'Updates that undo themselves' })).toBeVisible();
+    await expect(sheet.getByRole('heading', { name: 'Art and details, your way' })).toBeVisible();
     await expect(sheet.getByRole('button', { name: /^Card 2 of/ })).toHaveAttribute('aria-current', 'step');
     await page.keyboard.press('ArrowLeft');
-    await expect(sheet.getByRole('heading', { name: 'Network health' })).toBeVisible();
+    await expect(sheet.getByRole('heading', { name: 'Tracked wherever you launch' })).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Back' })).toBeDisabled();
 
     // Through to the end; the last card's button finishes the tour.
@@ -55,6 +55,9 @@ test.describe("What's new", () => {
     await open(page, '?reduced&whatsnew=0.3.1');
     const sheet = page.getByTestId('whats-new');
     await expect(sheet).toBeVisible({ timeout: 10_000 });
+    // The last card links to Network health.
+    const cards = await sheet.getByRole('button', { name: /^Card \d of/ }).count();
+    for (let i = 1; i < cards; i++) await sheet.getByRole('button', { name: 'Next' }).click();
     await sheet.getByRole('button', { name: 'Open Network health' }).click();
     await expect(sheet).toBeHidden();
     await expect(page.getByRole('heading', { name: /Network health/ })).toBeVisible();
