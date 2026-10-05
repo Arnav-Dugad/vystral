@@ -63,6 +63,9 @@ public sealed class PerfSampler : IDisposable
         return (_nvml.ReadGraphicsClock(), reasons is ulong r ? (int)Throttle.FromNvml(r) : null);
     }
 
+    /// <summary>NVIDIA GPU name and driver version from NVML (read-only); null without an NVIDIA driver.</summary>
+    public GpuIdentity? ReadGpuIdentity() => _nvml?.ReadIdentity();
+
     public static PerfSummary Summarize(IReadOnlyList<PerfSampleDto> samples) => Summarize(samples, [], null, FpsUnavailable);
 
     /// <summary>
@@ -297,6 +300,30 @@ public sealed class PerfSampler : IDisposable
             return null;
         }
 
+        /// <summary>nvmlSystemGetDriverVersion ("572.16") and nvmlDeviceGetName.</summary>
+        public GpuIdentity? ReadIdentity()
+        {
+            try
+            {
+                var buffer = new byte[96];
+                string? driver = nvmlSystemGetDriverVersion(buffer, (uint)buffer.Length) == 0 ? Text(buffer) : null;
+                Array.Clear(buffer);
+                string? name = nvmlDeviceGetName(_device, buffer, (uint)buffer.Length) == 0 ? Text(buffer) : null;
+                return driver is null && name is null ? null : new GpuIdentity(name, driver);
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return null;
+            }
+
+            static string? Text(byte[] b)
+            {
+                var n = Array.IndexOf(b, (byte)0);
+                var s = System.Text.Encoding.ASCII.GetString(b, 0, n < 0 ? b.Length : n).Trim();
+                return s.Length == 0 ? null : s;
+            }
+        }
+
         public void Dispose()
         {
             try { nvmlShutdown(); } catch (DllNotFoundException) { }
@@ -309,6 +336,8 @@ public sealed class PerfSampler : IDisposable
         [DllImport("nvml.dll")] private static extern int nvmlDeviceGetClockInfo(IntPtr device, int clockType, out uint mhz);
         [DllImport("nvml.dll")] private static extern int nvmlDeviceGetCurrentClocksEventReasons(IntPtr device, out ulong reasons);
         [DllImport("nvml.dll")] private static extern int nvmlDeviceGetCurrentClocksThrottleReasons(IntPtr device, out ulong reasons);
+        [DllImport("nvml.dll")] private static extern int nvmlSystemGetDriverVersion(byte[] version, uint length);
+        [DllImport("nvml.dll")] private static extern int nvmlDeviceGetName(IntPtr device, byte[] name, uint length);
     }
 
     [StructLayout(LayoutKind.Sequential)]

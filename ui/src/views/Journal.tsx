@@ -1,12 +1,12 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import {
   Activity, Award, BookOpen, CalendarDays, ChevronRight, Clock, Download, Flag, Flame, Gamepad2, Hourglass, Info, Medal, RefreshCw,
-  Sparkles, Store, Timer, Trash2, Trophy,
+  Sparkles, Store, Timer, Trash2, Trophy, X,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game } from '../bridge/types';
-import { Button, EmptyState, SectionHead, Segmented, Skeleton } from '../components/ui/primitives';
+import { Button, EmptyState, SectionHead, Segmented, Skeleton, Tabs } from '../components/ui/primitives';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
 import { formatDuration, formatRelative, PLATFORM_NAMES, plural } from '../lib/format';
@@ -17,8 +17,10 @@ import { useTrackedSessions } from './perf/hooks';
 import { dayLabel, gameTitle, shortDate, timeOfDay } from './perf/text';
 import { DayChart } from './journal/DayChart';
 import { BacklogCard } from './journal/BacklogCard';
+import { Heatmap } from './journal/Heatmap';
+import { AchievementTimeline } from './journal/AchievementTimeline';
 import {
-  computeTotals, currentStreak, genreTotals, groupByDay, inRange, longestStreak, milestones, normalizeSessions, playtimeBuckets, takeGroups,
+  computeTotals, currentStreak, genreTotals, groupByDay, inRange, longestStreak, milestones, normalizeSessions, playtimeBuckets, splitAcrossDays, takeGroups,
   topGames, yearInReview, type DayGroup, type JSession, type Milestone, type Range, type YearReview,
 } from './journal/stats';
 import './journal.css';
@@ -45,7 +47,9 @@ function storePlaytime(game: Game | undefined): { minutes: number; store: string
   return best;
 }
 
-export function JournalView() {
+export type JournalTab = 'sessions' | 'achievements';
+
+export function JournalView({ tab: routeTab }: { tab?: JournalTab } = {}) {
   const { status, sessions: rawSessions, error, reload, loadedAt: now } = useTrackedSessions();
   const gamesById = useStore((s) => s.gamesById);
   const games = useStore((s) => s.library.games);
@@ -55,6 +59,15 @@ export function JournalView() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const [busy, setBusy] = useState<'export' | 'delete' | null>(null);
+  // Track F: Sessions / Achievements tabs (a notification can deep-link to a tab) and the calendar's day filter.
+  const [tab, setTab] = useState<JournalTab>(routeTab ?? 'sessions');
+  const [linkedTab, setLinkedTab] = useState(routeTab);
+  if (routeTab !== linkedTab) {
+    setLinkedTab(routeTab);
+    if (routeTab) setTab(routeTab);
+  }
+  const [day, setDay] = useState<number | null>(null);
+  const timelineRef = useRef<HTMLElement>(null);
 
   const all = useMemo(() => normalizeSessions(rawSessions), [rawSessions]);
   const scoped = useMemo(() => inRange(all, range, now), [all, range, now]);
@@ -67,6 +80,21 @@ export function JournalView() {
   const genresOf = useCallback((id: string) => gamesById.get(id)?.genres, [gamesById]);
   const genres = useMemo(() => genreTotals(scoped, genresOf).slice(0, 8), [scoped, genresOf]);
   const groups = useMemo(() => groupByDay(scoped), [scoped]);
+  const dayGroups = useMemo(
+    () => (day == null ? null : groupByDay(all.filter((s) => splitAcrossDays(s.startMs, s.seconds).some((p) => p.dayStart === day)))),
+    [all, day],
+  );
+  const selectDay = useCallback(
+    (d: number | null) => {
+      setDay(d);
+      if (d != null) requestAnimationFrame(() => timelineRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }));
+    },
+    [reduce],
+  );
+  const switchTab = (t: JournalTab) => {
+    setTab(t);
+    useStore.getState().navigate({ name: 'journal', tab: t }, { replace: true });
+  };
   const capsule = useMemo(() => milestones(all), [all]);
   const review = useMemo(() => yearInReview(all, new Date(now).getFullYear(), genresOf), [all, now, genresOf]);
   const store = useMemo(() => {
@@ -146,6 +174,23 @@ export function JournalView() {
         )}
       </header>
 
+      <Tabs
+        label="Journal sections"
+        value={tab}
+        onChange={switchTab}
+        tabs={[
+          { value: 'sessions', label: 'Sessions' },
+          { value: 'achievements', label: <><Trophy size={14} aria-hidden style={{ marginRight: 6, verticalAlign: '-2px' }} />Achievements</> },
+        ]}
+      />
+
+      {tab === 'achievements' && (
+        <div role="tabpanel" aria-label="Achievements" className="jr-panel">
+          <AchievementTimeline />
+        </div>
+      )}
+
+      {tab === 'sessions' && <>
       {status === 'loading' && <JournalSkeleton />}
 
       {status === 'error' && !hasHistory && (
@@ -190,6 +235,11 @@ export function JournalView() {
               sub={bestStreak > 1 ? `Best: ${plural(bestStreak, 'day')} in a row` : 'Play on consecutive days to build one'}
             />
           </motion.div>
+
+          <motion.section className="surface vx-card jr-heatmap" {...reveal(2)} aria-labelledby="jr-heatmap-title">
+            <SectionHead title={<span id="jr-heatmap-title">Play calendar</span>} meta="Tracked minutes per day" />
+            <Heatmap sessions={all} now={now} gamesById={gamesById} selectedDay={day} onSelectDay={selectDay} />
+          </motion.section>
 
           {store.count > 0 && (
             <motion.div className="jr-provenance surface" {...reveal(2)}>
@@ -267,9 +317,19 @@ export function JournalView() {
           {review && <YearInReviewCard review={review} now={now} gamesById={gamesById} reveal={reveal(6)} />}
 
           <div className="jr-split">
-            <motion.section className="surface vx-card" {...reveal(7)} aria-labelledby="jr-timeline-title">
-              <SectionHead title={<span id="jr-timeline-title">Timeline</span>} meta={`${plural(scoped.length, 'session')} · ${RANGE_TEXT[range]}`} />
-              {groups.length ? (
+            <motion.section ref={timelineRef} className="surface vx-card jr-timeline-card" {...reveal(7)} aria-labelledby="jr-timeline-title">
+              <SectionHead
+                title={<span id="jr-timeline-title">Timeline</span>}
+                meta={dayGroups ? `${plural(dayGroups.reduce((n, g) => n + g.sessions.length, 0), 'session')} · ${shortDate(day!, true)}` : `${plural(scoped.length, 'session')} · ${RANGE_TEXT[range]}`}
+                action={day != null ? <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => setDay(null)}>Show all days</Button> : undefined}
+              />
+              {dayGroups ? (
+                dayGroups.length ? (
+                  <Timeline groups={dayGroups} limit={Number.POSITIVE_INFINITY} onMore={() => undefined} now={now} gamesById={gamesById} />
+                ) : (
+                  <p className="jr-muted">No tracked sessions on {shortDate(day!, true)}.</p>
+                )
+              ) : groups.length ? (
                 <Timeline groups={groups} limit={limit} onMore={() => setLimit((l) => l + PAGE * 2)} now={now} gamesById={gamesById} />
               ) : (
                 <p className="jr-muted">No sessions in this range.</p>
@@ -300,6 +360,8 @@ export function JournalView() {
         </>
       )}
 
+      </>}
+
       <Dialog
         open={confirmDelete}
         onClose={() => busy !== 'delete' && setConfirmDelete(false)}
@@ -323,6 +385,7 @@ export function JournalView() {
               Every session VYSTRAL tracked — <strong>{plural(allTotals.sessions, 'session')}</strong>, <strong>{formatDuration(allTotals.seconds)}</strong> across {plural(allTotals.games, 'game')}.
             </li>
             <li>All performance samples (CPU, GPU, memory, temperature) recorded during those sessions.</li>
+            <li>The graphics driver versions and background-app names noted during those sessions, and the apps you hid from that report.</li>
           </ul>
           <p>
             Not affected: your games, notes, ratings, collections, and playtime reported by Steam and other stores, which keeps showing on each game’s page. This can’t be undone — export your journal first if you want a copy.

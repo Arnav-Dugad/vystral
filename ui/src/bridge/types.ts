@@ -557,7 +557,140 @@ export interface BridgeEvents {
   'launch.preflight': PreflightResult;
   'fps.install': { phase: 'downloading' | 'installed' | 'failed'; progress: number; error?: string };
   /** Sent when a Windows notification is clicked; route is a store Route object. */
-  'app.navigate': { route: { name: string; id?: string; sessionId?: string; section?: string } };
+  'app.navigate': { route: { name: string; id?: string; sessionId?: string; section?: string; tab?: string } };
+}
+
+// ---------- Track F: heatmap, achievement feed, driver comparison, background apps (mirror of DataInsightDtos.cs) ----------
+
+export interface Settings {
+  'notifications.achievements': boolean;
+  'performance.backgroundApps': boolean;
+}
+
+/** One unlocked Steam achievement in the merged feed. `icon` is a cached art-host URL or null. */
+export interface AchievementFeedItem {
+  appId: string;
+  gameId: string | null;
+  gameTitle: string;
+  apiName: string;
+  name: string;
+  description: string | null;
+  unlockedAt: string;
+  globalPercent: number | null;
+  icon: string | null;
+}
+
+export type AchievementDataStatus = 'ok' | 'notConnected' | 'localOnly' | 'empty';
+
+export interface AchievementFeed {
+  status: AchievementDataStatus;
+  items: AchievementFeedItem[];
+  offset: number;
+  total: number;
+  hasMore: boolean;
+}
+
+export interface NearCompletion {
+  appId: string;
+  gameId: string | null;
+  gameTitle: string;
+  unlocked: number;
+  total: number;
+  remaining: number;
+  fraction: number;
+  /** Null when the rarest locked achievement is hidden (no spoilers). */
+  rarestRemainingName: string | null;
+  rarestRemainingPercent: number | null;
+  rarestRemainingHidden: boolean;
+  lastUnlockAt: string | null;
+}
+
+export interface AchievementOverview {
+  status: AchievementDataStatus;
+  message: string | null;
+  totalUnlocked: number;
+  gamesWithData: number;
+  rare: number;
+  ultraRare: number;
+  lastFetched: string | null;
+  nearCompletion: NearCompletion[];
+}
+
+export interface AchievementUnlockEvent {
+  sessionId: string;
+  gameId: string;
+  gameTitle: string;
+  appId: string;
+  items: AchievementFeedItem[];
+  /** 1, 2, 5 or 10 — the tightest "rarer than" threshold; null when no unlock is below 10%. */
+  rareThreshold: number | null;
+  rareCount: number;
+}
+
+export interface DriverVersion {
+  version: string;
+  gpuName: string | null;
+  firstSeen: string;
+  lastSeen: string;
+  sessions: number;
+}
+
+export interface DriverSide {
+  version: string;
+  gpuName: string | null;
+  sessions: number;
+  fpsAvg: number | null;
+  fps1Low: number | null;
+  frameTimeP99Ms: number | null;
+  from: string;
+  to: string;
+}
+
+export interface DriverGameComparison {
+  gameId: string;
+  before: DriverSide;
+  after: DriverSide;
+  changedAt: string;
+  smallSample: boolean;
+  gpuChanged: boolean;
+}
+
+export interface DriverInsight {
+  drivers: DriverVersion[];
+  games: DriverGameComparison[];
+  sessionsWithDriver: number;
+  sessionsWithFps: number;
+  gamesWithoutFps: number;
+}
+
+export interface BackgroundAppStat {
+  name: string;
+  displayName: string;
+  sessions: number;
+  presence: number;
+  roughPresence: number | null;
+  cleanPresence: number | null;
+  lift: number | null;
+  avgMb: number | null;
+  maxMb: number | null;
+  avgCpu: number | null;
+}
+
+export interface BackgroundImpact {
+  mode: 'fps' | 'memory' | 'none';
+  sessionsAnalyzed: number;
+  roughSessions: number;
+  cleanSessions: number;
+  enough: boolean;
+  suspects: BackgroundAppStat[];
+  common: BackgroundAppStat[];
+  hidden: string[];
+  collecting: boolean;
+}
+
+export interface BridgeEvents {
+  'achievements.unlocked': AchievementUnlockEvent;
+  'achievements.iconsReady': { appIds: string[] };
 }
 
 // ---------- Track G: Windows shell — accent colour, Mica backdrop (mirror of SystemAppearanceDto) ----------

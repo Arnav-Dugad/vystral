@@ -29,9 +29,9 @@ interface Section {
 const SECTIONS: Section[] = [
   { id: 'appearance', label: 'Appearance', icon: <Palette size={17} />, keywords: 'theme dark light oled contrast accent colour color living canvas background motion animation reduced intro quality grid' },
   { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download' },
-  { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu' },
+  { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu background apps processes driver' },
   { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble sound audio immersive fullscreen' },
-  { id: 'windows', label: 'Windows integration', icon: <Monitor size={17} />, keywords: 'hotkey shortcut summon notifications toast windows tray' },
+  { id: 'windows', label: 'Windows integration', icon: <Monitor size={17} />, keywords: 'hotkey shortcut summon notifications toast windows tray achievements' },
   { id: 'ai', label: 'Local AI', icon: <Bot size={17} />, keywords: 'ollama assistant model ai natural language' },
   { id: 'updates', label: 'Updates', icon: <Download size={17} />, keywords: 'update version release automatic download' },
   { id: 'privacy', label: 'Privacy', icon: <ShieldCheck size={17} />, keywords: 'privacy telemetry network offline local data' },
@@ -248,6 +248,7 @@ function Launching({ s }: { s: Settings }) {
       </Group>
       <Group title="Sessions & performance" description="Readings come from Windows performance counters (and NVIDIA’s driver for GPU temperature when present). They are read-only: VYSTRAL never changes clocks, fans, power limits or game files.">
         <BoolRow s={s} k="performance.collectMetrics" label="Record CPU, GPU and memory while playing" hint="One light reading every two seconds, stored only on this PC. Frame rate needs the optional frame-rate capture below." />
+        <BoolRow s={s} k="performance.backgroundApps" label="Note which other apps are running" hint="About every 30 seconds, VYSTRAL notes the program names of the heaviest other apps (memory and CPU only — no window titles or paths), so the Performance page can show which ones tend to run during rough sessions. Read-only, without opening any process. Needs the recording above." />
         <BoolRow s={s} k="pulse.enabled" label="Show the Pulse window during games" hint="A tiny always-on-top window with your session timer and system load. It’s a normal window — nothing is injected into games. It can’t appear over exclusive-fullscreen games." />
         <Row label="Preview the Pulse window" control={<Button size="sm" onClick={() => void call('window.pulse', { visible: true }).catch(() => {})}>Show preview</Button>} />
       </Group>

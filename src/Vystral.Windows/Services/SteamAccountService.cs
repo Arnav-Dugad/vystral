@@ -370,9 +370,9 @@ public sealed class SteamAccountService
         }
     }
 
-    private async Task CacheIconsAsync(string gameId, string appId, CancellationToken ct)
+    private async Task CacheIconsAsync(string gameId, string appId, CancellationToken ct, Func<SteamAchievementRow, bool>? only = null)
     {
-        var rows = _repo.GetAchievements(appId);
+        var rows = _repo.GetAchievements(appId).Where(r => only is null || only(r));
         var wanted = rows.Select(r => r.Achieved ? (r.ApiName, Gray: false, Url: r.IconUrl, File: r.IconFile) : (r.ApiName, Gray: true, Url: r.IconGrayUrl, File: r.IconGrayFile))
             .Where(w => w.Url is not null && !_artwork.CachedFileExists(w.File))
             .Take(600).ToList();
@@ -446,6 +446,35 @@ public sealed class SteamAccountService
     }
 
     public void StopBackground() => _backgroundCts?.Cancel();
+
+    // ---------- Track F: unlocks after a session, feed icons ----------
+
+    /// <summary>True when VYSTRAL may ask Steam for achievements right now: key and account set, online, no data saver, no game running.</summary>
+    public bool CanRefreshAchievements() =>
+        !LocalOnly && !DataSaverActive && _keys.IsConfigured && !IsGameActive() && SelectedSteamId() is not null;
+
+    /// <summary>
+    /// Refreshes one app's achievements now, whatever the cache age (used once or twice after a session
+    /// ends). False when Steam couldn't be asked or reported a problem; the previous cache is kept then.
+    /// </summary>
+    public async Task<bool> RefreshAppNowAsync(string appId, CancellationToken ct)
+    {
+        if (!CanRefreshAchievements() || SelectedSteamId() is not { } steamId) return false;
+        var gate = _appLocks.GetOrAdd(appId, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try { return await RefreshAppAsync(appId, steamId, ct) is null; }
+        finally { gate.Release(); }
+    }
+
+    /// <summary>Caches icons of unlocked achievements (optionally only some) from Steam's CDN. Skipped offline, with data saver, or in game.</summary>
+    public async Task WarmUnlockedIconsAsync(string gameId, string appId, IReadOnlySet<string>? apiNames, CancellationToken ct)
+    {
+        if (LocalOnly || DataSaverActive || IsGameActive()) return;
+        var gate = _appLocks.GetOrAdd(appId, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try { await CacheIconsAsync(gameId, appId, ct, r => r.Achieved && (apiNames is null || apiNames.Contains(r.ApiName))); }
+        finally { gate.Release(); }
+    }
 
     private void RequireOnline()
     {

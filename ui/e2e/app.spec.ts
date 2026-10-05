@@ -263,6 +263,66 @@ test.describe('accessibility (axe)', () => {
   }
 });
 
+test.describe('v0.3 data & insight', () => {
+  test('play calendar renders and moves by keyboard; Enter filters the timeline', async ({ page }) => {
+    await open(page);
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Journal' }).click();
+    const grid = page.getByRole('grid', { name: /Play calendar/ });
+    await expect(grid).toBeVisible();
+    expect(await grid.getByRole('gridcell').count()).toBeGreaterThan(300);
+    const tabbable = grid.locator('[role="gridcell"][tabindex="0"]');
+    await expect(tabbable).toHaveCount(1);
+    await tabbable.focus();
+    const start = Number(await tabbable.getAttribute('data-day'));
+    await page.keyboard.press('ArrowLeft');
+    const afterLeft = Number(await page.evaluate(() => document.activeElement?.getAttribute('data-day')));
+    expect(Math.round((start - afterLeft) / 86_400_000)).toBe(7);
+    await page.keyboard.press('ArrowUp');
+    const afterUp = Number(await page.evaluate(() => document.activeElement?.getAttribute('data-day')));
+    expect(Math.round((afterLeft - afterUp) / 86_400_000)).toBe(1);
+    await expect(grid.locator('[role="gridcell"][tabindex="0"]')).toHaveCount(1);
+    await page.keyboard.press('Enter');
+    await expect(page.getByText('Timeline filtered to')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show all days' })).toBeVisible();
+    await page.getByRole('button', { name: 'Show all days' }).click();
+    await expect(page.getByText('Timeline filtered to')).toBeHidden();
+  });
+
+  test('achievement timeline shows the near-completion shelf and unlocks by day', async ({ page }) => {
+    await open(page);
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Journal' }).click();
+    await page.getByRole('tab', { name: /Achievements/ }).click();
+    await expect(page.getByRole('heading', { name: 'Unlock timeline' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nearly complete' })).toBeVisible();
+    await expect(page.locator('.at-near').first()).toBeVisible();
+    await expect(page.locator('.at-row').first()).toBeVisible();
+    const before = await page.locator('.at-row').count();
+    await page.getByRole('button', { name: 'Show more' }).click();
+    await expect.poll(() => page.locator('.at-row').count()).toBeGreaterThan(before);
+  });
+
+  test('performance shows driver changes and background apps, and an app can be hidden', async ({ page }) => {
+    await open(page);
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Performance' }).click();
+    await expect(page.getByRole('heading', { name: /GPU driver changes/ })).toBeVisible();
+    await expect(page.getByText(/572\.16/).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Background apps/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Hide obs64 from this report' }).first().click();
+    await expect(page.getByRole('button', { name: 'Show obs64.exe again' })).toBeVisible();
+  });
+
+  test('journal achievements tab has no serious or critical violations', async ({ page }) => {
+    await open(page, '?reduced');
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Journal' }).click();
+    await page.getByRole('tab', { name: /Achievements/ }).click();
+    await expect(page.getByRole('heading', { name: 'Unlock timeline' })).toBeVisible();
+    await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
+    const results = await new AxeBuilder({ page }).exclude('.living-canvas').analyze();
+    const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+    expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(' | ')}`)).toEqual([]);
+  });
+});
+
 test.describe('visual regression', () => {
   for (const [name, nav] of [
     ['home', null],

@@ -161,6 +161,7 @@ function SummonShortcut() {
 const CATEGORIES: { key: SettingKey; label: string; hint: string }[] = [
   { key: 'notifications.sessions', label: 'Session saved', hint: 'After a game closes: “Played Nebula Drift · 1h 42m”.' },
   { key: 'notifications.thermal', label: 'GPU running hot', hint: 'When your GPU slowed down from heat for more than 30 seconds during a session.' },
+  { key: 'notifications.achievements', label: 'Achievements unlocked', hint: 'After a Steam game closes: “You unlocked 3 achievements — 1 is rarer than 2%”. Needs your Steam Web API key.' },
   { key: 'notifications.installs', label: 'Install finished', hint: 'When a game you installed through VYSTRAL is ready to play.' },
   { key: 'notifications.updates', label: 'VYSTRAL update ready', hint: 'When a new version has downloaded and is ready to install.' },
 ];

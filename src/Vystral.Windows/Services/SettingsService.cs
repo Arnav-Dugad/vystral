@@ -91,6 +91,9 @@ public sealed class SettingsService
         new BoolDef("notifications.installs", true),
         new BoolDef("notifications.thermal", true),
         new BoolDef("notifications.onlyInBackground", true),
+        // Track F: achievement unlock notifications, background-app snapshots during sessions.
+        new BoolDef("notifications.achievements", true),
+        new BoolDef("performance.backgroundApps", true),
     ];
 
     private readonly LibraryRepository _repo;

@@ -566,6 +566,8 @@ public sealed partial class LibraryRepository(Database db)
         using var conn = db.Open();
         using var tx = conn.BeginTransaction();
         conn.Execute("DELETE FROM perf_samples", transaction: tx);
+        // Track F: background-app names recorded during sessions, and the names the user hid.
+        conn.Execute("DELETE FROM session_background_apps; DELETE FROM hidden_background_apps;", transaction: tx);
         var n = conn.Execute("DELETE FROM sessions", transaction: tx);
         Audit(conn, tx, "journal.deleteAll", $"{n} sessions");
         tx.Commit();

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { call, errorMessage, isNative, on } from '../bridge/bridge';
+import { rarity, unlockToastText } from '../lib/achievements';
 import type {
   AdapterInfo, AppInfo, DriveInfo, Game, LaunchState, LibrarySnapshot, SettingKey, Settings, UpdateState, WindowState,
 } from '../bridge/types';
@@ -8,7 +9,7 @@ export type Route =
   | { name: 'home' }
   | { name: 'library'; collectionId?: string; query?: string }
   | { name: 'game'; id: string }
-  | { name: 'journal' }
+  | { name: 'journal'; tab?: 'sessions' | 'achievements' }
   | { name: 'performance'; sessionId?: string }
   | { name: 'moments' }
   | { name: 'constellation' }
@@ -24,6 +25,8 @@ export interface Toast {
   body?: string;
   action?: { label: string; run: () => void };
   sticky?: boolean;
+  /** Track F: small images shown under the text (achievement icons); src null shows a trophy. */
+  media?: { src: string | null; label: string; rare?: 'rare' | 'ultra' | null }[];
 }
 
 export interface ScanStatus {
@@ -314,6 +317,18 @@ function subscribeEvents(set: (p: Partial<State>) => void, get: () => State) {
     if (!route || !known.includes(route.name) || (route.name === 'game' && !route.id)) return;
     if (get().window.mode === 'immersive' && route.name !== 'game') void get().setMode('desktop');
     get().navigate(route as Route);
+  });
+  // Track F: achievements unlocked during the session that just ended (checked with Steam afterwards).
+  on('achievements.unlocked', (e) => {
+    if (!e || !Array.isArray(e.items) || e.items.length === 0) return;
+    const { title, body } = unlockToastText(e);
+    get().toast({
+      tone: 'success',
+      title,
+      body,
+      media: e.items.slice(0, 6).map((i) => ({ src: i.icon, label: i.name, rare: rarity(i.globalPercent) })),
+      action: { label: 'View achievements', run: () => get().navigate({ name: 'journal', tab: 'achievements' }) },
+    });
   });
   on('launch.state', (launch) => {
     set({ launch });

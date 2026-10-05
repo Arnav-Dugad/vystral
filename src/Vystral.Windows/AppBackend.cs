@@ -100,6 +100,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterInsightHandlers();        // AppBackend.Insights.cs: pre-flight, FPS capture, hotkey, notifications
         RegisterStatusHandlers();         // AppBackend.Status.cs: game status tracking, trailers
         RegisterShellHandlers();          // AppBackend.Shell.cs: Windows accent colour, Mica backdrop
+        RegisterDataInsightHandlers();    // AppBackend.DataInsights.cs: achievement feed, driver comparison, background apps
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

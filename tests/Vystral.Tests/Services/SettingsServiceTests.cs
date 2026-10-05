@@ -32,7 +32,9 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.False(all["privacy.localOnly"]!.GetValue<bool>());
         Assert.IsType<JsonObject>(all["library.platformsEnabled"]);
         Assert.Empty(all["library.platformsEnabled"]!.AsObject());
-        Assert.Equal(43, all.Count); // 28 original + Track A/C (5) + Track B (10)
+        Assert.True(all["notifications.achievements"]!.GetValue<bool>());
+        Assert.True(all["performance.backgroundApps"]!.GetValue<bool>());
+        Assert.Equal(45, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2)
     }
 
     [Fact]

@@ -24,6 +24,7 @@ import { HeroInstallStatus } from '../components/game/InstallProgress';
 import { StatusPicker } from '../components/game/StatusPicker';
 import { HeroTrailer } from '../components/game/HeroTrailer';
 import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, SectionHead, Stars, Tabs } from '../components/ui/primitives';
+import { DriverChangeCard } from './perf/DataInsightCards';
 import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
 import './detail.css';
@@ -366,6 +367,8 @@ function Sessions({ game }: { game: Game }) {
 
   return (
     <div className="sessions">
+      {/* Track F: FPS before/after a GPU driver change for this game (renders nothing until there's a change). */}
+      <DriverChangeCard gameId={game.id} hideWhenEmpty />
       {sessions.map((s) => {
         let perf: PerfSummary | null = null;
         try { perf = s.perfSummary ? JSON.parse(s.perfSummary) : null; } catch { perf = null; }

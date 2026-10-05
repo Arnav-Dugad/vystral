@@ -30,6 +30,7 @@ public static partial class ActivationUri
         ["game"] = ("id", true),
         ["performance"] = ("sessionId", false),
         ["settings"] = ("section", false),
+        ["journal"] = ("tab", false),
     };
 
     /// <summary>Builds the URI for a route JSON (as produced by <see cref="NotificationPolicy.Route"/>). Null if the route isn't allowed.</summary>
@@ -158,6 +159,7 @@ public static partial class ActivationUri
     {
         "id" or "sessionId" => Hex32().IsMatch(value),
         "section" => Section().IsMatch(value),
+        "tab" => value is "sessions" or "achievements",
         _ => false,
     };
 

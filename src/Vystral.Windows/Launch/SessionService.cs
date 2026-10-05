@@ -96,6 +96,12 @@ public sealed class SessionService : IDisposable
     /// <summary>Decides whether frame rate can be captured for the next session. Null means "off".</summary>
     public Func<FpsCapturePlan>? FpsCapture { get; set; }
 
+    /// <summary>Track F: the GPU and driver a session runs on (read once at session start). Null skips it.</summary>
+    public Func<PerfSampler?, GpuIdentity?>? GpuIdentity { get; set; }
+
+    /// <summary>Track F: creates the background-app tracker for a session (snapshots every ~30 s). Null, or returning null, skips it.</summary>
+    public Func<BackgroundAppTracker?>? BackgroundApps { get; set; }
+
     /// <summary>Raised when a session moves to running or ends; the host uses it to enter/leave Performance Mode.</summary>
     public event Action<LaunchStateDto>? StateChanged;
 
@@ -310,6 +316,10 @@ public sealed class SessionService : IDisposable
             var collect = _settings.GetBool("performance.collectMetrics");
             using var sampler = collect ? new PerfSampler() : null;
             var fps = collect ? new FpsSession(SafeFpsPlan()) : null;
+            if (sampler is not null) RecordGpu(sessionId, sampler);
+            using var backgroundOwner = sampler is not null ? SafeBackgroundTracker() : null;
+            var background = backgroundOwner;
+            var tick = 0;
             var samples = new List<PerfSampleDto>();
             var extras = new List<InsightSampleDto>();
             var pending = new List<PerfSampleDto>();
@@ -353,9 +363,16 @@ public sealed class SessionService : IDisposable
                         }
 
                         try { Sampled?.Invoke(sample); } catch (Exception ex) { Log.Warn("session", "Sample handler failed", ex: ex); }
+                        // Track F: one handle-free process snapshot every ~30 s (the first one is the CPU baseline).
+                        if (background is not null && tick++ % BackgroundAppTracker.EveryTicks == 0)
+                        {
+                            try { background.Snapshot(pids); }
+                            catch (Exception ex) { Log.Warn("session", "Background-app snapshot failed", ex: ex); background = null; }
+                        }
                         if (now - lastFlush > TimeSpan.FromSeconds(30))
                         {
                             Flush(sessionId, pending, pendingExtras);
+                            FlushBackground(sessionId, background);
                             lastFlush = now;
                         }
                     }
@@ -367,6 +384,7 @@ public sealed class SessionService : IDisposable
             }
 
             Flush(sessionId, pending, pendingExtras);
+            FlushBackground(sessionId, background);
             var end = lastSeenAlive;
             var duration = (int)Math.Max(0, (end - sessionStart).TotalSeconds);
             string? summary = null;
@@ -408,6 +426,29 @@ public sealed class SessionService : IDisposable
         }
         pending.Clear();
         pendingExtras.Clear();
+    }
+
+    private void RecordGpu(string sessionId, PerfSampler sampler)
+    {
+        try
+        {
+            if (GpuIdentity?.Invoke(sampler) is { } gpu && (gpu.Driver is not null || gpu.Name is not null))
+                _repo.SetSessionGpu(sessionId, gpu.Driver, gpu.Name);
+        }
+        catch (Exception ex) { Log.Warn("session", "Couldn't record the GPU driver", ex: ex); }
+    }
+
+    private BackgroundAppTracker? SafeBackgroundTracker()
+    {
+        try { return BackgroundApps?.Invoke(); }
+        catch (Exception ex) { Log.Warn("session", "Background-app tracking unavailable", ex: ex); return null; }
+    }
+
+    private void FlushBackground(string sessionId, BackgroundAppTracker? background)
+    {
+        if (background is not { Dirty: true }) return;
+        try { _repo.SaveBackgroundApps(sessionId, background.Results(), background.Snapshots, background.MemLoadAvg, background.MemLoadMax); }
+        catch (Exception ex) { Log.Warn("session", "Couldn't store background apps", ex: ex); }
     }
 
     private FpsCapturePlan SafeFpsPlan()
