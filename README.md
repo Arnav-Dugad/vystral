@@ -44,6 +44,8 @@
 | **Play calendar & achievements** | A year of play day by day with streaks, every Steam achievement on one timeline (rare ones highlighted), achievement toasts after a session, and frame rates before vs after a driver update. |
 | **Controller-first** | Gentle haptics, an on-screen keyboard with library suggestions, and hold-to-confirm for anything you can't undo. |
 | **Steam extras** | Live install progress and trailers; with your own Steam Web API key (kept in Windows Credential Manager), games you own but haven’t installed and achievements with rarity. |
+| **Tracks games you start anywhere** | Launch from Steam or a shortcut and the session is still recorded, even while VYSTRAL is closed (optional tiny helper). |
+| **Art, details and deals** | SteamGridDB art picker, IGDB/RAWG details, CheapShark/IsThereAnyDeal prices, Steam Deck and anti-cheat badges, cross-store IDs from Wikidata. Keys are your own. |
 | **Windows integration** | A summon shortcut (`Ctrl+Alt+V`), Windows notifications, a notification centre and a now-playing chip. |
 | **Moments** | Your Steam screenshots and Xbox Game Bar captures in one gallery. Nothing is uploaded. |
 | **Constellation** | An optional 3D map of your library, with an accessible list view. |

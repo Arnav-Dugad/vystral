@@ -114,8 +114,8 @@ describe('"New" badges', () => {
   });
 
   it('lights a settings section while any of its rows is new', () => {
-    expect(visibleWithPrefix('settings.appearance.', ctx('0.4.0'))).toEqual(['settings.appearance.windows-accent', 'settings.appearance.follow-trailer']);
-    expect(visibleWithPrefix('settings.appearance.', ctx('0.4.0', null, ['settings.appearance.windows-accent', 'settings.appearance.follow-trailer']))).toEqual([]);
+    expect(visibleWithPrefix('settings.appearance.', ctx('0.4.0'))).toEqual(['settings.appearance.windows-accent', 'settings.appearance.follow-trailer', 'settings.appearance.live-tiles']);
+    expect(visibleWithPrefix('settings.appearance.', ctx('0.4.0', null, ['settings.appearance.windows-accent', 'settings.appearance.follow-trailer', 'settings.appearance.live-tiles']))).toEqual([]);
   });
 
   it('has a valid, unique manifest the native side accepts', () => {

@@ -1,6 +1,6 @@
 # Progress
 
-Status as of **v0.3.0 (2026-10-05)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
+Status as of **v0.4.0 (2026-10-05)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
 
 ## Phase 1 — Foundation ✅
 - ✅ Repository, solution, CI and release workflows
@@ -70,6 +70,17 @@ Status as of **v0.3.0 (2026-10-05)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Velopack per-user installer, portable zip, delta updates, in-app update viewer
 - ✅ GitHub Releases with a stable "latest" download link
 - See "Verification record" below for the release check.
+
+## Verification record (v0.4.0)
+
+| Check | Result |
+|---|---|
+| .NET tests | **1254 passed, 0 failed** |
+| UI unit tests | **390 passed, 0 failed** |
+| Playwright e2e + axe + visual regression (now comparing the real screen) | **80 passed, 0 failed**, three consecutive full runs |
+| Real app (dev build, owner's library) | What's new tour; store logos on cards; a Home live tile playing FC 26's micro-trailer through the media proxy; RDR2 page with Steam Deck "Playable" and live CheapShark deals; data-source and background-tracking settings; Network health correctly flagged GitHub's unreachable 185.199.109.133 |
+| Background helper (track build, scratch data) | idle 0.04–0.075% of one core, 19–25 MB private; a 150 s fake game recorded as a background session; hand-over to the app and back kept one session |
+| Not verified | A real game detected outside VYSTRAL on the owner's PC (no game was launched without the owner); silent rollback on a real failed update; keyed providers (SteamGridDB, IGDB, RAWG, ITAD) with real keys |
 
 ## Verification record (v0.3.0)
 

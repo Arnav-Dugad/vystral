@@ -2,18 +2,42 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
-## [0.4.0] — Unreleased
+## [0.4.0] — 2026-10-05
+
+Your library, settings and history carry over.
+
+### Playing
+- **Games you start anywhere are tracked.** Launch a game from Steam, a desktop shortcut or anywhere else and VYSTRAL notices and records the session, with the same performance readings as a launch from VYSTRAL. Sessions show where they came from.
+- **Even while VYSTRAL is closed** (optional, off by default): turn on Settings → Launching & sessions → "Track games even when VYSTRAL is closed" and a tiny helper starts with Windows. It uses almost nothing while idle (about 0.05% of one CPU core and 20 MB), hands the session over seamlessly when you open VYSTRAL, and is removed when you turn it off or uninstall.
+
+### Library & game pages
+- **Real store logos** for Steam, Epic Games, GOG, EA app, Ubisoft Connect and Battle.net, everywhere a store is shown. (Xbox has no freely licensed mark, so it shows a neutral "X".)
+- **Art picker:** choose alternate covers, heroes, logos and icons from SteamGridDB, with live previews (your own free key).
+- **More details, your way:** fill in missing descriptions, genres, time to beat, series and similar games from IGDB or RAWG (your own free keys, kept in Windows Credential Manager).
+- **Deals:** the best current price, the lowest ever and other shops for a game, from CheapShark (no key) or IsThereAnyDeal (your key). Opens in your browser.
+- **Steam Deck and anti-cheat badges:** Valve's Deck rating with its test notes, and which anti-cheat a game uses (from AreWeAntiCheatYet).
+- **The same game on other stores:** a game's IDs on Steam, GOG, Epic, Microsoft Store and more, from Wikidata, with links. Possible duplicates across stores are suggested, never merged on their own.
+- **Never played:** a shelf and a Library filter for games you own but haven't played, with how long they've been waiting.
+- **Library value** (Journal): when games joined your library and what it's worth at today's prices. Dates use the earliest evidence available and say which one; prices are current prices, not what you paid.
+
+### Feel
+- **Live tiles:** covers on Home quietly play Steam's short silent clips while they're on screen. Never on a metered connection, with Data saver, or while you play.
+- **Library sort animations:** cards glide to their new places when you change the sort or filter.
+- **Achievement shimmer:** a sweep of light across new achievements, tinted by rarity (silver, gold, prismatic for the rarest).
+- **Ambient sound** (off by default): soft sounds that follow the game's mood. Settings → Controller & sound.
+- **Illustrated empty states** drawn from the game's own colours.
 
 ### Updates
-- **What's new, once.** After an update, a short tour shows what changed, with buttons that take you straight to each feature. Skip it any time; it's also under Settings → About. Never on a fresh install, and never in Immersive Mode.
-- **Updates that undo themselves.** If a new version fails to start twice in a row, VYSTRAL quietly returns to the version that worked, tells you why, and skips that update until a fixed one is out.
-- **Clearer update status.** The title bar shows when VYSTRAL is checking, and when a check fails it says why (for example "DNS failed" or "TLS error") instead of just "couldn't reach GitHub".
+- **What's new, once.** After an update, a short tour shows what changed, with buttons that take you straight to each feature. Never on a fresh install, and never in Immersive Mode. Also under Settings → About.
+- **Updates that undo themselves.** If a new version fails to start twice in a row, VYSTRAL returns to the version that worked, tells you why, and skips that update until a fixed one is out.
+- **Clearer update status** in the title bar, with the actual reason when a check fails.
+- **"New" dots** mark features you haven't tried yet, and disappear once you've had a look.
 
 ### Privacy
-- **Network health:** Settings → Privacy shows whether GitHub and Steam's store, image and video servers answer from your network, address by address, with the actual reason when one doesn't ("one of GitHub's download addresses isn't reachable; VYSTRAL uses the others", "rate limited — resets in 12 min"). Only when you press Check now; skipped in Offline mode.
+- **Network health** (Settings → Privacy): whether GitHub and Steam's servers answer from your network, address by address, with the actual reason when one doesn't. Only when you press Check now.
 
-### Everywhere
-- **New things, marked.** A small dot marks features you haven't tried yet. It goes away once you've had a look, and by itself two releases later.
+### Fixed
+- The visual regression tests compared a solid-colour image and could never catch a change; they now compare the real screen.
 
 ## [0.3.1] — 2026-10-05
 

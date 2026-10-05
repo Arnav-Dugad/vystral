@@ -184,7 +184,7 @@ export function JournalView({ tab: routeTab }: { tab?: JournalTab } = {}) {
         tabs={[
           { value: 'sessions', label: 'Sessions' },
           { value: 'achievements', label: <><Trophy size={14} aria-hidden style={{ marginRight: 6, verticalAlign: '-2px' }} />Achievements<NewBadge k="journal.achievements" /></> },
-          { value: 'value', label: 'Library value' },
+          { value: 'value', label: <>Library value<NewBadge k="journal.value" /></> },
         ]}
       />
 

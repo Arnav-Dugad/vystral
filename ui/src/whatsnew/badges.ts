@@ -33,6 +33,11 @@ export const NEW_FEATURES: NewFeature[] = [
   // 0.4.0
   { key: 'settings.privacy.network-health', since: '0.4.0' },
   { key: 'settings.about.whats-new', since: '0.4.0' },
+  { key: 'settings.launching.background-tracking', since: '0.4.0' },
+  { key: 'settings.library.data-sources', since: '0.4.0' },
+  { key: 'settings.appearance.live-tiles', since: '0.4.0' },
+  { key: 'settings.controller.ambient-sound', since: '0.4.0' },
+  { key: 'journal.value', since: '0.4.0', seenOn: { name: 'journal', tab: 'value' } },
 ];
 
 const BY_KEY = new Map(NEW_FEATURES.map((f) => [f.key, f]));
