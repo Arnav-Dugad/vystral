@@ -17,6 +17,7 @@ import { SteamWebApiSettings } from './settings/SteamWebApiSettings';
 import { FpsCaptureSettings } from './settings/FpsCaptureSettings';
 import { WindowsIntegrationSettings } from './settings/WindowsIntegrationSettings';
 import { DataSaverSettings } from './settings/DataSaverSettings';
+import { LiveTilesSettings, SoundSettings } from './settings/LiveTilesAndSoundSettings';
 import './settings.css';
 
 interface Section {
@@ -27,10 +28,10 @@ interface Section {
 }
 
 const SECTIONS: Section[] = [
-  { id: 'appearance', label: 'Appearance', icon: <Palette size={17} />, keywords: 'theme dark light oled contrast accent colour color living canvas background motion animation reduced intro quality grid' },
+  { id: 'appearance', label: 'Appearance', icon: <Palette size={17} />, keywords: 'theme dark light oled contrast accent colour color living canvas background motion animation reduced intro quality grid home live tiles trailer' },
   { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download' },
   { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu background apps processes driver' },
-  { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble sound audio immersive fullscreen' },
+  { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble sound audio ambient volume mood immersive fullscreen' },
   { id: 'windows', label: 'Windows integration', icon: <Monitor size={17} />, keywords: 'hotkey shortcut summon notifications toast windows tray achievements' },
   { id: 'ai', label: 'Local AI', icon: <Bot size={17} />, keywords: 'ollama assistant model ai natural language' },
   { id: 'updates', label: 'Updates', icon: <Download size={17} />, keywords: 'update version release automatic download' },
@@ -70,10 +71,10 @@ export function SettingsView({ section }: { section?: string }) {
           {shown.length === 0 && <p className="stat__hint" style={{ padding: 12 }}>No settings match “{query}”.</p>}
         </nav>
         <div className="settings__content">
-          {active === 'appearance' && <Appearance s={settings} />}
+          {active === 'appearance' && <><Appearance s={settings} /><LiveTilesSettings /></>}
           {active === 'library' && <><LibrarySection s={settings} /><SteamWebApiSettings /></>}
           {active === 'launching' && <><Launching s={settings} /><FpsCaptureSettings /></>}
-          {active === 'controller' && <Controller s={settings} />}
+          {active === 'controller' && <><Controller s={settings} /><SoundSettings /></>}
           {active === 'ai' && <AiSection s={settings} />}
           {active === 'updates' && <Updates s={settings} />}
           {active === 'privacy' && <><Privacy s={settings} /><DataSaverSettings /></>}
@@ -202,7 +203,7 @@ function LibrarySection({ s }: { s: Settings }) {
         {adapters.map((a) => (
           <div key={a.platform} className="adapter">
             <div className="adapter__head">
-              <PlatformBadge platform={a.platform} />
+              <PlatformBadge platform={a.platform} size={20} />
               {a.status === 'Available' ? <Badge tone="ok" icon={<CheckCircle2 size={12} />}>Found</Badge> : a.status === 'NotInstalled' ? <Badge>Not installed</Badge> : <Badge tone="warn" icon={<AlertTriangle size={12} />}>Problem</Badge>}
               {a.lastScanCount != null && a.status === 'Available' && <span className="srow__hint">{a.lastScanCount} found{a.lastScanMs != null ? ` · ${a.lastScanMs} ms` : ''}</span>}
               <div style={{ marginLeft: 'auto' }}>

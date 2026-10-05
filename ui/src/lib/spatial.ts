@@ -5,6 +5,8 @@
  * Vertical moves remember a "sticky" column so moving up/down through rows feels anchored.
  */
 
+import { sound } from './sound';
+
 export type Dir = 'up' | 'down' | 'left' | 'right';
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -72,6 +74,7 @@ export function moveFocus(dir: Dir): boolean {
   if (dir === 'up' || dir === 'down') stickyX = fx;
   else stickyX = null;
   focusEl(best);
+  sound.spatialFocus();
   return true;
 }
 

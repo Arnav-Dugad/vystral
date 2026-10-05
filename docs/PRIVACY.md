@@ -41,6 +41,7 @@ VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 | Steam Web API (owned games, achievements) | `api.steampowered.com` | Your own key and your SteamID64 | Off until you add a key |
 | Achievements after a session | `api.steampowered.com` (and Steam's CDN for the new achievements' icons) | The same requests as above, for the one game you just played: once ~5 s after it closes and once more ~60 s later if Steam hasn't caught up | Only with a key; never with Offline mode or Data saver, never while a game runs |
 | Trailers | Steam's video CDN (`video.*.steamstatic.com`, `cdn.*.steamstatic.com`) | Requests for a Steam game's public trailer stream; nothing is saved | On; off with Offline mode or Data saver, and never while a game runs |
+| Live tiles (Home) | Steam's video CDN (`video.*.steamstatic.com`) | One request per Steam game for its public ~8 s silent "micro-trailer" (`microtrailer.mp4`, 1.5–3 MB), only when its Home tile is on screen; the file is kept in `cache\live` (at most 160 MB, oldest dropped first; *Clear artwork cache* empties it) | On; off with Offline mode or Data saver (including automatic Data saver on metered connections), never while a game runs; turn off in Settings → Appearance → Live tiles |
 | Frame-rate capture | `github.com` (PresentMon release) | A one-time download you start yourself | Off |
 | Local AI | `127.0.0.1:11434` (Ollama on your PC) | Your question plus a summary of your library, all on this PC | Off |
 

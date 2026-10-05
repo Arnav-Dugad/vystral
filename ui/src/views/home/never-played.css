@@ -1,0 +1,25 @@
+/* Home: "Owned, never played" (NeverPlayed.tsx). */
+.never { margin-top: var(--s-10); }
+.never__picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: var(--s-4);
+  margin-top: var(--s-3);
+}
+.tonight {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border-radius: var(--r-xl);
+  background: var(--bg-1);
+  box-shadow: var(--inner-hi), 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+.tonight__art { border-radius: 0; aspect-ratio: 16 / 7; }
+.tonight__art .card__frame { border-radius: 0; box-shadow: none; }
+.tonight__art:hover, .tonight__art:focus-visible { --s: 1; }
+.tonight__art::before { border-radius: 0; inset: 0; }
+.tonight__body { display: grid; gap: 4px; padding: var(--s-4); align-content: start; }
+.tonight__eyebrow { color: var(--accent-text); }
+.tonight__title { font-size: var(--fs-lg); font-weight: var(--fw-semibold); }
+.tonight__reason { display: flex; align-items: center; gap: 8px; color: var(--text-3); font-size: var(--fs-sm); }
+.tonight__actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--s-2); margin-left: -4px; }

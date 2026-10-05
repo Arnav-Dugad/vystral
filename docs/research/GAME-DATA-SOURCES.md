@@ -151,6 +151,8 @@ GET https://api.steampowered.com/IStoreBrowseService/GetItems/v1/?input_json=<ur
 
 **Search:** `IStoreQueryService/SearchSuggestions/v1` and `IStoreQueryService/Query/v1` (keyless) [verified]. `storesearch` is still fine for exact-title matching.
 
+**Animated assets / micro-trailers** [verified 2026-10-05 against appids 1245620, 1091500, 730, 413150]: `IStoreBrowseService/GetItems` with `data_request.include_assets` returns only still images (`main_capsule`, `header`, `hero_capsule`, `library_capsule`, `library_hero`, `page_background`, … each with `_2x`); no `*_animated` or video asset field exists. With `include_trailers`, each `trailers.highlights[]` entry has `microtrailer: [{filename: "<appid>/<trailer_base_id>/<hash>/<ts>/microtrailer.webm", type: "video/webm"}, {…microtrailer.mp4, "video/mp4"}]` plus `adaptive_trailers` (dash_av1, dash_h264, hls_264_master.m3u8) in the *same folder*. The files are served from `https://video.{akamai,fastly}.steamstatic.com/store_trailers/<filename>` (200, `Cache-Control: public, max-age≈10 years`); the `cdn.*`/`shared.*` hosts and the `trailer_url_format` (`steam/apps/${FILENAME}`) path 404. Measured: ~7.9 s, 853×480, no audio track, 1.4–3.0 MB (mp4 1.9–2.8 MB). appdetails no longer lists micro-trailers, but its `hls_h264` master sits in a folder that also holds `microtrailer.mp4` (verified for 1245620/468149), so VYSTRAL derives the URL from the trailer it already looked up — no extra API call (`SteamMicroTrailers.Resolve`).
+
 **Steam Web API terms** [docs]: 100,000 calls per day; "keep your Steam Web API key confidential" (so BYO, never bundled); "only retrieve Steam Data about a Steam end user as requested by the end user"; don't imply Valve endorsement.
 
 ### 3.2 Wikidata: the ID backbone

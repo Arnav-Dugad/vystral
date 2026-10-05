@@ -101,6 +101,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterStatusHandlers();         // AppBackend.Status.cs: game status tracking, trailers
         RegisterShellHandlers();          // AppBackend.Shell.cs: Windows accent colour, Mica backdrop
         RegisterDataInsightHandlers();    // AppBackend.DataInsights.cs: achievement feed, driver comparison, background apps
+        RegisterLiveTileHandlers();       // AppBackend.LiveTiles.cs: Home live tiles (Steam micro-trailers, cached proxy)
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 
@@ -163,6 +164,7 @@ public sealed partial class AppBackend : IDisposable
     public void Dispose()
     {
         Sessions.Dispose();
+        _liveTiles?.Dispose();
         _http.Dispose();
         _life.Dispose();
     }

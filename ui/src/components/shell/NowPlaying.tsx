@@ -6,6 +6,9 @@ import { pick, spring } from '../../lib/motion';
 import { useReducedMotion, useStore } from '../../state/store';
 import { GameCover } from '../game/GameCover';
 import { HoldToConfirm } from '../controller/HoldToConfirm';
+import { StoreLogo } from '../ui/StoreLogo';
+import { PLATFORM_NAMES } from '../../lib/format';
+import type { PlatformKey } from '../../bridge/types';
 
 function elapsed(fromIso: string | null): string {
   if (!fromIso) return '';
@@ -53,6 +56,11 @@ export function NowPlaying() {
             </span>
             <span className="now-playing__dot" data-running={running} aria-hidden />
             <span className="now-playing__label">{running ? 'Playing' : 'Starting'}</span>
+            {launch.platform in PLATFORM_NAMES && launch.platform !== 'manual' && (
+              <span className="now-playing__store" title={`Through ${PLATFORM_NAMES[launch.platform as PlatformKey]}`}>
+                <StoreLogo platform={launch.platform as PlatformKey} size={14} decorative />
+              </span>
+            )}
             <span className="now-playing__title truncate">{game.title}</span>
             {running && <span className="now-playing__time num">{elapsed(launch.startedAt)}</span>}
           </button>

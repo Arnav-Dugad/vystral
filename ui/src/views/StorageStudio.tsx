@@ -11,6 +11,7 @@ import { useReducedMotion, useStore } from '../state/store';
 import { GameCover } from '../components/game/GameCover';
 import { InstallBadge } from '../components/game/InstallProgress';
 import { Badge, Button, EmptyState, PlatformBadge, SectionHead, Skeleton } from '../components/ui/primitives';
+import { EmptyArt } from '../components/ui/EmptyArt';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
 import './storage-studio.css';
@@ -60,7 +61,7 @@ export function StorageStudioView() {
           <Skeleton height={420} />
         </div>
       ) : fixed.length === 0 ? (
-        <EmptyState icon={<HardDrive size={30} />} title="No drives to show" body="VYSTRAL couldn’t read any fixed drives on this PC." />
+        <EmptyState art="orbits" icon={<HardDrive size={30} />} title="No drives to show" body="VYSTRAL couldn’t read any fixed drives on this PC." />
       ) : (
         <div className="storage__layout">
           <div className="storage__drives">
@@ -304,7 +305,7 @@ function Suggestions({ data, onUninstall }: { data: { items: Suggestion[]; recla
       <SectionHead title={<span id="suggest-title">Big and unplayed for 6+ months</span>} />
       {data.items.length === 0 ? (
         <div className="suggest__empty">
-          <Recycle size={22} aria-hidden />
+          <EmptyArt kind="hills" seed="storage-suggestions" icon={<Recycle size={22} aria-hidden />} />
           <p>Nothing to suggest. Every installed game over 10 GB was played in the last six months.</p>
         </div>
       ) : (

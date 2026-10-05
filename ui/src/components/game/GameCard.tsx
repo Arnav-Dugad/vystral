@@ -1,13 +1,15 @@
 import { memo, useCallback, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
 import { CloudDownload, Heart } from 'lucide-react';
 import type { Game } from '../../bridge/types';
-import { formatRelative, isInstalled, lastPlayed, PLATFORM_NAMES } from '../../lib/format';
+import { formatRelative, isInstalled, lastPlayed } from '../../lib/format';
 import { peekPalette, titleHue } from '../../lib/palette';
 import { captureFlight, useFlightLanding } from '../../lib/flight';
 import { useReducedMotion, useStore } from '../../state/store';
 import { GameCover } from './GameCover';
 import { useGameMenu } from './useGameMenu';
 import { InstallBadge } from './InstallProgress';
+import { LiveLayer } from './LiveTile';
+import { StoreLogos } from '../ui/StoreLogo';
 
 /** Portrait library card. Hover/focus lifts and tilts it; Enter opens; context menu has quick actions. */
 export const GameCard = memo(function GameCard({
@@ -16,12 +18,15 @@ export const GameCard = memo(function GameCard({
   showMeta = true,
   onFocusGame,
   tabIndex,
+  live,
 }: {
   game: Game;
   focused?: boolean;
   showMeta?: boolean;
   onFocusGame?: (id: string) => void;
   tabIndex?: number;
+  /** Track K: animate with the game's Steam micro-trailer while visible (Home shelves). */
+  live?: boolean;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
   const navigate = useStore((s) => s.navigate);
@@ -85,8 +90,9 @@ export const GameCard = memo(function GameCard({
           }
         }}
       >
-        <div className="card__frame" ref={frameRef}>
+        <div className="card__frame" ref={frameRef} data-live={live || undefined}>
           <GameCover game={game} />
+          {live && <LiveLayer game={game} />}
         </div>
         <div className="card__badges">
           <span />
@@ -109,8 +115,8 @@ export const GameCard = memo(function GameCard({
             {game.title}
           </div>
           <div className="card__sub">
-            <span className="truncate">{platforms.map((p) => PLATFORM_NAMES[p]).join(' · ')}</span>
-            {lp.at && <span className="truncate">· {formatRelative(lp.at)}</span>}
+            <StoreLogos platforms={platforms} />
+            {lp.at && <span className="truncate">{formatRelative(lp.at)}</span>}
           </div>
         </div>
       )}

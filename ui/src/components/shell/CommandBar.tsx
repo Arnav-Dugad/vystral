@@ -13,6 +13,7 @@ import { addManualGame } from '../../state/actions';
 import { useReducedMotion, useStore } from '../../state/store';
 import { GameCover } from '../game/GameCover';
 import { Badge, Kbd } from '../ui/primitives';
+import { StoreLogos } from '../ui/StoreLogo';
 import { openUpdateCenter } from './UpdateCenter';
 
 interface Item {
@@ -248,6 +249,7 @@ function gameItem(g: Game, launch: boolean, run: () => void): Item {
     label: launch ? <>Launch <strong>{g.title}</strong></> : g.title,
     meta: (
       <>
+        <StoreLogos platforms={g.installations.map((i) => i.platform)} size={14} decorative />{' '}
         {[...new Set(g.installations.map((i) => PLATFORM_NAMES[i.platform]))].join(' · ')}
         {lp.at ? ` · played ${formatRelative(lp.at)}` : ''}
         {!installed ? ' · not installed' : ''}

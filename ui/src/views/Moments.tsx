@@ -218,6 +218,7 @@ function Vault() {
 
       {error ? (
         <EmptyState
+          art="none"
           icon={<TriangleAlert size={34} aria-hidden />}
           title="Couldn’t read your captures"
           body={error}
@@ -231,6 +232,7 @@ function Vault() {
         <GridSkeleton />
       ) : items.length === 0 ? (
         <EmptyState
+          art="hills"
           icon={<Images size={34} aria-hidden />}
           title="No captures found yet"
           body="VYSTRAL looks in Steam’s screenshot folders, Xbox Game Bar captures and any folders you add. Take a screenshot in a game, or add the folder where you keep them."

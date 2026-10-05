@@ -51,6 +51,7 @@ export function GameDetailView({ id }: { id: string }) {
     return (
       <div className="page">
         <EmptyState
+          art="none"
           icon={<AlertTriangle size={32} />}
           title={loaded ? 'This game is no longer in your library' : 'Loading…'}
           body={loaded ? 'It may have been merged with another entry or removed.' : ''}

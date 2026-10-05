@@ -5,6 +5,8 @@ import { spring } from '../../lib/motion';
 import { useReducedMotion } from '../../state/store';
 import type { PlatformKey } from '../../bridge/types';
 import { PLATFORM_NAMES } from '../../lib/format';
+import { StoreLogo } from './StoreLogo';
+import { EmptyArt, type ArtKind } from './EmptyArt';
 import './ui.css';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -168,10 +170,11 @@ export function Badge({ tone, children, icon }: { tone?: 'accent' | 'ok' | 'warn
   );
 }
 
-export function PlatformBadge({ platform, compact }: { platform: PlatformKey; compact?: boolean }) {
+/** The store's mark plus its name (the name is visually hidden when `compact`, and shown as a tooltip). */
+export function PlatformBadge({ platform, compact, size = 14 }: { platform: PlatformKey; compact?: boolean; size?: number }) {
   return (
-    <span className="platform-badge" style={{ ['--pc' as string]: `var(--p-${platform})` }}>
-      <span className="platform-badge__dot" aria-hidden />
+    <span className="platform-badge" style={{ ['--pc' as string]: `var(--p-${platform})` }} title={compact ? PLATFORM_NAMES[platform] : undefined}>
+      <StoreLogo platform={platform} size={size} decorative />
       {compact ? <span className="visually-hidden">{PLATFORM_NAMES[platform]}</span> : PLATFORM_NAMES[platform]}
     </span>
   );
@@ -196,10 +199,15 @@ export function Skeleton({ width, height, radius, className = '' }: { width?: nu
   return <div className={`skeleton ${className}`} style={{ width, height, borderRadius: radius }} aria-hidden />;
 }
 
-export function EmptyState({ icon, title, body, actions }: { icon: ReactNode; title: string; body: ReactNode; actions?: ReactNode }) {
+/**
+ * Empty and error states. Calm states get a procedurally drawn illustration tinted from the current
+ * game's accent (picked from the title unless `art` says which); `art="none"` keeps the plain icon
+ * tile, which is what errors use.
+ */
+export function EmptyState({ icon, title, body, actions, art }: { icon: ReactNode; title: string; body: ReactNode; actions?: ReactNode; art?: ArtKind | 'none' }) {
   return (
     <div className="empty">
-      <div className="empty__art">{icon}</div>
+      {art === 'none' ? <div className="empty__art">{icon}</div> : <EmptyArt kind={art} seed={title} icon={icon} />}
       <h2 className="empty__title">{title}</h2>
       <p className="empty__body">{body}</p>
       {actions && <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>{actions}</div>}

@@ -6,6 +6,7 @@ import {
   formatBytes, formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural, sizeOf,
 } from '../lib/format';
 import { haptic } from '../lib/haptics';
+import { StoreLogo } from '../components/ui/StoreLogo';
 import { pushPadHandler } from '../lib/input';
 import { ease, pick, spring } from '../lib/motion';
 import { peekPalette, titleHue } from '../lib/palette';
@@ -485,7 +486,7 @@ function GameMeta({ game }: { game: Game }) {
       <span className="imm__meta-stores">
         {platforms.map((p) => (
           <span key={p} className="imm__store">
-            <span className="imm__store-dot" style={{ background: `var(--p-${p})` }} />
+            <StoreLogo platform={p} size={20} decorative />
             {PLATFORM_NAMES[p]}
           </span>
         ))}

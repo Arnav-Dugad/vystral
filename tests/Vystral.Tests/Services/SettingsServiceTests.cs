@@ -35,7 +35,10 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.True(all["notifications.achievements"]!.GetValue<bool>());
         Assert.True(all["performance.backgroundApps"]!.GetValue<bool>());
         Assert.True(all["canvas.followTrailer"]!.GetValue<bool>());
-        Assert.Equal(46, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1)
+        Assert.True(all["home.liveTiles"]!.GetValue<bool>());
+        Assert.False(all["sound.ambient"]!.GetValue<bool>());
+        Assert.Equal(0.35, all["sound.ambientVolume"]!.GetValue<double>());
+        Assert.Equal(49, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3)
     }
 
     [Fact]

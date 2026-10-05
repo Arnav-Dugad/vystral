@@ -11,6 +11,8 @@ import { spring } from '../../lib/motion';
 import { useReducedMotion, useStore } from '../../state/store';
 import { GameThumb, StatTile } from '../perf/kit';
 import { dayLabel, timeOfDay } from '../perf/text';
+import { isFresh, shimmerTier, takeLastSeen } from '../../lib/shimmer';
+import '../../components/ui/shimmer.css';
 import './achievement-timeline.css';
 
 const PAGE = 40;
@@ -82,6 +84,7 @@ export function AchievementTimeline() {
   if (state.kind === 'error')
     return (
       <EmptyState
+        art="none"
         icon={<AlertTriangle size={30} />}
         title="Achievements couldn’t be loaded"
         body={state.message}
@@ -190,7 +193,10 @@ function FeedList({ items, gamesById }: { items: AchievementFeedItem[]; gamesByI
   const days = useMemo(() => groupFeedByDay(items), [items]);
   const reduce = useReducedMotion();
   const now = Date.now();
+  // Track K: unlocks you haven't seen here before shimmer once, tinted by rarity.
+  const [since] = useState(() => takeLastSeen('timeline'));
   let index = 0;
+  let fresh = 0;
   return (
     <div className="at-days">
       {days.map((d) => (
@@ -206,11 +212,16 @@ function FeedList({ items, gamesById }: { items: AchievementFeedItem[]; gamesByI
           <ul className="at-day__list">
             {d.items.map((a) => {
               const i = index++;
+              const isNew = isFresh(a.unlockedAt, since, now);
+              const order = isNew ? fresh++ : 0;
               return (
                 <motion.li
                   key={`${a.appId}/${a.apiName}`}
-                  className="at-row"
+                  className={`at-row${isNew ? ' shimmer' : ''}`}
                   data-rarity={rarity(a.globalPercent) ?? undefined}
+                  data-tier={isNew ? shimmerTier(a.globalPercent) : undefined}
+                  data-new={isNew || undefined}
+                  style={isNew ? { ['--shimmer-delay' as string]: `${0.35 + Math.min(order, 8) * 0.14}s` } : undefined}
                   initial={reduce || i > 30 ? false : { opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ ...spring.panel, delay: reduce ? 0 : Math.min(i, 30) * 0.02 }}
@@ -288,6 +299,7 @@ function TimelineEmpty({ status }: { status: AchievementOverview['status'] }) {
     );
   return (
     <EmptyState
+      art="trophy"
       icon={<Award size={30} />}
       title="No achievements yet"
       body="Steam hasn’t reported any unlocked achievements for your games yet. VYSTRAL refreshes played games in the background every few hours, and checks again right after each Steam session you start from VYSTRAL."

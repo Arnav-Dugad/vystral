@@ -46,6 +46,11 @@
 .vgrid__row { position: absolute; top: 0; left: 0; right: 0; display: grid; }
 /* Grid items default to min-width: auto, which lets a long (nowrap) title widen its column. */
 .vgrid__row > * { min-width: 0; }
+/* Track K: sort/filter animation. Leaving cards fade out as ghosts where they were; never interactive. */
+.vgrid__ghost { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 0; animation: vgrid-leave 220ms var(--ease-in, ease-in) forwards; }
+.vgrid__ghost .card { transform: none; }
+@keyframes vgrid-leave { to { opacity: 0; scale: 0.94; } }
+.vgrid__caption { margin-top: 2px; padding: 0 2px; font-size: var(--fs-xs); color: var(--text-3); }
 
 .vlist { margin-top: var(--s-6); }
 .vlist__head, .vlist__row { display: grid; grid-template-columns: minmax(240px, 2.4fr) minmax(140px, 1.3fr) 1fr 0.8fr 0.8fr 0.8fr; gap: var(--s-4); align-items: center; padding: 0 var(--s-3); }

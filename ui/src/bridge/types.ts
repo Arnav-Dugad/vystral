@@ -726,3 +726,23 @@ export interface BridgeEvents {
   /** Windows accent, theme or backdrop state changed. Also returned by call('system.accent') and call('window.backdrop', { value }). */
   'system.accent': SystemAppearance;
 }
+
+// ---------- Track K: live tiles, ambient sound (mirror of LiveTileDto) ----------
+
+export interface Settings {
+  /** Home tiles play Steam's short silent micro-trailers while visible (never in Data saver). */
+  'home.liveTiles': boolean;
+  /** Mood-following ambient sound bed and spatial focus sounds (needs UI sounds on). */
+  'sound.ambient': boolean;
+  'sound.ambientVolume': number;
+}
+
+/** Why a Home tile can't animate. */
+export type LiveTileReason = 'off' | 'gameRunning' | 'noSteamApp' | 'none' | 'notChecked' | 'offline' | 'dataSaver' | 'lookupsOff';
+
+/** call('liveTile.get', { gameId }): a proxied micro-trailer (https://media.vystral.example/live/…) or why there is none. */
+export interface LiveTileInfo {
+  gameId: string;
+  src: string | null;
+  reason: LiveTileReason | null;
+}

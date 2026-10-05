@@ -2,6 +2,7 @@ import { forwardRef, lazy, Suspense, useEffect, useLayoutEffect, useRef, useStat
 import { AnimatePresence, LayoutGroup, motion, useIsPresent } from 'motion/react';
 import { exit, pick, spring } from './lib/motion';
 import { startInput } from './lib/input';
+import { watchAmbient } from './lib/sound';
 import { useGameRunning, useReducedMotion, useStore, type Route } from './state/store';
 import { LivingCanvas } from './components/shell/LivingCanvas';
 import { SystemBackdrop } from './components/shell/SystemBackdrop';
@@ -44,6 +45,7 @@ export default function App() {
 
   useEffect(() => {
     startInput();
+    watchAmbient(); // Track K: mood-following ambient sound (off unless enabled in Settings)
     void init();
   }, [init]);
 
@@ -218,7 +220,7 @@ const RoutePage = forwardRef<HTMLDivElement, { routeKey: string; restore: boolea
 function View({ route }: { route: Route }) {
   switch (route.name) {
     case 'home': return <HomeView />;
-    case 'library': return <LibraryView collectionId={route.collectionId} />;
+    case 'library': return <LibraryView collectionId={route.collectionId} quick={route.quick} />;
     case 'game': return <GameDetailView id={route.id} />;
     case 'journal': return <JournalView tab={route.tab} />;
     case 'performance': return <PerformanceView sessionId={route.sessionId} />;
