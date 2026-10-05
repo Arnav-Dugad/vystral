@@ -87,6 +87,7 @@ public sealed class SettingsServiceTests : IDisposable
     [InlineData("appearance.theme", "OLED", false)]
     [InlineData("appearance.theme", "", false)]
     [InlineData("appearance.accent", "rose", true)]
+    [InlineData("appearance.accent", "system", true)]
     [InlineData("appearance.accent", "pink", false)]
     [InlineData("appearance.quality", "low", true)]
     [InlineData("motion.reduce", "on", true)]

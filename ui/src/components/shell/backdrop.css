@@ -1,0 +1,43 @@
+/* ===== Track G: Mica behind the title bar and sidebar (Living Canvas off) =====
+   The shell sets the window's Mica backdrop and a transparent WebView first; only then does the
+   page set data-backdrop="mica". Everything except the chrome stays opaque: .main paints a solid
+   surface, overlays bring their own backgrounds, and Immersive / the intro never use Mica. */
+
+:root { --dur-backdrop: 420ms; }
+:root[data-reduced-motion='true'] { --dur-backdrop: 0ms; }
+
+:root .living-canvas { transition: background var(--dur-ambient) var(--ease-out), opacity var(--dur-backdrop) var(--ease-out); }
+:root .main { transition: background var(--dur-backdrop) var(--ease-out); }
+/* Turning Living Canvas on fades the shader in instead of popping. */
+@keyframes vy-canvas-in { from { opacity: 0; } }
+:root .living-canvas__gl { animation: vy-canvas-in 600ms var(--ease-out); }
+:root[data-reduced-motion='true'] .living-canvas__gl { animation: none; }
+
+:root[data-backdrop='mica'] { background: transparent; }
+/* A light layer of the theme's own background over Mica: keeps every text token at its
+   checked contrast even over bright or colourful wallpapers, while the material still shows. */
+:root[data-backdrop='mica'] body { background: oklch(from var(--bg-0) l c h / 0.42); }
+:root[data-backdrop='mica'] .living-canvas { opacity: 0; }
+:root[data-backdrop='mica'] .main { background: var(--bg-0); }
+:root[data-theme='light'][data-backdrop='mica'] .main { background: var(--bg-1); }
+
+/* A whisper of the accent across the title bar, like Windows' own accent-coloured title bars. */
+:root[data-backdrop='mica'] .titlebar::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, oklch(from var(--accent) l c h / 0.16), oklch(from var(--accent) l c h / 0.05) 45%, transparent 75%);
+}
+
+/* Focus rings on translucent chrome: the inner ring uses the layer colour so the accent ring is
+   separated from whatever the wallpaper tints Mica to. */
+:root[data-backdrop='mica'] :is(.titlebar, .sidebar) :focus-visible {
+  box-shadow: 0 0 0 2px oklch(from var(--bg-0) l c h / 0.9), 0 0 0 4px var(--accent-hi);
+}
+
+/* "Windows accent" swatch in Settings → Appearance. */
+.accent-dot--system { position: relative; overflow: hidden; }
+.accent-dot--system::after {
+  content: ''; position: absolute; inset: 7px; border-radius: 2px;
+  background:
+    linear-gradient(90deg, transparent 45%, oklch(1 0 0 / 0.75) 45% 55%, transparent 55%),
+    linear-gradient(0deg, transparent 45%, oklch(1 0 0 / 0.75) 45% 55%, transparent 55%);
+}

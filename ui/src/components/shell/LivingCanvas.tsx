@@ -131,7 +131,7 @@ export function LivingCanvas() {
   }, [game, fixedAccent]);
 
   useEffect(() => {
-    if (!fixedAccent) return;
+    if (!fixedAccent || fixedAccent === 'system') return; // 'system': applied by SystemBackdrop
     const map: Record<string, [string, string]> = {
       violet: ['oklch(0.7 0.17 292)', 'oklch(0.68 0.15 255)'],
       blue: ['oklch(0.7 0.15 255)', 'oklch(0.72 0.12 220)'],

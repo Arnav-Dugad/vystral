@@ -46,7 +46,7 @@ public sealed class SettingsService
     private static readonly Def[] Definitions =
     [
         new EnumDef("appearance.theme", "obsidian", "obsidian", "oled", "light", "contrast"),
-        new EnumDef("appearance.accent", "auto", "auto", "violet", "blue", "cyan", "rose", "amber", "emerald"),
+        new EnumDef("appearance.accent", "auto", "auto", "violet", "blue", "cyan", "rose", "amber", "emerald", "system"),
         new BoolDef("appearance.livingCanvas", true),
         new NumberDef("appearance.canvasIntensity", 0.7, 0, 1),
         new EnumDef("appearance.quality", "auto", "auto", "high", "balanced", "low"),
