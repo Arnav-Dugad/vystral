@@ -4,6 +4,7 @@ using Vystral.Core.Data;
 using Vystral.Core.Domain;
 using Vystral.Core.Integrations;
 using Vystral.Windows.Bridge;
+using Vystral.Windows.Integrations;
 
 namespace Vystral.Windows.Services;
 
@@ -170,6 +171,28 @@ public sealed class LibraryService
         if (forgotten > 0) Log.Info("art", $"Forgot {forgotten} placeholder images to fetch again");
         var games = _repo.SteamGamesMissingCover(2000);
         if (games.Count == 0) return;
+        // Steam's own on-disk cache usually has art for owned games too, even ones never installed:
+        // importing it is instant, offline and costs no download.
+        if (_adapters.OfType<SteamAdapter>().FirstOrDefault()?.FindSteamPath() is { } steamPath)
+        {
+            var imported = 0;
+            foreach (var (gameId, appId) in games)
+            {
+                ct.ThrowIfCancellationRequested();
+                var existing = _repo.GetArtwork(gameId);
+                foreach (var (kind, path) in SteamAdapter.FindLocalArtwork(steamPath, appId))
+                {
+                    if (existing.ContainsKey(kind.ToString().ToLowerInvariant()) || ArtworkService.IsPlaceholder(kind, SafeLength(path))) continue;
+                    if (_artwork.ImportLocal(gameId, kind, path, "steam-local") && kind == ArtworkKind.Cover) imported++;
+                }
+            }
+            if (imported > 0)
+            {
+                Log.Info("art", $"Imported {imported} covers from Steam's local cache");
+                _events.Emit("library.changed", new { reason = "artwork" });
+                games = _repo.SteamGamesMissingCover(2000);
+            }
+        }
         var lastEmit = Environment.TickCount64;
         var pending = 0;
         var landed = await _artwork.PrefetchSteamCoversAsync(games, () =>
@@ -185,5 +208,11 @@ public sealed class LibraryService
         }, ct);
         if (Interlocked.Exchange(ref pending, 0) == 1) _events.Emit("library.changed", new { reason = "artwork" });
         if (landed > 0) Log.Info("art", $"Fetched {landed} of {games.Count} missing Steam covers");
+    }
+
+    private static long SafeLength(string path)
+    {
+        try { return new FileInfo(path).Length; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) { return 0; }
     }
 }

@@ -210,6 +210,19 @@ public sealed class SteamAdapterTests : IDisposable
     }
 
     [Fact]
+    public void LocalArtwork_FindsStoreAssetNamedCoversForNewerApps()
+    {
+        var cache = @"Steam\appcache\librarycache\3059520";
+        _tmp.Write($@"{cache}\660d69e1717e93fcabc23f85100d123892ace85c\library_capsule.jpg", "c");
+        _tmp.Write($@"{cache}\acf774ad92979047362e1be3ca6bad2b6b090ac4.jpg", "unnamed");
+
+        var art = SteamAdapter.FindLocalArtwork(_steam, "3059520");
+
+        Assert.EndsWith(@"660d69e1717e93fcabc23f85100d123892ace85c\library_capsule.jpg", art[ArtworkKind.Cover]);
+        Assert.Single(art);
+    }
+
+    [Fact]
     public void Status_AndClientPage()
     {
         var adapter = new SteamAdapter(_reg);

@@ -160,6 +160,8 @@ public sealed class SteamAdapter(IRegistryReader registry) : IPlatformAdapter
         var wanted = new (string File, ArtworkKind Kind)[]
         {
             ("library_600x900_2x.jpg", ArtworkKind.Cover), ("library_600x900.jpg", ArtworkKind.Cover),
+            // Newer apps: the same art under content-hash folders with store-asset names.
+            ("library_capsule_2x.jpg", ArtworkKind.Cover), ("library_capsule.jpg", ArtworkKind.Cover),
             ("library_hero.jpg", ArtworkKind.Hero), ("logo.png", ArtworkKind.Logo),
             ("header.jpg", ArtworkKind.Header), ("library_header.jpg", ArtworkKind.Header),
         };
