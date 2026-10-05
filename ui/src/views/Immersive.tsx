@@ -18,6 +18,7 @@ import { OnScreenKeyboard } from '../components/controller/OnScreenKeyboard';
 import { GameCover } from '../components/game/GameCover';
 import { PadGlyph } from '../components/ui/primitives';
 import { AttractMode } from './immersive/AttractMode';
+import { GameLogo } from '../components/game/GameLogo';
 import './immersive.css';
 
 interface Row {
@@ -215,7 +216,7 @@ export function ImmersiveView() {
                 exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, filter: 'blur(4px)', transition: { duration: 0.18, ease: ease.in } }}
                 transition={pick(reduce, spring.panel)}
               >
-                {focused.art.logo ? <img className="imm__logo" src={focused.art.logo} alt={focused.title} /> : <h1 className="imm__title">{focused.title}</h1>}
+                {focused.art.logo ? <GameLogo className="imm__logo" src={focused.art.logo} alt={focused.title} /> : <h1 className="imm__title">{focused.title}</h1>}
                 <GameMeta game={focused} />
                 {focused.description && <p className="imm__desc">{focused.description}</p>}
               </motion.div>
@@ -545,7 +546,7 @@ function GamePanel({ game, onClose }: { game: Game; onClose: () => void }) {
           <GameCover game={game} />
         </motion.div>
         <div className="imm-panel__body">
-          {game.art.logo ? <img className="imm-panel__logo" src={game.art.logo} alt={game.title} /> : <h2 className="imm-panel__title">{game.title}</h2>}
+          {game.art.logo ? <GameLogo className="imm-panel__logo" src={game.art.logo} alt={game.title} /> : <h2 className="imm-panel__title">{game.title}</h2>}
           <GameMeta game={game} />
           {game.description && <p className="imm-panel__desc">{game.description}</p>}
           <div className="imm-panel__stats">

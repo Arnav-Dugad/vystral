@@ -175,7 +175,7 @@ function buildLibrary(extra: number): { games: Game[]; sessions: Session[] } {
           samples: Math.floor(dur / 2), cpuAvg: 20 + r() * 40, cpuMax: 60 + r() * 35, gpuAvg: 40 + r() * 50, gpuMax: 80 + r() * 20,
           gpuMemAvgMb: 2000 + r() * 5000, gpuMemMaxMb: 6000 + r() * 1800, ramAvgMb: 7000 + r() * 5000, ramMaxMb: 12000 + r() * 3000,
           gpuTempAvgC: 58 + r() * 14, gpuTempMaxC: 72 + r() * 10,
-          fpsStatus: 'Frame-rate capture needs Intel PresentMon with ETW access, which VYSTRAL does not use yet. FPS is not recorded.',
+          fpsStatus: 'Frame-rate capture is off. It can be turned on in Settings › Launching & sessions (it uses Intel PresentMon). FPS is not recorded.',
         }),
       });
     }

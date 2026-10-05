@@ -39,17 +39,17 @@ internal sealed class AppearanceHost : IShellAppearanceHost, IDisposable
     {
         _window = window;
         _safeMode = safeMode;
-        try
-        {
-            _ui.ColorValuesChanged += OnSystemChanged;
-            _ui.AdvancedEffectsEnabledChanged += OnSystemChanged;
-            _a11y.HighContrastChanged += OnSystemChanged;
-            global::Windows.System.Power.PowerManager.EnergySaverStatusChanged += OnSystemChanged;
-        }
-        catch (Exception ex)
-        {
-            Log.Warn("appearance", "Couldn't subscribe to Windows appearance changes", ex: ex);
-        }
+        // Each subscription on its own: AccessibilitySettings.HighContrastChanged needs a CoreWindow
+        // and throws in desktop apps; UISettings.ColorValuesChanged also fires on high-contrast switches.
+        Subscribe("colours", () => _ui.ColorValuesChanged += OnSystemChanged);
+        Subscribe("transparency", () => _ui.AdvancedEffectsEnabledChanged += OnSystemChanged);
+        Subscribe("energy saver", () => global::Windows.System.Power.PowerManager.EnergySaverStatusChanged += OnSystemChanged);
+    }
+
+    private static void Subscribe(string what, Action subscribe)
+    {
+        try { subscribe(); }
+        catch (Exception ex) { Log.Warn("appearance", $"Couldn't follow Windows {what} changes", ex: ex); }
     }
 
     public SystemAppearanceDto Current => Snapshot();
@@ -169,13 +169,13 @@ internal sealed class AppearanceHost : IShellAppearanceHost, IDisposable
     public void Dispose()
     {
         _disposed = true;
-        try
+        foreach (var unsubscribe in (Action[])[
+                     () => _ui.ColorValuesChanged -= OnSystemChanged,
+                     () => _ui.AdvancedEffectsEnabledChanged -= OnSystemChanged,
+                     () => global::Windows.System.Power.PowerManager.EnergySaverStatusChanged -= OnSystemChanged])
         {
-            _ui.ColorValuesChanged -= OnSystemChanged;
-            _ui.AdvancedEffectsEnabledChanged -= OnSystemChanged;
-            _a11y.HighContrastChanged -= OnSystemChanged;
-            global::Windows.System.Power.PowerManager.EnergySaverStatusChanged -= OnSystemChanged;
+            try { unsubscribe(); }
+            catch (Exception) { }
         }
-        catch (Exception) { }
     }
 }

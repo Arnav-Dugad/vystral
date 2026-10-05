@@ -116,7 +116,7 @@ export const Heatmap = memo(function Heatmap({
   const anchor = useAnchor(wrapRef);
   const tipAt = hoverTip ?? focusTip;
 
-  const cell = Math.max(9, Math.min(17, Math.floor((width - LABEL_W - (grid.cols - 1) * GAP) / grid.cols)));
+  const cell = Math.max(9, Math.min(24, Math.floor((width - LABEL_W - (grid.cols - 1) * GAP) / grid.cols)));
   const pitch = cell + GAP;
   const gridWidth = LABEL_W + grid.cols * pitch - GAP;
 

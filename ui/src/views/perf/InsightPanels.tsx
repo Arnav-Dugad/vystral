@@ -103,7 +103,7 @@ export function FrameRatePanel({
           <span className="caps">Frame rate</span>
           <span id="pf-fps-title" className="pf-fps__value">FPS not measured</span>
         </div>
-        <p className="pf-fps__body">{summary.fpsStatus} VYSTRAL shows no frame-rate figures rather than estimated ones.</p>
+        <p className="pf-fps__body">{fpsStatusText(summary.fpsStatus)} VYSTRAL shows no frame-rate figures rather than estimated ones.</p>
         <Button size="sm" variant="ghost" icon={<Settings2 size={14} />} onClick={() => useStore.getState().navigate({ name: 'settings', section: 'launching' })}>
           Frame-rate capture
         </Button>
@@ -207,4 +207,11 @@ function FrameTimeHistogram({ hist }: { hist: number[] | null }) {
       </ol>
     </figure>
   );
+}
+
+/** Sessions saved before frame-rate capture existed carry an outdated explanation; say what is true now. */
+export function fpsStatusText(status: string): string {
+  return /does not use yet/i.test(status)
+    ? 'This session was recorded before VYSTRAL could capture frame rates, so FPS is not recorded. Turn on frame-rate capture for future sessions.'
+    : status;
 }

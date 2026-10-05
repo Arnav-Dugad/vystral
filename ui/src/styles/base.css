@@ -157,7 +157,8 @@ a {
   .surface, .glass, .dialog, .imm-panel__card, .onb__panel { border-radius: calc(var(--r-2xl) * 1.35); }
 }
 
-/* Dark store logos (black lettering) on dark artwork get a soft luminous halo instead of vanishing. */
+/* Mostly-black store logos would vanish on dark artwork: show their light version instead
+   (lightness inverted, hues kept by the 180° turn), with the usual soft shadow for separation. */
 img[data-logo-tone='dark'] {
-  filter: drop-shadow(0 0 0.6px oklch(1 0 0 / 0.95)) drop-shadow(0 0 1.6px oklch(1 0 0 / 0.5)) drop-shadow(0 0 24px oklch(1 0 0 / 0.28)) !important;
+  filter: invert(1) hue-rotate(180deg) drop-shadow(0 4px 24px oklch(0 0 0 / 0.55)) !important;
 }
