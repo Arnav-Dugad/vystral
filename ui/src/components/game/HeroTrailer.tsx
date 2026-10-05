@@ -7,6 +7,7 @@ import type { Game, TrailerInfo } from '../../bridge/types';
 import { ease, exit, spring } from '../../lib/motion';
 import { attachHlsTrailer, type AttachedTrailer } from '../../lib/trailer/player';
 import { autoplayBlock, effectiveQuality, IDLE_DELAY_MS, manualBlock, MAX_PLAYS, maxTrailerHeight, type TrailerConditions } from '../../lib/trailer/policy';
+import { followAllowed, SAMPLE_H, SAMPLE_INTERVAL_MS, SAMPLE_W, tintFromFrame, useHeroTrailer } from '../../lib/trailer/tint';
 import { useReducedMotion, useStore } from '../../state/store';
 import './trailer.css';
 
@@ -28,6 +29,10 @@ function usePageHidden(): boolean {
  * starts (and nothing is downloaded) under Data saver, Offline mode, reduced motion, low
  * quality, safe mode, while a game is starting or running, or while VYSTRAL is hidden.
  * Moving the pointer out of the hero pauses it on desktop; hovering back resumes.
+ *
+ * While it is visibly playing it also lends its colours to the Living Canvas: a 32×18 copy of
+ * the frame is read ~3×/s and published through lib/trailer/tint.ts (off under reduced motion,
+ * low quality, with the Living Canvas or "Follow trailer colours" off, and when hidden).
  */
 export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
   const settings = useStore((s) => s.settings);
@@ -127,6 +132,8 @@ export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
       if (info.kind === 'hls') {
         attached.current = await attachHlsTrailer(video, info.src, maxTrailerHeight(cond.quality, window.innerHeight * (window.devicePixelRatio || 1)), c.signal);
       } else {
+        // The media host answers with CORS headers; asking for them keeps frames readable for colour sampling.
+        video.crossOrigin = 'anonymous';
         video.src = info.src;
         attached.current = { hasAudio: true, canLoop: () => true, destroy: () => { video.removeAttribute('src'); video.load(); } };
       }
@@ -283,6 +290,58 @@ export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
       v.removeEventListener('error', onError);
     };
   }, [finish]);
+
+  /* ------------------------------------------------------------ colours for the Living Canvas */
+
+  const setVisible = useHeroTrailer((s) => s.setVisible);
+  const setTint = useHeroTrailer((s) => s.setTint);
+  useEffect(() => {
+    setVisible(game.id, shown);
+    return () => setVisible(game.id, false);
+  }, [game.id, shown, setVisible]);
+
+  const follow =
+    phase === 'playing' &&
+    shown &&
+    inView &&
+    followAllowed({
+      setting: settings?.['canvas.followTrailer'],
+      livingCanvas: !!settings?.['appearance.livingCanvas'],
+      quality: effectiveQuality(settings?.['appearance.quality'], typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 8),
+      reducedMotion: reduce,
+      safeMode,
+      hidden,
+    });
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!follow || !video) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = SAMPLE_W;
+    canvas.height = SAMPLE_H;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+    if (!ctx) return;
+    let stopped = false;
+    const sample = () => {
+      if (stopped || video.paused || video.readyState < 2) return;
+      try {
+        ctx.drawImage(video, 0, 0, SAMPLE_W, SAMPLE_H);
+        const target = tintFromFrame(ctx.getImageData(0, 0, SAMPLE_W, SAMPLE_H).data, SAMPLE_W, SAMPLE_H);
+        if (target) setTint({ gameId: game.id, ...target });
+      } catch (err) {
+        // A cross-origin frame without CORS taints the canvas; the canvas simply keeps the artwork colours.
+        stopped = true;
+        setTint(null);
+        console.info('[trailer] frame colours unavailable', err);
+      }
+    };
+    sample();
+    const t = window.setInterval(sample, SAMPLE_INTERVAL_MS);
+    return () => {
+      stopped = true;
+      window.clearInterval(t);
+      setTint(null);
+    };
+  }, [follow, game.id, setTint]);
 
   /* ------------------------------------------------------------ controls */
 

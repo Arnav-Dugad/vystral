@@ -5,22 +5,24 @@ import {
   ImagePlus, MoreHorizontal, Play, Split, Store, Trash2,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
-import type { Game, Installation, PerfSummary, Session } from '../bridge/types';
+import type { Game, InstallProgress, Installation, PerfSummary, Session } from '../bridge/types';
 import {
   formatBytes, formatDate, formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural, primaryInstallation, sizeOf,
 } from '../lib/format';
 import { ease, spring } from '../lib/motion';
 import { paletteFor } from '../lib/palette';
-import { captureFlight, setLaunchOrigin, useFlightLanding } from '../lib/flight';
-import { haptic } from '../lib/haptics';
+import { captureFlight, useFlightLanding } from '../lib/flight';
+import { phaseLabel, progressDetail } from '../lib/installProgress';
+import { useLogoTone } from '../lib/logoTone';
 import { openFolder, removeManualGame, setCollection, setHidden, setNotes, setPreferred, setRating, toggleFavorite } from '../state/actions';
 import { useReducedMotion, useStore } from '../state/store';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { GameCover } from '../components/game/GameCover';
 import { GameCard } from '../components/game/GameCard';
 import { AchievementsPanel } from '../components/game/AchievementsPanel';
-import { InstallButton } from '../components/game/InstallButton';
-import { HeroInstallStatus } from '../components/game/InstallProgress';
+import { PlayButton } from '../components/game/PlayButton';
+import { LastSessionGhost } from '../components/game/LastSessionGhost';
+import { useInstallFor } from '../state/installs';
 import { StatusPicker } from '../components/game/StatusPicker';
 import { HeroTrailer } from '../components/game/HeroTrailer';
 import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, SectionHead, Stars, Tabs } from '../components/ui/primitives';
@@ -93,7 +95,6 @@ export function GameDetailView({ id }: { id: string }) {
 function DetailHero({ game }: { game: Game }) {
   const goBack = useStore((s) => s.goBack);
   const launchGame = useStore((s) => s.launchGame);
-  const launch = useStore((s) => s.launch);
   const collections = useStore((s) => s.library.collections);
   const reduce = useReducedMotion();
   const coverRef = useRef<HTMLDivElement>(null);
@@ -116,11 +117,11 @@ function DetailHero({ game }: { game: Game }) {
 
   const installed = game.installations.filter((i) => i.state === 'installed');
   const primary = primaryInstallation(game);
-  const busy = launch?.gameId === game.id && ['validating', 'starting', 'waiting'].includes(launch.phase);
-  const running = launch?.gameId === game.id && launch.phase === 'running';
   const manual = game.installations.every((i) => i.platform === 'manual');
+  const install = useInstallFor(game.id);
+  const logoTone = useLogoTone(game.art.logo);
 
-  const status = describeStatus(game, primary);
+  const status = describeStatus(game, primary, install);
 
   const more: MenuEntry[] = [
     { label: game.favorite ? 'Remove from favorites' : 'Add to favorites', icon: <Heart size={16} />, onSelect: () => void toggleFavorite(game) },
@@ -153,6 +154,7 @@ function DetailHero({ game }: { game: Game }) {
         <HeroTrailer game={game} active />
       </motion.div>
       <div className="dhero__scrim" />
+      <LastSessionGhost game={game} />
       <div className="dhero__top">
         <Button variant="ghost" size="sm" icon={<ArrowLeft size={16} />} onClick={goBack} className="dhero__back">
           Back
@@ -163,7 +165,7 @@ function DetailHero({ game }: { game: Game }) {
           <GameCover game={game} eager />
         </div>
         <div className="dhero__info">
-          {game.art.logo ? <img className="dhero__logo" src={game.art.logo} alt={game.title} /> : <h1 className="dhero__title">{game.title}</h1>}
+          {game.art.logo ? <img className="dhero__logo" src={game.art.logo} alt={game.title} data-logo-tone={logoTone ?? undefined} /> : <h1 className="dhero__title">{game.title}</h1>}
           {game.art.logo && <h1 className="visually-hidden">{game.title}</h1>}
           <div className="dhero__badges">
             {[...new Set(game.installations.map((i) => i.platform))].map((p) => <PlatformBadge key={p} platform={p} />)}
@@ -175,21 +177,7 @@ function DetailHero({ game }: { game: Game }) {
           </div>
           <div className="dhero__actions">
             <div className="split-btn">
-              <Button
-                variant="primary"
-                size="xl"
-                icon={<Play size={22} fill="currentColor" />}
-                disabled={!installed.length || running}
-                loading={busy}
-                onClick={(e) => {
-                  setLaunchOrigin(game.id, e.currentTarget, document.querySelector(`.dhero__cover[data-game-id="${game.id}"]`));
-                  haptic('confirm'); // only buzzes when Play came from a controller
-                  void launchGame(game.id);
-                }}
-                data-autofocus
-              >
-                {running ? 'Playing' : installed.length ? (installed.length > 1 && primary ? `Play · ${PLATFORM_NAMES[primary.platform]}` : 'Play') : 'Not installed'}
-              </Button>
+              <PlayButton game={game} autoFocus joined={installed.length > 1} />
               {installed.length > 1 && (
                 <button
                   ref={chooserRef}
@@ -204,8 +192,6 @@ function DetailHero({ game }: { game: Game }) {
                 </button>
               )}
             </div>
-            {!installed.length && <InstallButton game={game} size="xl" />}
-            {installed.length > 0 && <HeroInstallStatus game={game} />}
             <IconButton label={game.favorite ? 'Remove from favorites' : 'Add to favorites'} pressed={game.favorite} onClick={() => void toggleFavorite(game)} className="dhero__icon">
               <Heart size={19} fill={game.favorite ? 'currentColor' : 'none'} />
             </IconButton>
@@ -255,7 +241,12 @@ function DetailHero({ game }: { game: Game }) {
   );
 }
 
-function describeStatus(game: Game, primary: Installation | undefined): { text: string; tone: 'ok' | 'warn' | 'muted' } {
+function describeStatus(game: Game, primary: Installation | undefined, install?: InstallProgress): { text: string; tone: 'ok' | 'warn' | 'muted' } {
+  // Steam is working on it: the Play button shows the ring, this line says exactly what Steam reports.
+  if (install && install.phase !== 'removed' && (install.watching || install.phase === 'installed')) {
+    const detail = progressDetail(install);
+    if (!(install.kind === 'update' && install.phase === 'installed')) return { text: detail ? `${phaseLabel(install)} · ${detail}` : phaseLabel(install), tone: 'muted' };
+  }
   if (!isInstalled(game)) {
     const missing = game.installations.find((i) => i.state === 'missing');
     return missing
@@ -271,7 +262,18 @@ function describeStatus(game: Game, primary: Installation | undefined): { text: 
   return { text: parts.join(' '), tone: 'ok' };
 }
 
+/** Size card: the installed size, or for games that aren't installed only sizes a store actually reported. */
+function sizeStat(game: Game, install: InstallProgress | undefined): { value: string; hint?: string } {
+  if (isInstalled(game)) return { value: formatBytes(sizeOf(game)), hint: game.installations.length > 1 ? 'largest installed version' : undefined };
+  if (install?.kind === 'install' && install.bytesTotal > 0 && install.phase !== 'removed') return { value: 'Not installed', hint: `${formatBytes(install.bytesTotal)} download, reported by Steam` };
+  const known = game.installations.map((i) => i.sizeBytes).filter((b): b is number => b != null && b > 0);
+  if (known.length) return { value: 'Not installed', hint: `${formatBytes(Math.max(...known))} when last installed` };
+  return { value: 'Not installed', hint: 'The store shows the size when you install' };
+}
+
 function StatsRow({ game }: { game: Game }) {
+  const install = useInstallFor(game.id);
+  const size = sizeStat(game, install);
   const lp = lastPlayed(game);
   const imported = importedMinutes(game);
   const importedFrom = game.installations.find((i) => i.importedPlaytimeMinutes != null)?.platform;
@@ -279,7 +281,7 @@ function StatsRow({ game }: { game: Game }) {
     { label: 'Last played', value: lp.at ? formatRelative(lp.at) : 'Never', hint: lp.source === 'imported' ? 'from the store' : lp.source === 'tracked' ? 'tracked by VYSTRAL' : undefined },
     { label: 'Tracked by VYSTRAL', value: game.trackedSeconds ? formatDuration(game.trackedSeconds) : '—', hint: game.sessionCount ? plural(game.sessionCount, 'session') : 'No sessions yet' },
     { label: importedFrom ? `${PLATFORM_NAMES[importedFrom]} playtime` : 'Store playtime', value: imported != null ? formatDuration(imported * 60) : '—', hint: imported != null ? 'reported by the store' : 'not available from this store' },
-    { label: 'Size on disk', value: formatBytes(sizeOf(game)), hint: game.installations.length > 1 ? 'largest installed version' : undefined },
+    { label: 'Size on disk', value: size.value, hint: size.hint },
   ];
   return (
     <div className="stats-row">

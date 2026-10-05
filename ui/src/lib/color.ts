@@ -59,6 +59,14 @@ export const lchToRgb = (lch: LCh): RGB => oklabToRgb(lchToLab(lch)).map((c) => 
 export const cssOklch = ([L, C, h]: LCh, alpha?: number) =>
   `oklch(${L.toFixed(3)} ${C.toFixed(3)} ${h.toFixed(1)}${alpha == null ? '' : ` / ${alpha}`})`;
 
+/** Reads back a colour written by {@link cssOklch} (`oklch(L C h)`); null for anything else. */
+export function parseOklch(css: string | null | undefined): LCh | null {
+  const m = /^oklch\(\s*(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)/.exec(css?.trim() ?? '');
+  if (!m) return null;
+  const v = [Number(m[1]), Number(m[2]), Number(m[3])];
+  return v.every(Number.isFinite) ? (v as LCh) : null;
+}
+
 /**
  * Adjusts lightness (hue and chroma preserved where possible) until the colour has at least
  * `minRatio` contrast against `surface`. Moves lighter on dark surfaces, darker on light ones.
@@ -88,7 +96,8 @@ export interface Palette {
 
 const BRAND_VIOLET: LCh = [0.7, 0.17, 292];
 const BRAND_BLUE: LCh = [0.68, 0.15, 255];
-const DARK_SURFACE: RGB = lchToRgb([0.165, 0.014, 282]);
+/** The dark panel surface accents are contrast-checked against (≈ --bg-1 in Obsidian). */
+export const DARK_SURFACE: RGB = lchToRgb([0.165, 0.014, 282]);
 
 function mixHue(a: number, b: number, t: number) {
   const d = ((b - a + 540) % 360) - 180;

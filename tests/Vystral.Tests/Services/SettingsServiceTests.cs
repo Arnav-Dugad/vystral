@@ -34,7 +34,8 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Empty(all["library.platformsEnabled"]!.AsObject());
         Assert.True(all["notifications.achievements"]!.GetValue<bool>());
         Assert.True(all["performance.backgroundApps"]!.GetValue<bool>());
-        Assert.Equal(45, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2)
+        Assert.True(all["canvas.followTrailer"]!.GetValue<bool>());
+        Assert.Equal(46, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1)
     }
 
     [Fact]

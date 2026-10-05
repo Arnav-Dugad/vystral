@@ -50,6 +50,7 @@ const DEFAULT_SETTINGS: Settings = {
   'dataSaver.enabled': false,
   'dataSaver.onMetered': true,
   'trailers.autoplay': true,
+  'canvas.followTrailer': true,
   'steam.webApi.backgroundAchievements': true,
   ...INSIGHT_DEFAULT_SETTINGS,
   ...DATA_INSIGHT_DEFAULT_SETTINGS,
@@ -191,6 +192,25 @@ function buildLibrary(extra: number): { games: Game[]; sessions: Session[] } {
   return { games, sessions };
 }
 
+/** Track E: saves a finished preview session (with FPS, like recent sessions) so the game page's ghost line can replay it. */
+function recordPreviewSession(lib: { games: Game[]; sessions: Session[] }, game: Game, installationId: string, durationSeconds: number): string {
+  const id = hex(Math.random);
+  const end = Date.now();
+  const start = new Date(end - durationSeconds * 1000).toISOString();
+  lib.sessions.push({
+    id, gameId: game.id, installationId, start, end: new Date(end).toISOString(), durationSeconds, source: 'tracked',
+    perfSummary: JSON.stringify({
+      samples: 240, cpuAvg: 44.2, cpuMax: 71.5, gpuAvg: 86.1, gpuMax: 99, gpuMemAvgMb: 5480, gpuMemMaxMb: 6020, ramAvgMb: 9420, ramMaxMb: 9900,
+      gpuTempAvgC: 69, gpuTempMaxC: 74, fpsAvg: 112.6, fps1Low: 70.4, fps01Low: 51.2, frameTimeP50Ms: 8.6, frameTimeP99Ms: 15.1,
+      fpsStatus: 'Measured with Intel PresentMon 2.6.0. Frame time is the time between the game’s presented frames.', fpsSource: 'Intel PresentMon 2.6.0',
+    }),
+  });
+  // A new object, as the native bridge would send, so views keyed on the game see the change.
+  const i = lib.games.indexOf(game);
+  if (i >= 0) lib.games[i] = { ...game, sessionCount: game.sessionCount + 1, trackedSeconds: game.trackedSeconds + durationSeconds, lastTrackedPlay: start };
+  return id;
+}
+
 export function createPreviewBackend() {
   const params = new URLSearchParams(location.search);
   const extra = Math.min(20000, Number(params.get('games') ?? 0) || 0);
@@ -305,13 +325,20 @@ export function createPreviewBackend() {
       insight.__preflight({ ticket: base.ticket, platform: inst.platform });
       timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'waiting', message: 'Waiting for the game window…', acceptedAt: new Date().toISOString() }), 700));
       timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'running', sessionId: 'preview', startedAt: new Date().toISOString(), message: null }), 2600));
-      timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'ended', sessionId: 'preview', durationSeconds: 5400, message: null }), 7000));
+      let sessionId = 'preview';
+      timers.push(window.setTimeout(() => {
+        // Like the native side, the finished session is saved before 'ended' is reported.
+        sessionId = recordPreviewSession(lib, findGame(g.id), inst.id, 5400);
+        setLaunch({ ...base, phase: 'ended', sessionId, durationSeconds: 5400, message: null });
+      }, 7000));
       // Track F: Steam reports two fictional unlocks a moment after the session ends.
-      timers.push(window.setTimeout(() => dataInsights.__unlocked({ gameId: g.id, sessionId: 'preview' }), 8500));
+      timers.push(window.setTimeout(() => dataInsights.__unlocked({ gameId: g.id, sessionId }), 8500));
       return { ...base, phase: 'starting' };
     },
     'game.stopTracking': () => { timers.forEach(clearTimeout); if (launch) setLaunch({ ...launch, phase: 'ended', message: 'Stopped tracking. The game was not affected.' }); return true; },
     'launch.current': () => launch,
+    // Preview can't bring another app's window forward; the real app does (SetForegroundWindow).
+    'game.focus': () => launch?.phase === 'running',
     'collections.create': (p: { name: string; icon?: string | null }) => {
       const id = hex(Math.random);
       collections.push({ id, name: p.name, icon: p.icon ?? null, sortOrder: collections.length, rule: null, count: 0 });

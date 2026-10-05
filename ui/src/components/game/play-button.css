@@ -1,0 +1,160 @@
+/* ===== Morphing Play button (game page hero) =====
+   One <button> that changes state in place. Backgrounds are stacked layers whose opacity
+   crossfades (box-shadow is never animated); the width is reserved for the widest label. */
+
+.pbtn {
+  --pbtn-h: 58px;
+  --pbtn-r: var(--r-xl);
+  --pbtn-pad: 30px;
+  --pbtn-aux: 44px;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  height: var(--pbtn-h);
+  min-width: 156px;
+  border-radius: var(--pbtn-r);
+  transition: width 420ms var(--ease-emph);
+}
+.pbtn[data-joined] { --pbtn-r-end: 0; }
+
+/* Accent glow under the primary state, pre-rendered and faded. */
+.pbtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 10px 30px -10px oklch(from var(--accent) l c h / 0.85);
+  transition: opacity 420ms var(--ease-out);
+}
+.pbtn:not([data-tone='primary'])::before { opacity: 0; }
+
+.pbtn__main {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--pbtn-pad);
+  border-radius: var(--pbtn-r) var(--pbtn-r-end, var(--pbtn-r)) var(--pbtn-r-end, var(--pbtn-r)) var(--pbtn-r);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+  color: var(--text-on-accent);
+  transition: color 360ms var(--ease-out), padding 360ms var(--ease-emph), transform var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+}
+.pbtn__main:focus-visible { border-radius: var(--pbtn-r) var(--pbtn-r-end, var(--pbtn-r)) var(--pbtn-r-end, var(--pbtn-r)) var(--pbtn-r); }
+.pbtn__main:active:not([aria-disabled='true']) { transform: scale(0.985); }
+.pbtn__main[aria-disabled='true'] { cursor: default; }
+.pbtn[data-aux] .pbtn__main { padding-right: calc(var(--pbtn-pad) + var(--pbtn-aux) - 8px); }
+
+.pbtn__bg { position: absolute; inset: 0; z-index: -2; border-radius: inherit; pointer-events: none; transition: opacity 420ms var(--ease-out); }
+.pbtn__bg--primary { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); box-shadow: var(--inner-hi); }
+.pbtn__bg--quiet {
+  opacity: 0;
+  background: oklch(0.15 0.012 282 / 0.66);
+  backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.14), inset 0 1px 0 oklch(1 0 0 / 0.1);
+}
+.pbtn:not([data-tone='primary']) .pbtn__bg--primary { opacity: 0; }
+.pbtn:not([data-tone='primary']) .pbtn__bg--quiet { opacity: 1; }
+.pbtn:not([data-tone='primary']) .pbtn__main { color: oklch(0.97 0 0); }
+.pbtn[data-tone='live'] .pbtn__bg--quiet { box-shadow: inset 0 0 0 1px oklch(from var(--accent) l c h / 0.55), inset 0 1px 0 oklch(1 0 0 / 0.1); }
+
+/* Primary hover: the sheen lifts a little (opacity only). */
+.pbtn__main::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, oklch(1 0 0 / 0.16), transparent 60%);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.pbtn__main:hover:not([aria-disabled='true'])::after { opacity: 1; }
+
+/* Progress glide: Steam's percentage as a soft fill behind the label. */
+.pbtn__fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, oklch(from var(--accent) l c h / 0.06), oklch(from var(--accent) l c h / 0.28) calc(100% - 14px), oklch(from var(--accent-hi) l c h / 0.5));
+  opacity: 0;
+  transition: opacity 420ms var(--ease-out);
+  pointer-events: none;
+}
+.pbtn__fill[data-on] { opacity: 1; }
+
+.pbtn__content { display: inline-flex; align-items: center; gap: 10px; min-width: 0; white-space: nowrap; }
+.pbtn__icon { position: relative; display: inline-grid; place-items: center; width: 26px; height: 26px; flex: none; }
+.pbtn__glyph { display: inline-grid; place-items: center; }
+.pbtn__label { position: relative; display: inline-flex; align-items: baseline; gap: 8px; }
+.pbtn__text { display: inline-block; }
+.pbtn__detail { font-size: 0.82em; font-weight: var(--fw-medium); opacity: 0.86; }
+
+/* Rings inside the primary fill read in the text colour. */
+.pbtn[data-tone='primary'] .pring__fill,
+.pbtn[data-tone='primary'] .pring__spin { stroke: currentColor; filter: none; }
+.pbtn .pring__track { stroke: oklch(from currentColor l c h / 0.24); }
+.pbtn[data-tone='progress'] .pring__fill,
+.pbtn[data-tone='progress'] .pring__spin { stroke: var(--accent-hi); }
+
+/* Live dot: a calm heartbeat while the game runs (paused by Performance Mode, still under reduced motion). */
+.pbtn__live { position: relative; width: 12px; height: 12px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 12px oklch(from var(--ok) l c h / 0.7); }
+.pbtn__live::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid oklch(from var(--ok) l c h / 0.6); animation: pbtn-beat 2.4s var(--ease-out) infinite; }
+@keyframes pbtn-beat { from { transform: scale(0.5); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+:root[data-reduced-motion='true'] .pbtn__live::after { animation: none; opacity: 0; }
+
+/* Secondary control (stop tracking / stop showing progress) inside the reserved width. */
+.pbtn__aux {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  color: oklch(0.95 0 0);
+  background: oklch(1 0 0 / 0.1);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.14);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.pbtn__aux:hover { background: oklch(1 0 0 / 0.2); }
+.pbtn__aux:focus-visible { border-radius: var(--r-pill); }
+
+/* Width reservation: every label the button may show, laid out like the real content. */
+.pbtn__sizer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.pbtn__row { display: inline-flex; align-items: center; gap: 10px; height: 0; padding: 0 var(--pbtn-pad); overflow: hidden; }
+.pbtn__row[data-aux] { padding-right: calc(var(--pbtn-pad) + var(--pbtn-aux) - 8px); }
+
+/* Themes */
+:root[data-theme='light'] .pbtn__bg--quiet { background: oklch(0.2 0.02 282 / 0.72); }
+:root[data-quality='low'] .pbtn__bg--quiet { backdrop-filter: none; background: oklch(0.14 0.012 282 / 0.92); }
+:root[data-theme='contrast'] .pbtn__bg--quiet { backdrop-filter: none; background: #000; box-shadow: inset 0 0 0 2px oklch(1 0 0); }
+:root[data-theme='contrast'] .pbtn[data-tone='live'] .pbtn__bg--quiet { box-shadow: inset 0 0 0 2px var(--accent); }
+:root[data-theme='contrast'] .pbtn__fill { background: oklch(from var(--accent) l c h / 0.3); }
+:root[data-theme='contrast'] .pbtn::before { display: none; }
+
+/* Immersive (10-foot): bigger target. */
+:root[data-mode='immersive'] .pbtn { --pbtn-h: 64px; }

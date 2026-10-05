@@ -57,7 +57,8 @@ export function InstallButton({ game, size = 'lg' }: { game: Game; size?: 'md' |
   );
 }
 
-function openInStore(inst: Installation) {
+/** Opens the store app's page for an installation (installing happens there). */
+export function openInStore(inst: Installation) {
   void call('game.openInStore', { installationId: inst.id }).catch((err) =>
     useStore.getState().toast({ tone: 'info', title: `Couldn’t open ${PLATFORM_NAMES[inst.platform]}`, body: errorMessage(err) }),
   );
@@ -65,8 +66,21 @@ function openInStore(inst: Installation) {
 
 function SteamInstall({ game, inst, size }: { game: Game; inst: Installation; size: 'md' | 'lg' | 'xl' }) {
   const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button size={size} icon={<ArrowDownToLine size={size === 'xl' ? 20 : 17} />} onClick={() => setOpen(true)}>
+        Install
+      </Button>
+      <SteamInstallDialog game={game} inst={inst} open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+/** Confirms handing the install to Steam (which shows its own size and drive choice). */
+export function SteamInstallDialog({ game, inst, open, onClose }: { game: Game; inst: Installation; open: boolean; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const toast = useStore((s) => s.toast);
+  const setOpen = (v: boolean) => !v && onClose();
 
   const start = async () => {
     setBusy(true);
@@ -82,9 +96,6 @@ function SteamInstall({ game, inst, size }: { game: Game; inst: Installation; si
 
   return (
     <>
-      <Button size={size} icon={<ArrowDownToLine size={size === 'xl' ? 20 : 17} />} onClick={() => setOpen(true)}>
-        Install
-      </Button>
       <Dialog
         open={open}
         onClose={() => setOpen(false)}

@@ -67,6 +67,8 @@ public sealed class SessionService : IDisposable
     private CancellationTokenSource? _watchCts;
     private LaunchStateDto? _current;
     private PreflightEventDto? _lastPreflight;
+    /// <summary>Processes of the game currently being tracked (for "switch to the game"); empty when none.</summary>
+    private volatile int[] _trackedPids = [];
 
     public SessionService(LibraryRepository repo, IEnumerable<IPlatformAdapter> adapters, SettingsService settings, IEventSink events)
     {
@@ -214,6 +216,18 @@ public sealed class SessionService : IDisposable
         lock (_lock) _watchCts?.Cancel();
     }
 
+    /// <summary>Brings the running game's main window to the front. False when there is none to show.</summary>
+    public bool FocusGame()
+    {
+        if (Current?.Phase != "running") return false;
+        try { return WindowFocus.BringToFront(_trackedPids); }
+        catch (Exception ex)
+        {
+            Log.Warn("launch", "Couldn't bring the game window forward", ex: ex);
+            return false;
+        }
+    }
+
     // ---------------- pre-flight ----------------
 
     private void StartPreflight(string ticket, Installation inst)
@@ -311,6 +325,7 @@ public sealed class SessionService : IDisposable
                 try { _repo.SetSessionDetectMs(sessionId, detectMs); }
                 catch (Exception ex) { Log.Warn("session", "Couldn't record launch timing", ex: ex); }
             }
+            _trackedPids = [.. pids];
             Emit(state with { Phase = "running", Message = null, SessionId = sessionId, StartedAt = sessionStart.ToString("O") });
 
             var collect = _settings.GetBool("performance.collectMetrics");
@@ -342,6 +357,7 @@ public sealed class SessionService : IDisposable
                         pids = ProcessScanner.FindUnder(ProcessScanner.Snapshot(), inst.InstallPath, hints, excluded).Select(p => p.Id).ToList();
                         lastRescan = now;
                     }
+                    _trackedPids = [.. pids];
                     if (pids.Count > 0) lastSeenAlive = now;
                     else if (now - lastSeenAlive > TimeSpan.FromSeconds(8)) break;
 
@@ -383,6 +399,7 @@ public sealed class SessionService : IDisposable
                 if (fps is not null) await fps.StopAsync();
             }
 
+            _trackedPids = [];
             Flush(sessionId, pending, pendingExtras);
             FlushBackground(sessionId, background);
             var end = lastSeenAlive;

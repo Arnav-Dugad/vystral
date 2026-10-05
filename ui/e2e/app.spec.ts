@@ -109,6 +109,96 @@ test.describe('game details', () => {
   });
 });
 
+async function openGame(page: Page, title: string) {
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /Library/ }).click();
+  await page.getByLabel('Filter library').fill(title);
+  await page.getByRole('button', { name: new RegExp(`^${title}`) }).first().click();
+  await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
+}
+
+test.describe('game page: morphing Play button and last-session ghost', () => {
+  test('Play → Launching → Playing → Play in one button that keeps its width and focus', async ({ page }) => {
+    const errors = await open(page, '?reduced');
+    await openGame(page, 'Hollow Lantern');
+    const shell = page.locator('.pbtn');
+    const button = page.locator('.pbtn__main');
+    await expect(button).toHaveAccessibleName('Play Hollow Lantern');
+    const width = (await shell.boundingBox())!.width;
+    await button.focus();
+    await page.keyboard.press('Enter');
+    await expect(shell).toHaveAttribute('data-state', 'launching');
+    await expect(button).toHaveAccessibleName('Launching Hollow Lantern');
+    await expect(button).toHaveAttribute('aria-disabled', 'true');
+    await expect(shell).toHaveAttribute('data-state', 'running', { timeout: 6000 });
+    await expect(button).toHaveAccessibleName(/^Playing Hollow Lantern.*Switch to the game$/);
+    await expect(page.getByRole('button', { name: 'Stop tracking this session. The game keeps running.' }).first()).toBeVisible();
+    await expect(page.locator('.pbtn__main .pbtn__detail')).toHaveText(/^\d+:\d\d$/);
+    expect(Math.abs((await shell.boundingBox())!.width - width)).toBeLessThan(1);
+    await expect(button).toBeFocused();
+    // The session ends, is saved, and the ghost replays it (preview records FPS for it).
+    await expect(shell).toHaveAttribute('data-state', 'play', { timeout: 10_000 });
+    await expect(page.locator('.ghost__caption')).toHaveText(/^Last session · 1h 30m · \d+ FPS avg$/, { timeout: 5000 });
+    await expect(button).toBeFocused();
+    expect(errors).toEqual([]);
+  });
+
+  test('a game with tracked sessions shows a faint ghost of the last one', async ({ page }) => {
+    await open(page);
+    await openGame(page, 'Hollow Lantern');
+    const ghost = page.locator('.ghost');
+    await expect(ghost).toBeVisible();
+    await expect(page.locator('.ghost__caption')).toHaveText(/^Last session · .+ · (CPU|GPU|\d+ FPS)/);
+    const d = await page.locator('.ghost__line').getAttribute('d');
+    expect(d!.split('C').length - 1).toBeLessThanOrEqual(130);
+    // It sits behind the hero content and never takes pointer input.
+    expect(await ghost.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
+  });
+
+  test('a game without sessions shows no ghost', async ({ page }) => {
+    await open(page);
+    await openGame(page, 'Redline Rivals');
+    await expect(page.locator('.dhero')).toBeVisible();
+    await page.waitForTimeout(600);
+    await expect(page.locator('.ghost')).toHaveCount(0);
+  });
+
+  test('not installed: one Install button that becomes the Steam progress ring, then Play', async ({ page }) => {
+    await open(page, '?reduced');
+    await openGame(page, 'Starfall Tactics');
+    const shell = page.locator('.pbtn');
+    const button = page.locator('.pbtn__main');
+    await expect(button).toHaveAccessibleName('Install Starfall Tactics with Steam');
+    await expect(page.locator('.dhero').getByRole('button', { name: /^Play/ })).toHaveCount(0);
+    await expect(page.locator('.stat').filter({ hasText: 'Size on disk' })).toContainText('Not installed');
+    await button.click();
+    await page.getByRole('button', { name: 'Open Steam to install' }).click();
+    await expect(shell).toHaveAttribute('data-state', 'installing');
+    await expect(button).toHaveAccessibleName(/Show in Steam$/);
+    await expect(button).toHaveAccessibleName(/^Downloading, \d+ percent/, { timeout: 8000 });
+    await expect(page.locator('.dhero__status')).toContainText('Downloading ·');
+    await expect(shell).toHaveAttribute('data-state', 'play', { timeout: 30_000 });
+    await expect(button).toHaveAccessibleName('Play Starfall Tactics');
+  });
+
+  test('a Steam update in progress shows on the button', async ({ page }) => {
+    await open(page);
+    await openGame(page, 'Nebula Drift');
+    await expect(page.locator('.pbtn')).toHaveAttribute('data-state', 'updating', { timeout: 8000 });
+    await expect(page.locator('.pbtn__main')).toHaveAccessibleName(/^Steam is updating, \d+ percent\. Show in Steam$/);
+  });
+
+  test('game page has no serious or critical violations', async ({ page }) => {
+    await open(page, '?reduced');
+    await openGame(page, 'Hollow Lantern');
+    await expect(page.locator('.ghost__caption')).toBeVisible();
+    await page.waitForTimeout(500);
+    await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
+    const results = await new AxeBuilder({ page }).exclude('.living-canvas').analyze();
+    const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+    expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(' | ')}`)).toEqual([]);
+  });
+});
+
 test.describe('settings & accessibility preferences', () => {
   test('theme and reduced motion apply immediately', async ({ page }) => {
     await open(page);
