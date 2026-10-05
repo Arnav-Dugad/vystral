@@ -58,7 +58,8 @@ public sealed partial class SteamApiKeyStore(ISecretStore store)
 }
 
 /// <summary>Windows Credential Manager (advapi32 CredReadW/CredWriteW/CredDeleteW, generic credentials).</summary>
-public sealed class WindowsCredentialStore : ISecretStore
+/// <param name="comment">Shown next to the secret in Credential Manager (defaults to the Steam Web API key text).</param>
+public sealed class WindowsCredentialStore(string? comment = null) : ISecretStore
 {
     private const uint CredTypeGeneric = 1;
     private const uint CredPersistLocalMachine = 2;
@@ -90,7 +91,7 @@ public sealed class WindowsCredentialStore : ISecretStore
             {
                 Type = CredTypeGeneric,
                 TargetName = target,
-                Comment = "Steam Web API key used by VYSTRAL to read your owned games and achievements.",
+                Comment = comment ?? "Steam Web API key used by VYSTRAL to read your owned games and achievements.",
                 CredentialBlobSize = (uint)bytes.Length,
                 CredentialBlob = blob,
                 Persist = CredPersistLocalMachine,

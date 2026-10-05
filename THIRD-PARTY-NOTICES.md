@@ -31,3 +31,18 @@ Intel PresentMon (MIT, © Intel Corporation, https://github.com/GameTechDev/Pres
 **Steam micro-trailers.** Live tiles play the short silent loops Valve publishes beside each Steam store trailer. They are fetched on demand from Steam's public CDN and cached privately on the user's PC, like artwork; they belong to the games' publishers.
 
 Game names, artwork and descriptions shown in VYSTRAL belong to their respective owners. Artwork comes from the user's store apps' local caches or Steam's public CDN and is cached privately on the user's PC.
+
+## Game data sources (fetched at runtime, never bundled)
+
+No third-party game data ships with VYSTRAL. These sources are contacted only when enabled (Settings → Library & stores → Data sources), never in Offline mode, and their data is cached privately on the user's PC. The interface credits each source wherever its data appears.
+
+| Source | Licence / terms | How VYSTRAL respects them |
+|---|---|---|
+| Wikidata (query.wikidata.org) | CC0 1.0 (public domain) | Credited as “Store IDs from Wikidata” with a link to the item; descriptive User-Agent with the project URL, one query at a time |
+| AreWeAntiCheatYet `games.json` | MIT, © 2021 Starz0r, Curve (github.com/AreWeAntiCheatYet/AreWeAntiCheatYet) | Downloaded at most weekly with ETag; credited “per AreWeAntiCheatYet” with a link. Its status describes Linux/Steam Deck support, and VYSTRAL says so |
+| Steam store (Deck compatibility report, prices) | Valve's data; public store endpoints | Shown as “as reported by Valve”; on demand, cached (7 days for Deck, 24 h for prices) |
+| SteamGridDB | Community artwork, copyrighted by its artists; SteamGridDB terms (personal, non-commercial use) | User's own key; each picked image is credited to its author; nothing is redistributed |
+| IGDB (Twitch) | Twitch Developer Services Agreement | User's own Twitch application; “Data from IGDB.com” with a link on every page showing it |
+| RAWG | RAWG API terms (attribution and an active link back required; no redistribution) | User's own key; “Data from RAWG.io” with a link on every page showing it. RAWG's Metacritic number is not used |
+| CheapShark | CheapShark API terms (no catalog building) | Called only when a game page is opened; deal links go through CheapShark's own redirect unchanged |
+| IsThereAnyDeal | ITAD API terms (data and links unchanged, link to ITAD) | User's own key; prices and shop links shown exactly as sent, with a link to ITAD |

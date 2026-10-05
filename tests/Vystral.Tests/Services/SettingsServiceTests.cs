@@ -38,7 +38,9 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.True(all["home.liveTiles"]!.GetValue<bool>());
         Assert.False(all["sound.ambient"]!.GetValue<bool>());
         Assert.Equal(0.35, all["sound.ambientVolume"]!.GetValue<double>());
-        Assert.Equal(49, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3)
+        Assert.True(all["dataSources.cheapshark"]!.GetValue<bool>());
+        Assert.Equal("US", all["dataSources.priceCountry"]!.GetValue<string>());
+        Assert.Equal(56, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7)
     }
 
     [Fact]

@@ -103,6 +103,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterDataInsightHandlers();    // AppBackend.DataInsights.cs: achievement feed, driver comparison, background apps
         RegisterUpdateExtrasHandlers();   // AppBackend.Updates.cs: what's new, "New" badges, silent rollback, network health
         RegisterLiveTileHandlers();       // AppBackend.LiveTiles.cs: Home live tiles (Steam micro-trailers, cached proxy)
+        RegisterDataSourceHandlers();     // AppBackend.DataSources.cs: art picker, enrichment, prices, identity, compatibility, value
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

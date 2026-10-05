@@ -19,6 +19,7 @@ import { DayChart } from './journal/DayChart';
 import { BacklogCard } from './journal/BacklogCard';
 import { Heatmap } from './journal/Heatmap';
 import { AchievementTimeline } from './journal/AchievementTimeline';
+import { LibraryValue } from './journal/LibraryValue';
 import {
   computeTotals, currentStreak, genreTotals, groupByDay, inRange, longestStreak, milestones, normalizeSessions, playtimeBuckets, splitAcrossDays, takeGroups,
   topGames, yearInReview, type DayGroup, type JSession, type Milestone, type Range, type YearReview,
@@ -48,7 +49,7 @@ function storePlaytime(game: Game | undefined): { minutes: number; store: string
   return best;
 }
 
-export type JournalTab = 'sessions' | 'achievements';
+export type JournalTab = 'sessions' | 'achievements' | 'value';
 
 export function JournalView({ tab: routeTab }: { tab?: JournalTab } = {}) {
   const { status, sessions: rawSessions, error, reload, loadedAt: now } = useTrackedSessions();
@@ -182,12 +183,20 @@ export function JournalView({ tab: routeTab }: { tab?: JournalTab } = {}) {
         tabs={[
           { value: 'sessions', label: 'Sessions' },
           { value: 'achievements', label: <><Trophy size={14} aria-hidden style={{ marginRight: 6, verticalAlign: '-2px' }} />Achievements<NewBadge k="journal.achievements" /></> },
+          { value: 'value', label: 'Library value' },
         ]}
       />
 
       {tab === 'achievements' && (
         <div role="tabpanel" aria-label="Achievements" className="jr-panel">
           <AchievementTimeline />
+        </div>
+      )}
+
+      {/* Track I: when games arrived and what they cost today. */}
+      {tab === 'value' && (
+        <div role="tabpanel" aria-label="Library value" className="jr-panel">
+          <LibraryValue />
         </div>
       )}
 

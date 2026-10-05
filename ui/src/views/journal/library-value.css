@@ -1,0 +1,31 @@
+/* Track I: Journal → Library value. */
+.lv { display: grid; gap: var(--s-5); margin-top: var(--s-5); }
+.lv-honest { display: flex; gap: var(--s-3); align-items: flex-start; padding: var(--s-4) var(--s-5); }
+.lv-honest > svg { flex: none; margin-top: 2px; color: var(--accent-text); }
+.lv-honest p { margin: 0; font-size: var(--fs-sm); line-height: 1.55; color: var(--text-2); }
+.lv-honest strong { color: var(--text-1); }
+.lv-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.lv-toolbar__meta { flex: 1; font-size: var(--fs-xs); color: var(--text-3); }
+.lv-tiles { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.lv-chart { position: relative; }
+.lv-chart__year { stroke: var(--line); stroke-dasharray: 2 4; }
+.lv-chart__unit { position: absolute; left: 8px; top: 0; font-size: var(--fs-2xs); color: var(--text-3); }
+.lv-tip { display: grid; gap: 2px; min-width: 180px; }
+.lv-tip__game { color: var(--accent-text); font-size: var(--fs-xs); max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: var(--s-5); }
+.lv-top { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.lv-top li { display: grid; grid-template-columns: 24px 1fr auto; align-items: baseline; gap: 4px var(--s-3); padding: 6px 0; border-bottom: 1px solid var(--line); }
+.lv-top li:last-child { border-bottom: 0; }
+.lv-top__rank { color: var(--text-3); font-size: var(--fs-xs); }
+.lv-top__title { padding: 0; border: 0; background: none; font: inherit; color: var(--text-1); text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-top__title:hover, .lv-top__title:focus-visible { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+.lv-top__price { font-weight: var(--fw-semibold); }
+.lv-top__sale { grid-column: 2 / -1; font-size: var(--fs-xs); color: var(--text-3); }
+.lv-list { margin: 0; padding: 0; list-style: none; display: grid; }
+.lv-list li { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: 8px 0; border-bottom: 1px solid var(--line); }
+.lv-list li:last-child { border-bottom: 0; }
+.lv-list li > div { display: grid; min-width: 0; }
+.lv-list__src { font-size: var(--fs-xs); color: var(--text-3); }
+.lv-list__price { flex: none; font-size: var(--fs-sm); }
+.lv-muted { color: var(--text-3); font-size: var(--fs-sm); }
+.lv-foot { display: flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-xs); color: var(--text-3); }

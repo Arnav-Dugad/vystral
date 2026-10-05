@@ -15,6 +15,7 @@ import { INSIGHT_DEFAULT_SETTINGS, PREVIEW_EXPECTED_DETECT_MS, PREVIEW_FAILED_AC
 import { DATA_INSIGHT_DEFAULT_SETTINGS, dataInsightPreviewHandlers } from './preview.dataInsights';
 import { updatesPreviewHandlers } from './preview.updates';
 import { TRACK_K_DEFAULT_SETTINGS, trackKPreviewHandlers } from './preview.trackK';
+import { DATA_SOURCE_DEFAULT_SETTINGS, dataSourcePreviewHandlers } from './preview.dataSources';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -57,6 +58,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...INSIGHT_DEFAULT_SETTINGS,
   ...DATA_INSIGHT_DEFAULT_SETTINGS,
   ...TRACK_K_DEFAULT_SETTINGS,
+  ...DATA_SOURCE_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -429,6 +431,8 @@ export function createPreviewBackend() {
     ...updatesPreviewHandlers({ settings: () => settings }),
     // Track K: live tiles (a bundled local loop, never the network).
     ...trackKPreviewHandlers({ lib, settings: () => settings, liveTileRequests: [] }),
+    // Track I: data sources — art picker, enrichment, prices, identity, compatibility, value (fictional data, local placeholder images).
+    ...dataSourcePreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
   };
 
   return {

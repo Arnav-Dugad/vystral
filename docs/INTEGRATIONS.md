@@ -24,6 +24,24 @@ Every integration reads only what the store app already keeps on this PC. VYSTRA
 - **Battle.net:** classic titles (Diablo II, Warcraft III) aren't detected yet.
 - **Metadata & artwork (optional):** Steam's public store pages (`store.steampowered.com/api/appdetails`, `storesearch`) and CDN (`shared.akamai.steamstatic.com`). Non-Steam games are matched only on an exact normalized title with a single result. All requests are rate-limited and can be disabled.
 
+## Data sources (optional, Settings → Library & stores → Data sources)
+
+These add art, details, prices and compatibility on top of the store integrations. All are off in Offline mode, each has its own switch, and keyed ones use **your own** key stored only in Windows Credential Manager (`VYSTRAL/SteamGridDB`, `VYSTRAL/IGDB`, `VYSTRAL/RAWG`, `VYSTRAL/IsThereAnyDeal`). A key is saved only after the provider accepts it in a test request. Code: `src/Vystral.Windows/DataSources/`.
+
+| Source | Access | Used for | Matching | Cache |
+|---|---|---|---|---|
+| **SteamGridDB** | Your API key (Bearer) | Artwork picker on the game page (cover 600×900, background, logo, icon); safe-for-work, static by default, filters by style | Steam appid (`/games/steam/<appid>`), else a unique exact title, else you pick from candidates | Previews under the art cache `_thumbs/sgdb/`; chosen art is user art (`is_user = 1`) |
+| **IGDB** | Your own Twitch app (client ID + secret → client-credentials token kept in memory) | Fills missing description, genres, release date, developer, publisher; shows themes, modes, perspective, series/franchise, similar games, critic/overall rating and time to beat (`game_time_to_beats`) | `external_games` by Steam appid → Wikidata IGDB slug → exact title (unique, year ±1 when known) | 30 days; no-match retried after 7 days |
+| **RAWG** | Your API key | Same missing fields; shows user rating, average playtime, ESRB. Metacritic numbers from RAWG are not used | Wikidata RAWG slug → exact title confirmed by RAWG's Steam store link for the same appid → exact title | 30 days |
+| **CheapShark** | Keyless | “Deals” card: best price now (USD), shops, lowest price ever | Steam appid only | 6 hours, fetched only when the game page opens |
+| **IsThereAnyDeal** | Your API key (`ITAD-API-Key` header) | Prices across shops in your price country and the historical low | Steam appid (`/games/lookup/v1`) | 6 hours, on page open |
+| **Wikidata** | Keyless (CC0) | “Same game elsewhere” on the Versions tab (Steam, GOG, Epic, Microsoft Store, IGDB, PCGamingWiki, HowLongToBeat, SteamGridDB, ITAD, RAWG, MobyGames) and duplicate *suggestions* (never merges) | Steam appid (P1733) or GOG product ID (P12727); batches of 100 | 30 days; “no item” 7 days |
+| **Steam Deck compatibility** | Keyless (Steam store's public report, grey area) | Verified / Playable / Unsupported badge with Valve's test results | Steam appid; only while “Fetch game details” is on | 7 days |
+| **AreWeAntiCheatYet** | Keyless (MIT dataset on GitHub) | Anti-cheat badge (names; “kernel anti-cheat” for products widely documented to load a kernel driver) and Linux/Deck status per AWACY | Steam appid | Whole list, refreshed at most weekly (ETag) |
+| **Steam store prices** | Keyless (`appdetails?filters=price_overview`, 100 apps per request) | Journal → Library value (today's price, never what you paid) | Steam appid | 24 hours, fetched when the tab opens |
+
+Enrichment never overwrites a field that already has a value or that you set; every filled field records its source (`game_field_sources`), and the game page shows “From IGDB/RAWG” with how the match was made. Enrichment runs in the background (40 games per round, every six hours), pauses while a game runs, honours each provider's rate limits (IGDB 4/s, `Retry-After` on 429), and stops for the round on errors.
+
 ## Adding a store
 
 Implement `IPlatformAdapter` (see `SteamAdapter` for the reference pattern), keep it read-only and tolerant of malformed data, add fixture tests using `TempDir` and `FakeRegistry`, register it in `AdapterCatalog`, and add its launch scheme to `LaunchValidator`.

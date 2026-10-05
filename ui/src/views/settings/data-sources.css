@@ -1,0 +1,131 @@
+/* Track I: Settings → Data sources. */
+.dsrc .sgroup__title { display: flex; align-items: center; gap: 10px; }
+.dsrc__notice { align-items: flex-start; }
+.dsrc__notice > svg { color: var(--warn); margin-top: 2px; flex: none; }
+.dsrc__pricecontrols { display: flex; align-items: center; gap: var(--s-3); }
+.dsrc__country { height: 34px; min-width: 180px; }
+.dsrc__error { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); margin-top: var(--s-4); color: var(--text-2); }
+.dsrc__error > svg { color: var(--warn); flex: none; }
+.dsrc__error > span { flex: 1; }
+
+.dsrc__subhead {
+  margin: var(--s-6) 0 var(--s-3);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.dsrc__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: var(--s-4); }
+.dsrc__footnote { display: flex; gap: 8px; align-items: flex-start; margin-top: var(--s-4); color: var(--text-3); font-size: var(--fs-xs); line-height: 1.5; }
+.dsrc__footnote > svg { flex: none; margin-top: 2px; color: var(--accent-text); }
+
+.dsrc-card {
+  position: relative;
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+  padding: var(--s-4) var(--s-5);
+  transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+.dsrc-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--accent-line), transparent);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.dsrc-card[data-state='on']::before { opacity: 1; }
+.dsrc-card:focus-within { box-shadow: 0 0 0 1px var(--accent-line), var(--shadow-1); }
+.dsrc-card__head { display: flex; align-items: center; gap: var(--s-3); }
+.dsrc-card__mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: var(--r-md);
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  color: var(--accent-text);
+  background: var(--accent-ghost);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.dsrc-card[data-state='off'] .dsrc-card__mark { color: var(--text-3); background: var(--bg-2); box-shadow: inset 0 0 0 1px var(--line); }
+.dsrc-card__title { flex: 1; min-width: 0; display: grid; }
+.dsrc-card__title h4 { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-semibold); }
+.dsrc-card__access { font-size: var(--fs-xs); color: var(--text-3); }
+.dsrc-card__uses { margin: 0; color: var(--text-2); font-size: var(--fs-sm); line-height: 1.5; }
+.dsrc-card__hint { display: flex; gap: 6px; align-items: center; margin: 0; font-size: var(--fs-xs); color: var(--warn); }
+.dsrc-card__keyrow { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--text-2); }
+.dsrc-card__keyrow > svg { color: var(--accent-text); }
+.dsrc-card__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dsrc-card__actions .toggle { margin-right: auto; }
+.dsrc-card__result { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-xs); color: var(--text-2); line-height: 1.45; }
+.dsrc-card__result > svg { flex: none; margin-top: 1px; }
+.dsrc-card__result--ok > svg { color: var(--ok); }
+.dsrc-card__result--warn > svg { color: var(--warn); }
+.dsrc-card__result--danger > svg { color: var(--danger); }
+.dsrc-card__when { color: var(--text-3); }
+.dsrc-card__more {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  margin-left: -6px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text-3);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.dsrc-card__more:hover { color: var(--text-1); }
+.dsrc-card__more svg { transition: transform var(--dur-fast) var(--ease-out); }
+.dsrc-card__more svg[data-open] { transform: rotate(180deg); }
+.dsrc-card__details { display: grid; gap: 8px; margin: 0; font-size: var(--fs-xs); }
+.dsrc-card__details > div { display: grid; grid-template-columns: 76px 1fr; gap: 8px; }
+.dsrc-card__details dt { color: var(--text-3); }
+.dsrc-card__details dd { margin: 0; color: var(--text-2); line-height: 1.45; overflow-wrap: anywhere; }
+
+.dsrc-pill {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  color: var(--text-3);
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.dsrc-pill--ok { color: var(--ok); background: oklch(from var(--ok) l c h / 0.12); box-shadow: inset 0 0 0 1px oklch(from var(--ok) l c h / 0.3); }
+.dsrc-pill--warn { color: var(--warn); background: oklch(from var(--warn) l c h / 0.12); box-shadow: inset 0 0 0 1px oklch(from var(--warn) l c h / 0.3); }
+:root[data-theme='light'] .dsrc-pill--ok { color: oklch(from var(--ok) 0.45 c h); }
+:root[data-theme='light'] .dsrc-pill--warn { color: oklch(from var(--warn) 0.45 c h); }
+
+.dsrc-connect { display: grid; gap: var(--s-2); }
+.dsrc-connect__help { margin: 0; font-size: var(--fs-xs); color: var(--text-3); line-height: 1.5; }
+.dsrc-connect__explain { display: flex; gap: 8px; padding: var(--s-3); border-radius: var(--r-md); background: var(--accent-ghost); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.dsrc-connect__explain > svg { flex: none; margin-top: 2px; color: var(--accent-text); }
+.dsrc-connect__explain p { margin: 0; font-size: var(--fs-xs); line-height: 1.5; color: var(--text-2); }
+.dsrc-connect__links { display: flex; flex-wrap: wrap; gap: 4px; margin-left: -8px; }
+.dsrc-connect__field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text-3);
+}
+.dsrc-connect__field:focus-within { box-shadow: inset 0 0 0 1px var(--accent-line), 0 0 0 3px var(--accent-ghost); }
+.dsrc-connect__field input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--text-1); letter-spacing: 0.03em; }
+.dsrc-connect__field input:focus-visible { box-shadow: none; }
+.dsrc-connect__submit { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }

@@ -182,7 +182,7 @@ public sealed class DataInsightsMigrationTests : IDisposable
         try
         {
             Assert.Equal(4, db.Migrate());
-            Assert.Equal(5, Database.LatestVersion);
+            Assert.True(Database.LatestVersion >= 5); // later migrations (Track I: 6) apply on top
             var repo = new LibraryRepository(db);
             var g = repo.LoadSnapshot((_, _) => null).Games.Single();
             Assert.Equal(("Old Game", 3600L, 1), (g.Title, g.TrackedSeconds, g.SessionCount));
