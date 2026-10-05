@@ -2,6 +2,19 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
+## [0.4.0] — Unreleased
+
+### Updates
+- **What's new, once.** After an update, a short tour shows what changed, with buttons that take you straight to each feature. Skip it any time; it's also under Settings → About. Never on a fresh install, and never in Immersive Mode.
+- **Updates that undo themselves.** If a new version fails to start twice in a row, VYSTRAL quietly returns to the version that worked, tells you why, and skips that update until a fixed one is out.
+- **Clearer update status.** The title bar shows when VYSTRAL is checking, and when a check fails it says why (for example "DNS failed" or "TLS error") instead of just "couldn't reach GitHub".
+
+### Privacy
+- **Network health:** Settings → Privacy shows whether GitHub and Steam's store, image and video servers answer from your network, address by address, with the actual reason when one doesn't ("one of GitHub's download addresses isn't reachable; VYSTRAL uses the others", "rate limited — resets in 12 min"). Only when you press Check now; skipped in Offline mode.
+
+### Everywhere
+- **New things, marked.** A small dot marks features you haven't tried yet. It goes away once you've had a look, and by itself two releases later.
+
 ## [0.3.1] — 2026-10-05
 
 ### Fixed

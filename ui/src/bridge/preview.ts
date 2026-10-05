@@ -13,6 +13,7 @@ import { shellPreviewHandlers } from './preview.shell';
 import { controllerPreviewHandlers } from './preview.controller';
 import { INSIGHT_DEFAULT_SETTINGS, PREVIEW_EXPECTED_DETECT_MS, PREVIEW_FAILED_ACTIONS, decoratePreviewSessions, insightPreviewHandlers } from './preview.insights';
 import { DATA_INSIGHT_DEFAULT_SETTINGS, dataInsightPreviewHandlers } from './preview.dataInsights';
+import { updatesPreviewHandlers } from './preview.updates';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -422,6 +423,8 @@ export function createPreviewBackend() {
     ...controllerPreviewHandlers({ emit: () => emit }),
     // Track F: achievement feed, driver comparison, background apps (fictional data).
     ...dataInsights,
+    // Track J: what's new, "New" badges, rollback notice, network health (fictional data).
+    ...updatesPreviewHandlers({ settings: () => settings }),
   };
 
   return {

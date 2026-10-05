@@ -37,6 +37,14 @@
 - Local AI needs Ollama installed separately. Answers come from a small local model and can be wrong; they are labelled as such.
 - Store sale and update news (Library Radar) isn't implemented; there was no reliable, lawful free source.
 
+**Updates and rollback**
+- Silent rollback works from the first version that has it onward: the version you update *from* must have preserved its own package before downloading, so the first update onto a rollback-capable version (e.g. 0.3.1 → 0.4.0) can't roll back. The state machine is unit-tested; the full Velopack downgrade (local feed, `AllowVersionDowngrade`, `ApplyUpdatesAndRestart` with an older package) still needs a live test with two real installed versions.
+- A version that crashes *before* VYSTRAL's own startup code runs (inside Velopack's startup hooks or the .NET runtime itself) can't be detected or rolled back. Neither can a version that starts but misbehaves later: only failed starts count.
+- If the preserved package can't be hard-linked (data folder on another drive), it's a full copy (~100 MB) until the next update replaces it or the new version starts successfully.
+- Closing VYSTRAL before its interface has appeared counts as a failed start; doing that twice right after an update could roll it back.
+- "What's new" and "New" badges can't know which version you used before this feature existed, so on the first update that has them (0.4.0) existing users see 0.3 and 0.4 badges once.
+- Network health checks reachability from this PC at that moment; it can't see a service's own status page, and a check through a proxy reports the proxy's behaviour.
+
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).
 - Display-scaling changes, monitor hot-plug, sleep/resume and controller hot-plug have not been tested yet.

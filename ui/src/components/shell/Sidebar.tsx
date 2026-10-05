@@ -3,6 +3,7 @@ import { HardDrive, BarChart3, BookOpen, Bot, Home, Images, LibraryBig, Settings
 import type { ReactNode } from 'react';
 import { spring } from '../../lib/motion';
 import { useReducedMotion, useStore, type Route } from '../../state/store';
+import { NewBadge } from '../../whatsnew/NewBadge';
 
 const NAV: { route: Route; label: string; icon: ReactNode }[] = [
   { route: { name: 'home' }, label: 'Home', icon: <Home size={18} /> },
@@ -44,7 +45,7 @@ export function Sidebar() {
 
   return (
     <nav className="sidebar" aria-label="Main">
-      {NAV.map((n) => item(n.route, n.label, n.icon, n.route.name === 'library' ? <span className="nav-item__count">{count}</span> : undefined))}
+      {NAV.map((n) => item(n.route, n.label, n.icon, n.route.name === 'library' ? <span className="nav-item__count">{count}</span> : <NewBadge k={`nav.${n.route.name}`} />))}
       <div className="sidebar__group">
         <div className="caps">Collections</div>
         {collections.map((c) => item({ name: 'library', collectionId: c.id }, c.name, <Folder size={17} />, <span className="nav-item__count">{c.count}</span>, c.id))}

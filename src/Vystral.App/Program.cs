@@ -5,6 +5,7 @@ using Microsoft.Windows.AppLifecycle;
 using Velopack;
 using Vystral.App.Host;
 using Vystral.Windows.Services;
+using Vystral.Windows.Services.Rollback;
 
 namespace Vystral.App;
 
@@ -51,6 +52,12 @@ public static class Program
             Task.Run(() => instance.RedirectActivationToAsync(activation).AsTask()).Wait(TimeSpan.FromSeconds(5));
             return 0;
         }
+
+        // Silent rollback: records this start before any WinUI/WebView code runs, and returns to the
+        // previous version if this one has failed to start twice in a row (see StartupGuard).
+        var paths = new AppPaths();
+        Log.Initialize(paths.Logs);
+        StartupProtection.RunAtStartup(paths.Root, SafeMode);
 
         Application.Start(callback =>
         {

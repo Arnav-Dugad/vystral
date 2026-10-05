@@ -69,6 +69,12 @@ flowchart LR
 
 **Updates.** Velopack reads `releases.win.json` from the latest GitHub release, downloads the full or delta package with SHA verification, and applies it on restart, or silently after exit when the user doesn't restart. Updates never apply while a game is running.
 
+**Silent rollback.** `Services/Rollback`. `Program.Main` calls `StartupProtection.RunAtStartup` right after Velopack's hooks and the single-instance check, before any WinUI or WebView code: it records the start in `update/startup.json` (data folder) and asks the pure state machine `StartupGuard` what to do. A start counts as successful once the UI has sent `app.ready` and VYSTRAL has stayed up for 20 s (`AppBackend.Updates.cs`); a clean exit after `app.ready` is neutral; anything else is a failed start, discovered on the next one. On the third start of a version that has failed twice in a row and never started successfully, VYSTRAL returns to the last version that did start: before every update download, `UpdateService` preserved the running version's full `.nupkg` into `update/rollback/` (hard link when possible, SHA-256/SHA-1 recorded), because Velopack deletes old packages once a new one is downloaded. The rollback re-checks the SHA-256, writes a one-entry `releases.<channel>.json` next to the package, and uses Velopack's documented downgrade path (`UpdateManager` over a `SimpleFileSource` with `AllowVersionDowngrade`, `DownloadUpdates`, `ApplyUpdatesAndRestart`). The bad version is blocklisted (`UpdateService` skips exactly that version; newer ones are offered), each version is rolled back from at most once, and nothing happens in development/portable builds or safe mode. The version we return to shows the reason once (`whatsNew.state` → `rollbackNotice`).
+
+**What's new and "New" badges.** `ui/src/whatsnew`. A Vite plugin parses `CHANGELOG.md` at build time into `virtual:vystral-changelog`; curated tours live in `ui/src/whatsnew/versions/<version>.ts` and win over the changelog. `WhatsNewHost` shows the tour once per new version (desktop only, never during onboarding or a game), and marks route-based badges seen. Badge keys and the version that introduced them are in `badges.ts`; `<NewBadge k="…" />` renders them. The per-user state (last seen version, first version on this PC, seen badges) is a small JSON file, `ui-state/whatsnew.json`, written by `WhatsNewStore`, so it needs no migration and survives a settings reset.
+
+**Network health.** `Services/NetworkHealth`. `NetworkHealthService` holds a registry of `HealthProbe`s (one lightweight request each). On request only, it resolves every address of the probe's host, tries each with a 3 s TCP connect (the addresses `FastConnect` races), sends one HEAD/GET through the FastConnect handler, and `HealthClassifier` turns what it saw into ok/warn/down and the reason in plain words. Offline mode skips everything that leaves the PC. `NetworkErrors` (shared with `UpdateService`) maps .NET exceptions to reasons such as "DNS failed" or "TLS error".
+
 ## Failure isolation
 
 | Failure | Effect |
@@ -81,9 +87,13 @@ flowchart LR
 | DB migration failure | Old DB kept in `backups/`, fresh DB created, user told |
 | Crash during a session | Open sessions are closed on next start using their last sample |
 | Repeated crashes | Hold **Shift** on start (or `--safe-mode`) to disable effects, AI and downloads |
+| A new version fails to start twice | Third start silently returns to the previous version (preserved package, SHA-256 checked); that version is skipped by auto-update; the reason is shown once |
 
 ## Extension points
 
 - **New store:** implement `IPlatformAdapter` in `Vystral.Windows/Integrations`, add fixture tests, and register it in `AdapterCatalog`. Add its URI scheme to `LaunchValidator` if it launches by protocol.
 - **New bridge method:** add a typed params record and `Dispatcher.Register<T>(…)` in an `AppBackend.*.cs` partial, validate every input, and mirror the types in `ui/src/bridge/types.ts`.
+- **Network health probe:** a service a feature talks to gets a row in Settings → Privacy → Network health with `backend.Health.Register(new HealthProbe { Id = "provider.x", Label = "…", Purpose = "…", Url = new Uri("https://…"), SkipReason = ctx => …, Visible = ctx => … })`. Use a keyless, lightweight endpoint; set `AnyResponseIsHealthy` for CDNs and `Local` for localhost services. Register again with the same id to replace one.
+- **"New" badge:** add `{ key, since, seenOn? }` to `NEW_FEATURES` in `ui/src/whatsnew/badges.ts` and render `<NewBadge k="key" />` (rows: `variant="pill" seenWhenVisible`). `nav.<route>` keys light the sidebar automatically; `settings.<section>.<row>` keys light that Settings section.
+- **What's new card:** add a card to `ui/src/whatsnew/versions/<version>.ts` (create the file for a new version; it's picked up automatically).
 - **Plugins:** intentionally not supported. Any future plugin system would need a permission manifest and process isolation.

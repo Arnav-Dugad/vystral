@@ -7,18 +7,35 @@ import { useStore } from '../../state/store';
 import { Dialog } from '../ui/Dialog';
 import { Button, ProgressBar } from '../ui/primitives';
 import { RichText } from '../../views/assistant/RichText';
+import { OPEN_WHATS_NEW, openWhatsNew } from '../../whatsnew/state';
 
 const OPEN_EVENT = 'vystral:open-updates';
 export const openUpdateCenter = () => window.dispatchEvent(new CustomEvent(OPEN_EVENT));
 
-/** Compact title-bar indicator. Only visible when there is something to say. */
+/**
+ * Compact title-bar indicator. Only visible when there is something to say: a quiet "Checking…"
+ * while a check runs, a quiet warning when the last check failed (the reason is in its tooltip
+ * and the update centre), and the prominent states once an update exists.
+ */
 export function UpdatePill() {
   const update = useStore((s) => s.update);
-  if (!update || !['available', 'downloading', 'ready', 'applying'].includes(update.phase)) return null;
+  if (!update || !['checking', 'error', 'available', 'downloading', 'ready', 'applying'].includes(update.phase)) return null;
+  const checked = update.checkedAt ? `Last checked ${formatRelative(update.checkedAt)}.` : '';
+  if (update.phase === 'checking' || update.phase === 'error') {
+    const checking = update.phase === 'checking';
+    const label = checking ? 'Checking…' : 'Update check failed';
+    const tip = checking ? `Checking GitHub for a new version. ${checked}` : `${update.message ?? 'The update check didn’t complete.'} ${checked}`;
+    return (
+      <button className="update-pill update-pill--quiet" data-phase={update.phase} onClick={openUpdateCenter} title={tip.trim()} aria-label={`${label}. ${tip.trim()} Open update details`}>
+        {checking ? <RefreshCw size={13} className="update-pill__spin" aria-hidden /> : <CircleAlert size={13} aria-hidden />}
+        {label}
+      </button>
+    );
+  }
   const label =
     update.phase === 'downloading' ? `Updating ${update.progress}%` : update.phase === 'ready' ? 'Restart to update' : update.phase === 'applying' ? 'Installing…' : `Update ${update.newVersion}`;
   return (
-    <button className="update-pill" onClick={openUpdateCenter} aria-label={`${label}. Open update details`}>
+    <button className="update-pill" onClick={openUpdateCenter} aria-label={`${label}. Open update details`} title={checked || undefined}>
       {update.phase === 'downloading' ? (
         <span className="update-pill__ring" style={{ ['--p' as string]: update.progress }} aria-hidden />
       ) : update.phase === 'ready' ? (
@@ -35,8 +52,13 @@ export function UpdateCenterDialog() {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const h = () => setOpen(true);
+    const close = () => setOpen(false); // "See what's new" replaces this dialog
     window.addEventListener(OPEN_EVENT, h);
-    return () => window.removeEventListener(OPEN_EVENT, h);
+    window.addEventListener(OPEN_WHATS_NEW, close);
+    return () => {
+      window.removeEventListener(OPEN_EVENT, h);
+      window.removeEventListener(OPEN_WHATS_NEW, close);
+    };
   }, []);
   return (
     <Dialog open={open} onClose={() => setOpen(false)} title="Updates" wide>
@@ -164,6 +186,9 @@ export function UpdatePanel() {
         )}
         <Button variant="ghost" onClick={() => void call('update.openReleases').catch(() => {})}>
           Release history on GitHub
+        </Button>
+        <Button variant="ghost" icon={<Sparkles size={16} />} onClick={openWhatsNew}>
+          See what’s new in {update.currentVersion}
         </Button>
       </div>
       {gameRunning && (update.phase === 'available' || update.phase === 'ready') && (
