@@ -1,0 +1,17 @@
+/* Track H: quiet origin note on sessions VYSTRAL didn't launch ("Background", "Detected"). */
+.origin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line, oklch(1 0 0 / 0.08));
+  color: var(--text-2);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.origin-chip svg { opacity: 0.8; }
+.origin-chip[data-compact] { padding: 2px 5px; }

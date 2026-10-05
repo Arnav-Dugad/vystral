@@ -5,7 +5,7 @@ import { dayStats, layout, levelFor, moveDay, rangeBounds, rangeStreaks, thresho
 const at = (y: number, m: number, d: number, h = 12, min = 0) => new Date(y, m, d, h, min).getTime();
 const day = (y: number, m: number, d: number) => new Date(y, m, d).getTime();
 let seq = 0;
-const s = (startMs: number, seconds: number, gameId = 'g1'): JSession => ({ id: `s${++seq}`, gameId, startMs, seconds, hasMetrics: false });
+const s = (startMs: number, seconds: number, gameId = 'g1'): JSession => ({ id: `s${++seq}`, gameId, startMs, seconds, hasMetrics: false, source: 'tracked' });
 
 describe('week start', () => {
   it('follows the locale and falls back to Monday', () => {

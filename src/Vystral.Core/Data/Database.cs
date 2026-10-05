@@ -15,7 +15,11 @@ public sealed class Database
 
     public string FilePath { get; }
 
-    public Database(string filePath)
+    /// <param name="pooling">
+    /// False for the background tracker: it then holds the file open only for the moment of each
+    /// read or write, never in between (see docs/ARCHITECTURE.md, background tracker).
+    /// </param>
+    public Database(string filePath, bool pooling = true)
     {
         FilePath = filePath;
         _connectionString = new SqliteConnectionStringBuilder
@@ -23,7 +27,7 @@ public sealed class Database
             DataSource = filePath,
             Mode = SqliteOpenMode.ReadWriteCreate,
             Cache = SqliteCacheMode.Private,
-            Pooling = true,
+            Pooling = pooling,
         }.ToString();
     }
 
@@ -68,6 +72,14 @@ public sealed class Database
             current = version;
         }
         return pending[0].Version - 1;
+    }
+
+    /// <summary>The schema version the file is at (0 when it has none yet). Doesn't migrate.</summary>
+    public int SchemaVersion()
+    {
+        using var conn = Open();
+        if (conn.ExecuteScalar<long>("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='schema_version'") == 0) return 0;
+        return conn.ExecuteScalar<int?>("SELECT MAX(version) FROM schema_version") ?? 0;
     }
 
     /// <summary>Runs SQLite's integrity check. Returns "ok" when healthy.</summary>

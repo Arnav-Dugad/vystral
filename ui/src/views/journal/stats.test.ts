@@ -8,7 +8,7 @@ import {
 // Local-time constructors keep these tests independent of the machine's time zone.
 const at = (y: number, m: number, d: number, h = 12, min = 0) => new Date(y, m - 1, d, h, min).getTime();
 let seq = 0;
-const s = (gameId: string, start: number, seconds: number, hasMetrics = false): JSession => ({ id: `s${++seq}`, gameId, startMs: start, seconds, hasMetrics });
+const s = (gameId: string, start: number, seconds: number, hasMetrics = false): JSession => ({ id: `s${++seq}`, gameId, startMs: start, seconds, hasMetrics, source: 'tracked' });
 const H = 3600;
 
 describe('normalizeSessions', () => {

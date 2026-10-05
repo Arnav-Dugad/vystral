@@ -43,7 +43,7 @@ public sealed partial class LibraryRepository
         using var conn = db.Open();
         var sql = """
             SELECT id, game_id, start, duration_seconds, gpu_driver, gpu_name, perf_summary_json FROM sessions
-            WHERE end IS NOT NULL AND source='tracked' AND (@gameId IS NULL OR game_id=@gameId)
+            WHERE end IS NOT NULL AND source IN ('tracked','detected','background') AND (@gameId IS NULL OR game_id=@gameId)
             ORDER BY start
             """;
         return conn.Query<(string Id, string GameId, string Start, int Duration, string? Driver, string? Name, string? Perf)>(sql, new { gameId })
@@ -91,7 +91,7 @@ public sealed partial class LibraryRepository
         using var conn = db.Open();
         var sessions = conn.Query<(string Id, string GameId, string Start, int Duration, int? Snapshots, string? Perf, double? MemAvg, double? MemMax)>("""
                 SELECT id, game_id, start, duration_seconds, bg_snapshots, perf_summary_json, mem_load_avg, mem_load_max
-                FROM sessions WHERE end IS NOT NULL AND source='tracked' AND COALESCE(bg_snapshots, 0) > 0
+                FROM sessions WHERE end IS NOT NULL AND source IN ('tracked','detected','background') AND COALESCE(bg_snapshots, 0) > 0
                 ORDER BY start
                 """)
             .Where(r => DateTimeOffset.TryParse(r.Start, out _))

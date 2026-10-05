@@ -7,6 +7,7 @@ import { call, errorMessage } from '../bridge/bridge';
 import type { Game, PerfSample, PerfSummary, Session } from '../bridge/types';
 import { Badge, Button, EmptyState, SectionHead, Skeleton } from '../components/ui/primitives';
 import { GameCover } from '../components/game/GameCover';
+import { SessionOriginChip } from '../components/game/SessionOriginChip';
 import { formatDuration, plural } from '../lib/format';
 import { spring } from '../lib/motion';
 import { useReducedMotion, useStore } from '../state/store';
@@ -350,7 +351,8 @@ function SessionDetail({ entry, game, compare }: { entry: PerfEntry; game: Game 
           <h2 className="pf-hero__title">{gameTitle(game)}</h2>
           <p className="pf-hero__meta">
             {fmtDateTime(entry.startMs)} · <span className="num">{formatDuration(session.durationSeconds)}</span> · {plural(summary.samples, 'sample')}
-            {interval ? <> every ~{Math.round(interval)} s</> : null}
+            {interval ? <> every ~{Math.round(interval)} s</> : null}{' '}
+            <SessionOriginChip source={session.source} />
           </p>
         </div>
         {game && (

@@ -40,7 +40,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(0.35, all["sound.ambientVolume"]!.GetValue<double>());
         Assert.True(all["dataSources.cheapshark"]!.GetValue<bool>());
         Assert.Equal("US", all["dataSources.priceCountry"]!.GetValue<string>());
-        Assert.Equal(56, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7)
+        Assert.Equal(57, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7) + Track H (1)
     }
 
     [Fact]

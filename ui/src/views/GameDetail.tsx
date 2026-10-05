@@ -22,6 +22,7 @@ import { GameCard } from '../components/game/GameCard';
 import { AchievementsPanel } from '../components/game/AchievementsPanel';
 import { PlayButton } from '../components/game/PlayButton';
 import { LastSessionGhost } from '../components/game/LastSessionGhost';
+import { SessionOriginChip } from '../components/game/SessionOriginChip';
 import { useInstallFor } from '../state/installs';
 import { StatusPicker } from '../components/game/StatusPicker';
 import { HeroTrailer } from '../components/game/HeroTrailer';
@@ -370,7 +371,7 @@ function Sessions({ game }: { game: Game }) {
 
   if (!sessions) return <div className="skeleton" style={{ height: 160 }} />;
   if (!sessions.length)
-    return <EmptyState icon={<Clock3 size={30} />} title="No tracked sessions yet" body="When you start this game from VYSTRAL, each session’s length — and, if enabled, its CPU/GPU load — is recorded here, on this PC only." />;
+    return <EmptyState icon={<Clock3 size={30} />} title="No tracked sessions yet" body="When you start this game from VYSTRAL (or anywhere else, with Settings › Launching & sessions › Games started outside VYSTRAL on), each session’s length — and, if enabled, its CPU/GPU load — is recorded here, on this PC only." />;
 
   return (
     <div className="sessions">
@@ -383,7 +384,7 @@ function Sessions({ game }: { game: Game }) {
           <button key={s.id} className="session-row" onClick={() => perf && navigate({ name: 'performance', sessionId: s.id })} disabled={!perf}>
             <div>
               <div className="session-row__date">{formatDate(s.start, { dateStyle: 'medium', timeStyle: 'short' })}</div>
-              <div className="stat__hint">{formatRelative(s.start)}</div>
+              <div className="stat__hint">{formatRelative(s.start)} <SessionOriginChip source={s.source} /></div>
             </div>
             <div className="num session-row__dur">{formatDuration(s.durationSeconds)}</div>
             <div className="session-row__perf">

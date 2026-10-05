@@ -16,6 +16,7 @@ import { DATA_INSIGHT_DEFAULT_SETTINGS, dataInsightPreviewHandlers } from './pre
 import { updatesPreviewHandlers } from './preview.updates';
 import { TRACK_K_DEFAULT_SETTINGS, trackKPreviewHandlers } from './preview.trackK';
 import { DATA_SOURCE_DEFAULT_SETTINGS, dataSourcePreviewHandlers } from './preview.dataSources';
+import { TRACKING_DEFAULT_SETTINGS, decorateTrackingSessions, trackingPreviewHandlers } from './preview.tracking';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -59,6 +60,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...DATA_INSIGHT_DEFAULT_SETTINGS,
   ...TRACK_K_DEFAULT_SETTINGS,
   ...DATA_SOURCE_DEFAULT_SETTINGS,
+  ...TRACKING_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -222,6 +224,7 @@ export function createPreviewBackend() {
   const empty = params.has('empty');
   const lib = empty ? { games: [], sessions: [] } : buildLibrary(extra);
   decoratePreviewSessions(lib.sessions); // Track B: FPS and throttling on recent sessions
+  decorateTrackingSessions(lib.sessions); // Track H: a background and a detected session
   const statusHistory: StatusHistoryEntry[] = buildStatusHistory(lib.games, 11);
   let settings: Settings = { ...DEFAULT_SETTINGS, 'onboarding.completed': !params.has('onboarding') };
   if (params.has('reduced')) settings['motion.reduce'] = 'on';
@@ -433,6 +436,8 @@ export function createPreviewBackend() {
     ...trackKPreviewHandlers({ lib, settings: () => settings, liveTileRequests: [] }),
     // Track I: data sources — art picker, enrichment, prices, identity, compatibility, value (fictional data, local placeholder images).
     ...dataSourcePreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
+    // Track H: games started outside VYSTRAL (fictional status; ?detected simulates one).
+    ...trackingPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setLaunch, timers }),
   };
 
   return {

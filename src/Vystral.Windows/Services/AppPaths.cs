@@ -16,9 +16,12 @@ public sealed class AppPaths
     public string SafeModeFlag => Path.Combine(Root, "safe-mode.flag");
     public string CrashMarker => Path.Combine(Root, "running.marker");
 
+    /// <summary>The data folder used when none is given (computed only; nothing is created).</summary>
+    public static string DefaultRoot => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VYSTRAL.Data");
+
     public AppPaths(string? root = null)
     {
-        Root = root ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VYSTRAL.Data");
+        Root = root ?? DefaultRoot;
         foreach (var dir in new[] { Root, Backups, Logs, ArtCache, ThumbCache, WebViewData }) Directory.CreateDirectory(dir);
     }
 }

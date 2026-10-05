@@ -108,6 +108,8 @@ public sealed class SettingsService
         new BoolDef("dataSources.antiCheat", true),
         new BoolDef("dataSources.storePrices", true),
         new StringDef("dataSources.priceCountry", "US", 2, "^[A-Z]{2}$"),
+        // Track H: notice games started outside VYSTRAL, and keep tracking them while it is closed (opt-in).
+        new BoolDef("tracking.background", false),
     ];
 
     private readonly LibraryRepository _repo;

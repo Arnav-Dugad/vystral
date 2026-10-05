@@ -4,8 +4,8 @@ using Microsoft.Win32;
 namespace Vystral.Windows.Services;
 
 /// <summary>
-/// Per-user registry writes under <c>HKCU\Software\Classes</c> — the only registry VYSTRAL ever
-/// writes. Behind an interface so the registration logic is tested without touching the registry.
+/// Per-user registry writes under <c>HKCU\Software\Classes</c> — with the opt-in background tracker's
+/// sign-in entry (<see cref="Tracking.TrackerAutostart"/>), the only registry VYSTRAL ever writes. Behind an interface so the registration logic is tested without touching the registry.
 /// Paths are relative to <c>HKCU\Software\Classes</c>; a null value name is the key's default value.
 /// </summary>
 public interface IUserClassesRegistry

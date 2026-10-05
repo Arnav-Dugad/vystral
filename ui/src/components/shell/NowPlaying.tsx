@@ -31,6 +31,9 @@ export function NowPlaying() {
   const [, tick] = useState(0);
   const active = !!launch && !!game && ['starting', 'waiting', 'notDetected', 'running'].includes(launch.phase);
   const running = launch?.phase === 'running';
+  // Track H: started outside VYSTRAL (a store client, a shortcut) and noticed by it.
+  const external = !!launch?.source && launch.source !== 'tracked';
+  const label = running ? (external ? 'Detected' : 'Playing') : 'Starting';
 
   useEffect(() => {
     if (!running) return;
@@ -50,12 +53,17 @@ export function NowPlaying() {
           exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.14 } }}
           transition={pick(reduce, spring.panel)}
         >
-          <button className="now-playing__main" onClick={() => navigate({ name: 'game', id: game.id })} aria-label={`${running ? 'Playing' : 'Starting'} ${game.title}. Open game page`}>
+          <button
+            className="now-playing__main"
+            onClick={() => navigate({ name: 'game', id: game.id })}
+            title={external ? 'Started outside VYSTRAL — tracked automatically' : undefined}
+            aria-label={`${running ? 'Playing' : 'Starting'} ${game.title}${external ? ', started outside VYSTRAL and tracked automatically' : ''}. Open game page`}
+          >
             <span className="now-playing__thumb">
               <GameCover game={game} />
             </span>
             <span className="now-playing__dot" data-running={running} aria-hidden />
-            <span className="now-playing__label">{running ? 'Playing' : 'Starting'}</span>
+            <span className="now-playing__label" data-external={external || undefined}>{label}</span>
             {launch.platform in PLATFORM_NAMES && launch.platform !== 'manual' && (
               <span className="now-playing__store" title={`Through ${PLATFORM_NAMES[launch.platform as PlatformKey]}`}>
                 <StoreLogo platform={launch.platform as PlatformKey} size={14} decorative />
