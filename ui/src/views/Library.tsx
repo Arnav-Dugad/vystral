@@ -282,7 +282,7 @@ function VirtualGrid({ games, size }: { games: Game[]; size: number }) {
         <div
           key={row.key}
           className="vgrid__row"
-          style={{ transform: `translateY(${row.start - (virtual.options.scrollMargin ?? 0)}px)`, gridTemplateColumns: `repeat(${columns}, 1fr)`, gap }}
+          style={{ transform: `translateY(${row.start - (virtual.options.scrollMargin ?? 0)}px)`, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap }}
         >
           {games.slice(row.index * columns, row.index * columns + columns).map((g) => (
             <div key={g.id} role="listitem">

@@ -118,11 +118,42 @@
 .card[data-focused='true']::after { opacity: 1; }
 .card:focus-visible { box-shadow: none; }
 .card:active { --s: 0.98; transition-duration: 90ms; }
-.card[data-dim='true'] .cover { filter: saturate(0.35) brightness(0.7); }
+/* Not-installed games recede a little, but stay recognisable now that owned libraries can be mostly uninstalled. */
+.card[data-dim='true'] .cover { filter: saturate(0.55) brightness(0.8); transition: filter var(--dur-base) var(--ease-out); }
+.card[data-dim='true']:hover .cover,
+.card[data-dim='true']:focus-visible .cover,
+.card[data-dim='true'][data-focused='true'] .cover { filter: none; }
 
 .card__badges { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; pointer-events: none; z-index: 1; }
 .card__fav { color: oklch(0.85 0.14 20); filter: drop-shadow(0 1px 4px oklch(0 0 0 / 0.6)); }
-.card__state { position: absolute; left: 8px; top: 8px; z-index: 1; }
+.card__state { position: absolute; left: 8px; top: 8px; z-index: 1; pointer-events: none; }
+.card__chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.01em;
+  color: oklch(0.95 0 0);
+  background: oklch(0.12 0.01 282 / 0.62);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.1);
+  backdrop-filter: blur(8px);
+}
+.card__chip-label {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width var(--dur-slow) var(--ease-emph), opacity var(--dur-base) var(--ease-out), margin var(--dur-slow) var(--ease-emph);
+}
+.card:hover .card__chip-label,
+.card:focus-visible .card__chip-label,
+.card[data-focused='true'] .card__chip-label { max-width: 7.5rem; opacity: 1; margin-left: 5px; }
+:root[data-quality='low'] .card__chip { backdrop-filter: none; background: oklch(0.12 0.01 282 / 0.82); }
+@media (prefers-reduced-motion: reduce) { .card__chip-label { transition: opacity var(--dur-fast) linear; } }
 .card__meta { margin-top: 10px; padding: 0 2px; }
 .card__title { font-weight: var(--fw-medium); font-size: var(--fs-sm); color: var(--text-1); }
 .card__sub { font-size: var(--fs-xs); color: var(--text-3); display: flex; gap: 8px; align-items: center; margin-top: 2px; }

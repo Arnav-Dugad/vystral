@@ -142,6 +142,7 @@ public sealed class LibraryService
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+                if (fetchArt && !IsGameRunning()) await PrefetchCoversAsync(cts.Token);
                 var total = 0;
                 while (!cts.IsCancellationRequested)
                 {
@@ -158,4 +159,31 @@ public sealed class LibraryService
     }
 
     public void StopEnrichment() => _enrichCts?.Cancel();
+
+    /// <summary>
+    /// Covers first: Steam's CDN isn't behind the store API's rate limit, so a library of hundreds
+    /// of owned games gets its covers in seconds. The UI is told to refresh at most every 1.5 s.
+    /// </summary>
+    private async Task PrefetchCoversAsync(CancellationToken ct)
+    {
+        var forgotten = _artwork.ForgetPlaceholders();
+        if (forgotten > 0) Log.Info("art", $"Forgot {forgotten} placeholder images to fetch again");
+        var games = _repo.SteamGamesMissingCover(2000);
+        if (games.Count == 0) return;
+        var lastEmit = Environment.TickCount64;
+        var pending = 0;
+        var landed = await _artwork.PrefetchSteamCoversAsync(games, () =>
+        {
+            Interlocked.Exchange(ref pending, 1);
+            var now = Environment.TickCount64;
+            var last = Interlocked.Read(ref lastEmit);
+            if (now - last >= 1500 && Interlocked.CompareExchange(ref lastEmit, now, last) == last)
+            {
+                Interlocked.Exchange(ref pending, 0);
+                _events.Emit("library.changed", new { reason = "artwork" });
+            }
+        }, ct);
+        if (Interlocked.Exchange(ref pending, 0) == 1) _events.Emit("library.changed", new { reason = "artwork" });
+        if (landed > 0) Log.Info("art", $"Fetched {landed} of {games.Count} missing Steam covers");
+    }
 }

@@ -1,11 +1,10 @@
 import { memo, useCallback, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
-import { Heart } from 'lucide-react';
+import { CloudDownload, Heart } from 'lucide-react';
 import type { Game } from '../../bridge/types';
 import { formatRelative, isInstalled, lastPlayed, PLATFORM_NAMES } from '../../lib/format';
 import { peekPalette, titleHue } from '../../lib/palette';
 import { captureFlight, useFlightLanding } from '../../lib/flight';
 import { useReducedMotion, useStore } from '../../state/store';
-import { Badge } from '../ui/primitives';
 import { GameCover } from './GameCover';
 import { useGameMenu } from './useGameMenu';
 import { InstallBadge } from './InstallProgress';
@@ -94,8 +93,12 @@ export const GameCard = memo(function GameCard({
           {game.favorite && <Heart className="card__fav" size={16} fill="currentColor" aria-hidden />}
         </div>
         {!installed && (
-          <div className="card__state">
-            <Badge tone="glass">Not installed</Badge>
+          // A quiet chip that names itself on hover/focus, so it never sits on top of the cover's logo.
+          <div className="card__state" aria-hidden>
+            <span className="card__chip">
+              <CloudDownload size={13} strokeWidth={2.2} />
+              <span className="card__chip-label">Not installed</span>
+            </span>
           </div>
         )}
         <InstallBadge gameId={game.id} />

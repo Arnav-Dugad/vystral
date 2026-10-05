@@ -12,7 +12,7 @@ namespace Vystral.Windows.Services;
 /// Only files inside the cache folder are ever exposed to the web layer. Downloaded data is
 /// treated as untrusted: size-limited, content-sniffed, and written atomically.
 /// </summary>
-public sealed class ArtworkService(AppPaths paths, LibraryRepository repo, HttpClient http)
+public sealed partial class ArtworkService(AppPaths paths, LibraryRepository repo, HttpClient http)
 {
     public const string ArtHost = "art.vystral.example";
     private const long MaxBytes = 12 * 1024 * 1024;
@@ -76,6 +76,11 @@ public sealed class ArtworkService(AppPaths paths, LibraryRepository repo, HttpC
             }
             var bytes = buffer.ToArray();
             if (!LooksLikeImage(bytes)) return false;
+            if (IsPlaceholder(kind, bytes.Length))
+            {
+                Log.Info("art", "Skipped a placeholder image", new { gameId, kind, bytes = bytes.Length });
+                return false;
+            }
             var ext = bytes[0] == 0x89 ? ".png" : bytes[0] == 0xFF ? ".jpg" : ".webp";
             var relative = Path.Combine(gameId, $"{kind.ToString().ToLowerInvariant()}-{Hash(url)}{ext}");
             var dest = Path.Combine(paths.ArtCache, relative);
@@ -128,35 +133,142 @@ public sealed class ArtworkService(AppPaths paths, LibraryRepository repo, HttpC
         }
     }
 
-    private async Task<Dictionary<string, string>> GetHashedAssetsAsync(string appId, CancellationToken ct)
+    /// <summary>
+    /// Fast first pass for Steam games that have no cover yet (typically owned-but-not-installed
+    /// games from the Steam Web API): portrait covers come straight from Steam's public CDN, a few
+    /// at a time, instead of waiting behind the rate-limited store-details lookups. Apps that only
+    /// have hashed asset names are resolved with one batched asset-index request per 40 apps.
+    /// <paramref name="onCover"/> is called after each cover lands so the UI can refresh in batches.
+    /// </summary>
+    public async Task<int> PrefetchSteamCoversAsync(IReadOnlyList<(string GameId, string AppId)> games, Action onCover, CancellationToken ct)
     {
-        var result = new Dictionary<string, string>();
-        try
+        if (games.Count == 0 || SkipDownloads?.Invoke() == true) return 0;
+        var landed = 0;
+        var missing = new System.Collections.Concurrent.ConcurrentBag<(string GameId, string AppId)>();
+        var options = new ParallelOptions { MaxDegreeOfParallelism = CoverParallelism, CancellationToken = ct };
+
+        await Parallel.ForEachAsync(games, options, async (g, token) =>
         {
-            var input = JsonSerializer.Serialize(new
+            if (!IsSteamAppId(g.AppId)) return;
+            foreach (var file in (string[])["library_600x900_2x.jpg", "library_600x900.jpg"])
             {
-                ids = new[] { new { appid = int.Parse(appId) } },
-                context = new { language = "english", country_code = "US" },
-                data_request = new { include_assets = true },
+                if (await DownloadAsync(g.GameId, ArtworkKind.Cover, $"{SteamCdn}steam/apps/{g.AppId}/{file}", "steam-cdn", token))
+                {
+                    Interlocked.Increment(ref landed);
+                    onCover();
+                    return;
+                }
+            }
+            missing.Add(g);
+        });
+
+        foreach (var chunk in missing.Chunk(40))
+        {
+            if (SkipDownloads?.Invoke() == true) break;
+            var index = await GetHashedAssetsAsync(chunk.Select(c => c.AppId).ToList(), ct);
+            await Parallel.ForEachAsync(chunk, options, async (g, token) =>
+            {
+                if (!index.TryGetValue(g.AppId, out var assets)) return;
+                if ((assets.TryGetValue("library_capsule_2x", out var url) || assets.TryGetValue("library_capsule", out url)) &&
+                    await DownloadAsync(g.GameId, ArtworkKind.Cover, url, "steam-cdn", token))
+                {
+                    Interlocked.Increment(ref landed);
+                    onCover();
+                }
             });
-            var url = $"https://api.steampowered.com/IStoreBrowseService/GetItems/v1/?input_json={Uri.EscapeDataString(input)}";
-            using var doc = JsonDocument.Parse(await http.GetStringAsync(url, ct));
-            var item = doc.RootElement.GetProperty("response").GetProperty("store_items")[0];
-            if (!item.TryGetProperty("assets", out var assets)) return result;
-            var format = assets.TryGetProperty("asset_url_format", out var f) ? f.GetString() : null;
-            if (format is null || !format.StartsWith("steam/", StringComparison.Ordinal)) return result;
+        }
+        return landed;
+    }
+
+    private const int CoverParallelism = 6;
+
+    /// <summary>
+    /// Steam answers some classic art URLs with a flat grey 600×900 JPEG (about 4.5 KB) instead of a
+    /// 404. Real covers and heroes are far larger, so anything this small is treated as missing.
+    /// </summary>
+    internal static bool IsPlaceholder(ArtworkKind kind, long bytes) => kind is ArtworkKind.Cover or ArtworkKind.Hero && bytes < 6 * 1024;
+
+    /// <summary>Forgets placeholder covers/heroes cached by earlier versions so they get fetched properly.</summary>
+    public int ForgetPlaceholders()
+    {
+        var forgotten = 0;
+        foreach (var kind in (ArtworkKind[])[ArtworkKind.Cover, ArtworkKind.Hero])
+            foreach (var (gameId, file) in repo.DownloadedArtwork(kind, "steam-cdn"))
+            {
+                try
+                {
+                    var info = new FileInfo(Path.Combine(paths.ArtCache, file));
+                    if (info.Exists && IsPlaceholder(kind, info.Length) && repo.ForgetDownloadedArtwork(gameId, kind)) forgotten++;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) { }
+            }
+        return forgotten;
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\A(?:[0-9a-f]{40}/)?[A-Za-z0-9_\-]{1,80}\.(?:jpg|png|webp)\z")]
+    private static partial System.Text.RegularExpressions.Regex AssetName();
+
+    private static bool IsSteamAppId(string appId) => appId.Length is > 0 and <= 10 && appId.All(char.IsAsciiDigit);
+
+    private async Task<Dictionary<string, string>> GetHashedAssetsAsync(string appId, CancellationToken ct) =>
+        (await GetHashedAssetsAsync([appId], ct)).GetValueOrDefault(appId) ?? [];
+
+    /// <summary>
+    /// Maps each requested app to its store asset URLs. Untrusted input: only apps that were asked
+    /// for, a URL format inside that app's own CDN folder (optionally with a numeric cache-buster),
+    /// and plain image file names (optionally under one SHA-1 folder) are accepted.
+    /// </summary>
+    internal static Dictionary<string, Dictionary<string, string>> ParseAssetIndex(string json, IReadOnlyCollection<string> ids)
+    {
+        var result = new Dictionary<string, Dictionary<string, string>>();
+        using var doc = JsonDocument.Parse(json);
+        if (!doc.RootElement.TryGetProperty("response", out var response) ||
+            !response.TryGetProperty("store_items", out var items) || items.ValueKind != JsonValueKind.Array) return result;
+        foreach (var item in items.EnumerateArray())
+        {
+            if (!item.TryGetProperty("appid", out var idEl) || idEl.ValueKind != JsonValueKind.Number || !idEl.TryGetInt64(out var idNum)) continue;
+            var appId = idNum.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (!ids.Contains(appId) || !item.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Object) continue;
+            var format = assets.TryGetProperty("asset_url_format", out var f) && f.ValueKind == JsonValueKind.String ? f.GetString()! : "";
+            var prefix = $"steam/apps/{appId}/${{FILENAME}}";
+            if (!format.StartsWith(prefix, StringComparison.Ordinal) || !CacheBuster().IsMatch(format[prefix.Length..])) continue;
+            var map = new Dictionary<string, string>();
             foreach (var prop in assets.EnumerateObject())
             {
                 if (prop.Value.ValueKind != JsonValueKind.String || prop.Name == "asset_url_format") continue;
                 var name = prop.Value.GetString()!;
-                if (name.Contains("..") || name.Contains('/') && !name.StartsWith(appId, StringComparison.Ordinal)) continue;
-                result[prop.Name] = SteamCdn + format.Replace("${FILENAME}", name);
+                if (!AssetName().IsMatch(name)) continue;
+                map[prop.Name] = SteamCdn + format.Replace("${FILENAME}", name);
             }
+            result[appId] = map;
+        }
+        return result;
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\A(?:\?t=[0-9]{1,12})?\z")]
+    private static partial System.Text.RegularExpressions.Regex CacheBuster();
+
+    /// <summary>Looks up hashed store asset file names for up to 40 apps in one documented, keyless request.</summary>
+    private async Task<Dictionary<string, Dictionary<string, string>>> GetHashedAssetsAsync(IReadOnlyList<string> appIds, CancellationToken ct)
+    {
+        var result = new Dictionary<string, Dictionary<string, string>>();
+        var ids = appIds.Where(IsSteamAppId).Distinct().Take(40).ToList();
+        if (ids.Count == 0) return result;
+        try
+        {
+            var input = JsonSerializer.Serialize(new
+            {
+                ids = ids.Select(id => new { appid = int.Parse(id) }).ToArray(),
+                context = new { language = "english", country_code = "US" },
+                data_request = new { include_assets = true },
+            });
+            var url = $"https://api.steampowered.com/IStoreBrowseService/GetItems/v1/?input_json={Uri.EscapeDataString(input)}";
+            result = ParseAssetIndex(await http.GetStringAsync(url, ct), ids);
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or KeyNotFoundException or InvalidOperationException
-                                       or IndexOutOfRangeException or FormatException or TaskCanceledException && !ct.IsCancellationRequested)
+                                       or FormatException or OverflowException or TaskCanceledException && !ct.IsCancellationRequested)
         {
-            Log.Warn("art", "Steam asset index lookup failed", new { appId }, ex);
+            Log.Warn("art", "Steam asset index lookup failed", new { apps = ids.Count }, ex);
         }
         return result;
     }

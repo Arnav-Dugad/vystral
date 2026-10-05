@@ -44,6 +44,8 @@
 
 .vgrid { position: relative; margin-top: var(--s-6); }
 .vgrid__row { position: absolute; top: 0; left: 0; right: 0; display: grid; }
+/* Grid items default to min-width: auto, which lets a long (nowrap) title widen its column. */
+.vgrid__row > * { min-width: 0; }
 
 .vlist { margin-top: var(--s-6); }
 .vlist__head, .vlist__row { display: grid; grid-template-columns: minmax(240px, 2.4fr) minmax(140px, 1.3fr) 1fr 0.8fr 0.8fr 0.8fr; gap: var(--s-4); align-items: center; padding: 0 var(--s-3); }
