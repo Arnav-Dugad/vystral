@@ -25,6 +25,7 @@ public sealed record UpdateStateDto(
 public sealed class UpdateService
 {
     public const string RepositoryUrl = "https://github.com/Arnav-Dugad/vystral";
+    public static readonly TimeSpan CheckTimeout = TimeSpan.FromMinutes(2);
 
     private readonly IEventSink _events;
     private readonly UpdateManager? _manager;
@@ -41,7 +42,7 @@ public sealed class UpdateService
         var version = typeof(UpdateService).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
         try
         {
-            var mgr = new UpdateManager(new GithubSource(RepositoryUrl, accessToken: null, prerelease: false));
+            var mgr = new UpdateManager(new GithubSource(RepositoryUrl, accessToken: null, prerelease: false, new FastDownloader(version)));
             if (mgr.IsInstalled)
             {
                 _manager = mgr;
@@ -67,12 +68,18 @@ public sealed class UpdateService
         if (_manager is null) return State;
         if (State.Phase is "checking" or "downloading" or "applying") return State;
         Set(State with { Phase = "checking", Message = null });
+        var sw = Stopwatch.StartNew();
         try
         {
-            var info = await _manager.CheckForUpdatesAsync();
+            // Never let a stalled connection leave the check spinning forever.
+            var info = await _manager.CheckForUpdatesAsync().WaitAsync(CheckTimeout);
             var now = DateTimeOffset.Now.ToString("O");
             if (info is null)
+            {
+                Log.Info("update", "Up to date", new { version = State.CurrentVersion, ms = sw.ElapsedMilliseconds });
                 return Set(State with { Phase = "upToDate", NewVersion = null, Progress = 0, CheckedAt = now });
+            }
+            Log.Info("update", "Update available", new { from = State.CurrentVersion, to = info.TargetFullRelease.Version.ToString(), ms = sw.ElapsedMilliseconds });
             _pending = info;
             var target = info.TargetFullRelease;
             // Velopack downloads only the deltas when they chain from the installed version.
@@ -86,6 +93,16 @@ public sealed class UpdateService
                 Delta = deltas.Length > 0,
                 Notes = Truncate(target.NotesMarkdown, 6000),
                 CheckedAt = now,
+            });
+        }
+        catch (TimeoutException)
+        {
+            Log.Warn("update", "Update check timed out", new { ms = sw.ElapsedMilliseconds });
+            return Set(State with
+            {
+                Phase = "error",
+                Message = "GitHub took too long to answer. VYSTRAL will try again later.",
+                CheckedAt = DateTimeOffset.Now.ToString("O"),
             });
         }
         catch (Exception ex)
@@ -167,3 +184,21 @@ public sealed class UpdateService
 
     private static string? Truncate(string? s, int max) => s is null || s.Length <= max ? s : s[..max] + "…";
 }
+
+/// <summary>
+/// Velopack's downloader with VYSTRAL's fast connector (see <see cref="FastConnect"/>): GitHub's
+/// release files sit behind several CDN addresses, and one unreachable address used to cost 21 s
+/// per file, per release, on every check.
+/// </summary>
+internal sealed class FastDownloader(string version) : HttpClientFileDownloader
+{
+    protected override HttpClient CreateHttpClient(IDictionary<string, string>? headers, double timeout)
+    {
+        var client = new HttpClient(FastConnect.CreateHandler(), disposeHandler: true) { Timeout = TimeSpan.FromMinutes(timeout) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd($"VYSTRAL/{version}");
+        foreach (var (key, value) in headers ?? new Dictionary<string, string>())
+            client.DefaultRequestHeaders.TryAddWithoutValidation(key, value);
+        return client;
+    }
+}
+

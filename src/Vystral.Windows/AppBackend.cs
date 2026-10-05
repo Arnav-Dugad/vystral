@@ -71,7 +71,7 @@ public sealed partial class AppBackend : IDisposable
 
         Settings = new SettingsService(Repository);
 
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        _http = new HttpClient(FastConnect.CreateHandler()) { Timeout = TimeSpan.FromSeconds(20) };
         _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("VYSTRAL", Version));
         _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(+https://github.com/Arnav-Dugad/vystral)"));
 
@@ -122,9 +122,18 @@ public sealed partial class AppBackend : IDisposable
             {
                 try
                 {
+                    // First check shortly after start, then every 6 hours for people who leave VYSTRAL open.
                     await Task.Delay(TimeSpan.FromSeconds(20), _life.Token);
-                    var state = await Updates.CheckAsync();
-                    if (state.Phase == "available" && Settings.GetBool("updates.autoDownload")) await Updates.DownloadAsync();
+                    while (!_life.IsCancellationRequested)
+                    {
+                        if (Settings.GetBool("updates.autoCheck") && !Settings.GetBool("privacy.localOnly"))
+                        {
+                            var state = await Updates.CheckAsync();
+                            if (state.Phase == "available" && Settings.GetBool("updates.autoDownload")) state = await Updates.DownloadAsync();
+                            if (state.Phase == "ready") break; // installs on the next start
+                        }
+                        await Task.Delay(TimeSpan.FromHours(6), _life.Token);
+                    }
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception ex) { Log.Warn("update", "Background update check failed", ex: ex); }

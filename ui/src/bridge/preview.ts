@@ -39,7 +39,7 @@ const DEFAULT_SETTINGS: Settings = {
   'ai.enabled': false,
   'ai.model': 'qwen3:4b',
   'updates.autoCheck': true,
-  'updates.autoDownload': false,
+  'updates.autoDownload': true,
   'controller.enabled': true,
   'controller.vibration': false,
   'sounds.enabled': false,

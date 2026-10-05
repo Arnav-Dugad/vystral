@@ -2,6 +2,18 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
+## [0.3.1] — 2026-10-05
+
+### Fixed
+- **Updates could look stuck.** On some networks one of GitHub's download servers can't be reached, and VYSTRAL waited about 21 seconds on it for every release file, so a check took minutes. VYSTRAL now tries GitHub's servers side by side, like a browser does: checks take a few seconds. The same fix speeds up artwork, trailers and Steam requests on those networks.
+- Update checks give up after 2 minutes instead of spinning forever, and VYSTRAL checks again every 6 hours while it's open.
+
+### Changed
+- **Updates now download automatically in the background** (never while a game runs) and install the next time you start VYSTRAL. You can turn this off in Settings → Updates.
+
+### Note for 0.3.0 and earlier
+- Older versions still check the slow way (it can take a couple of minutes after VYSTRAL starts) and don't download on their own. When an "Update 0.3.1" button appears in the title bar, select it, then Download, then Restart. From 0.3.1 on, updates are automatic.
+
 ## [0.3.0] — 2026-10-05
 
 Your library, settings and history carry over.

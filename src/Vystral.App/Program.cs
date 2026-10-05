@@ -25,6 +25,7 @@ public static class Program
         // Must run first: handles install/update/uninstall hooks and may exit the process.
         // The hooks register / remove the per-user vystral: URI scheme used by clickable notifications.
         VelopackApp.Build()
+            .SetAutoApplyOnStartup(true) // a downloaded update installs on the next start
             .OnAfterInstallFastCallback(_ => ShellIntegration.OnInstalled())
             .OnAfterUpdateFastCallback(_ => ShellIntegration.OnInstalled())
             .OnBeforeUninstallFastCallback(_ => ShellIntegration.OnUninstalling())

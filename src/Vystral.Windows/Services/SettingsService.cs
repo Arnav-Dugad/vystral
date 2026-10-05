@@ -67,7 +67,7 @@ public sealed class SettingsService
         new BoolDef("ai.enabled", false),
         new StringDef("ai.model", "qwen3:4b", 80, @"^[a-zA-Z0-9._:\-/]+\z"),
         new BoolDef("updates.autoCheck", true),
-        new BoolDef("updates.autoDownload", false),
+        new BoolDef("updates.autoDownload", true),
         new BoolDef("controller.enabled", true),
         new BoolDef("controller.vibration", false),
         new BoolDef("sounds.enabled", false),

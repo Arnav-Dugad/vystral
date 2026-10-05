@@ -68,6 +68,7 @@ public sealed partial class TrailerService : IDisposable
             AutomaticDecompression = DecompressionMethods.None,
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
             ConnectTimeout = TimeSpan.FromSeconds(10),
+            ConnectCallback = FastConnect.ConnectAsync,
         })
         { Timeout = TimeSpan.FromSeconds(25) };
         _media.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
