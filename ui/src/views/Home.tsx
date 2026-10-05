@@ -11,6 +11,7 @@ import { useReducedMotion, useStore } from '../state/store';
 import { GameCover } from '../components/game/GameCover';
 import { Shelf } from '../components/game/Shelf';
 import { Badge, Button, EmptyState, IconButton, PlatformBadge, Skeleton } from '../components/ui/primitives';
+import { useLogoTone } from '../lib/logoTone';
 import './home.css';
 
 export function HomeView() {
@@ -118,7 +119,7 @@ function Hero({ game }: { game: Game }) {
         transition={{ ...spring.hero, delay: 0.1 }}
       >
         <div className="hero__eyebrow caps">{lp.at ? 'Jump back in' : 'Ready when you are'}</div>
-        {game.art.logo ? <img className="hero__logo" src={game.art.logo} alt={game.title} /> : <h1 className="hero__title">{game.title}</h1>}
+        {game.art.logo ? <HeroLogo src={game.art.logo} alt={game.title} /> : <h1 className="hero__title">{game.title}</h1>}
         <div className="hero__meta">
           {platforms.map((p) => <PlatformBadge key={p} platform={p} />)}
           {lp.at && <span><Clock3 size={13} aria-hidden /> Played {formatRelative(lp.at)}</span>}
@@ -196,4 +197,10 @@ function HomeSkeleton() {
       </div>
     </div>
   );
+}
+
+/** Store logos are often black lettering; on the dark hero those get a soft light halo. */
+function HeroLogo({ src, alt }: { src: string; alt: string }) {
+  const tone = useLogoTone(src);
+  return <img className="hero__logo" src={src} alt={alt} data-logo-tone={tone ?? undefined} />;
 }

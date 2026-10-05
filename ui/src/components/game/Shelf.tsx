@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Game } from '../../bridge/types';
 import { formatDuration, formatRelative, lastPlayed, PLATFORM_NAMES } from '../../lib/format';
@@ -20,15 +20,27 @@ export function Shelf({ title, meta, games, variant = 'portrait', caption, actio
   action?: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [edge, setEdge] = useState({ start: true, end: false });
-  if (games.length === 0) return null;
-
-  const scroll = (dir: 1 | -1) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: 'smooth' });
+  const [edge, setEdge] = useState({ start: true, end: true });
   const onScroll = () => {
     const el = ref.current;
     if (!el) return;
-    setEdge({ start: el.scrollLeft < 8, end: el.scrollLeft + el.clientWidth > el.scrollWidth - 8 });
+    const next = { start: el.scrollLeft < 8, end: el.scrollLeft + el.clientWidth > el.scrollWidth - 8 };
+    setEdge((e) => (e.start === next.start && e.end === next.end ? e : next));
   };
+  // Re-measure when the track or its content changes size, so the arrows only appear when there is somewhere to go.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    onScroll();
+    const ro = new ResizeObserver(onScroll);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => ro.disconnect();
+  }, [games.length]);
+  if (games.length === 0) return null;
+
+  const scroll = (dir: 1 | -1) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: 'smooth' });
+  const overflows = !(edge.start && edge.end);
 
   return (
     <section className="shelf" aria-label={typeof title === 'string' ? title : undefined}>
@@ -38,12 +50,16 @@ export function Shelf({ title, meta, games, variant = 'portrait', caption, actio
         action={
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             {action}
-            <IconButton label="Scroll left" size="sm" disabled={edge.start} onClick={() => scroll(-1)}>
-              <ChevronLeft size={16} />
-            </IconButton>
-            <IconButton label="Scroll right" size="sm" disabled={edge.end} onClick={() => scroll(1)}>
-              <ChevronRight size={16} />
-            </IconButton>
+            {overflows && (
+              <>
+                <IconButton label="Scroll left" size="sm" disabled={edge.start} onClick={() => scroll(-1)}>
+                  <ChevronLeft size={16} />
+                </IconButton>
+                <IconButton label="Scroll right" size="sm" disabled={edge.end} onClick={() => scroll(1)}>
+                  <ChevronRight size={16} />
+                </IconButton>
+              </>
+            )}
           </div>
         }
       />

@@ -181,9 +181,37 @@ export function createConstellationScene(
     camera.updateProjectionMatrix();
     // Point sizes are in CSS-pixel-ish units scaled by the drawing buffer.
     uniforms.uScale.value = (height / 900) * 300 * renderer.getPixelRatio();
+    if (focused === -1 && layout) fitOverview();
     measureLabels();
     invalidate();
   };
+
+  /**
+   * Frames every cluster: the target moves to the centre of the clusters' footprint (big clusters
+   * are rarely at the origin) and the camera backs off until that footprint's bounding circle fits
+   * the viewport at the orbit's tilt, including the near edge growing with perspective.
+   */
+  function fitOverview() {
+    if (!layout || layout.centers.length === 0) {
+      goalTarget.set(0, 0, 0);
+      goalRadius = Math.min(maxRadius, extent * 1.85);
+      return;
+    }
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const c of layout.centers) {
+      minX = Math.min(minX, c.x - c.radius);
+      maxX = Math.max(maxX, c.x + c.radius);
+      minZ = Math.min(minZ, c.z - c.radius);
+      maxZ = Math.max(maxZ, c.z + c.radius);
+    }
+    goalTarget.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+    const r = Math.hypot(maxX - minX, maxZ - minZ) / 2 + 1.5;
+    const vHalf = (camera.fov * Math.PI) / 360;
+    const hHalf = Math.atan(Math.tan(vHalf) * camera.aspect);
+    const needV = (r * Math.cos(goalPhi)) / Math.tan(vHalf) + r * Math.sin(goalPhi);
+    const needH = r / Math.tan(hHalf) + r * Math.sin(goalPhi) * 0.5;
+    goalRadius = Math.min(maxRadius, Math.max(minRadius, Math.max(needV, needH) * 1.06));
+  }
   const ro = new ResizeObserver(resize);
   ro.observe(host);
 
@@ -544,8 +572,7 @@ export function createConstellationScene(
       maxRadius = extent * 6;
       focused = -1;
       uniforms.uFocusCluster.value = -1;
-      goalTarget.set(0, 0, 0);
-      goalRadius = Math.min(maxRadius, extent * 1.85);
+      fitOverview();
       if (reduce || radius === 60) {
         radius = goalRadius;
         target.copy(goalTarget);
@@ -572,8 +599,7 @@ export function createConstellationScene(
       if (index == null || index < 0 || index >= layout.centers.length) {
         focused = -1;
         uniforms.uFocusCluster.value = -1;
-        goalTarget.set(0, 0, 0);
-        goalRadius = Math.min(maxRadius, extent * 1.85);
+        fitOverview();
       } else {
         const c = layout.centers[index];
         focused = index;
