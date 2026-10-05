@@ -1,0 +1,265 @@
+/* ===== Hold to confirm =====
+   The ring sits where a button's icon would, so it never changes the button's size; the
+   label stacks its normal text and the "hold" hint in one grid cell for the same reason. */
+.hold { position: relative; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+.hold__content { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: var(--s-2); }
+.hold__wash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0.13;
+  transform-origin: left center;
+  pointer-events: none;
+}
+.hold__label { display: inline-grid; }
+.hold__label > span { grid-area: 1 / 1; text-align: center; transition: opacity 160ms var(--ease-out), transform 220ms var(--ease-emph); }
+.hold__label > span[data-shown='false'] { opacity: 0; transform: translateY(4px); }
+
+.hold__ring { position: relative; display: inline-grid; place-items: center; width: 1.35em; height: 1.35em; flex: none; }
+.hold__svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.hold__track { fill: none; stroke: currentColor; stroke-width: 2.4; opacity: 0.28; }
+.hold__fill { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; filter: drop-shadow(0 0 3px currentColor); }
+.hold__glyph { position: relative; display: grid; place-items: center; width: 100%; height: 100%; }
+.hold__glyph-in { display: grid; place-items: center; grid-area: 1 / 1; }
+.hold__glyph svg { width: 0.72em; height: 0.72em; }
+.hold[data-hold='holding'] .hold__track { opacity: 0.38; }
+.hold[data-hold='done'] .hold__ring { animation: hold-pop 320ms var(--ease-emph); }
+.hold[data-hold='done'] { box-shadow: 0 0 0 1px currentColor, 0 0 26px -4px currentColor; }
+@keyframes hold-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+
+/* Controller-only holds (and bare icon controls) draw the ring over the button while held. */
+.hold__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms var(--ease-out);
+}
+.hold__overlay[data-visible='true'] { opacity: 1; }
+.hold__overlay .hold__ring { width: min(80%, 1.9em); height: auto; aspect-ratio: 1; }
+.hold--bare .hold__overlay .hold__ring { width: 100%; }
+.hold--bare .hold__wash { opacity: 0.18; }
+
+/* ===== On-screen keyboard (Immersive Mode) ===== */
+.osk {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: oklch(0.04 0.01 282 / 0.7);
+  backdrop-filter: blur(20px) saturate(1.15);
+}
+.osk__panel {
+  --osk-key-h: clamp(2.7rem, 5.6vh, 3.5rem);
+  --osk-cover-w: clamp(4.4rem, 6.4vw, 6.2rem);
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  width: min(62rem, 94vw);
+  padding: 1.6rem 1.8rem 1.2rem;
+  border-radius: var(--r-2xl);
+  background: oklch(0.13 0.014 282 / 0.9);
+  box-shadow: var(--shadow-3), inset 0 1px 0 oklch(1 0 0 / 0.08), 0 0 0 1px oklch(1 0 0 / 0.1);
+  color: oklch(0.97 0 0);
+  isolation: isolate;
+}
+.osk__panel::before {
+  /* a faint accent bloom behind the field, so the panel feels lit by the selected game */
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 9rem;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(60% 100% at 30% 0%, oklch(from var(--accent) l c h / 0.22), transparent 70%);
+  pointer-events: none;
+}
+
+.osk__field {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  height: 4rem;
+  padding: 0 0.6rem 0 1.2rem;
+  border-radius: var(--r-xl);
+  background: oklch(1 0 0 / 0.07);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.1);
+  transition: box-shadow 200ms var(--ease-out);
+}
+.osk__field:focus-within { box-shadow: inset 0 0 0 1px oklch(from var(--accent) l c h / 0.6), 0 0 0 4px oklch(from var(--accent) l c h / 0.14); }
+.osk__field-icon { flex: none; color: var(--accent-hi); }
+.osk__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: none;
+  border: 0;
+  outline: none;
+  color: inherit;
+  font-size: 1.55rem;
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+  caret-color: var(--accent-hi);
+}
+.osk__input:focus-visible { box-shadow: none; } /* the field shows focus as a whole */
+.osk__input::placeholder { color: oklch(0.72 0.01 282); font-weight: var(--fw-regular); }
+.osk__count { flex: none; min-width: 6.5rem; text-align: right; font-size: 0.9rem; color: oklch(0.78 0.01 282); }
+.osk__close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--r-lg);
+  color: oklch(0.85 0 0);
+  transition: background 160ms;
+}
+.osk__close:hover { background: oklch(1 0 0 / 0.1); }
+.osk__close:focus-visible { box-shadow: var(--focus-ring); }
+
+/* Everything the ring can travel over shares one positioned stage. */
+.osk__stage { position: relative; display: grid; gap: 0.8rem; }
+.osk__zone { display: grid; gap: 0.45rem; }
+.osk__caption { font-size: 0.74rem; font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: oklch(0.74 0.01 282); }
+
+/* Fixed heights everywhere: typing never makes the keyboard jump. */
+.osk__games { display: flex; gap: 0.85rem; height: calc(var(--osk-cover-w) * 1.5 + 1.7rem); }
+.osk__game { display: grid; grid-template-rows: auto 1.7rem; width: var(--osk-cover-w); text-align: left; border-radius: var(--r-md); outline: none; }
+.osk__game-cover {
+  display: block;
+  width: var(--osk-cover-w);
+  height: calc(var(--osk-cover-w) * 1.5);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: var(--shadow-2), 0 0 0 1px oklch(1 0 0 / 0.08);
+  transform: scale(var(--s, 1));
+  transition: transform 240ms var(--ease-emph), filter 200ms;
+}
+.osk__game[data-focused='true'] .osk__game-cover { --s: 1.05; }
+.osk__game-title { align-self: end; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 0.78rem; color: oklch(0.82 0.01 282); }
+.osk__game-title mark { background: none; color: oklch(0.99 0 0); font-weight: var(--fw-semibold); }
+.osk__game[data-focused='true'] .osk__game-title { color: oklch(0.98 0 0); }
+.osk__game:focus-visible .osk__game-cover { box-shadow: var(--focus-ring); }
+.osk__empty { align-self: center; max-width: 46ch; font-size: 0.98rem; color: oklch(0.78 0.01 282); }
+
+.osk__words { display: flex; gap: 0.55rem; height: 2.6rem; }
+.osk__word {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 1.05rem;
+  border-radius: var(--r-pill);
+  background: oklch(1 0 0 / 0.07);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08);
+  font-size: 1rem;
+  font-weight: var(--fw-semibold);
+  outline: none;
+  transition: background 160ms, transform 220ms var(--ease-emph);
+}
+.osk__word[data-focused='true'] { background: oklch(1 0 0 / 0.14); transform: scale(1.04); }
+.osk__word:focus-visible { box-shadow: var(--focus-ring); }
+.osk__word-typed { color: oklch(0.72 0.01 282); font-weight: var(--fw-regular); }
+
+.osk__keys { display: grid; grid-template-columns: repeat(var(--osk-cols), minmax(0, 1fr)); gap: 0.5rem; }
+.osk__key {
+  position: relative;
+  height: var(--osk-key-h);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: oklch(1 0 0 / 0.075);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 1px 0 oklch(0 0 0 / 0.3);
+  font-size: 1.22rem;
+  font-weight: var(--fw-semibold);
+  outline: none;
+  transition: background 140ms var(--ease-out), transform 200ms var(--ease-emph), color 140ms;
+}
+.osk__key:hover { background: oklch(1 0 0 / 0.12); }
+.osk__key:active { transform: scale(0.95); }
+.osk__key[data-focused='true'] { background: oklch(1 0 0 / 0.17); transform: scale(1.04); }
+.osk__key[data-focused='true']:active { transform: scale(0.97); }
+.osk__key--space, .osk__key--backspace, .osk__key--clear, .osk__key--layout { background: oklch(1 0 0 / 0.045); font-size: 0.95rem; color: oklch(0.88 0.01 282); }
+.osk__key--done { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--text-on-accent); font-size: 1rem; }
+.osk__key--done:hover, .osk__key--done[data-focused='true'] { background: linear-gradient(180deg, var(--accent-hi), var(--accent-hi)); }
+.osk__key-face {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  height: 100%;
+  animation: osk-face-in 200ms var(--ease-out);
+}
+.osk__key-face[data-pressed] { animation: osk-press 220ms var(--ease-emph); }
+@keyframes osk-face-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes osk-press {
+  0% { transform: scale(1); }
+  35% { transform: scale(0.86); }
+  100% { transform: scale(1); }
+}
+.osk__ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, oklch(from var(--accent) 0.9 c h / 0.5), transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  animation: osk-ripple 460ms var(--ease-out);
+}
+@keyframes osk-ripple {
+  from { opacity: 1; transform: scale(0.5); }
+  to { opacity: 0; transform: scale(1.6); }
+}
+.osk__glyph { display: inline-flex; opacity: 0.85; }
+.osk__glyph .pad-glyph { width: 1.35em; height: 1.35em; font-size: 0.62rem; }
+.osk__glyph .pad-glyph--bumper { width: auto; min-width: 2em; padding: 0 0.35em; border-radius: 0.4em; }
+.osk__key--done .osk__glyph, .osk__key--done svg { color: var(--text-on-accent); }
+
+/* The travelling ring, shared with Immersive's look. */
+.osk__ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 3px oklch(from var(--accent) 0.9 min(c, 0.16) h),
+    0 0 0 6px oklch(from var(--accent) l c h / 0.26),
+    0 0 34px 4px oklch(from var(--accent) l c h / 0.4);
+}
+.osk__ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 35%, oklch(1 0 0 / 0.14) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: osk-sheen 2.8s var(--ease-inout) infinite;
+}
+@keyframes osk-sheen { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.osk__panel[data-reduced='true'] .osk__ring::after { animation: none; opacity: 0; }
+
+.osk__hints { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem 1.4rem; padding-top: 0.2rem; font-size: 0.82rem; color: oklch(0.8 0.01 282); }
+.osk__hints > span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.osk__hints .pad-glyph { width: 1.45em; height: 1.45em; font-size: 0.68rem; }
+.osk__hints .pad-glyph--bumper { width: auto; min-width: 2.1em; padding: 0 0.4em; border-radius: 0.42em; }
+:root[data-input='mouse'] .osk__hints { opacity: 0.55; }
+
+@media (max-height: 760px) {
+  .osk { padding: 1rem; }
+  .osk__panel { --osk-cover-w: clamp(3.6rem, 5vw, 4.6rem); gap: 0.7rem; padding: 1.1rem 1.4rem 0.9rem; }
+  .osk__field { height: 3.3rem; }
+  .osk__input { font-size: 1.3rem; }
+}

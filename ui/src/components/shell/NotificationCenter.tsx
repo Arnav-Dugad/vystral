@@ -5,7 +5,8 @@ import { AlertTriangle, Bell, BellOff, CheckCircle2, Info, X, XCircle } from 'lu
 import { formatRelative } from '../../lib/format';
 import { exit, pick, spring } from '../../lib/motion';
 import { useReducedMotion, useStore } from '../../state/store';
-import { Button, IconButton } from '../ui/primitives';
+import { IconButton } from '../ui/primitives';
+import { HoldToConfirm } from '../controller/HoldToConfirm';
 
 const ICONS = { success: CheckCircle2, warning: AlertTriangle, danger: XCircle, info: Info };
 
@@ -96,7 +97,7 @@ function NotificationDrawer({ open, onClose }: { open: boolean; onClose: () => v
           <header className="notif-drawer__head">
             <h2>Notifications</h2>
             <div style={{ display: 'flex', gap: 4 }}>
-              {notifications.length > 0 && <Button size="sm" variant="ghost" onClick={clearAll}>Clear all</Button>}
+              {notifications.length > 0 && <HoldToConfirm size="sm" variant="ghost" holdFor="pad" onConfirm={clearAll}>Clear all</HoldToConfirm>}
               <IconButton label="Close notifications" size="sm" onClick={onClose}><X size={14} /></IconButton>
             </div>
           </header>

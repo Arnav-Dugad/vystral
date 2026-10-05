@@ -5,6 +5,7 @@ import { call } from '../../bridge/bridge';
 import { pick, spring } from '../../lib/motion';
 import { useReducedMotion, useStore } from '../../state/store';
 import { GameCover } from '../game/GameCover';
+import { HoldToConfirm } from '../controller/HoldToConfirm';
 
 function elapsed(fromIso: string | null): string {
   if (!fromIso) return '';
@@ -55,14 +56,15 @@ export function NowPlaying() {
             <span className="now-playing__title truncate">{game.title}</span>
             {running && <span className="now-playing__time num">{elapsed(launch.startedAt)}</span>}
           </button>
-          <button
+          <HoldToConfirm
+            bare
+            holdFor="pad"
             className="now-playing__stop"
             title="Stop tracking this session (the game keeps running)"
             aria-label="Stop tracking this session. The game keeps running."
-            onClick={() => void call('game.stopTracking').catch(() => {})}
-          >
-            <Square size={11} fill="currentColor" />
-          </button>
+            icon={<Square size={11} fill="currentColor" />}
+            onConfirm={() => void call('game.stopTracking').catch(() => {})}
+          />
         </motion.div>
       )}
     </AnimatePresence>

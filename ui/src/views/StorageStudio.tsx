@@ -11,6 +11,7 @@ import { useReducedMotion, useStore } from '../state/store';
 import { GameCover } from '../components/game/GameCover';
 import { InstallBadge } from '../components/game/InstallProgress';
 import { Badge, Button, EmptyState, PlatformBadge, SectionHead, Skeleton } from '../components/ui/primitives';
+import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
 import './storage-studio.css';
 
@@ -408,7 +409,7 @@ function UninstallDialog({ target, onClose }: { target: DriveGame | null; onClos
       actions={
         <>
           <Button variant="ghost" onClick={onClose} data-autofocus>Keep it</Button>
-          <Button variant="danger" loading={busy} onClick={() => void confirm()}>Open Steam’s uninstall</Button>
+          <HoldToConfirm loading={busy} onConfirm={() => void confirm()}>Open Steam’s uninstall</HoldToConfirm>
         </>
       }
     >

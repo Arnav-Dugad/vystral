@@ -5,7 +5,8 @@ import type { Game, GamepadButton } from '../bridge/types';
 import {
   formatBytes, formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural, sizeOf,
 } from '../lib/format';
-import { pushPadHandler, rumble } from '../lib/input';
+import { haptic } from '../lib/haptics';
+import { pushPadHandler } from '../lib/input';
 import { ease, pick, spring } from '../lib/motion';
 import { peekPalette, titleHue } from '../lib/palette';
 import { suggestGames } from '../lib/recommend';
@@ -13,6 +14,7 @@ import { sound } from '../lib/sound';
 import { setLaunchOrigin } from '../lib/flight';
 import { toggleFavorite } from '../state/actions';
 import { useGameRunning, useReducedMotion, useStore } from '../state/store';
+import { OnScreenKeyboard } from '../components/controller/OnScreenKeyboard';
 import { GameCover } from '../components/game/GameCover';
 import { PadGlyph } from '../components/ui/primitives';
 import { AttractMode } from './immersive/AttractMode';
@@ -45,7 +47,6 @@ const FOCUS_SCALE = 1.06;
 export function ImmersiveView() {
   const games = useStore((s) => s.library.games);
   const setMode = useStore((s) => s.setMode);
-  const setCommandOpen = useStore((s) => s.setCommandOpen);
   const setFocusGame = useStore((s) => s.setFocusGame);
   const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('home');
@@ -53,6 +54,7 @@ export function ImmersiveView() {
   const [cols, setCols] = useState<Record<string, number>>({});
   const [panel, setPanel] = useState<Game | null>(null);
   const [attract, setAttract] = useState(false);
+  const [search, setSearch] = useState(false);
 
   const visible = useMemo(() => games.filter((g) => !g.hidden), [games]);
   const rows = useMemo<Row[]>(() => buildRows(visible, tab), [visible, tab]);
@@ -75,7 +77,7 @@ export function ImmersiveView() {
           setCols((c) => ({ ...c, [current.id]: next }));
           sound.focus();
         } else {
-          rumble(0.12, 18); // edge bump
+          haptic('edge'); // end of the row
         }
       }
       if (dr) {
@@ -85,6 +87,8 @@ export function ImmersiveView() {
           if (tab === 'library') setCols((c) => ({ ...c, [rows[nextRow].id]: Math.min(col, rows[nextRow].games.length - 1) }));
           setRow(nextRow);
           sound.focus();
+        } else {
+          haptic('edge'); // first or last row
         }
       }
     },
@@ -95,7 +99,28 @@ export function ImmersiveView() {
     setTab((prev) => t ?? (prev === 'home' ? 'library' : 'home'));
     setRow(0);
     sound.select();
+    haptic('tick');
   }, []);
+
+  /** Opens a game picked from search, leaving focus on it when the panel closes. */
+  const openFromSearch = useCallback(
+    (g: Game) => {
+      setSearch(false);
+      const here = rows.findIndex((r) => r.games.some((x) => x.id === g.id));
+      if (here >= 0) {
+        setRow(here);
+        setCols((c) => ({ ...c, [rows[here].id]: rows[here].games.findIndex((x) => x.id === g.id) }));
+      } else {
+        const all = buildRows(visible, 'library');
+        const r = Math.max(0, all.findIndex((x) => x.games.some((y) => y.id === g.id)));
+        setTab('library');
+        setRow(r);
+        setCols((c) => ({ ...c, [all[r].id]: all[r].games.findIndex((x) => x.id === g.id) }));
+      }
+      setPanel(g);
+    },
+    [rows, visible],
+  );
 
   const handle = useCallback(
     (button: GamepadButton | string, repeat: boolean): boolean => {
@@ -119,13 +144,16 @@ export function ImmersiveView() {
           if (repeat || !focused) return true;
           setPanel(focused);
           sound.select();
-          rumble(0.3, 40);
+          haptic('tick');
           return true;
         case 'LB': case 'RB': case 'q': case 'e':
           if (!repeat) switchTab();
           return true;
-        case 'Y': case '/':
-          if (!repeat) setCommandOpen(true);
+        case 'Y': case 'y':
+          if (!repeat) {
+            setSearch(true);
+            sound.select();
+          }
           return true;
         case 'X':
           if (!repeat && focused) void toggleFavorite(focused);
@@ -139,7 +167,7 @@ export function ImmersiveView() {
           return false;
       }
     },
-    [attract, panel, move, focused, switchTab, setCommandOpen, setMode],
+    [attract, panel, move, focused, switchTab, setMode],
   );
 
   useEffect(() => pushPadHandler((b, r) => handle(b, r)), [handle]);
@@ -219,7 +247,9 @@ export function ImmersiveView() {
         <footer className="imm__hints">
           <span><PadGlyph button="A" /> Open</span>
           <span><PadGlyph button="X" /> Favorite</span>
-          <span><PadGlyph button="Y" /> Search</span>
+          <button className="imm__hint-btn" onClick={() => setSearch(true)}>
+            <PadGlyph button="Y" /> Search
+          </button>
           <span><PadGlyph button="LB" /><PadGlyph button="RB" /> Sections</span>
           <button className="imm__exit" onClick={() => void setMode('desktop')}>
             <PadGlyph button="Menu" /> <Monitor size={16} /> Desktop mode
@@ -227,6 +257,7 @@ export function ImmersiveView() {
         </footer>
 
         <AnimatePresence>{panel && <GamePanel key={panel.id} game={panel} onClose={() => setPanel(null)} />}</AnimatePresence>
+        <AnimatePresence>{search && <OnScreenKeyboard key="osk" games={visible} onClose={() => setSearch(false)} onOpenGame={openFromSearch} />}</AnimatePresence>
         <AttractMode games={visible} active={attract} onActiveChange={setAttract} />
       </div>
     </LayoutGroup>
@@ -542,7 +573,7 @@ function GamePanel({ game, onClose }: { game: Game; onClose: () => void }) {
                 onClick={(e) => {
                   setLaunchOrigin(game.id, e.currentTarget);
                   sound.launch();
-                  rumble(0.5, 80);
+                  haptic('confirm');
                   onClose();
                   void launchGame(game.id, i.id);
                 }}

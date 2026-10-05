@@ -1,5 +1,6 @@
 using Microsoft.UI.Dispatching;
 using Vystral.Windows.Bridge;
+using Vystral.Windows.Services;
 using Windows.Gaming.Input;
 
 namespace Vystral.App.Host;
@@ -7,7 +8,8 @@ namespace Vystral.App.Host;
 /// <summary>
 /// Reads Xbox-compatible controllers through global::Windows.Gaming.Input and forwards button edges to
 /// the UI. Polling only runs while VYSTRAL's window is focused and no game is running, so
-/// VYSTRAL never competes with a game for controller input.
+/// VYSTRAL never competes with a game for controller input. Vibration plays only validated
+/// <see cref="HapticPatterns"/> on the controller last used, and stops whenever input pauses.
 /// </summary>
 public sealed class GamepadBridge : IDisposable
 {
@@ -17,9 +19,11 @@ public sealed class GamepadBridge : IDisposable
     private readonly DispatcherQueueTimer _timer;
     private readonly IEventSink _events;
     private readonly Dictionary<string, bool> _pressed = new();
-    private bool _active;
-    private bool _suspended;
+    private volatile bool _active;
+    private volatile bool _suspended;
     private int _lastScrollTick;
+    private Gamepad? _lastPad;
+    private int _hapticGeneration;
 
     public GamepadBridge(DispatcherQueue queue, IEventSink events)
     {
@@ -34,23 +38,80 @@ public sealed class GamepadBridge : IDisposable
     public void SetWindowActive(bool active)
     {
         _active = active;
-        if (!active) ReleaseAll();
+        if (!active)
+        {
+            ReleaseAll();
+            StopHaptics();
+        }
         UpdateTimer();
     }
 
     public void SetSuspended(bool suspended)
     {
         _suspended = suspended;
-        if (suspended) ReleaseAll();
+        if (suspended)
+        {
+            ReleaseAll();
+            StopHaptics();
+        }
         UpdateTimer();
     }
 
-    public void Rumble(double strength, int durationMs)
+    /// <summary>
+    /// Plays a pattern on the controller the user last touched. A newer pattern (or
+    /// <see cref="StopHaptics"/>) supersedes a running one; the motors always end at zero.
+    /// </summary>
+    public bool PlayHaptic(IReadOnlyList<HapticStep> steps)
     {
-        var pad = Gamepad.Gamepads.FirstOrDefault();
-        if (pad is null) return;
-        pad.Vibration = new GamepadVibration { LeftMotor = strength * 0.6, RightMotor = strength };
-        _ = Task.Delay(durationMs).ContinueWith(_ => pad.Vibration = default);
+        if (!_active || _suspended || steps.Count == 0) return false;
+        var pads = Gamepad.Gamepads;
+        var pad = Volatile.Read(ref _lastPad) is { } last && pads.Contains(last) ? last : pads.FirstOrDefault();
+        if (pad is null) return false;
+        var generation = Interlocked.Increment(ref _hapticGeneration);
+        _ = RunHapticAsync(pad, steps, generation);
+        return true;
+    }
+
+    public void StopHaptics()
+    {
+        Interlocked.Increment(ref _hapticGeneration);
+        foreach (var pad in Gamepad.Gamepads) TryVibrate(pad, default);
+    }
+
+    private async Task RunHapticAsync(Gamepad pad, IReadOnlyList<HapticStep> steps, int generation)
+    {
+        try
+        {
+            foreach (var s in steps)
+            {
+                if (Volatile.Read(ref _hapticGeneration) != generation || !_active || _suspended) return;
+                TryVibrate(pad, new GamepadVibration
+                {
+                    LeftMotor = Level(s.LeftMotor),
+                    RightMotor = Level(s.RightMotor),
+                    LeftTrigger = Level(s.LeftTrigger),
+                    RightTrigger = Level(s.RightTrigger),
+                });
+                await Task.Delay(Math.Clamp(s.DurationMs, 1, HapticPatterns.MaxDurationMs)).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            // Superseded patterns leave the motors to their successor; everything else ends silent.
+            if (Volatile.Read(ref _hapticGeneration) == generation) TryVibrate(pad, default);
+        }
+    }
+
+    private static double Level(double v) => double.IsFinite(v) ? Math.Clamp(v, 0, HapticPatterns.MaxLevel) : 0;
+
+    private static void TryVibrate(Gamepad pad, GamepadVibration vibration)
+    {
+        try { pad.Vibration = vibration; }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            // The controller was unplugged mid-pattern.
+            Log.Warn("gamepad", "Vibration failed", ex: ex);
+        }
     }
 
     private void UpdateTimer()
@@ -72,6 +133,7 @@ public sealed class GamepadBridge : IDisposable
         foreach (var pad in pads)
         {
             var r = pad.GetCurrentReading();
+            if (r.Buttons != GamepadButtons.None || r.LeftTrigger > 0.5 || r.RightTrigger > 0.5) Volatile.Write(ref _lastPad, pad);
             void Set(string name, bool on) => state[name] = state.GetValueOrDefault(name) || on;
             Set("A", r.Buttons.HasFlag(GamepadButtons.A));
             Set("B", r.Buttons.HasFlag(GamepadButtons.B));
@@ -115,5 +177,9 @@ public sealed class GamepadBridge : IDisposable
         }
     }
 
-    public void Dispose() => _timer.Stop();
+    public void Dispose()
+    {
+        _timer.Stop();
+        StopHaptics();
+    }
 }

@@ -497,7 +497,8 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
     }
 
-    public void Rumble(double strength, int durationMs) => _gamepad.Rumble(strength, durationMs);
+    public bool PlayHaptic(IReadOnlyList<HapticStep> steps) => _gamepad.PlayHaptic(steps);
+    public void StopHaptics() => _gamepad.StopHaptics();
 
     public Task<string?> PickExecutableAsync() => Pickers.PickFileAsync(this, [".exe"]);
     public Task<string?> PickImageAsync() => Pickers.PickFileAsync(this, [".jpg", ".jpeg", ".png", ".webp"]);

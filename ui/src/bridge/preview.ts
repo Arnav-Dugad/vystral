@@ -9,6 +9,7 @@ import type {
 } from './types';
 import { BridgeError } from './bridge';
 import { steamPreviewHandlers } from './preview.steam';
+import { controllerPreviewHandlers } from './preview.controller';
 import { INSIGHT_DEFAULT_SETTINGS, PREVIEW_EXPECTED_DETECT_MS, PREVIEW_FAILED_ACTIONS, decoratePreviewSessions, insightPreviewHandlers } from './preview.insights';
 
 type Emit = (name: string, payload: unknown) => void;
@@ -196,6 +197,7 @@ export function createPreviewBackend() {
   const statusHistory: StatusHistoryEntry[] = buildStatusHistory(lib.games, 11);
   let settings: Settings = { ...DEFAULT_SETTINGS, 'onboarding.completed': !params.has('onboarding') };
   if (params.has('reduced')) settings['motion.reduce'] = 'on';
+  if (params.has('vibration')) settings['controller.vibration'] = true;
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
   let launch: LaunchState | null = null;
@@ -381,6 +383,8 @@ export function createPreviewBackend() {
     ...steamPreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
     // Track B: pre-flight, fixes, FPS capture, hotkey, notifications (fictional data).
     ...insight,
+    // Track D: controller haptics (recorded, never played) and simulated controller input.
+    ...controllerPreviewHandlers({ emit: () => emit }),
   };
 
   return {

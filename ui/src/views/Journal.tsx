@@ -7,6 +7,7 @@ import {
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game } from '../bridge/types';
 import { Button, EmptyState, SectionHead, Segmented, Skeleton } from '../components/ui/primitives';
+import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
 import { formatDuration, formatRelative, PLATFORM_NAMES, plural } from '../lib/format';
 import { spring } from '../lib/motion';
@@ -309,9 +310,9 @@ export function JournalView() {
             <Button variant="ghost" data-autofocus onClick={() => setConfirmDelete(false)} disabled={busy === 'delete'}>
               Cancel
             </Button>
-            <Button variant="danger" icon={<Trash2 size={16} />} onClick={deleteHistory} loading={busy === 'delete'}>
+            <HoldToConfirm icon={<Trash2 size={16} />} onConfirm={() => void deleteHistory()} loading={busy === 'delete'}>
               Delete history
-            </Button>
+            </HoldToConfirm>
           </>
         }
       >

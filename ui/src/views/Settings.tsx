@@ -8,6 +8,7 @@ import { formatBytes, formatDate, formatRelative } from '../lib/format';
 import { MOOD_LABEL } from '../lib/mood';
 import { useStore } from '../state/store';
 import { Badge, Button, Segmented, Slider, Toggle, PlatformBadge } from '../components/ui/primitives';
+import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
 import { UpdatePanel } from '../components/shell/UpdateCenter';
 import { SteamWebApiSettings } from './settings/SteamWebApiSettings';
@@ -371,7 +372,7 @@ function DataSection() {
         open={confirm === 'history'}
         onClose={() => setConfirm(null)}
         title="Delete your tracked play history?"
-        actions={<><Button variant="ghost" onClick={() => setConfirm(null)}>Cancel</Button><Button variant="danger" onClick={() => { setConfirm(null); void run('data.deleteHistory', (r) => `Deleted ${r.deletedSessions} sessions`); }}>Delete history</Button></>}
+        actions={<><Button variant="ghost" onClick={() => setConfirm(null)}>Cancel</Button><HoldToConfirm onConfirm={() => { setConfirm(null); void run('data.deleteHistory', (r) => `Deleted ${r.deletedSessions} sessions`); }}>Delete history</HoldToConfirm></>}
       >
         This permanently removes every session and performance reading VYSTRAL recorded. Your games, notes, ratings, collections and the playtime your stores report are kept. Consider exporting your journal first.
       </Dialog>
@@ -379,7 +380,7 @@ function DataSection() {
         open={confirm === 'reset'}
         onClose={() => setConfirm(null)}
         title="Reset all settings?"
-        actions={<><Button variant="ghost" onClick={() => setConfirm(null)}>Cancel</Button><Button variant="danger" onClick={() => { setConfirm(null); void run('settings.reset', () => 'Settings restored to defaults'); }}>Reset settings</Button></>}
+        actions={<><Button variant="ghost" onClick={() => setConfirm(null)}>Cancel</Button><HoldToConfirm onConfirm={() => { setConfirm(null); void run('settings.reset', () => 'Settings restored to defaults'); }}>Reset settings</HoldToConfirm></>}
       >
         Appearance, launching, controller, AI and update preferences go back to their defaults. Your library and history are not affected.
       </Dialog>
