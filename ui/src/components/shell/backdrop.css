@@ -36,8 +36,9 @@
 /* "Windows accent" swatch in Settings → Appearance. */
 .accent-dot--system { position: relative; overflow: hidden; }
 .accent-dot--system::after {
-  content: ''; position: absolute; inset: 7px; border-radius: 2px;
-  background:
-    linear-gradient(90deg, transparent 45%, oklch(1 0 0 / 0.75) 45% 55%, transparent 55%),
-    linear-gradient(0deg, transparent 45%, oklch(1 0 0 / 0.75) 45% 55%, transparent 55%);
+  /* Four panes (white squares with transparent gutters), so it reads as "Windows", not as a plus. */
+  content: ''; position: absolute; inset: 8px; border-radius: 1px;
+  background: linear-gradient(90deg, oklch(1 0 0 / 0.92) 0 43%, transparent 43% 57%, oklch(1 0 0 / 0.92) 57%);
+  -webkit-mask: linear-gradient(0deg, #000 0 43%, transparent 43% 57%, #000 57%);
+  mask: linear-gradient(0deg, #000 0 43%, transparent 43% 57%, #000 57%);
 }

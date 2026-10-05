@@ -1,0 +1,21 @@
+// Dev helper: opens Immersive and the on-screen keyboard in the running real app (CDP port 9333) and screenshots it.
+import { chromium } from '@playwright/test';
+const out = process.argv[2] ?? '.';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9333');
+const page = browser.contexts()[0].pages().find((p) => p.url().includes('vystral'));
+const errors = [];
+page.on('pageerror', (e) => errors.push(String(e)));
+await page.keyboard.press('F11');
+await page.waitForTimeout(2000);
+await page.keyboard.press('y');
+await page.waitForTimeout(800);
+await page.keyboard.type('re', { delay: 120 });
+await page.waitForTimeout(900);
+await page.screenshot({ path: `${out}/osk.png` });
+await page.keyboard.press('Escape');
+await page.waitForTimeout(500);
+await page.keyboard.press('Escape');
+await page.keyboard.press('F11');
+await page.waitForTimeout(1200);
+console.log('errors', JSON.stringify(errors));
+await browser.close();
