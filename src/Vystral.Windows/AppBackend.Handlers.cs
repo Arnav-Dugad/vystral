@@ -46,7 +46,7 @@ public sealed partial class AppBackend
     private static readonly string[] AllowedExternalHosts =
     [
         "github.com", "ollama.com", "store.steampowered.com", "learn.microsoft.com", "www.steamgriddb.com",
-        "go.microsoft.com", "support.microsoft.com", "www.pcgamingwiki.com",
+        "go.microsoft.com", "support.microsoft.com", "www.pcgamingwiki.com", "steamcommunity.com",
     ];
 
     private void RegisterAppHandlers()

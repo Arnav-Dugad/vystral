@@ -25,6 +25,7 @@ export const ease = {
   emph: [0.1, 0.9, 0.2, 1] as const,
   in: [0.8, 0, 0.78, 1] as const,
   cinematic: [0.16, 1, 0.3, 1] as const,
+  inOut: [0.65, 0, 0.35, 1] as const,
 };
 
 export const exit: Transition = { duration: 0.16, ease: ease.in };

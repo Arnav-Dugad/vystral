@@ -8,9 +8,11 @@ const CSP = [
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://art.vystral.example https://media.vystral.example",
-  "media-src https://media.vystral.example",
+  // blob: lets the trailer player attach a MediaSource; its data still only comes from the media host.
+  "media-src https://media.vystral.example blob:",
   "font-src 'self' data:",
-  "connect-src 'self' https://art.vystral.example",
+  // The media host is the filtered trailer proxy (HLS playlists and segments are fetched, then appended to MSE).
+  "connect-src 'self' https://art.vystral.example https://media.vystral.example",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'none'",

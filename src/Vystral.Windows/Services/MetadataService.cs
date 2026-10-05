@@ -27,6 +27,8 @@ public sealed partial class MetadataService(LibraryRepository repo, ArtworkServi
         {
             while (shouldPause()) await Task.Delay(5000, ct);
             ct.ThrowIfCancellationRequested();
+            // Data saver: stop this run without marking anything, so artwork is fetched on a later run.
+            if (fetchArtwork && artwork.SkipDownloads?.Invoke() == true) break;
             try
             {
                 var appId = steamAppId ?? await FindExactSteamMatchAsync(title, ct);
@@ -35,7 +37,10 @@ public sealed partial class MetadataService(LibraryRepository repo, ArtworkServi
                     repo.MarkMetadataAttempted(gameId);
                     continue;
                 }
-                var details = await GetDetailsAsync(appId, ct);
+                var json = await GetDetailsJsonAsync(appId, ct);
+                var details = ParseDetails(appId, json);
+                // Trailers are recorded only for an exact Steam appid (never for a title match).
+                if (details is not null && steamAppId is not null) CaptureTrailer(gameId, appId, json);
                 if (details is null)
                 {
                     repo.MarkMetadataAttempted(gameId);
@@ -62,12 +67,23 @@ public sealed partial class MetadataService(LibraryRepository repo, ArtworkServi
         return done;
     }
 
-    public async Task<SteamDetails?> GetDetailsAsync(string appId, CancellationToken ct)
+    public async Task<SteamDetails?> GetDetailsAsync(string appId, CancellationToken ct) =>
+        ParseDetails(appId, await GetDetailsJsonAsync(appId, ct));
+
+    private async Task<string> GetDetailsJsonAsync(string appId, CancellationToken ct)
     {
         await ThrottleAsync(ct);
-        var json = await http.GetStringAsync(
+        return await http.GetStringAsync(
             $"https://store.steampowered.com/api/appdetails?appids={Uri.EscapeDataString(appId)}&l=english", ct);
-        return ParseDetails(appId, json);
+    }
+
+    private void CaptureTrailer(string gameId, string appId, string json)
+    {
+        try { repo.SetTrailer(gameId, appId, Vystral.Core.Media.SteamTrailers.Select(appId, json)); }
+        catch (Exception ex) when (ex is JsonException or Microsoft.Data.Sqlite.SqliteException)
+        {
+            Log.Warn("metadata", "Trailer details couldn't be recorded", new { gameId }, ex);
+        }
     }
 
     internal static SteamDetails? ParseDetails(string appId, string json)

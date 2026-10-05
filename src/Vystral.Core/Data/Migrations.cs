@@ -130,5 +130,80 @@ internal static class Migrations
                 added TEXT NOT NULL
             );
             """),
+        (2, "play status tracking and trailer metadata", """
+            -- Play status is user data: NULL means "no status". Values are validated by the bridge
+            -- (backlog | playing | beaten | completed | abandoned).
+            ALTER TABLE games ADD COLUMN status TEXT;
+            ALTER TABLE games ADD COLUMN status_changed TEXT;
+
+            -- Every status change, for backlog charts and time-to-beat. No foreign key, so merging or
+            -- removing a game never fails on history; readers join on games to skip orphans.
+            CREATE TABLE status_history (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                game_id TEXT NOT NULL,
+                status  TEXT,
+                at      TEXT NOT NULL
+            );
+            CREATE INDEX ix_status_history_game ON status_history(game_id, at);
+
+            -- Optional store media per game (currently one Steam trailer). format 'none' records that
+            -- the store was checked and had nothing usable, so it isn't asked again every visit.
+            CREATE TABLE game_media (
+                game_id      TEXT NOT NULL,
+                kind         TEXT NOT NULL,
+                steam_app_id TEXT NOT NULL,
+                movie_id     TEXT,
+                name         TEXT,
+                format       TEXT NOT NULL,
+                url          TEXT,
+                thumbnail    TEXT,
+                highlight    INTEGER NOT NULL DEFAULT 0,
+                fetched      TEXT NOT NULL,
+                PRIMARY KEY (game_id, kind)
+            );
+            """),
+        (3, "steam web api: owned games and achievements cache", """
+            CREATE TABLE steam_owned (
+                app_id         TEXT PRIMARY KEY,
+                name           TEXT NOT NULL,
+                playtime_minutes INTEGER,
+                last_played    TEXT,
+                synced         TEXT NOT NULL
+            );
+
+            CREATE TABLE steam_achievements (
+                app_id         TEXT NOT NULL,
+                api_name       TEXT NOT NULL,
+                display_name   TEXT NOT NULL,
+                description    TEXT,
+                hidden         INTEGER NOT NULL DEFAULT 0,
+                icon_url       TEXT,
+                icon_gray_url  TEXT,
+                icon_file      TEXT,
+                icon_gray_file TEXT,
+                achieved       INTEGER NOT NULL DEFAULT 0,
+                unlock_time    TEXT,
+                global_percent REAL,
+                sort_order     INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (app_id, api_name)
+            ) WITHOUT ROWID;
+
+            CREATE TABLE steam_achievement_fetch (
+                app_id   TEXT PRIMARY KEY,
+                steam_id TEXT NOT NULL,
+                fetched  TEXT NOT NULL,
+                status   TEXT NOT NULL,
+                message  TEXT
+            );
+            """),
+        (4, "insights: launch timing, GPU throttling and frame-rate samples", """
+            ALTER TABLE sessions ADD COLUMN detect_ms INTEGER;
+            ALTER TABLE perf_samples ADD COLUMN gpu_clock_mhz REAL;
+            ALTER TABLE perf_samples ADD COLUMN throttle_flags INTEGER;
+            ALTER TABLE perf_samples ADD COLUMN fps REAL;
+            ALTER TABLE perf_samples ADD COLUMN frame_time_ms REAL;
+            ALTER TABLE perf_samples ADD COLUMN frame_time_p99_ms REAL;
+            CREATE INDEX ix_sessions_detect ON sessions(installation_id, start) WHERE detect_ms IS NOT NULL;
+            """),
     ];
 }

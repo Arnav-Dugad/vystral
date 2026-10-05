@@ -1,6 +1,6 @@
 # Progress
 
-Status as of **v0.1.0 (2026-10-04)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
+Status as of **v0.2.0 (2026-10-05)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
 
 ## Phase 1 — Foundation ✅
 - ✅ Repository, solution, CI and release workflows
@@ -24,7 +24,8 @@ Status as of **v0.1.0 (2026-10-04)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Manual games
 
 ## Phase 4 — Platform integrations 🟡
-- ✅ Steam: installed games, playtime, last played, local artwork. Verified on real data.
+- ✅ Steam: installed games, playtime, last played, local artwork, live install progress, trailers. Verified on real data.
+- 🟡 Steam Web API (owned games, achievements): implemented and tested against documented response shapes; not exercised with a real key on the dev PC.
 - 🟡 Xbox / Game Pass, Epic, GOG, EA, Ubisoft, Battle.net: implemented and fixture-tested; not exercised end to end on a PC with those games installed (EA and Ubisoft clients present on the dev PC with no games).
 - ✅ Capability and limitation reporting; per-adapter isolation and timeouts
 - ✅ Duplicate detection, suggestions, merge and unmerge
@@ -35,7 +36,8 @@ Status as of **v0.1.0 (2026-10-04)**. ✅ complete · 🟡 partial · ⛔ blocke
 ## Phase 5 — Premium experience ✅
 - ✅ Living Canvas (WebGL2, mood overlays, palette crossfades, pause rules, fallbacks)
 - ✅ Home (hero, shelves, deterministic picks, Library Radar), detail pages, cinematic launch, intro sequence
-- ✅ Immersive Mode (anchored shelves, panel, LB/RB tabs) and controller navigation everywhere (native Windows.Gaming.Input)
+- ✅ Immersive Mode rebuilt (single travelling focus ring, fixed-height windowed rows, crossfading info, A–Z rows, game panel, attract mode) and controller navigation everywhere (native Windows.Gaming.Input)
+- ✅ Startup intro, card-to-page flight, launch portal and return iris, exact return (scroll and focus), squircle corners
 - 🟡 Physical controller: implemented natively; keyboard path automated-tested; hands-on controller pass pending
 
 ## Phase 6 — Intelligence ✅
@@ -43,7 +45,8 @@ Status as of **v0.1.0 (2026-10-04)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Journal: stats, charts, timeline, Time Capsule milestones, year in review, export, delete
 - ✅ Recommendations with reasons (deterministic)
 - ✅ Optional local AI via Ollama: status, consented model download with progress, streaming chat, structured query parsing
-- ⛔ FPS / frame times: needs PresentMon ETW access (admin or Performance Log Users group). Reported honestly as not measured.
+- 🟡 FPS / frame times: opt-in PresentMon 2.6.0 capture with pinned SHA-256 and a one-time Performance Log Users grant. Parser verified against real CLI output and access-denied behaviour; not yet run against a live game with the permission granted.
+- ✅ Pre-flight checks, learned launch timing, one-click launch fixes, NVIDIA thermal-throttle alerts, game status with history
 
 ## Phase 7 — Signature features 🟡
 - ✅ Constellation (3D, with list alternative)
@@ -52,6 +55,8 @@ Status as of **v0.1.0 (2026-10-04)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Library Radar (installed / needs store app / missing / stores)
 - ✅ Moments Vault (Steam screenshots, Game Bar captures, custom folders, lightbox)
 - 🟡 Session Composer: per-game launch options and preferred store exist; display, audio and power profiles not implemented
+- ✅ Storage Studio (drive treemap, unplayed suggestions, never deletes)
+- ✅ Summon hotkey, Windows notifications (click-through blocked by microsoft/WindowsAppSDK#6774), notification centre, now-playing chip
 - ⬜ Sale and update news (no reliable, lawful, free source chosen)
 
 ## Phase 8 — Hardening 🟡
@@ -65,6 +70,20 @@ Status as of **v0.1.0 (2026-10-04)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Velopack per-user installer, portable zip, delta updates, in-app update viewer
 - ✅ GitHub Releases with a stable "latest" download link
 - See "Verification record" below for the release check.
+
+## Verification record (v0.2.0)
+
+Recorded 2026-10-05 on the same PC.
+
+| Check | Result |
+|---|---|
+| .NET tests | **873 passed, 0 failed** |
+| UI unit tests | **188 passed, 0 failed** |
+| Playwright e2e + axe (9 pages) + visual regression | **30 passed, 0 failed** |
+| TypeScript strict type-check + production build | Passed |
+| Real app over CDP | Intro plays at startup; Immersive ring, panel and logo layout with real Steam art; detail page streams the Steam trailer via the proxy; status picker; Storage Studio with real drive sizes (119 GB of games on C:); Settings for Steam Web API, frame-rate capture, summon shortcut (registered, "Active"); a test Windows notification appeared on the desktop; no page errors |
+| Found and fixed during the real-app pass | Notification registration failing (Windows App SDK bug, now falls back to show-only); stale Steam limitation text; Storage tiles without art; tall logos overlapping Immersive tabs |
+| Not verified | Steam Web API with a real key; PresentMon against a live game; launching a real game (not done without the owner present); physical controller pass |
 
 ## Verification record (v0.1.0)
 

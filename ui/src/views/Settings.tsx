@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  Bot, Database, Gamepad2, Info, LibraryBig, Palette, Rocket, Search, ShieldCheck, Sparkles, Download, AlertTriangle, CheckCircle2, XCircle,
+  Bot, Monitor, Database, Gamepad2, Info, LibraryBig, Palette, Rocket, Search, ShieldCheck, Sparkles, Download, AlertTriangle, CheckCircle2, XCircle,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { AdapterInfo, DiagnosticsInfo, SettingKey, Settings } from '../bridge/types';
@@ -10,6 +10,10 @@ import { useStore } from '../state/store';
 import { Badge, Button, Segmented, Slider, Toggle, PlatformBadge } from '../components/ui/primitives';
 import { Dialog } from '../components/ui/Dialog';
 import { UpdatePanel } from '../components/shell/UpdateCenter';
+import { SteamWebApiSettings } from './settings/SteamWebApiSettings';
+import { FpsCaptureSettings } from './settings/FpsCaptureSettings';
+import { WindowsIntegrationSettings } from './settings/WindowsIntegrationSettings';
+import { DataSaverSettings } from './settings/DataSaverSettings';
 import './settings.css';
 
 interface Section {
@@ -24,6 +28,7 @@ const SECTIONS: Section[] = [
   { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download' },
   { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu' },
   { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble sound audio immersive fullscreen' },
+  { id: 'windows', label: 'Windows integration', icon: <Monitor size={17} />, keywords: 'hotkey shortcut summon notifications toast windows tray' },
   { id: 'ai', label: 'Local AI', icon: <Bot size={17} />, keywords: 'ollama assistant model ai natural language' },
   { id: 'updates', label: 'Updates', icon: <Download size={17} />, keywords: 'update version release automatic download' },
   { id: 'privacy', label: 'Privacy', icon: <ShieldCheck size={17} />, keywords: 'privacy telemetry network offline local data' },
@@ -63,12 +68,13 @@ export function SettingsView({ section }: { section?: string }) {
         </nav>
         <div className="settings__content">
           {active === 'appearance' && <Appearance s={settings} />}
-          {active === 'library' && <LibrarySection s={settings} />}
-          {active === 'launching' && <Launching s={settings} />}
+          {active === 'library' && <><LibrarySection s={settings} /><SteamWebApiSettings /></>}
+          {active === 'launching' && <><Launching s={settings} /><FpsCaptureSettings /></>}
           {active === 'controller' && <Controller s={settings} />}
           {active === 'ai' && <AiSection s={settings} />}
           {active === 'updates' && <Updates s={settings} />}
-          {active === 'privacy' && <Privacy s={settings} />}
+          {active === 'privacy' && <><Privacy s={settings} /><DataSaverSettings /></>}
+          {active === 'windows' && <WindowsIntegrationSettings />}
           {active === 'data' && <DataSection />}
           {active === 'about' && <About />}
         </div>
@@ -156,7 +162,7 @@ function Appearance({ s }: { s: Settings }) {
           hint="Replaces movement with quick fades and stops background animation. “System” follows Windows’ animation setting."
           control={<Segmented label="Reduce motion" value={s['motion.reduce']} onChange={(v) => void set('motion.reduce', v)} options={[{ value: 'system', label: 'System' }, { value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} />}
         />
-        <BoolRow s={s} k="startup.intro" label="Play the startup animation" hint="About one second, once per launch. Press any key to skip it." />
+        <BoolRow s={s} k="startup.intro" label="Play the startup animation" hint="About three seconds, once per launch. Press any key, click or controller button to skip it." />
       </Group>
     </>
   );
@@ -235,7 +241,7 @@ function Launching({ s }: { s: Settings }) {
         <BoolRow s={s} k="launch.restoreOnExit" label="Come back when the game closes" hint="Restores VYSTRAL and shows a summary of your session." />
       </Group>
       <Group title="Sessions & performance" description="Readings come from Windows performance counters (and NVIDIA’s driver for GPU temperature when present). They are read-only: VYSTRAL never changes clocks, fans, power limits or game files.">
-        <BoolRow s={s} k="performance.collectMetrics" label="Record CPU, GPU and memory while playing" hint="One light reading every two seconds, stored only on this PC. Frame rate (FPS) is not measured." />
+        <BoolRow s={s} k="performance.collectMetrics" label="Record CPU, GPU and memory while playing" hint="One light reading every two seconds, stored only on this PC. Frame rate needs the optional frame-rate capture below." />
         <BoolRow s={s} k="pulse.enabled" label="Show the Pulse window during games" hint="A tiny always-on-top window with your session timer and system load. It’s a normal window — nothing is injected into games. It can’t appear over exclusive-fullscreen games." />
         <Row label="Preview the Pulse window" control={<Button size="sm" onClick={() => void call('window.pulse', { visible: true }).catch(() => {})}>Show preview</Button>} />
       </Group>
@@ -251,6 +257,12 @@ function Controller({ s }: { s: Settings }) {
         <BoolRow s={s} k="controller.enabled" label="Navigate with a controller" />
         <BoolRow s={s} k="controller.vibration" label="Gentle vibration feedback" />
         <BoolRow s={s} k="startup.immersive" label="Start in Immersive Mode" hint="The full-screen, controller-first layout. Press F11 or the Menu button to switch any time." />
+        <BoolRow s={s} k="immersive.attract" label="Screensaver in Immersive Mode" hint="After a few idle minutes, slowly cycles your games' artwork and your own screenshots. Any button returns you exactly where you were." />
+        <Row
+          label="Start the screensaver after"
+          hint={`${s['immersive.attractMinutes']} minute${s['immersive.attractMinutes'] === 1 ? '' : 's'} without input`}
+          control={<div style={{ width: 200 }}><Slider label="Screensaver delay in minutes" value={s['immersive.attractMinutes']} min={1} max={30} step={1} onChange={(v) => void useStore.getState().setSetting('immersive.attractMinutes', v)} /></div>}
+        />
         <Row label="Try Immersive Mode" control={<Button size="sm" icon={<Gamepad2 size={14} />} onClick={() => void setMode('immersive')}>Open</Button>} />
       </Group>
       <div className="pad-legend surface">
@@ -298,6 +310,7 @@ function Privacy({ s }: { s: Settings }) {
         <h3>When VYSTRAL uses the network</h3>
         <ul>
           <li><strong>Game details & artwork</strong> — Steam’s public store pages, only if enabled.</li>
+          <li><strong>Trailers</strong> — streamed from Steam’s video servers when you open a game page, only if game details are on and Data saver is off. Nothing is stored.</li>
           <li><strong>Update checks</strong> — github.com, only if enabled.</li>
           <li><strong>Local AI</strong> — talks to Ollama on this PC (localhost) only.</li>
           <li><strong>Your games and stores</strong> — they connect to their own services as usual; VYSTRAL doesn’t see or change that traffic.</li>

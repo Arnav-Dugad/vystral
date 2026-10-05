@@ -6,7 +6,8 @@
 import type { PerfSample, PerfSummary } from '../../bridge/types';
 
 export type MetricKey = 'cpu' | 'gpu' | 'gpuTempC' | 'gpuMemMb' | 'ramMb';
-type SummaryNumberKey = Exclude<keyof PerfSummary, 'fpsStatus' | 'samples'>;
+type SummaryNumberKey =
+  | 'cpuAvg' | 'cpuMax' | 'gpuAvg' | 'gpuMax' | 'gpuMemAvgMb' | 'gpuMemMaxMb' | 'ramAvgMb' | 'ramMaxMb' | 'gpuTempAvgC' | 'gpuTempMaxC';
 
 export interface MetricDef {
   key: MetricKey;
@@ -75,6 +76,22 @@ export function parsePerfSummary(json: string | null | undefined): PerfSummary |
     gpuTempAvgC: num(o.gpuTempAvgC),
     gpuTempMaxC: num(o.gpuTempMaxC),
     fpsStatus: typeof o.fpsStatus === 'string' && o.fpsStatus.trim() ? o.fpsStatus : 'FPS is not recorded.',
+    // Schema v4 (throttling, frame rate). Absent in older sessions.
+    throttledSeconds: num(o.throttledSeconds),
+    powerLimitedSeconds: num(o.powerLimitedSeconds),
+    throttleReasons: Array.isArray(o.throttleReasons) ? o.throttleReasons.filter((r): r is 'thermal' | 'power' => r === 'thermal' || r === 'power') : null,
+    peakTempC: num(o.peakTempC),
+    gpuClockAvgMhz: num(o.gpuClockAvgMhz),
+    thermalNote: typeof o.thermalNote === 'string' && o.thermalNote.trim() ? o.thermalNote : null,
+    fpsAvg: num(o.fpsAvg),
+    fps1Low: num(o.fps1Low),
+    fps01Low: num(o.fps01Low),
+    frameTimeP50Ms: num(o.frameTimeP50Ms),
+    frameTimeP99Ms: num(o.frameTimeP99Ms),
+    stutterCount: num(o.stutterCount),
+    frameCount: num(o.frameCount),
+    frameTimeHistogram: Array.isArray(o.frameTimeHistogram) && o.frameTimeHistogram.every((x) => typeof x === 'number') ? (o.frameTimeHistogram as number[]) : null,
+    fpsSource: typeof o.fpsSource === 'string' ? o.fpsSource : null,
   };
 }
 
@@ -275,8 +292,19 @@ export function formatOffset(ms: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
 }
 
-export function formatMetric(value: number | null | undefined, unit: MetricDef['unit']): string {
+/** Units a chart can show: the system metrics plus frames per second (PresentMon, opt-in). */
+export type ChartUnit = MetricDef['unit'] | 'fps';
+
+/** What LineChart needs to know about the series it draws. */
+export interface ChartMetric {
+  label: string;
+  unit: ChartUnit;
+  color: string;
+}
+
+export function formatMetric(value: number | null | undefined, unit: ChartUnit): string {
   if (value == null || !Number.isFinite(value)) return '—';
+  if (unit === 'fps') return `${Math.round(value)} fps`;
   if (unit === 'GB') return `${value.toFixed(value >= 10 ? 1 : 2)} GB`;
   if (unit === '°C') return `${Math.round(value)} °C`;
   return `${Math.round(value)}%`;

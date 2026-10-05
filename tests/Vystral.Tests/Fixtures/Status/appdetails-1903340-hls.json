@@ -1,0 +1,48 @@
+{
+ "1903340": {
+  "success": true,
+  "data": {
+   "type": "game",
+   "name": "Clair Obscur: Expedition 33",
+   "steam_appid": 1903340,
+   "movies": [
+    {
+     "id": 257129803,
+     "name": "Launch Trailer",
+     "thumbnail": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/257129803/a409d62da478b6b9fdceeb05a1281805fe7a0dae/movie_600x337.jpg?t=1745478082",
+     "dash_av1": "https://video.akamai.steamstatic.com/store_trailers/1903340/876247/5c4709c3a98d932003a6b85bd5e4bfcd6a777e7a/1748581603/dash_av1.mpd?t=1745478082",
+     "dash_h264": "https://video.akamai.steamstatic.com/store_trailers/1903340/876247/5c4709c3a98d932003a6b85bd5e4bfcd6a777e7a/1748581603/dash_h264.mpd?t=1745478082",
+     "hls_h264": "https://video.akamai.steamstatic.com/store_trailers/1903340/876247/5c4709c3a98d932003a6b85bd5e4bfcd6a777e7a/1748581603/hls_264_master.m3u8?t=1745478082",
+     "highlight": true
+    },
+    {
+     "id": 257089584,
+     "name": "Pre-order Trailer",
+     "thumbnail": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/257089584/3807053b21d244f2ce0cac72419edca2871bca33/movie_600x337.jpg?t=1737713984",
+     "dash_av1": "https://video.akamai.steamstatic.com/store_trailers/1903340/813805/a49be4aac940b236f9dadcf3e82021294d40dd8d/1748581548/dash_av1.mpd?t=1737713984",
+     "dash_h264": "https://video.akamai.steamstatic.com/store_trailers/1903340/813805/a49be4aac940b236f9dadcf3e82021294d40dd8d/1748581548/dash_h264.mpd?t=1737713984",
+     "hls_h264": "https://video.akamai.steamstatic.com/store_trailers/1903340/813805/a49be4aac940b236f9dadcf3e82021294d40dd8d/1748581548/hls_264_master.m3u8?t=1737713984",
+     "highlight": true
+    },
+    {
+     "id": 257065813,
+     "name": "Cast Reveal",
+     "thumbnail": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/257065813/b82f1f53660fe08d9ecc2e92ba09b6c614e1425a/movie_600x337.jpg?t=1737657533",
+     "dash_av1": "https://video.akamai.steamstatic.com/store_trailers/1903340/772894/ee2b4b3a6b5584f2e25208ceffe6048f2d771803/1748581546/dash_av1.mpd?t=1737657533",
+     "dash_h264": "https://video.akamai.steamstatic.com/store_trailers/1903340/772894/ee2b4b3a6b5584f2e25208ceffe6048f2d771803/1748581546/dash_h264.mpd?t=1737657533",
+     "hls_h264": "https://video.akamai.steamstatic.com/store_trailers/1903340/772894/ee2b4b3a6b5584f2e25208ceffe6048f2d771803/1748581546/hls_264_master.m3u8?t=1737657533",
+     "highlight": false
+    },
+    {
+     "id": 257029925,
+     "name": "Reveal Trailer",
+     "thumbnail": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/257029925/movie.293x165.jpg?t=1718018683",
+     "dash_av1": "https://video.akamai.steamstatic.com/store_trailers/1903340/711794/198882dd1d8c86b7c6e3c5940d768b827a539381/1748581546/dash_av1.mpd?t=1718018683",
+     "dash_h264": "https://video.akamai.steamstatic.com/store_trailers/1903340/711794/198882dd1d8c86b7c6e3c5940d768b827a539381/1748581546/dash_h264.mpd?t=1718018683",
+     "hls_h264": "https://video.akamai.steamstatic.com/store_trailers/1903340/711794/198882dd1d8c86b7c6e3c5940d768b827a539381/1748581546/hls_264_master.m3u8?t=1718018683",
+     "highlight": false
+    }
+   ]
+  }
+ }
+}

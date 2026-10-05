@@ -2,12 +2,14 @@ import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowDownWideNarrow, FilePlus2, Grid3x3, List, Pencil, Search, Trash2, X, Copy } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
-import type { Game } from '../bridge/types';
+import type { Game, GameStatus } from '../bridge/types';
 import {
   formatBytes, formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural, sizeOf,
 } from '../lib/format';
 import { parseQuery, searchGames, type ParsedQuery } from '../lib/search';
 import { addManualGame } from '../state/actions';
+import { STATUSES, statusRank } from '../lib/status';
+import '../components/game/status.css';
 import { useStore } from '../state/store';
 import { GameCard } from '../components/game/GameCard';
 import { GameCover } from '../components/game/GameCover';
@@ -15,8 +17,8 @@ import { Badge, Button, EmptyState, IconButton, PlatformBadge, Segmented, Slider
 import { Dialog } from '../components/ui/Dialog';
 import './library.css';
 
-type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added';
-type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'missing' | 'hidden';
+type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status';
+type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'missing' | 'hidden' | `status:${GameStatus}`;
 
 const QUICK: { value: Quick; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -69,7 +71,7 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
         case 'new': return !g.hidden && now - Date.parse(g.added) < 30 * 86400000;
         case 'client': return !g.hidden && isInstalled(g) && g.installations.every((i) => i.state !== 'installed' || i.clientRequired);
         case 'missing': return !g.hidden && !isInstalled(g);
-        default: return true;
+        default: return quick.startsWith('status:') ? !g.hidden && g.status === quick.slice(7) : true;
       }
     });
     const filters = { ...parsed.filters, hidden: quick === 'hidden' ? true : parsed.filters.hidden };
@@ -85,6 +87,7 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
         playtime: (a, b) => playtime(b) - playtime(a),
         size: (a, b) => (sizeOf(b) ?? -1) - (sizeOf(a) ?? -1),
         added: (a, b) => b.added.localeCompare(a.added),
+        status: (a, b) => statusRank(a) - statusRank(b) || (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? '') || a.sortTitle.localeCompare(b.sortTitle),
       };
       found = [...found].sort(cmp[sort]);
     }
@@ -145,6 +148,7 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
               <option value="playtime">Most played</option>
               <option value="size">Largest</option>
               <option value="added">Recently added</option>
+              <option value="status">Play status</option>
             </select>
           </label>
           {view === 'grid' && (
@@ -170,6 +174,17 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
             {q.label}
           </button>
         ))}
+        <span className="lib-quick__sep" aria-hidden style={{ width: 1, alignSelf: 'stretch', margin: '4px 4px', background: 'var(--line-strong)' }} />
+        {STATUSES.map((st) => {
+          const Icon = st.icon;
+          const value = `status:${st.value}` as const;
+          return (
+            <button key={value} className="chip status-mark" style={{ ['--st' as string]: st.color }} aria-pressed={quick === value} title={st.hint} onClick={() => setQuick(quick === value ? 'all' : value)}>
+              <span className="status-mark__icon" aria-hidden><Icon size={13} /></span>
+              {st.label}
+            </button>
+          );
+        })}
       </div>
 
       {parsed.chips.length > 0 && (

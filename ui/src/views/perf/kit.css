@@ -108,3 +108,9 @@
 .vx-source svg { flex: none; }
 
 .vx-select { width: auto; min-width: 200px; max-width: 320px; height: 34px; }
+
+/* Track B: shaded ranges (GPU thermal throttling). The chart's text and the alert card say the same in words. */
+.vx-chart__band {
+  fill: oklch(from var(--warn) l c h / 0.12);
+  stroke: none;
+}

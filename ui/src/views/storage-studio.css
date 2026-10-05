@@ -1,0 +1,140 @@
+.storage__head { display: grid; gap: 4px; margin-bottom: var(--s-6); }
+.storage__title { font-family: var(--font-display); font-size: var(--fs-3xl); font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+.storage__lede { color: var(--text-2); max-width: 72ch; }
+
+.storage__layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: var(--s-6); align-items: start; }
+.storage__drives { display: grid; gap: var(--s-6); min-width: 0; }
+@media (max-width: 1180px) { .storage__layout { grid-template-columns: 1fr; } }
+
+/* ===== Drive ===== */
+.drive { padding: var(--s-5); display: grid; gap: var(--s-3); min-width: 0; }
+.drive__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+.drive__name { display: flex; align-items: center; gap: 10px; }
+.drive__name svg { color: var(--text-3); align-self: center; }
+.drive__name h2 { font-size: var(--fs-lg); font-weight: var(--fw-semibold); }
+.drive__free { color: var(--text-2); font-size: var(--fs-sm); }
+.drive__empty { color: var(--text-3); padding: var(--s-4) 0 var(--s-2); }
+.drive__platforms { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
+.drive__count { margin-left: auto; font-size: var(--fs-xs); color: var(--text-3); }
+
+.capbar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--bg-3); box-shadow: inset 0 0 0 1px var(--line); }
+.capbar__games { background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
+.capbar__other { background: oklch(from var(--text-3) l c h / 0.45); }
+.capbar__legend { display: flex; gap: var(--s-5); flex-wrap: wrap; font-size: var(--fs-xs); color: var(--text-3); }
+.capbar__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.capbar__legend b { color: var(--text-1); font-weight: var(--fw-semibold); }
+.dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.dot--games { background: var(--accent); }
+.dot--other { background: oklch(from var(--text-3) l c h / 0.6); }
+.dot--free { background: var(--bg-3); box-shadow: inset 0 0 0 1px var(--line-strong); }
+
+/* ===== Treemap ===== */
+.treemap { position: relative; width: 100%; margin-top: var(--s-2); }
+.tile-t {
+  position: absolute;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  padding: 0;
+  text-align: left;
+  color: var(--text-1);
+  background:
+    linear-gradient(160deg, oklch(from var(--pc) l c h / 0.34), oklch(from var(--pc) calc(l - 0.18) c h / 0.22)),
+    var(--bg-2);
+  box-shadow: inset 0 0 0 1px oklch(from var(--pc) l c h / 0.35), var(--inner-hi);
+  transition: filter var(--dur-fast) var(--ease-out);
+}
+.tile-t::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--accent-hi), 0 0 24px -4px oklch(from var(--accent) l c h / 0.6);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+  pointer-events: none;
+}
+.tile-t__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.62;
+  mix-blend-mode: luminosity;
+  transform: scale(1.02);
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+  pointer-events: none;
+}
+/* The platform tint stays on top so tiles still read as a map; the label gets a scrim. */
+.tile-t:has(.tile-t__art)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, oklch(0 0 0 / 0.72), oklch(0 0 0 / 0) 60%),
+    linear-gradient(160deg, oklch(from var(--pc) l c h / 0.28), oklch(from var(--pc) calc(l - 0.18) c h / 0.18));
+  pointer-events: none;
+}
+.tile-t__label, .tile-t__mini { z-index: 1; }
+.tile-t:hover .tile-t__art, .tile-t:focus-visible .tile-t__art { opacity: 0.9; mix-blend-mode: normal; transform: scale(1.06); }
+:root[data-theme='light'] .tile-t__label { color: oklch(0.98 0 0); }
+@media (prefers-reduced-motion: reduce) { .tile-t__art { transition: opacity var(--dur-fast) linear; transform: none !important; } }
+.tile-t:hover { filter: brightness(1.14); }
+.tile-t:hover::after, .tile-t:focus-visible::after { opacity: 1; }
+.tile-t:focus-visible { box-shadow: inset 0 0 0 1px oklch(from var(--pc) l c h / 0.35); z-index: 1; }
+.tile-t[data-tiny] { border-radius: 3px; }
+.tile-t__label { position: absolute; left: 10px; right: 10px; bottom: 8px; display: grid; gap: 1px; }
+.tile-t__title { font-weight: var(--fw-semibold); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 6px oklch(0 0 0 / 0.45); }
+.tile-t__size { font-size: var(--fs-2xs); color: var(--text-2); }
+.tile-t__mini { position: absolute; left: 6px; bottom: 4px; font-size: var(--fs-2xs); color: var(--text-2); }
+:root[data-theme='light'] .tile-t__title { text-shadow: none; }
+
+.tile-tip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--glass-strong);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-3), 0 0 0 1px var(--line-strong);
+  display: grid;
+  gap: 4px;
+}
+:root[data-quality='low'] .tile-tip { backdrop-filter: none; }
+.tile-tip__title { font-weight: var(--fw-semibold); }
+.tile-tip__row { font-size: var(--fs-sm); color: var(--text-2); }
+.tile-tip__hint { font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; }
+
+/* ===== Suggestions ===== */
+.suggest { padding: var(--s-5); display: grid; gap: var(--s-4); position: sticky; top: var(--s-4); }
+@media (max-width: 1180px) { .suggest { position: static; } }
+.suggest__total { display: grid; gap: 2px; padding: var(--s-4); border-radius: var(--r-lg); background: radial-gradient(circle at 0% 0%, var(--accent-ghost), transparent 70%), var(--bg-2); box-shadow: inset 0 0 0 1px var(--line); }
+.suggest__total .num { font-size: var(--fs-2xl); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tight); color: var(--accent-text); }
+.suggest__total span:last-child { color: var(--text-2); font-size: var(--fs-sm); }
+.suggest__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.suggest__item { display: grid; grid-template-columns: 44px minmax(0, 1fr); grid-template-areas: 'cover info' 'cover action'; column-gap: var(--s-3); row-gap: 2px; align-items: center; padding: var(--s-2); border-radius: var(--r-md); }
+.suggest__item > .suggest__cover { grid-area: cover; align-self: start; }
+.suggest__item > .suggest__info { grid-area: info; }
+.suggest__item > :last-child:not(.suggest__info) { grid-area: action; justify-self: start; margin-left: -10px; }
+.suggest__item > .suggest__manual { margin-left: 0 !important; }
+.suggest__item:hover { background: oklch(1 0 0 / 0.03); }
+.suggest__cover { position: relative; width: 44px; aspect-ratio: 2 / 3; border-radius: var(--r-xs); overflow: hidden; padding: 0; }
+.suggest__cover .install-badge { left: 2px; bottom: 2px; padding: 0 4px 0 2px; height: 20px; }
+.suggest__cover .install-badge__text { display: none; }
+.suggest__info { min-width: 0; display: grid; gap: 2px; }
+.suggest__title { font-weight: var(--fw-medium); }
+.suggest__meta { display: flex; flex-wrap: wrap; white-space: nowrap; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--text-2); }
+.suggest__played { font-size: var(--fs-xs); color: var(--text-3); }
+.suggest__manual { font-size: var(--fs-xs); color: var(--text-3); }
+.suggest__empty { display: flex; gap: var(--s-3); align-items: flex-start; color: var(--text-2); }
+.suggest__empty svg { color: var(--ok); flex: none; margin-top: 2px; }
+.suggest__note { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-xs); color: var(--text-3); }
+.suggest__note svg { flex: none; margin-top: 1px; color: var(--accent-text); }
+
+/* ===== Uninstall dialog ===== */
+.uninstall { display: grid; gap: var(--s-3); }
+.uninstall__steps { margin: 0; padding-left: 1.3em; display: grid; gap: var(--s-2); }
+.uninstall__steps li::marker { color: var(--accent-text); font-weight: var(--fw-semibold); }
+.uninstall__steps strong { color: var(--text-1); }
+.uninstall__hint { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: var(--text-3); }

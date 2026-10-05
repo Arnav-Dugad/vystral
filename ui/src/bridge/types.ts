@@ -52,6 +52,49 @@ export interface Game {
   sessionCount: number;
   lastTrackedPlay: string | null;
   added: string;
+  /** Play status set by the user (null/absent = none). */
+  status?: GameStatus | null;
+  /** When the status last changed (ISO), absent when there is no status. */
+  statusChangedAt?: string | null;
+}
+
+export type GameStatus = 'backlog' | 'playing' | 'beaten' | 'completed' | 'abandoned';
+
+export interface StatusHistoryEntry {
+  gameId: string;
+  status: GameStatus | null;
+  at: string;
+}
+
+export interface StatusResult {
+  status: GameStatus | null;
+  statusChangedAt: string | null;
+  previous: GameStatus | null;
+  changed: boolean;
+}
+
+/** Why no trailer can play right now. */
+export type TrailerReason = 'noSteamApp' | 'none' | 'notChecked' | 'offline' | 'dataSaver' | 'gameRunning' | 'lookupsOff';
+
+export interface TrailerInfo {
+  available: boolean;
+  /** 'hls' = Steam's HLS (fMP4) trailer through the media proxy; 'file' = a single mp4/webm file. */
+  kind: 'hls' | 'file' | null;
+  src: string | null;
+  name: string | null;
+  reason: TrailerReason | null;
+  source: string;
+}
+
+export interface NetworkStatus {
+  connected: boolean;
+  metered: boolean;
+  costType: string;
+  roaming: boolean;
+  overDataLimit: boolean;
+  approachingDataLimit: boolean;
+  dataSaverActive: boolean;
+  dataSaverReason: 'manual' | 'metered' | null;
 }
 
 export interface CollectionInfo {
@@ -175,6 +218,8 @@ export interface Settings {
   'motion.reduce': 'system' | 'on' | 'off';
   'startup.intro': boolean;
   'startup.immersive': boolean;
+  'immersive.attract': boolean;
+  'immersive.attractMinutes': number;
   'launch.cinematic': boolean;
   'launch.minimizeOnStart': boolean;
   'launch.restoreOnExit': boolean;
@@ -194,6 +239,9 @@ export interface Settings {
   'onboarding.completed': boolean;
   'privacy.localOnly': boolean;
   'moments.enabled': boolean;
+  'dataSaver.enabled': boolean;
+  'dataSaver.onMetered': boolean;
+  'trailers.autoplay': boolean;
 }
 
 export type SettingKey = keyof Settings;
@@ -311,7 +359,203 @@ export interface BridgeEvents {
   'gamepad.connection': { count: number };
   'ai.chat': { requestId: string; delta?: string; done?: boolean; error?: string };
   'ai.pull': { model: string; status: string; total?: number; completed?: number; error?: string };
+  'status.changed': { gameId: string; status: GameStatus | null; previous: GameStatus | null; at: string };
 }
 
 export type GamepadButton =
   | 'A' | 'B' | 'X' | 'Y' | 'LB' | 'RB' | 'LT' | 'RT' | 'Menu' | 'View' | 'Up' | 'Down' | 'Left' | 'Right';
+
+// ---------- Track A: Steam Web API, achievements, store installs (mirror of SteamAccountService / InstallWatcher) ----------
+
+export interface Settings {
+  'steam.webApi.backgroundAchievements': boolean;
+}
+
+export interface SteamAccount {
+  steamId: string;
+  personaName: string;
+  mostRecent: boolean;
+}
+
+export type SteamTestOutcome = 'ok' | 'invalidKey' | 'privateProfile' | 'rateLimited' | 'unavailable' | 'malformed' | 'noAccount';
+
+export interface SteamTestResult {
+  outcome: SteamTestOutcome;
+  message: string;
+  gameCount: number | null;
+  at: string;
+}
+
+export interface SteamApiStatus {
+  localOnly: boolean;
+  steamInstalled: boolean;
+  configured: boolean;
+  /** Only the last four characters, e.g. "••••3F9A". The key itself never reaches the UI. */
+  keyMasked: string | null;
+  accounts: SteamAccount[];
+  steamId: string | null;
+  lastSync: string | null;
+  ownedCount: number;
+  lastTest: SteamTestResult | null;
+  syncing: boolean;
+}
+
+export interface SteamActionResult {
+  result: SteamTestResult;
+  status: SteamApiStatus;
+}
+
+export interface Achievement {
+  apiName: string;
+  name: string;
+  /** Null for hidden achievements that are still locked. */
+  description: string | null;
+  hidden: boolean;
+  achieved: boolean;
+  unlockedAt: string | null;
+  /** Share of all Steam players who unlocked it (0–100). */
+  globalPercent: number | null;
+  /** Cached icon on the art host, or null. Never a remote URL. */
+  icon: string | null;
+}
+
+export type AchievementsStatus = 'ok' | 'none' | 'private' | 'error' | 'notSteam' | 'notConnected' | 'noAccount' | 'localOnly';
+
+export interface AchievementsResult {
+  status: AchievementsStatus;
+  message: string | null;
+  fetchedAt: string | null;
+  achievements: Achievement[];
+  unlocked: number;
+  total: number;
+}
+
+export type InstallPhase = 'queued' | 'downloading' | 'staging' | 'paused' | 'installed' | 'removed' | 'unknown';
+
+export interface InstallProgress {
+  gameId: string;
+  appId: string;
+  kind: 'install' | 'update' | 'uninstall';
+  phase: InstallPhase;
+  bytesDone: number;
+  bytesTotal: number;
+  /** Bytes per second, measured from Steam's manifest; null when unknown. */
+  rate: number | null;
+  /** False once VYSTRAL stopped watching (finished, removed or no change for 10 minutes). */
+  watching: boolean;
+}
+
+export interface BridgeEvents {
+  'install.progress': InstallProgress;
+  'steam.achievementsUpdated': { count: number };
+}
+
+// ---------- Track B: pre-flight, launch timing, fixes, throttling, FPS capture, hotkey, notifications ----------
+
+export interface LaunchFix {
+  id: 'rescanPlatform' | 'openStore' | 'startClient' | 'installClient' | 'openFolder';
+  label: string;
+  platform: string | null;
+}
+
+export interface LaunchState {
+  /** Median launch→detected time (ms) of the last 3+ launches of this installation; null until learned. */
+  expectedDetectMs?: number | null;
+  /** One-click fixes for phase 'failed'. Run with call('launch.fix', { ticket, actionId }). */
+  actions?: LaunchFix[] | null;
+  /** ISO time the launch was accepted. Determinate progress = (now − acceptedAt) / expectedDetectMs. */
+  acceptedAt?: string | null;
+}
+
+export interface PerfSummary {
+  /** Seconds the GPU was thermally throttled (NVIDIA only); null when not reported. */
+  throttledSeconds?: number | null;
+  powerLimitedSeconds?: number | null;
+  throttleReasons?: ('thermal' | 'power')[] | null;
+  peakTempC?: number | null;
+  gpuClockAvgMhz?: number | null;
+  /** Set when thermal throttling lasted ≥ 30 s. */
+  thermalNote?: string | null;
+  fpsAvg?: number | null;
+  fps1Low?: number | null;
+  fps01Low?: number | null;
+  frameTimeP50Ms?: number | null;
+  frameTimeP99Ms?: number | null;
+  stutterCount?: number | null;
+  frameCount?: number | null;
+  /** Frame counts per bucket; edges in FRAME_TIME_EDGES_MS (ui/src/views/perf/insight.ts). */
+  frameTimeHistogram?: number[] | null;
+  fpsSource?: string | null;
+}
+
+/** Extra per-sample data (schema v4), joined to PerfSample by t. */
+export interface InsightSample {
+  t: number;
+  gpuClockMhz: number | null;
+  /** Bit flags: 1 thermal (software), 2 thermal (hardware), 4 power cap, 8 power brake. */
+  throttleFlags: number | null;
+  fps: number | null;
+  frameTimeMs: number | null;
+  frameTimeP99Ms: number | null;
+}
+
+export type PreflightStatus = 'ok' | 'info' | 'warn';
+
+export interface PreflightCheck {
+  id: 'disk' | 'steamUpdate' | 'controller' | 'display' | 'launchers' | string;
+  label: string;
+  status: PreflightStatus;
+  value: string;
+  detail: string | null;
+}
+
+export interface PreflightResult {
+  ticket: string;
+  checks: PreflightCheck[];
+}
+
+export interface FpsCaptureStatus {
+  enabled: boolean;
+  installed: boolean;
+  installing: boolean;
+  version: string;
+  fileName: string;
+  sizeBytes: number;
+  sha256: string;
+  sourceUrl: string;
+  releasePage: string;
+  licenseUrl: string;
+  installPath: string;
+  permission: 'granted' | 'signOutRequired' | 'missing';
+  groupName: string;
+  account: string | null;
+  ready: boolean;
+  localOnly: boolean;
+}
+
+export interface HotkeyStatus {
+  shortcut: string;
+  enabled: boolean;
+  registered: boolean;
+  error: string | null;
+  available: boolean;
+}
+
+export interface Settings {
+  'fps.captureEnabled': boolean;
+  'hotkey.enabled': boolean;
+  'hotkey.summon': string;
+  'notifications.enabled': boolean;
+  'notifications.sessions': boolean;
+  'notifications.updates': boolean;
+  'notifications.installs': boolean;
+  'notifications.thermal': boolean;
+  'notifications.onlyInBackground': boolean;
+}
+
+export interface BridgeEvents {
+  'launch.preflight': PreflightResult;
+  'fps.install': { phase: 'downloading' | 'installed' | 'failed'; progress: number; error?: string };
+  /** Sent when a Windows notification is clicked; route is a store Route object. */
+  'app.navigate': { route: { name: string; id?: string; sessionId?: string; section?: string } };
+}

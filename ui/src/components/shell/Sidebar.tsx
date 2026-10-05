@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { BarChart3, BookOpen, Bot, Home, Images, LibraryBig, Settings2, Sparkles, Folder, Plus } from 'lucide-react';
+import { HardDrive, BarChart3, BookOpen, Bot, Home, Images, LibraryBig, Settings2, Sparkles, Folder, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { spring } from '../../lib/motion';
 import { useReducedMotion, useStore, type Route } from '../../state/store';
@@ -10,6 +10,7 @@ const NAV: { route: Route; label: string; icon: ReactNode }[] = [
   { route: { name: 'journal' }, label: 'Journal', icon: <BookOpen size={18} /> },
   { route: { name: 'performance' }, label: 'Performance', icon: <BarChart3 size={18} /> },
   { route: { name: 'moments' }, label: 'Moments', icon: <Images size={18} /> },
+  { route: { name: 'storage' }, label: 'Storage', icon: <HardDrive size={18} /> },
   { route: { name: 'constellation' }, label: 'Constellation', icon: <Sparkles size={18} /> },
   { route: { name: 'assistant' }, label: 'Assistant', icon: <Bot size={18} /> },
 ];

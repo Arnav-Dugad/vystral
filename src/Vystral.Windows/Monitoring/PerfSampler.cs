@@ -13,17 +13,34 @@ public sealed record PerfSummary(
     double? GpuMemAvgMb, double? GpuMemMaxMb,
     double? RamAvgMb, double? RamMaxMb,
     double? GpuTempAvgC, double? GpuTempMaxC,
-    string FpsStatus);
+    string FpsStatus,
+    // ---- schema v4 additions (all null when not measured) ----
+    int? ThrottledSeconds = null,
+    int? PowerLimitedSeconds = null,
+    IReadOnlyList<string>? ThrottleReasons = null,
+    double? PeakTempC = null,
+    double? GpuClockAvgMhz = null,
+    string? ThermalNote = null,
+    double? FpsAvg = null,
+    double? Fps1Low = null,
+    double? Fps01Low = null,
+    double? FrameTimeP50Ms = null,
+    double? FrameTimeP99Ms = null,
+    int? StutterCount = null,
+    int? FrameCount = null,
+    IReadOnlyList<int>? FrameTimeHistogram = null,
+    string? FpsSource = null);
 
 /// <summary>
 /// Read-only system sampling during a game session. Uses Windows performance counters
-/// (no admin) and, when an NVIDIA driver is installed, NVML's temperature query. Nothing
-/// here changes clocks, fans, power limits or any other hardware setting.
+/// (no admin) and, when an NVIDIA driver is installed, NVML's temperature, clock and
+/// throttle-reason queries. Nothing here changes clocks, fans, power limits or any other
+/// hardware setting.
 /// </summary>
 public sealed class PerfSampler : IDisposable
 {
     public const string FpsUnavailable =
-        "Frame-rate capture needs Intel PresentMon with ETW access, which VYSTRAL does not use yet. FPS is not recorded.";
+        "Frame-rate capture is off. It can be turned on in Settings › Launching & sessions (it uses Intel PresentMon). FPS is not recorded.";
 
     private readonly CpuMeter _cpu = new();
     private readonly GpuCounters _gpu = new();
@@ -38,7 +55,71 @@ public sealed class PerfSampler : IDisposable
         return new PerfSampleDto(offsetMs, Round(cpu), Round(gpu), Round(gpuMem), Round(ram), Round(temp));
     }
 
-    public static PerfSummary Summarize(IReadOnlyList<PerfSampleDto> samples)
+    /// <summary>NVIDIA graphics clock and throttle flags (read-only NVML queries); nulls elsewhere.</summary>
+    public (double? ClockMhz, int? Flags) ReadGpuState()
+    {
+        if (_nvml is null) return (null, null);
+        var reasons = _nvml.ReadThrottleReasons();
+        return (_nvml.ReadGraphicsClock(), reasons is ulong r ? (int)Throttle.FromNvml(r) : null);
+    }
+
+    public static PerfSummary Summarize(IReadOnlyList<PerfSampleDto> samples) => Summarize(samples, [], null, FpsUnavailable);
+
+    /// <summary>
+    /// Full summary including throttling (from <paramref name="extras"/>) and frame statistics.
+    /// <paramref name="fpsStatus"/> explains how FPS was measured, or why it wasn't.
+    /// </summary>
+    public static PerfSummary Summarize(IReadOnlyList<PerfSampleDto> samples, IReadOnlyList<InsightSampleDto> extras, FrameSummary? frames, string fpsStatus)
+    {
+        var basic = SummarizeBasic(samples, fpsStatus);
+        var (thermal, power, reasons) = ThrottleTotals(extras);
+        var temps = samples.Where(x => x.GpuTempC.HasValue).Select(x => x.GpuTempC!.Value).ToList();
+        var clocks = extras.Skip(extras.Count > 2 ? 1 : 0).Where(x => x.GpuClockMhz.HasValue).Select(x => x.GpuClockMhz!.Value).ToList();
+        return basic with
+        {
+            ThrottledSeconds = thermal,
+            PowerLimitedSeconds = power,
+            ThrottleReasons = reasons,
+            PeakTempC = temps.Count == 0 ? null : Math.Round(temps.Max(), 1),
+            GpuClockAvgMhz = clocks.Count == 0 ? null : Math.Round(clocks.Average()),
+            ThermalNote = thermal >= Throttle.NoteThresholdSeconds ? Throttle.ThermalNote(thermal.Value) : null,
+            FpsAvg = frames?.FpsAvg,
+            Fps1Low = frames?.Fps1Low,
+            Fps01Low = frames?.Fps01Low,
+            FrameTimeP50Ms = frames?.FrameTimeP50Ms,
+            FrameTimeP99Ms = frames?.FrameTimeP99Ms,
+            StutterCount = frames?.Stutters,
+            FrameCount = frames?.Frames,
+            FrameTimeHistogram = frames?.Histogram,
+            FpsSource = frames is null ? null : $"Intel PresentMon {PresentMonRelease.Pinned.Version}",
+        };
+    }
+
+    /// <summary>
+    /// Seconds spent thermally throttled / power limited. Each sample counts for the time since
+    /// the previous one (capped at 5 s so a gap in sampling isn't counted as throttling).
+    /// All null when the GPU never reported throttle reasons.
+    /// </summary>
+    public static (int? Thermal, int? Power, IReadOnlyList<string>? Reasons) ThrottleTotals(IReadOnlyList<InsightSampleDto> extras)
+    {
+        var ordered = extras.Where(e => e.ThrottleFlags.HasValue).OrderBy(e => e.T).ToList();
+        if (ordered.Count == 0) return (null, null, null);
+        double thermalMs = 0, powerMs = 0;
+        var all = ThrottleFlags.None;
+        int? prev = null;
+        foreach (var e in ordered)
+        {
+            var dt = prev is int p ? Math.Clamp(e.T - p, 0, 5000) : 2000;
+            prev = e.T;
+            if (Throttle.IsThermal(e.ThrottleFlags)) thermalMs += dt;
+            if (Throttle.IsPowerLimited(e.ThrottleFlags)) powerMs += dt;
+            all |= (ThrottleFlags)e.ThrottleFlags!.Value;
+        }
+        var keys = Throttle.ReasonKeys(all);
+        return ((int)Math.Round(thermalMs / 1000), (int)Math.Round(powerMs / 1000), keys.Count == 0 ? null : keys);
+    }
+
+    private static PerfSummary SummarizeBasic(IReadOnlyList<PerfSampleDto> samples, string fpsStatus)
     {
         static (double?, double?) Stat(IEnumerable<double?> values)
         {
@@ -53,7 +134,7 @@ public sealed class PerfSampler : IDisposable
         var ram = Stat(s.Select(x => x.RamMb));
         var temp = Stat(s.Select(x => x.GpuTempC));
         return new PerfSummary(samples.Count, cpu.Item1, cpu.Item2, gpu.Item1, gpu.Item2, mem.Item1, mem.Item2,
-            ram.Item1, ram.Item2, temp.Item1, temp.Item2, FpsUnavailable);
+            ram.Item1, ram.Item2, temp.Item1, temp.Item2, fpsStatus);
     }
 
     public static string ToJson(PerfSummary summary) =>
@@ -154,10 +235,16 @@ public sealed class PerfSampler : IDisposable
         }
     }
 
-    /// <summary>Read-only NVML access (ships with NVIDIA drivers). Only the temperature query is used.</summary>
+    /// <summary>
+    /// Read-only NVML access (ships with NVIDIA drivers): temperature, graphics clock and the
+    /// clock-event (throttle) reasons. No set/control function is ever called.
+    /// </summary>
     private sealed class Nvml : IDisposable
     {
         private readonly IntPtr _device;
+        private bool _noEventReasons;
+        private bool _noThrottleReasons;
+        private bool _noClock;
 
         private Nvml(IntPtr device) => _device = device;
 
@@ -181,6 +268,35 @@ public sealed class PerfSampler : IDisposable
 
         public double? ReadTemperature() => nvmlDeviceGetTemperature(_device, 0, out var t) == 0 ? t : null;
 
+        public double? ReadGraphicsClock()
+        {
+            if (_noClock) return null;
+            try { return nvmlDeviceGetClockInfo(_device, 0 /* NVML_CLOCK_GRAPHICS */, out var mhz) == 0 ? mhz : null; }
+            catch (EntryPointNotFoundException) { _noClock = true; return null; }
+        }
+
+        /// <summary>nvmlDeviceGetCurrentClocksEventReasons (newer drivers), falling back to the older ...ThrottleReasons.</summary>
+        public ulong? ReadThrottleReasons()
+        {
+            if (!_noEventReasons)
+            {
+                try
+                {
+                    if (nvmlDeviceGetCurrentClocksEventReasons(_device, out var r) == 0) return r;
+                }
+                catch (EntryPointNotFoundException) { _noEventReasons = true; }
+            }
+            if (!_noThrottleReasons)
+            {
+                try
+                {
+                    if (nvmlDeviceGetCurrentClocksThrottleReasons(_device, out var r) == 0) return r;
+                }
+                catch (EntryPointNotFoundException) { _noThrottleReasons = true; }
+            }
+            return null;
+        }
+
         public void Dispose()
         {
             try { nvmlShutdown(); } catch (DllNotFoundException) { }
@@ -190,6 +306,9 @@ public sealed class PerfSampler : IDisposable
         [DllImport("nvml.dll")] private static extern int nvmlShutdown();
         [DllImport("nvml.dll")] private static extern int nvmlDeviceGetHandleByIndex_v2(uint index, out IntPtr device);
         [DllImport("nvml.dll")] private static extern int nvmlDeviceGetTemperature(IntPtr device, int sensor, out uint temp);
+        [DllImport("nvml.dll")] private static extern int nvmlDeviceGetClockInfo(IntPtr device, int clockType, out uint mhz);
+        [DllImport("nvml.dll")] private static extern int nvmlDeviceGetCurrentClocksEventReasons(IntPtr device, out ulong reasons);
+        [DllImport("nvml.dll")] private static extern int nvmlDeviceGetCurrentClocksThrottleReasons(IntPtr device, out ulong reasons);
     }
 
     [StructLayout(LayoutKind.Sequential)]

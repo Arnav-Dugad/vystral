@@ -1,0 +1,61 @@
+.ach { display: grid; gap: var(--s-5); }
+
+.ach__summary { display: flex; align-items: center; gap: var(--s-6); padding: var(--s-5) var(--s-6); }
+.ach__summary .pring__pct { font-size: var(--fs-xl); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tight); }
+.ach__summary-text { display: grid; gap: 4px; min-width: 0; }
+.ach__count { font-size: var(--fs-3xl); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tight); line-height: 1.05; }
+.ach__count span { font-size: var(--fs-xl); color: var(--text-3); font-weight: var(--fw-medium); }
+.ach__sub { color: var(--text-2); }
+.ach__sub strong { color: var(--text-1); font-weight: var(--fw-semibold); }
+.ach__source { font-size: var(--fs-sm); color: var(--text-3); margin-top: 4px; }
+
+.ach__note { display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: var(--fs-sm); }
+.ach__note svg { color: var(--warn); flex: none; }
+
+.ach__controls { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; }
+.ach__search { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; min-width: min(280px, 100%); border-radius: var(--r-md); background: var(--bg-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-3); }
+.ach__search:focus-within { box-shadow: inset 0 0 0 1px var(--accent-line), 0 0 0 3px var(--accent-ghost); }
+.ach__search input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--text-1); }
+.ach__search input:focus-visible { box-shadow: none; }
+
+.ach__empty { color: var(--text-3); padding: var(--s-8) 0; text-align: center; }
+
+.ach__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr)); gap: var(--s-2); }
+
+.ach-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: var(--s-4);
+  align-items: center;
+  padding: var(--s-3) var(--s-4) var(--s-3) var(--s-3);
+  border-radius: var(--r-lg);
+  background: var(--bg-1);
+  box-shadow: var(--inner-hi), 0 0 0 1px var(--line);
+}
+.ach-row[data-achieved] { background: linear-gradient(90deg, oklch(from var(--accent) l c h / 0.08), var(--bg-1) 55%); }
+
+.ach-row__icon { width: 52px; height: 52px; border-radius: var(--r-md); overflow: hidden; display: grid; place-items: center; background: var(--bg-3); color: var(--text-3); box-shadow: inset 0 0 0 1px var(--line); }
+.ach-row__icon img { width: 100%; height: 100%; object-fit: cover; }
+.ach-row:not([data-achieved]) .ach-row__icon img { opacity: 0.75; }
+.ach-row[data-achieved] .ach-row__icon { color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent-line), 0 0 18px -6px oklch(from var(--accent) l c h / 0.6); }
+
+.ach-row__main { display: grid; gap: 3px; min-width: 0; }
+.ach-row__name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ach-row__title { font-weight: var(--fw-semibold); color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ach-row__desc { font-size: var(--fs-sm); color: var(--text-2); overflow-wrap: anywhere; }
+.ach-row__secret { color: var(--text-3); font-style: italic; }
+.ach-row__rarity { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; }
+.ach-row__bar { position: relative; width: 72px; height: 4px; border-radius: 2px; background: var(--bg-3); overflow: hidden; flex: none; }
+.ach-row__bar span { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, var(--accent-2), var(--accent)); border-radius: inherit; }
+
+.ach-row__status { display: grid; justify-items: end; gap: 2px; text-align: right; font-size: var(--fs-xs); }
+.ach-row__unlocked { color: var(--ok); font-weight: var(--fw-semibold); }
+:root[data-theme='light'] .ach-row__unlocked { color: oklch(from var(--ok) 0.45 c h); }
+.ach-row__locked { color: var(--text-3); }
+.ach-row__date { color: var(--text-3); }
+
+@media (max-width: 640px) {
+  .ach__summary { flex-direction: column; align-items: flex-start; }
+  .ach-row { grid-template-columns: 44px minmax(0, 1fr); }
+  .ach-row__status { grid-column: 2; justify-items: start; text-align: left; }
+}

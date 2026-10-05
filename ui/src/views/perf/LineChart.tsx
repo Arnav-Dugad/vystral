@@ -2,7 +2,8 @@ import './kit.css';
 import { memo, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { motion } from 'motion/react';
 import { useReducedMotion } from '../../state/store';
-import { formatMetric, formatOffset, nearest, timeTicks, type MetricDef, type Pt } from './series';
+import { formatMetric, formatOffset, nearest, timeTicks, type ChartMetric, type Pt } from './series';
+import type { Band } from './insight';
 import { useElementWidth } from './hooks';
 
 const M = { l: 46, r: 14, t: 12, b: 24 };
@@ -23,8 +24,9 @@ export const LineChart = memo(function LineChart({
   height = 150,
   ariaLabel,
   animateKey,
+  bands,
 }: {
-  metric: MetricDef;
+  metric: ChartMetric;
   segments: Pt[][];
   raw: Pt[];
   durationMs: number;
@@ -34,6 +36,8 @@ export const LineChart = memo(function LineChart({
   height?: number;
   ariaLabel: string;
   animateKey: string;
+  /** Shaded time ranges, e.g. when the GPU was thermally throttled. Purely decorative: the text says the same. */
+  bands?: Band[];
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const width = useElementWidth(ref);
@@ -126,6 +130,9 @@ export const LineChart = memo(function LineChart({
             <stop offset="100%" style={{ stopColor: metric.color, stopOpacity: 0 }} />
           </linearGradient>
         </defs>
+        {bands?.map((b) => (
+          <rect key={`b-${b.start}`} className="vx-chart__band" x={x(b.start)} y={M.t} width={Math.max(1.5, x(b.end) - x(b.start))} height={ph} aria-hidden />
+        ))}
         {domain.ticks.map((v) => (
           <g key={v}>
             <line className={v === domain.min ? 'vx-chart__baseline' : 'vx-chart__grid'} x1={M.l} x2={M.l + pw} y1={Math.round(y(v)) + 0.5} y2={Math.round(y(v)) + 0.5} />

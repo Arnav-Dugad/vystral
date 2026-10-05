@@ -35,9 +35,13 @@
 | **Smart duplicates** | Own a game on two stores? It appears once, with a chooser for which store to play from. Different editions and remasters are never merged automatically — you decide. |
 | **Living Canvas** | A calm animated background that takes on each game’s colours and mood (light trails for racing, stars for space, fog for horror…). It pauses whenever you’re playing. |
 | **Command bar** (`Ctrl+K`) | “installed racing games under 20 GB”, “launch forza”, “not played in 3 months”, “everything on my second SSD” — understood instantly, on your PC, without AI. |
-| **Immersive Mode** (`F11` / Menu button) | A separate full-screen, controller-first layout for TVs and couch gaming. |
+| **Immersive Mode** (`F11` / Menu button) | A separate full-screen, controller-first layout for TVs and couch gaming, with one gliding focus ring and an attract-mode slideshow when idle. |
 | **Performance Mode** | When a game starts, VYSTRAL minimizes and suspends its interface: **0% CPU** while minimized in our measurements. |
-| **Journal & Performance** | Private play history, playtime charts, milestones and per-session CPU/GPU/temperature graphs (read-only sensors; FPS isn’t measured yet and is never faked). |
+| **Journal & Performance** | Private play history, playtime charts, milestones, game status (Backlog → Completed) and per-session CPU/GPU/temperature graphs. Optional real FPS, 1% lows and stutters via Intel PresentMon. Nothing is estimated or faked. |
+| **Launches that explain themselves** | A pre-flight card (disk space, pending updates, controller battery, HDR), a progress arc that learns how long each game takes, one-click fixes when something fails, and GPU heat alerts afterwards. |
+| **Storage Studio** | A map of each drive showing which games take the space, with gentle suggestions. VYSTRAL never deletes: uninstalling happens in the store. |
+| **Steam extras** | Live install progress and trailers; with your own Steam Web API key (kept in Windows Credential Manager), games you own but haven’t installed and achievements with rarity. |
+| **Windows integration** | A summon shortcut (`Ctrl+Alt+V`), Windows notifications, a notification centre and a now-playing chip. |
 | **Moments** | Your Steam screenshots and Xbox Game Bar captures in one gallery. Nothing is uploaded. |
 | **Constellation** | An optional 3D map of your library, with an accessible list view. |
 | **Local AI (optional)** | Natural-language search and an assistant powered by [Ollama](https://ollama.com) on your own PC. Never required, never in the cloud. |

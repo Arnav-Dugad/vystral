@@ -1,0 +1,28 @@
+{
+ "620": {
+  "success": true,
+  "data": {
+   "type": "game",
+   "name": "Legacy Shape (fixture)",
+   "steam_appid": 620,
+   "movies": [
+    {
+     "id": 81613,
+     "name": "Not highlighted teaser",
+     "thumbnail": "https://cdn.akamai.steamstatic.com/steam/apps/81613/movie.293x165.jpg?t=1452903069",
+     "webm": { "480": "https://cdn.akamai.steamstatic.com/steam/apps/81613/movie480.webm?t=1452903069", "max": "https://cdn.akamai.steamstatic.com/steam/apps/81613/movie_max.webm?t=1452903069" },
+     "mp4": { "480": "https://cdn.akamai.steamstatic.com/steam/apps/81613/movie480.mp4?t=1452903069", "max": "https://cdn.akamai.steamstatic.com/steam/apps/81613/movie_max.mp4?t=1452903069" },
+     "highlight": false
+    },
+    {
+     "id": 81614,
+     "name": "Launch trailer",
+     "thumbnail": "https://cdn.akamai.steamstatic.com/steam/apps/81614/movie.293x165.jpg?t=1452903069",
+     "webm": { "480": "https://cdn.akamai.steamstatic.com/steam/apps/81614/movie480.webm?t=1452903069", "max": "https://cdn.akamai.steamstatic.com/steam/apps/81614/movie_max.webm?t=1452903069" },
+     "mp4": { "480": "https://cdn.akamai.steamstatic.com/steam/apps/81614/movie480.mp4?t=1452903069", "max": "https://cdn.akamai.steamstatic.com/steam/apps/81614/movie_max.mp4?t=1452903069" },
+     "highlight": true
+    }
+   ]
+  }
+ }
+}

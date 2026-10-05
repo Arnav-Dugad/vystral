@@ -1,0 +1,24 @@
+// Dev helper: sends a test Windows notification from the running real app and screenshots Storage Studio.
+import { chromium } from '@playwright/test';
+const out = process.argv[2] ?? '.';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9333');
+const page = browser.contexts()[0].pages().find((p) => p.url().includes('vystral'));
+const errors = [];
+page.on('pageerror', (e) => errors.push(String(e)));
+const nav = page.getByRole('navigation', { name: 'Main' });
+await nav.getByRole('button', { name: 'Settings' }).click();
+await page.getByRole('button', { name: 'Windows integration' }).first().click();
+await page.waitForTimeout(800);
+await page.getByText('Windows notifications', { exact: true }).scrollIntoViewIfNeeded();
+await page.screenshot({ path: `${out}/notify-settings.png` });
+await page.getByRole('button', { name: 'Send a test' }).click();
+await page.waitForTimeout(1500);
+await page.screenshot({ path: `${out}/notify-after.png` });
+await nav.getByRole('button', { name: 'Storage' }).click();
+await page.waitForTimeout(2000);
+await page.screenshot({ path: `${out}/storage-art.png` });
+await page.locator('.tile-t').first().hover();
+await page.waitForTimeout(600);
+await page.screenshot({ path: `${out}/storage-hover.png` });
+console.log('errors', JSON.stringify(errors));
+await browser.close();

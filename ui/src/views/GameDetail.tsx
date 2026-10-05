@@ -11,16 +11,22 @@ import {
 } from '../lib/format';
 import { ease, spring } from '../lib/motion';
 import { paletteFor } from '../lib/palette';
+import { captureFlight, setLaunchOrigin, useFlightLanding } from '../lib/flight';
 import { openFolder, removeManualGame, setCollection, setHidden, setNotes, setPreferred, setRating, toggleFavorite } from '../state/actions';
 import { useReducedMotion, useStore } from '../state/store';
 import { GameCover } from '../components/game/GameCover';
 import { GameCard } from '../components/game/GameCard';
+import { AchievementsPanel } from '../components/game/AchievementsPanel';
+import { InstallButton } from '../components/game/InstallButton';
+import { HeroInstallStatus } from '../components/game/InstallProgress';
+import { StatusPicker } from '../components/game/StatusPicker';
+import { HeroTrailer } from '../components/game/HeroTrailer';
 import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, SectionHead, Stars, Tabs } from '../components/ui/primitives';
 import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
 import './detail.css';
 
-type Tab = 'overview' | 'sessions' | 'versions' | 'artwork';
+type Tab = 'overview' | 'achievements' | 'sessions' | 'versions' | 'artwork';
 
 export function GameDetailView({ id }: { id: string }) {
   const game = useStore((s) => s.gamesById.get(id));
@@ -61,6 +67,7 @@ export function GameDetailView({ id }: { id: string }) {
             onChange={setTab}
             tabs={[
               { value: 'overview', label: 'Overview' },
+              { value: 'achievements', label: 'Achievements' },
               { value: 'sessions', label: `Sessions${game.sessionCount ? ` · ${game.sessionCount}` : ''}` },
               { value: 'versions', label: `Versions${game.installations.length > 1 ? ` · ${game.installations.length}` : ''}` },
               { value: 'artwork', label: 'Artwork' },
@@ -72,6 +79,7 @@ export function GameDetailView({ id }: { id: string }) {
           {tab === 'sessions' && <Sessions game={game} />}
           {tab === 'versions' && <Versions game={game} />}
           {tab === 'artwork' && <ArtworkTab game={game} />}
+          {tab === 'achievements' && <AchievementsPanel game={game} />}
         </div>
         <Related game={game} />
       </div>
@@ -85,6 +93,18 @@ function DetailHero({ game }: { game: Game }) {
   const launch = useStore((s) => s.launch);
   const collections = useStore((s) => s.library.collections);
   const reduce = useReducedMotion();
+  const coverRef = useRef<HTMLDivElement>(null);
+  useFlightLanding(game.id, coverRef, !reduce);
+  // Leaving the page, the cover becomes the start of the flight back into its card.
+  useEffect(() => {
+    const el = coverRef.current;
+    return () => {
+      // Only a real departure (the route changed) starts a return flight — not a re-render
+      // or React's development double-mount.
+      const r = useStore.getState().route;
+      if (r.name !== 'game' || r.id !== game.id) captureFlight(game.id, el);
+    };
+  }, [game.id]);
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [chooseAt, setChooseAt] = useState<{ x: number; y: number } | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
@@ -127,6 +147,7 @@ function DetailHero({ game }: { game: Game }) {
     <section className="dhero">
       <motion.div className="dhero__art" initial={reduce ? false : { opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, ease: ease.cinematic }}>
         <GameCover game={game} kind="hero" eager />
+        <HeroTrailer game={game} active />
       </motion.div>
       <div className="dhero__scrim" />
       <div className="dhero__top">
@@ -135,7 +156,7 @@ function DetailHero({ game }: { game: Game }) {
         </Button>
       </div>
       <motion.div className="dhero__content" initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring.hero, delay: 0.05 }}>
-        <div className="dhero__cover">
+        <div className="dhero__cover" data-game-id={game.id} ref={coverRef}>
           <GameCover game={game} eager />
         </div>
         <div className="dhero__info">
@@ -157,7 +178,10 @@ function DetailHero({ game }: { game: Game }) {
                 icon={<Play size={22} fill="currentColor" />}
                 disabled={!installed.length || running}
                 loading={busy}
-                onClick={() => void launchGame(game.id)}
+                onClick={(e) => {
+                  setLaunchOrigin(game.id, e.currentTarget, document.querySelector(`.dhero__cover[data-game-id="${game.id}"]`));
+                  void launchGame(game.id);
+                }}
                 data-autofocus
               >
                 {running ? 'Playing' : installed.length ? (installed.length > 1 && primary ? `Play · ${PLATFORM_NAMES[primary.platform]}` : 'Play') : 'Not installed'}
@@ -176,6 +200,8 @@ function DetailHero({ game }: { game: Game }) {
                 </button>
               )}
             </div>
+            {!installed.length && <InstallButton game={game} size="xl" />}
+            {installed.length > 0 && <HeroInstallStatus game={game} />}
             <IconButton label={game.favorite ? 'Remove from favorites' : 'Add to favorites'} pressed={game.favorite} onClick={() => void toggleFavorite(game)} className="dhero__icon">
               <Heart size={19} fill={game.favorite ? 'currentColor' : 'none'} />
             </IconButton>
@@ -299,6 +325,7 @@ function Overview({ game }: { game: Game }) {
         </div>
       </div>
       <aside className="overview__side surface">
+        <StatusPicker game={game} />
         <div className="field__label" style={{ marginBottom: 8 }}>Your rating</div>
         <Stars value={game.userRating} onChange={(v) => void setRating(game, v)} label="Your rating" />
         <dl className="facts">

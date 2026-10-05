@@ -4,6 +4,8 @@ import { call } from '../../bridge/bridge';
 import { useStore } from '../../state/store';
 import { IconButton, Kbd } from '../ui/primitives';
 import { UpdatePill } from './UpdateCenter';
+import { NowPlaying } from './NowPlaying';
+import { NotificationBell } from './NotificationCenter';
 
 /**
  * Custom title bar. Empty areas are reported to the native window as caption (drag) regions;
@@ -73,8 +75,10 @@ export function TitleBar() {
       </button>
       <div className="titlebar__drag" data-drag />
       <div className="titlebar__right">
+        <NowPlaying />
         {!native && <span className="preview-chip" title="Running outside the VYSTRAL app with sample data">PREVIEW · SAMPLE DATA</span>}
         <UpdatePill />
+        <NotificationBell />
         <IconButton label={scan.running ? 'Scanning your stores…' : 'Rescan installed games'} size="sm" onClick={() => void scanLibrary()} disabled={scan.running}>
           <RefreshCw size={15} className={scan.running ? 'spin' : undefined} style={scan.running ? { animation: 'spin 1s linear infinite' } : undefined} />
         </IconButton>

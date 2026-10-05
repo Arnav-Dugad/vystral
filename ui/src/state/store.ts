@@ -13,10 +13,12 @@ export type Route =
   | { name: 'moments' }
   | { name: 'constellation' }
   | { name: 'assistant' }
+  | { name: 'storage' }
   | { name: 'settings'; section?: string };
 
 export interface Toast {
   id: number;
+  at?: number;
   tone: 'info' | 'success' | 'warning' | 'danger';
   title: string;
   body?: string;
@@ -47,10 +49,14 @@ interface State {
   route: Route;
   back: Route[];
   forward: Route[];
+  /** How the current route was reached; back/forward restore scroll and focus. */
+  navKind: 'push' | 'back' | 'forward';
   commandOpen: boolean;
   focusGameId: string | null;
   systemReducedMotion: boolean;
   toasts: Toast[];
+  /** Notification centre history (most recent first). */
+  notifications: (Toast & { at: number; read: boolean })[];
   fatal: string | null;
 
   init(): Promise<void>;
@@ -67,6 +73,9 @@ interface State {
   patchGame(id: string, patch: Partial<Game>): void;
   toast(t: Omit<Toast, 'id'>): number;
   dismissToast(id: number): void;
+  markNotificationsRead(): void;
+  clearNotification(id: number): void;
+  clearNotifications(): void;
   setMode(mode: 'desktop' | 'immersive'): Promise<void>;
 }
 
@@ -94,17 +103,21 @@ export const useStore = create<State>((set, get) => ({
   route: { name: 'home' },
   back: [],
   forward: [],
+  navKind: 'push',
   commandOpen: false,
   focusGameId: null,
   systemReducedMotion: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches,
   toasts: [],
+  notifications: [],
   fatal: null,
 
   async init() {
     subscribeEvents(set, get);
     try {
       const info = await call<AppInfo>('app.info');
-      set({ info, settings: info.settings, window: info.window, launch: info.launch, update: info.update });
+      // Keep a mode the user already switched to while startup was in flight.
+      const modeChanged = get().window.mode !== 'desktop';
+      set({ info, settings: info.settings, window: modeChanged ? { ...info.window, mode: get().window.mode } : info.window, launch: info.launch, update: info.update });
       if (info.window.mode === 'immersive') document.documentElement.dataset.mode = 'immersive';
       const lastRoute = readLastRoute();
       if (lastRoute) set({ route: lastRoute });
@@ -161,6 +174,7 @@ export const useStore = create<State>((set, get) => ({
       route,
       back: opts?.replace ? back : [...back.slice(-50), current],
       forward: [],
+      navKind: 'push',
       commandOpen: false,
     });
     saveLastRoute(route);
@@ -170,7 +184,7 @@ export const useStore = create<State>((set, get) => ({
     const { back, route, forward } = get();
     const prev = back[back.length - 1];
     if (!prev) return;
-    set({ route: prev, back: back.slice(0, -1), forward: [route, ...forward] });
+    set({ route: prev, back: back.slice(0, -1), forward: [route, ...forward], navKind: 'back' });
     saveLastRoute(prev);
   },
 
@@ -178,7 +192,7 @@ export const useStore = create<State>((set, get) => ({
     const { back, route, forward } = get();
     const next = forward[0];
     if (!next) return;
-    set({ route: next, back: [...back, route], forward: forward.slice(1) });
+    set({ route: next, back: [...back, route], forward: forward.slice(1), navKind: 'forward' });
     saveLastRoute(next);
   },
 
@@ -225,13 +239,29 @@ export const useStore = create<State>((set, get) => ({
 
   toast(t) {
     const id = ++toastSeq;
-    set({ toasts: [...get().toasts.slice(-3), { ...t, id }] });
+    const at = Date.now();
+    set({
+      toasts: [...get().toasts.slice(-3), { ...t, id, at }],
+      notifications: [{ ...t, id, at, read: false }, ...get().notifications].slice(0, 80),
+    });
     if (!t.sticky) window.setTimeout(() => get().dismissToast(id), t.tone === 'danger' ? 9000 : 5200);
     return id;
   },
 
   dismissToast(id) {
     set({ toasts: get().toasts.filter((t) => t.id !== id) });
+  },
+
+  markNotificationsRead() {
+    if (get().notifications.some((n) => !n.read)) set({ notifications: get().notifications.map((n) => ({ ...n, read: true })) });
+  },
+
+  clearNotification(id) {
+    set({ notifications: get().notifications.filter((n) => n.id !== id) });
+  },
+
+  clearNotifications() {
+    set({ notifications: [] });
   },
 
   async setMode(mode) {
@@ -278,6 +308,13 @@ function subscribeEvents(set: (p: Partial<State>) => void, get: () => State) {
       get().toast({ tone: 'success', title: `VYSTRAL ${update.newVersion} is ready`, body: 'Restart to finish updating. It also installs automatically when you close VYSTRAL.' });
   });
   on('window.state', (w) => set({ window: w }));
+  // Clicking a Windows notification brings VYSTRAL forward and opens the relevant page.
+  on('app.navigate', ({ route }) => {
+    const known = ['home', 'library', 'game', 'journal', 'performance', 'moments', 'constellation', 'assistant', 'settings', 'storage'];
+    if (!route || !known.includes(route.name) || (route.name === 'game' && !route.id)) return;
+    if (get().window.mode === 'immersive' && route.name !== 'game') void get().setMode('desktop');
+    get().navigate(route as Route);
+  });
   on('launch.state', (launch) => {
     set({ launch });
     if (launch.phase === 'failed') {

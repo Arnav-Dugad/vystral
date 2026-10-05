@@ -1,0 +1,64 @@
+/* Track B: thermal alert, frame-rate section and frame-time histogram (Performance view). */
+
+.pf-thermal {
+  display: flex;
+  gap: var(--s-4);
+  align-items: flex-start;
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  border: 1px solid oklch(from var(--warn) l c h / 0.35);
+  background: linear-gradient(100deg, oklch(from var(--warn) l c h / 0.12), transparent 60%), var(--bg-1);
+}
+.pf-thermal__icon {
+  width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 11px;
+  color: var(--warn); background: oklch(from var(--warn) l c h / 0.14);
+}
+.pf-thermal__text { display: grid; gap: var(--s-1); min-width: 0; }
+.pf-thermal__title { font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--text-1); }
+.pf-thermal__text p { color: var(--text-2); font-size: var(--fs-sm); line-height: 1.55; max-width: 80ch; }
+.pf-thermal__meta { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); color: var(--text-3) !important; font-size: var(--fs-xs) !important; }
+.pf-thermal__meta span { display: inline-flex; align-items: center; gap: 4px; }
+
+.pf-thermal-line {
+  display: flex; align-items: center; gap: var(--s-2);
+  font-size: var(--fs-sm); color: var(--text-3);
+  padding: 0 var(--s-2);
+}
+.pf-thermal-line > svg { flex: none; color: var(--text-3); }
+
+.pf-fps .vx-btn, .pf-fps button { margin-left: auto; flex: none; }
+
+.pf-framerate { display: grid; gap: var(--s-5); }
+.pf-fps-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1180px) { .pf-fps-tiles { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
+.pf-fps-tiles .vx-tile { padding: var(--s-4); }
+.pf-fps-tiles .vx-tile__value { font-size: var(--fs-xl); }
+.pf-fps-tiles .vx-tile__value small { font-size: var(--fs-xs); color: var(--text-3); font-weight: var(--fw-medium); }
+.pf-fps-tiles .vx-tile__sub { white-space: normal; font-size: var(--fs-xs); }
+
+.pf-hist { display: grid; gap: var(--s-3); margin: 0; }
+.pf-hist__title { display: flex; align-items: baseline; gap: var(--s-2); flex-wrap: wrap; }
+.pf-hist__title h3 { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text-1); }
+.pf-hist__title .pf-muted { font-size: var(--fs-xs); }
+.pf-hist__bars {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 6px; align-items: end;
+}
+.pf-hist__bar { display: grid; gap: 4px; justify-items: center; min-width: 0; }
+.pf-hist__track { width: 100%; height: 96px; display: flex; align-items: flex-end; border-radius: 6px; background: oklch(1 0 0 / 0.03); overflow: hidden; }
+.pf-hist__fill {
+  display: block; width: 100%; height: 100%; transform-origin: bottom;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(to top, oklch(from var(--ok) l c h / 0.55), var(--ok));
+}
+/* Slow buckets (≥ 25 ms) use a second hue and a hatch, so they read without colour too. */
+.pf-hist__fill[data-slow] {
+  background:
+    repeating-linear-gradient(135deg, oklch(1 0 0 / 0.16) 0 2px, transparent 2px 6px),
+    linear-gradient(to top, oklch(from var(--warn) l c h / 0.55), var(--warn));
+}
+.pf-hist__pct { font-size: var(--fs-2xs); color: var(--text-2); }
+.pf-hist__label { font-size: var(--fs-2xs); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+@media (max-width: 900px) {
+  .pf-hist__bars { grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: var(--s-3); }
+}

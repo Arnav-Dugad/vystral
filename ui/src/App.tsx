@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { forwardRef, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { AnimatePresence, LayoutGroup, motion, useIsPresent } from 'motion/react';
 import { exit, pick, spring } from './lib/motion';
 import { startInput } from './lib/input';
 import { useGameRunning, useReducedMotion, useStore, type Route } from './state/store';
@@ -8,7 +8,7 @@ import { TitleBar } from './components/shell/TitleBar';
 import { Sidebar } from './components/shell/Sidebar';
 import { CommandBar } from './components/shell/CommandBar';
 import { LaunchOverlay } from './components/shell/LaunchOverlay';
-import { Intro } from './components/shell/Intro';
+import { Intro, rememberIntroPreference } from './components/shell/Intro';
 import { UpdateCenterDialog } from './components/shell/UpdateCenter';
 import { Toaster } from './components/ui/Toaster';
 import { Dialog } from './components/ui/Dialog';
@@ -17,15 +17,17 @@ import { createCollection } from './state/actions';
 import { call } from './bridge/bridge';
 import { HomeView } from './views/Home';
 import { LibraryView } from './views/Library';
+// Loaded eagerly: the card → page cover flight needs the page to mount in the same frame.
+import { GameDetailView } from './views/GameDetail';
 import './components/shell/shell.css';
 
-const GameDetailView = lazy(() => import('./views/GameDetail').then((m) => ({ default: m.GameDetailView })));
 const SettingsView = lazy(() => import('./views/Settings').then((m) => ({ default: m.SettingsView })));
 const JournalView = lazy(() => import('./views/Journal').then((m) => ({ default: m.JournalView })));
 const PerformanceView = lazy(() => import('./views/Performance').then((m) => ({ default: m.PerformanceView })));
 const MomentsView = lazy(() => import('./views/Moments').then((m) => ({ default: m.MomentsView })));
 const ConstellationView = lazy(() => import('./views/Constellation').then((m) => ({ default: m.ConstellationView })));
 const AssistantView = lazy(() => import('./views/Assistant').then((m) => ({ default: m.AssistantView })));
+const StorageStudioView = lazy(() => import('./views/StorageStudio').then((m) => ({ default: m.StorageStudioView })));
 const OnboardingView = lazy(() => import('./views/Onboarding').then((m) => ({ default: m.OnboardingView })));
 const ImmersiveView = lazy(() => import('./views/Immersive').then((m) => ({ default: m.ImmersiveView })));
 
@@ -53,6 +55,7 @@ export default function App() {
     root.dataset.mode = mode;
     const q = settings?.['appearance.quality'] ?? 'auto';
     root.dataset.quality = q === 'auto' ? ((navigator.hardwareConcurrency ?? 8) <= 4 ? 'low' : 'balanced') : q;
+    if (settings) rememberIntroPreference(settings['startup.intro'] && !reduce);
     if (settings) void call('window.captionTheme', { value: settings['appearance.theme'] !== 'light' }).catch(() => {});
   }, [settings, reduce, running, mode]);
 
@@ -81,7 +84,7 @@ export default function App() {
   return (
     <>
       <LivingCanvas />
-      <Intro enabled={!!settings?.['startup.intro'] && !reduce && !onboarding} />
+      <Intro />
       {mode === 'immersive' ? (
         <Suspense fallback={null}>
           <ImmersiveView />
@@ -109,28 +112,106 @@ export default function App() {
   );
 }
 
+/** Per-route scroll position and focused game, restored on Back/Forward ("exact return"). */
+const routeMemory = new Map<string, { top: number; focusId: string | null }>();
+
+function routeKey(route: Route) {
+  return route.name === 'game' ? `game-${route.id}` : route.name === 'library' ? `library-${route.collectionId ?? ''}` : route.name;
+}
+
 function Routes() {
   const route = useStore((s) => s.route);
+  const navKind = useStore((s) => s.navKind);
   const reduce = useReducedMotion();
-  const key = route.name === 'game' ? `game-${route.id}` : route.name === 'library' ? `library-${route.collectionId ?? ''}` : route.name;
+  const key = routeKey(route);
   return (
-    <AnimatePresence mode="popLayout" initial={false}>
-      <motion.div
-        key={key}
-        className="main__scroll"
-        data-scroll-main
-        initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10, filter: 'blur(4px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6, transition: exit }}
-        transition={pick(reduce, spring.page)}
-      >
-        <Suspense fallback={<PageSkeleton />}>
-          <View route={route} />
-        </Suspense>
-      </motion.div>
-    </AnimatePresence>
+    <LayoutGroup id="routes">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <RoutePage key={key} routeKey={key} restore={navKind !== 'push'} reduce={reduce}>
+          <Suspense fallback={<PageSkeleton />}>
+            <View route={route} />
+          </Suspense>
+        </RoutePage>
+      </AnimatePresence>
+    </LayoutGroup>
   );
 }
+
+const RoutePage = forwardRef<HTMLDivElement, { routeKey: string; restore: boolean; reduce: boolean; children: ReactNode }>(function RoutePage(
+  { routeKey: key, restore, reduce, children },
+  forwarded,
+) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  // Once a page starts leaving it can reflow (and the browser may re-anchor its scroll);
+  // nothing that happens during the exit animation may overwrite what we remembered.
+  const present = useIsPresent();
+  const presentRef = useRef(present);
+  presentRef.current = present;
+
+  // Remember where we were: continuously for scroll, and the focused/hovered game on leave.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const remember = () => {
+      if (!presentRef.current) return;
+      const prev = routeMemory.get(key);
+      routeMemory.set(key, { top: el.scrollTop, focusId: prev?.focusId ?? null });
+    };
+    const rememberFocus = (e: Event) => {
+      if (!presentRef.current) return;
+      const id = (e.target as HTMLElement)?.closest?.('[data-game-id]')?.getAttribute('data-game-id') ?? null;
+      if (id) routeMemory.set(key, { top: el.scrollTop, focusId: id });
+    };
+    el.addEventListener('scroll', remember, { passive: true });
+    el.addEventListener('focusin', rememberFocus);
+    el.addEventListener('pointerdown', rememberFocus);
+    return () => {
+      el.removeEventListener('scroll', remember);
+      el.removeEventListener('focusin', rememberFocus);
+      el.removeEventListener('pointerdown', rememberFocus);
+    };
+  }, [key]);
+
+  // Restore on Back/Forward. Virtualized pages need a frame or two to size themselves.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const memory = routeMemory.get(key);
+    if (!el || !restore || !memory) return;
+    let tries = 0;
+    let raf = 0;
+    const apply = () => {
+      el.scrollTop = memory.top;
+      const reached = Math.abs(el.scrollTop - memory.top) < 2 || el.scrollHeight - el.clientHeight <= el.scrollTop + 1;
+      const target = memory.focusId ? el.querySelector<HTMLElement>(`[data-game-id="${CSS.escape(memory.focusId)}"]`) : null;
+      if ((reached && (!memory.focusId || target)) || ++tries > 30) {
+        target?.focus({ preventScroll: true });
+        return;
+      }
+      raf = requestAnimationFrame(apply);
+    };
+    apply();
+    return () => cancelAnimationFrame(raf);
+  }, [key, restore]);
+
+  return (
+    <motion.div
+      ref={(el) => {
+        ref.current = el;
+        if (typeof forwarded === 'function') forwarded(el);
+        else if (forwarded) forwarded.current = el;
+      }}
+      className="main__scroll"
+      data-scroll-main
+      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10, filter: 'blur(4px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6, transition: exit }}
+      transition={pick(reduce, spring.page)}
+      style={restore ? { scrollBehavior: 'auto' } : undefined}
+    >
+      {children}
+    </motion.div>
+  );
+});
 
 function View({ route }: { route: Route }) {
   switch (route.name) {
@@ -143,6 +224,7 @@ function View({ route }: { route: Route }) {
     case 'constellation': return <ConstellationView />;
     case 'assistant': return <AssistantView />;
     case 'settings': return <SettingsView section={route.section} />;
+    case 'storage': return <StorageStudioView />;
   }
 }
 
@@ -161,7 +243,7 @@ function useGlobalKeys() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const s = useStore.getState();
-      const typing = (e.target as HTMLElement)?.closest('input, textarea, [contenteditable]');
+      const typing = (e.target as HTMLElement)?.closest?.('input, textarea, [contenteditable]');
       if ((e.ctrlKey && e.key.toLowerCase() === 'k') || (e.key === '/' && !typing)) {
         e.preventDefault();
         s.setCommandOpen(!s.commandOpen);

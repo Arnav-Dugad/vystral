@@ -15,6 +15,7 @@ import { GameThumb, StatTile } from './perf/kit';
 import { useTrackedSessions } from './perf/hooks';
 import { dayLabel, gameTitle, shortDate, timeOfDay } from './perf/text';
 import { DayChart } from './journal/DayChart';
+import { BacklogCard } from './journal/BacklogCard';
 import {
   computeTotals, currentStreak, genreTotals, groupByDay, inRange, longestStreak, milestones, normalizeSessions, playtimeBuckets, takeGroups,
   topGames, yearInReview, type DayGroup, type JSession, type Milestone, type Range, type YearReview,
@@ -155,7 +156,12 @@ export function JournalView() {
         />
       )}
 
-      {status === 'ready' && !hasHistory && <JournalEmpty storeGames={store.count} />}
+      {status === 'ready' && !hasHistory && (
+        <>
+          <JournalEmpty storeGames={store.count} />
+          <BacklogCard sessions={all} now={now} gamesById={gamesById} reveal={reveal(1)} />
+        </>
+      )}
 
       {hasHistory && (
         <>
@@ -254,6 +260,8 @@ export function JournalView() {
               </div>
             </>
           )}
+
+          <BacklogCard sessions={all} now={now} gamesById={gamesById} reveal={reveal(6)} />
 
           {review && <YearInReviewCard review={review} now={now} gamesById={gamesById} reveal={reveal(6)} />}
 

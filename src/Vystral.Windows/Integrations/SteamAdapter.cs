@@ -23,9 +23,9 @@ public sealed class SteamAdapter(IRegistryReader registry) : IPlatformAdapter
 
     public IReadOnlyList<string> Limitations =>
     [
-        "Shows games installed on this PC. Owned-but-not-installed games are not imported, because that requires a Steam Web API key.",
+        "Shows games installed on this PC. Owned-but-not-installed games and achievements need the optional Steam Web API key below.",
         "Playtime comes from Steam's local records for the most recently signed-in account.",
-        "Achievements are not imported yet.",
+        "Install and update progress is read from Steam's own manifest files, so speed and time left appear after a few seconds.",
     ];
 
     public string? FindSteamPath()

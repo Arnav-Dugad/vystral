@@ -44,7 +44,9 @@ public sealed record GameDto(
     long TrackedSeconds,
     int SessionCount,
     string? LastTrackedPlay,
-    string Added);
+    string Added,
+    string? Status = null,
+    string? StatusChangedAt = null);
 
 public sealed record CollectionDto(string Id, string Name, string? Icon, int SortOrder, string? Rule, int Count);
 

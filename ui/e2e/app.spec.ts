@@ -166,6 +166,78 @@ test.describe('first run & immersive', () => {
   });
 });
 
+test.describe('v0.2 experience', () => {
+  test('startup intro plays on a fresh start and is skippable', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.intro')).toBeVisible();
+    await page.keyboard.press('Space');
+    await expect(page.locator('.intro')).toBeHidden({ timeout: 3000 });
+  });
+
+  test('Back restores scroll position and the focused card', async ({ page }) => {
+    await open(page, '?games=400');
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /Library/ }).click();
+    await page.waitForSelector('.vgrid button.card');
+    await page.evaluate(() => {
+      const el = document.querySelector<HTMLElement>('[data-scroll-main]')!;
+      el.style.scrollBehavior = 'auto';
+      el.scrollTop = 2000;
+    });
+    await page.waitForTimeout(400);
+    // Pick a card fully on screen (clicking an off-screen one would scroll the page first).
+    const id = await page.evaluate(() => {
+      const c = [...document.querySelectorAll('.vgrid button.card')].find((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top > 120 && r.bottom < innerHeight - 40;
+      });
+      return c!.getAttribute('data-game-id');
+    });
+    const card = page.locator(`.vgrid button.card[data-game-id="${id}"]`);
+    const before = await page.evaluate(() => document.querySelector('[data-scroll-main]')!.scrollTop);
+    await card.click();
+    await expect(page.locator('.dhero')).toBeVisible();
+    await page.keyboard.press('Alt+ArrowLeft');
+    await page.waitForTimeout(900);
+    const after = await page.evaluate(() => ({ top: document.querySelector('[data-scroll-main]')!.scrollTop, focused: document.activeElement?.getAttribute('data-game-id') }));
+    expect(Math.abs(after.top - before)).toBeLessThan(4);
+    expect(after.focused).toBe(id);
+  });
+
+  test('Immersive: one travelling ring that always sits on the focused card', async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'F11', bubbles: true })));
+    await page.waitForSelector('.imm__card');
+    for (const k of ['ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowRight', 'ArrowDown']) await page.keyboard.press(k);
+    await page.waitForTimeout(1000);
+    const match = await page.evaluate(() => {
+      const f = document.querySelector('.imm__card[data-focused="true"] .imm__card-frame')!.getBoundingClientRect();
+      const r = document.querySelector('.imm__ring')!.getBoundingClientRect();
+      return Math.abs(f.x - r.x) < 2 && Math.abs(f.y - r.y) < 2 && Math.abs(f.width - r.width) < 2;
+    });
+    expect(match).toBe(true);
+    const focused = await page.locator('.imm__card[data-focused="true"]').getAttribute('aria-label');
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('dialog', { name: focused!.replace(', not installed', '') })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.imm-panel__card')).toBeHidden();
+  });
+
+  test('notification centre keeps toast history', async ({ page }) => {
+    await open(page);
+    await page.getByRole('button', { name: 'Rescan installed games' }).click();
+    await page.getByRole('button', { name: /^Notifications/ }).click();
+    await expect(page.getByRole('dialog', { name: 'Notifications' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Notifications' })).toBeHidden();
+  });
+
+  test('Storage Studio renders a treemap of installed games', async ({ page }) => {
+    await open(page);
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Storage' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Storage/);
+  });
+});
+
 test.describe('accessibility (axe)', () => {
   for (const [name, nav] of [
     ['home', null],
@@ -176,11 +248,14 @@ test.describe('accessibility (axe)', () => {
     ['moments', 'Moments'],
     ['constellation', 'Constellation'],
     ['assistant', 'Assistant'],
+    ['storage', 'Storage'],
   ] as const) {
     test(`${name} has no serious or critical violations`, async ({ page }) => {
       await open(page, '?reduced');
       if (nav) await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: nav }).click();
       await page.waitForTimeout(500);
+      // Let route transitions settle so contrast isn't sampled mid-fade on a busy machine.
+      await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
       const results = await new AxeBuilder({ page }).exclude('.living-canvas').analyze();
       const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
       expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(' | ')}`)).toEqual([]);

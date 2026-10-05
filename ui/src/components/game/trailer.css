@@ -1,0 +1,41 @@
+/* Hero trailer: video layer inside the detail hero art, controls portaled into the hero. */
+
+.htrailer { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.htrailer__video { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; background: transparent; }
+
+.htrailer-ctl {
+  position: absolute;
+  top: var(--s-4);
+  right: var(--gutter);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 12px;
+  border-radius: var(--r-pill);
+  color: oklch(0.95 0 0);
+  background: oklch(0.12 0.01 282 / 0.5);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.1);
+  font-size: var(--fs-xs);
+}
+.htrailer-ctl__label { display: inline-flex; align-items: center; gap: 6px; padding-right: 6px; font-weight: var(--fw-medium); white-space: nowrap; }
+.htrailer-ctl__src { color: oklch(0.82 0.01 282); font-weight: var(--fw-regular); }
+.htrailer-ctl__btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-pill);
+  color: inherit;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.htrailer-ctl__btn:hover { background: oklch(1 0 0 / 0.14); }
+.htrailer-ctl__btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.htrailer-ctl__btn[aria-pressed='true'] { background: oklch(1 0 0 / 0.16); }
+.htrailer-ctl__btn:disabled { opacity: 0.5; }
+
+:root[data-quality='low'] .htrailer-ctl,
+:root[data-theme='contrast'] .htrailer-ctl { backdrop-filter: none; background: oklch(0.1 0.01 282 / 0.88); }
+:root[data-mode='immersive'] .htrailer-ctl { top: var(--s-6); }
+:root[data-mode='immersive'] .htrailer-ctl__btn { width: 48px; height: 48px; }

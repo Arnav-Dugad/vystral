@@ -22,6 +22,10 @@ Export your journal from Settings → Data. Delete tracked history there too, or
 - While a game you launched runs, if enabled: system CPU/GPU/memory load and GPU temperature (read-only counters).
 - Names and paths of running processes, to detect when your game starts and stops.
 
+- With frame-rate capture on: frame timing events for the game you launched, via PresentMon (ETW). No game memory or content.
+
+If you add a Steam Web API key, it's stored in Windows Credential Manager (`VYSTRAL/SteamWebApiKey`), never in the database or logs. Removing it in Settings deletes it.
+
 VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 
 ## When VYSTRAL uses the network
@@ -30,6 +34,9 @@ VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 |---|---|---|---|
 | Game details & artwork | `store.steampowered.com`, `api.steampowered.com`, `shared.akamai.steamstatic.com` | Steam app IDs or game titles (to find exact matches) | On; can be turned off in Settings |
 | Update checks & downloads | `github.com`, `api.github.com`, `objects.githubusercontent.com` | Standard HTTPS requests for the release feed | On; can be turned off |
+| Steam Web API (owned games, achievements) | `api.steampowered.com` | Your own key and your SteamID64 | Off until you add a key |
+| Trailers | Steam's video CDN (`video.*.steamstatic.com`, `cdn.*.steamstatic.com`) | Requests for a Steam game's public trailer stream; nothing is saved | On; off with Offline mode or Data saver, and never while a game runs |
+| Frame-rate capture | `github.com` (PresentMon release) | A one-time download you start yourself | Off |
 | Local AI | `127.0.0.1:11434` (Ollama on your PC) | Your question plus a summary of your library, all on this PC | Off |
 
 **Offline mode** (Settings → Privacy) turns off every optional network feature. Your games and store apps keep using their own services as usual; VYSTRAL doesn't see or change that traffic.

@@ -3,10 +3,12 @@ import { Heart } from 'lucide-react';
 import type { Game } from '../../bridge/types';
 import { formatRelative, isInstalled, lastPlayed, PLATFORM_NAMES } from '../../lib/format';
 import { peekPalette, titleHue } from '../../lib/palette';
+import { captureFlight, useFlightLanding } from '../../lib/flight';
 import { useReducedMotion, useStore } from '../../state/store';
 import { Badge } from '../ui/primitives';
 import { GameCover } from './GameCover';
 import { useGameMenu } from './useGameMenu';
+import { InstallBadge } from './InstallProgress';
 
 /** Portrait library card. Hover/focus lifts and tilts it; Enter opens; context menu has quick actions. */
 export const GameCard = memo(function GameCard({
@@ -27,6 +29,9 @@ export const GameCard = memo(function GameCard({
   const setFocusGame = useStore((s) => s.setFocusGame);
   const reduce = useReducedMotion();
   const { open: openMenu, element: menu } = useGameMenu(game);
+  const frameRef = useRef<HTMLDivElement>(null);
+  // Returning from the detail page, the cover springs back into this card.
+  useFlightLanding(game.id, frameRef, !reduce, 1);
   const [tilt, setTilt] = useState<CSSProperties>({});
   const installed = isInstalled(game);
   const lp = lastPlayed(game);
@@ -64,7 +69,11 @@ export const GameCard = memo(function GameCard({
         onMouseEnter={activate}
         onFocus={activate}
         onMouseLeave={() => setTilt({})}
-        onClick={() => navigate({ name: 'game', id: game.id })}
+        onClick={() => {
+          // Card → page flight: the detail cover starts from this card's rect.
+          captureFlight(game.id, frameRef.current);
+          navigate({ name: 'game', id: game.id });
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
           openMenu({ x: e.clientX, y: e.clientY });
@@ -77,7 +86,7 @@ export const GameCard = memo(function GameCard({
           }
         }}
       >
-        <div className="card__frame">
+        <div className="card__frame" ref={frameRef}>
           <GameCover game={game} />
         </div>
         <div className="card__badges">
@@ -89,6 +98,7 @@ export const GameCard = memo(function GameCard({
             <Badge tone="glass">Not installed</Badge>
           </div>
         )}
+        <InstallBadge gameId={game.id} />
       </button>
       {showMeta && (
         <div className="card__meta">

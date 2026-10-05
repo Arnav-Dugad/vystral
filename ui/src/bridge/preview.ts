@@ -4,10 +4,12 @@
  * Pass ?games=5000 to stress-test with a large generated library.
  */
 import type {
-  AdapterInfo, AppInfo, Game, Installation, LaunchState, LibrarySnapshot, PerfSample, PlatformKey,
-  Session, Settings, UpdateState, MediaItem,
+  AdapterInfo, AppInfo, Game, GameStatus, Installation, LaunchState, LibrarySnapshot, PerfSample, PlatformKey,
+  Session, Settings, StatusHistoryEntry, UpdateState, MediaItem,
 } from './types';
 import { BridgeError } from './bridge';
+import { steamPreviewHandlers } from './preview.steam';
+import { INSIGHT_DEFAULT_SETTINGS, PREVIEW_EXPECTED_DETECT_MS, PREVIEW_FAILED_ACTIONS, decoratePreviewSessions, insightPreviewHandlers } from './preview.insights';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -21,6 +23,8 @@ const DEFAULT_SETTINGS: Settings = {
   'motion.reduce': 'system',
   'startup.intro': true,
   'startup.immersive': false,
+  'immersive.attract': true,
+  'immersive.attractMinutes': 3,
   'launch.cinematic': true,
   'launch.minimizeOnStart': true,
   'launch.restoreOnExit': true,
@@ -40,6 +44,11 @@ const DEFAULT_SETTINGS: Settings = {
   'onboarding.completed': false,
   'privacy.localOnly': false,
   'moments.enabled': false,
+  'dataSaver.enabled': false,
+  'dataSaver.onMetered': true,
+  'trailers.autoplay': true,
+  'steam.webApi.backgroundAchievements': true,
+  ...INSIGHT_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -84,6 +93,36 @@ function rng(seed: number) {
 }
 
 const hex = (r: () => number) => Array.from({ length: 32 }, () => Math.floor(r() * 16).toString(16)).join('');
+
+const STATUSES: GameStatus[] = ['backlog', 'playing', 'beaten', 'completed', 'abandoned'];
+
+/** Fictional status journeys (backlog → playing → beaten…) so the Journal's backlog card has a story to show. */
+function buildStatusHistory(games: Game[], seed: number): StatusHistoryEntry[] {
+  const r = rng(seed);
+  const now = Date.now();
+  const out: StatusHistoryEntry[] = [];
+  games.slice(0, 26).forEach((g, i) => {
+    if (i % 7 === 6) return; // some games never get a status
+    let t = now - (40 + Math.floor(r() * 260)) * 86400000;
+    const path: GameStatus[] = ['backlog'];
+    const roll = r();
+    if (roll > 0.35) path.push('playing');
+    if (roll > 0.55) path.push(r() > 0.7 ? 'completed' : 'beaten');
+    else if (roll > 0.45) path.push('abandoned');
+    for (const status of path) {
+      if (t > now) break;
+      out.push({ gameId: g.id, status, at: new Date(t).toISOString() });
+      t += (3 + Math.floor(r() * 40)) * 86400000;
+    }
+  });
+  out.sort((a, b) => a.at.localeCompare(b.at));
+  for (const e of out) {
+    const g = games.find((x) => x.id === e.gameId)!;
+    g.status = e.status;
+    g.statusChangedAt = e.at;
+  }
+  return out;
+}
 
 function buildLibrary(extra: number): { games: Game[]; sessions: Session[] } {
   const r = rng(7);
@@ -153,6 +192,8 @@ export function createPreviewBackend() {
   const extra = Math.min(20000, Number(params.get('games') ?? 0) || 0);
   const empty = params.has('empty');
   const lib = empty ? { games: [], sessions: [] } : buildLibrary(extra);
+  decoratePreviewSessions(lib.sessions); // Track B: FPS and throttling on recent sessions
+  const statusHistory: StatusHistoryEntry[] = buildStatusHistory(lib.games, 11);
   let settings: Settings = { ...DEFAULT_SETTINGS, 'onboarding.completed': !params.has('onboarding') };
   if (params.has('reduced')) settings['motion.reduce'] = 'on';
   const collections: LibrarySnapshot['collections'] = [];
@@ -188,6 +229,11 @@ export function createPreviewBackend() {
     launch = s;
     emit('launch.state', s);
   };
+
+  const insight = insightPreviewHandlers({
+    emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; }, timers,
+    withFps: (id) => id === 'preview' || !!lib.sessions.find((s) => s.id === id)?.perfSummary?.includes('"fpsAvg"'),
+  });
 
   const handlers: Record<string, (p: any) => unknown> = {
     'app.info': (): AppInfo => ({
@@ -243,14 +289,15 @@ export function createPreviewBackend() {
     'game.launch': (p: { gameId: string; installationId?: string | null }) => {
       const g = findGame(p.gameId);
       const inst = g.installations.find((i) => i.id === p.installationId) ?? g.installations.find((i) => i.state === 'installed');
-      const base: LaunchState = { ticket: hex(Math.random), gameId: g.id, installationId: inst?.id ?? '', platform: inst?.platform ?? '', phase: 'validating', message: null, sessionId: null, durationSeconds: null, perfSummary: null, startedAt: null };
+      const base: LaunchState = { ticket: hex(Math.random), gameId: g.id, installationId: inst?.id ?? '', platform: inst?.platform ?? '', phase: 'validating', message: null, sessionId: null, durationSeconds: null, perfSummary: null, startedAt: null, expectedDetectMs: PREVIEW_EXPECTED_DETECT_MS };
       if (!inst) {
-        const failed = { ...base, phase: 'failed' as const, message: `${g.title} wasn’t found during the last scan. Reinstall it, or rescan your library.` };
+        const failed = { ...base, phase: 'failed' as const, actions: PREVIEW_FAILED_ACTIONS, message: `${g.title} wasn’t found during the last scan. Reinstall it, or rescan your library.` };
         setLaunch(failed);
         return failed;
       }
       setLaunch({ ...base, phase: 'starting', message: `Starting via ${inst.platform}…` });
-      timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'waiting', message: 'Waiting for the game window…' }), 700));
+      insight.__preflight({ ticket: base.ticket, platform: inst.platform });
+      timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'waiting', message: 'Waiting for the game window…', acceptedAt: new Date().toISOString() }), 700));
       timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'running', sessionId: 'preview', startedAt: new Date().toISOString(), message: null }), 2600));
       timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'ended', sessionId: 'preview', durationSeconds: 5400, message: null }), 7000));
       return { ...base, phase: 'starting' };
@@ -309,8 +356,31 @@ export function createPreviewBackend() {
     'diagnostics.checkDatabase': () => ({ result: 'ok' }),
     'diagnostics.backupNow': () => ({ path: '(preview)' }),
     'data.clearArtCache': () => ({ freedBytes: 0 }),
+    'game.setStatus': (p: { gameId: string; status: GameStatus | null }) => {
+      if (p.status !== null && !STATUSES.includes(p.status)) throw new BridgeError('invalid', 'Unknown status.');
+      const g = findGame(p.gameId);
+      const previous = g.status ?? null;
+      if (previous === p.status) return { status: previous, statusChangedAt: g.statusChangedAt ?? null, previous, changed: false };
+      const at = new Date().toISOString();
+      g.status = p.status;
+      g.statusChangedAt = p.status ? at : null;
+      statusHistory.push({ gameId: g.id, status: p.status, at });
+      emit('status.changed', { gameId: g.id, status: p.status, previous, at });
+      return { status: p.status, statusChangedAt: g.statusChangedAt, previous, changed: true };
+    },
+    'status.history': () => statusHistory.filter((e) => lib.games.some((g) => g.id === e.gameId)),
+    // Preview can't reach Steam's video CDN, so trailers are honestly unavailable here.
+    'trailer.get': () => ({ available: false, kind: null, src: null, name: null, reason: settings['privacy.localOnly'] ? 'offline' : settings['dataSaver.enabled'] ? 'dataSaver' : 'notChecked', source: 'Steam' }),
+    'network.status': () => ({
+      connected: true, metered: false, costType: 'Unrestricted', roaming: false, overDataLimit: false, approachingDataLimit: false,
+      dataSaverActive: settings['dataSaver.enabled'], dataSaverReason: settings['dataSaver.enabled'] ? 'manual' : null,
+    }),
     'data.exportJournal': () => null,
     'data.deleteHistory': () => { const n = lib.sessions.length; lib.sessions.length = 0; return { deletedSessions: n }; },
+    // Track A: Steam Web API, achievements and store installs (fictional data).
+    ...steamPreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
+    // Track B: pre-flight, fixes, FPS capture, hotkey, notifications (fictional data).
+    ...insight,
   };
 
   return {

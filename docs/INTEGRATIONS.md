@@ -4,7 +4,7 @@ Every integration reads only what the store app already keeps on this PC. VYSTRA
 
 | | Finds installed | Owned (not installed) | Launch method | Needs store app | Store playtime | Last played | Local artwork | Session tracking |
 |---|---|---|---|---|---|---|---|---|
-| **Steam** | ✅ `libraryfolders.vdf` + `appmanifest_*.acf` | ❌ (needs a user Web API key — not implemented) | `steam://rungameid/<appid>` (launch options via `steam.exe -applaunch`) | Yes | ✅ `userdata/<id>/config/localconfig.vdf` | ✅ | ✅ `appcache/librarycache` | ✅ install-dir processes |
+| **Steam** | ✅ `libraryfolders.vdf` + `appmanifest_*.acf` | ✅ opt-in, with your own Steam Web API key (`IPlayerService/GetOwnedGames`); achievements via `ISteamUserStats` | `steam://rungameid/<appid>` (launch options via `steam.exe -applaunch`) | Yes | ✅ `userdata/<id>/config/localconfig.vdf` | ✅ | ✅ `appcache/librarycache` | ✅ install-dir processes |
 | **Xbox / PC Game Pass** | ✅ `PackageManager.FindPackagesForUser` + `MicrosoftGame.config` / `.GamingRoot` | ❌ | Packaged-app activation by AUMID | Gaming Services | ❌ | ❌ | ✅ package logos | ✅ PID from activation + package dir |
 | **Epic Games** | ✅ `Manifests/*.item` + `LauncherInstalled.dat` | ❌ (no public library API) | `com.epicgames.launcher://apps/…?action=launch&silent=true` | Yes | ❌ | ❌ | ❌ (Steam store art when exact title match) | ✅ |
 | **GOG** | ✅ uninstall keys `<id>_is1` + `goggame-<id>.info` (registry fallback) | ❌ | Direct exe from the primary play task (DRM-free) | No | ❌ | ❌ | Icon | ✅ |
@@ -15,6 +15,7 @@ Every integration reads only what the store app already keeps on this PC. VYSTRA
 
 ## Notes and caveats
 
+- **Steam:** install and update progress comes from the byte counters in `appmanifest_*.acf`, read by a debounced file watcher; nothing is written. With a Web API key, owned games appear as "not installed" entries and achievements are cached per game. Trailers use Steam's public HLS streams through a filtered local proxy.
 - **Steam:** redistributables (appid 228980) and tools are skipped. Playtime comes from the most recently signed-in account (`loginusers.vdf`). Games installed through Steam but sold by EA (for example *EA SPORTS FC*) appear as Steam games, and the EA adapter deliberately ignores installs inside Steam libraries.
 - **Xbox:** a package counts as a game only if it ships `MicrosoftGame.config` or lives under a folder marked by `.GamingRoot`, which avoids listing ordinary Store apps. Launching needs no admin rights. Some games protect their install folders; tracking then falls back to the process ID returned by activation.
 - **Epic:** DLC, Unreal Engine plugins and incomplete installs are filtered out. Epic offers no local playtime; VYSTRAL tracks sessions you start from VYSTRAL.

@@ -1,0 +1,32 @@
+// Dev helper: checks Immersive mode and the Performance page in the running real app (CDP port 9333).
+import { chromium } from '@playwright/test';
+const out = process.argv[2] ?? '.';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9333');
+const page = browser.contexts()[0].pages().find((p) => p.url().includes('vystral'));
+const errors = [];
+page.on('pageerror', (e) => errors.push(String(e)));
+await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Performance' }).click();
+await page.waitForTimeout(1200);
+await page.screenshot({ path: `${out}/performance.png` });
+await page.keyboard.press('F11');
+await page.waitForTimeout(2500);
+await page.screenshot({ path: `${out}/immersive-0.png` });
+await page.keyboard.press('ArrowRight');
+await page.waitForTimeout(600);
+const ring = await page.evaluate(() => {
+  const r = document.querySelector('.imm__ring')?.getBoundingClientRect();
+  const f = document.activeElement?.getBoundingClientRect();
+  return r && f ? { ring: [r.x, r.y, r.width, r.height].map(Math.round), focus: [f.x, f.y, f.width, f.height].map(Math.round), cls: document.activeElement.className } : null;
+});
+console.log('ring', JSON.stringify(ring));
+await page.screenshot({ path: `${out}/immersive-1.png` });
+await page.keyboard.press('Enter');
+await page.waitForTimeout(900);
+await page.screenshot({ path: `${out}/immersive-panel.png` });
+await page.keyboard.press('Escape');
+await page.waitForTimeout(500);
+await page.keyboard.press('F11');
+await page.waitForTimeout(1500);
+console.log('mode back:', await page.evaluate(() => document.documentElement.dataset.mode ?? document.querySelector('.shell') ? 'desktop?' : 'unknown'));
+console.log('errors', JSON.stringify(errors));
+await browser.close();

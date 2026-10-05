@@ -14,7 +14,7 @@ public sealed record ScanApplyReport(int Added, int Updated, int MarkedMissing, 
 /// All reads and writes of library data. Every multi-row change runs in a transaction.
 /// Platform data is reconciled without ever deleting user-created information.
 /// </summary>
-public sealed class LibraryRepository(Database db)
+public sealed partial class LibraryRepository(Database db)
 {
     private static string Now() => DateTimeOffset.UtcNow.ToString("O");
     public static string NewId() => Guid.CreateVersion7().ToString("N");
@@ -156,6 +156,7 @@ public sealed class LibraryRepository(Database db)
             .ToLookup(a => a.GameId);
         var colMembers = conn.Query<(string Cid, string Gid)>("SELECT collection_id, game_id FROM collection_games")
             .ToLookup(c => c.Gid, c => c.Cid);
+        var statuses = LoadStatuses(conn);
         var stats = conn.Query<(string GameId, long Secs, int Count, string? Last)>("""
             SELECT game_id, SUM(duration_seconds), COUNT(*), MAX(start) FROM sessions
             WHERE source='tracked' GROUP BY game_id
@@ -174,7 +175,9 @@ public sealed class LibraryRepository(Database db)
                     a.GetValueOrDefault("header"), a.GetValueOrDefault("icon")),
                 installs[g.id].Select(ToDto).ToList(),
                 colMembers[g.id].ToList(),
-                st.Secs, st.Count, st.Last, g.added);
+                st.Secs, st.Count, st.Last, g.added,
+                Status: statuses.TryGetValue(g.id, out var sv) ? sv.Status : null,
+                StatusChangedAt: statuses.TryGetValue(g.id, out var sc) ? sc.Changed : null);
         }).ToList();
 
         var collections = conn.Query<(string Id, string Name, string? Icon, int Sort, string? Rule, int Count)>("""
@@ -318,6 +321,14 @@ public sealed class LibraryRepository(Database db)
               user_rating = COALESCE(user_rating, (SELECT user_rating FROM games WHERE id=@sourceGameId))
             WHERE id=@targetGameId
             """, p, tx);
+        // Play status and its history follow the merge (the target's own status wins if set).
+        conn.Execute("""
+            UPDATE games SET
+              status = COALESCE(status, (SELECT status FROM games WHERE id=@sourceGameId)),
+              status_changed = CASE WHEN status IS NULL THEN (SELECT status_changed FROM games WHERE id=@sourceGameId) ELSE status_changed END
+            WHERE id=@targetGameId
+            """, p, tx);
+        conn.Execute("UPDATE status_history SET game_id=@targetGameId WHERE game_id=@sourceGameId", p, tx);
         conn.Execute("DELETE FROM games WHERE id=@sourceGameId", p, tx);
         Audit(conn, tx, "library.merge", $"{sourceGameId} -> {targetGameId}");
         tx.Commit();

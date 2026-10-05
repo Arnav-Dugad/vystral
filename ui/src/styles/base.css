@@ -141,3 +141,18 @@ a {
 :root[data-performance='true'] *::after {
   animation-play-state: paused !important;
 }
+
+/* Superellipse ("squircle") corners where the engine supports them; plain rounding elsewhere. */
+@supports (corner-shape: squircle) {
+  .card__frame, .card::before, .tile, .tile .card__frame, .tile__overlay, .surface, .glass, .dialog, .menu, .toast,
+  .btn, .icon-btn, .input, .chip, .segmented, .stat, .cmd, .notif-drawer, .theme-card, .version, .dhero__cover,
+  .imm__card-frame, .imm__ring, .imm-panel__card, .imm-panel__cover, .imm-btn, .pulse__tile, .onb__panel {
+    corner-shape: squircle;
+  }
+  .card__frame, .tile .card__frame, .imm__card-frame, .dhero__cover { border-radius: calc(var(--r-lg) * 1.45); }
+  .card::before, .imm__ring { border-radius: calc((var(--r-lg) + 3px) * 1.45); }
+  .btn { border-radius: calc(var(--r-md) * 1.5); }
+  .btn--lg { border-radius: calc(var(--r-lg) * 1.5); }
+  .btn--xl { border-radius: calc(var(--r-xl) * 1.4); }
+  .surface, .glass, .dialog, .imm-panel__card, .onb__panel { border-radius: calc(var(--r-2xl) * 1.35); }
+}

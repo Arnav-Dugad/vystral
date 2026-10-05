@@ -38,8 +38,11 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
     private bool _immersive;
     private bool _restoreImmersiveAfterGame;
     private bool _closing;
+    private readonly GlobalHotkey _hotkey;
+    private string? _pendingRoute;
+    private bool _pageLoaded;
 
-    public MainWindow(bool safeMode)
+    public MainWindow(bool safeMode, AppNotifications notifications)
     {
         Title = "VYSTRAL";
         ExtendsContentIntoTitleBar = true;
@@ -66,6 +69,12 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         _gamepad = new GamepadBridge(DispatcherQueue, this);
         _backend.Sessions.StateChanged += s => DispatcherQueue.TryEnqueue(() => OnLaunchState(s));
         _backend.Sessions.Sampled += s => DispatcherQueue.TryEnqueue(() => _pulse?.Update(s));
+
+        // Track B: global summon shortcut, notifications, and pre-flight probes (controllers, display).
+        var hwnd = Win32.GetHwnd(this);
+        _hotkey = new GlobalHotkey(hwnd);
+        _hotkey.Pressed += Summon;
+        _backend.InsightHost = new InsightHost(this, hwnd, _hotkey, notifications);
 
         Activated += (_, e) => _gamepad.SetWindowActive(e.WindowActivationState != WindowActivationState.Deactivated);
         AppWindow.Changed += OnAppWindowChanged;
@@ -141,6 +150,17 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
             _core.PermissionRequested += (_, e) => e.State = CoreWebView2PermissionState.Deny;
             _core.WebMessageReceived += OnWebMessage;
             _core.ProcessFailed += OnProcessFailed;
+            _core.NavigationCompleted += (_, nav) =>
+            {
+                if (!nav.IsSuccess) return;
+                _pageLoaded = true;
+                if (_pendingRoute is { } route)
+                {
+                    _pendingRoute = null;
+                    // Give the UI a moment to subscribe to bridge events after its modules run.
+                    Task.Delay(800).ContinueWith(_ => DispatcherQueue.TryEnqueue(() => EmitNavigate(route)), TaskScheduler.Default);
+                }
+            };
 
             _core.Navigate($"https://{AppHost}/index.html");
         }
@@ -175,6 +195,16 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         try
         {
             var uri = new Uri(e.Request.Uri);
+            if (uri.Host == MediaService.MediaHost && uri.AbsolutePath.StartsWith(TrailerService.PathPrefix, StringComparison.Ordinal))
+            {
+                // Steam trailers: allow-listed, size-capped proxy (see TrailerService). Never touches disk.
+                var range = e.Request.Headers.Contains("Range") ? e.Request.Headers.GetHeader("Range") : null;
+                var r = await _backend.Trailers.FetchAsync(uri.AbsolutePath, range, _life.Token);
+                e.Response = r is null
+                    ? sender.Environment.CreateWebResourceResponse(null, 404, "Not Found", "")
+                    : sender.Environment.CreateWebResourceResponse(new MemoryStream(r.Body).AsRandomAccessStream(), r.Status, r.Reason, r.Headers("https://" + AppHost));
+                return;
+            }
             var resolved = uri.Host == MediaService.MediaHost ? _backend.Media.Resolve(uri.AbsolutePath) : null;
             if (resolved is null)
             {
@@ -230,6 +260,41 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
             return;
         }
         DispatcherQueue.TryEnqueue(() => Post(json, bufferIfSuspended: true));
+        // Windows notifications are decided from the same events (session saved, update ready, install finished).
+        _backend?.ObserveEvent(eventName, json);
+    }
+
+    // ---------------- Summon & notification navigation ----------------
+
+    /// <summary>Global shortcut: show VYSTRAL (waking the interface if a game had put it to sleep).</summary>
+    private void Summon()
+    {
+        if (_closing) return;
+        ResumeUi();
+        BringToFront();
+    }
+
+    /// <summary>A notification was clicked: bring VYSTRAL forward and open the route it points to.</summary>
+    internal void NavigateFromNotification(string routeJson)
+    {
+        if (_closing) return;
+        ResumeUi();
+        BringToFront();
+        if (_pageLoaded) EmitNavigate(routeJson);
+        else _pendingRoute = routeJson;
+    }
+
+    private void EmitNavigate(string routeJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(routeJson);
+            Emit("app.navigate", new { route = doc.RootElement.Clone() });
+        }
+        catch (JsonException ex)
+        {
+            Log.Warn("notify", "Ignored an invalid route", ex: ex);
+        }
     }
 
     private void Post(string json, bool bufferIfSuspended)
@@ -323,11 +388,15 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         var minimized = sender.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized };
         if (!_suspended) _web.Visibility = minimized ? Visibility.Collapsed : Visibility.Visible;
         if (!minimized) Emit("window.state", GetWindowState());
+        // Summoned during a game and minimized again: go back to Performance Mode.
+        if (minimized && !_suspended && _backend.Sessions.Current?.Phase == "running" && _backend.Settings.GetBool("launch.minimizeOnStart"))
+            _ = SuspendUiAsync();
     }
 
     private void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
         _closing = true;
+        _hotkey.Dispose();
         _placement.Save(AppWindow, _immersive);
         _pulse?.Close();
         _gamepad.Dispose();
@@ -449,6 +518,8 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
             throw new BridgeException("unavailable", "The window is closing.");
         return tcs.Task.GetAwaiter().GetResult();
     }
+
+    internal T RunOnUi<T>(Func<T> func) => OnUi(func);
 
     internal Task<T> OnUiAsync<T>(Func<Task<T>> func)
     {

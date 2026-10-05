@@ -17,12 +17,16 @@
 | Network metadata/artwork | Steam store JSON, images | HTTPS only; 12 MB cap; content-type and magic-byte checks (JPEG/PNG/WebP); atomic writes into a private cache; HTML stripped and entities decoded; rendered as React text (never `innerHTML`) |
 | Media folders | User-chosen folders, crafted URLs | Served only via a filtered handler: path normalized and required to stay under an approved root, image/video extensions only, feature off by default |
 | Local AI (Ollama) | Model output | The model cannot call anything. Structured output is validated against a whitelist schema. Suggested actions still require a user click through the normal bridge. |
+| Steam Web API key | User-provided key | Stored only in Windows Credential Manager (generic credential `VYSTRAL/SteamWebApiKey`), never in SQLite, logs or bridge responses; requests go only to `api.steampowered.com`; stored only after Steam accepts it |
+| Trailers | Steam HLS playlists and segments | Filtered proxy: HTTPS Steam video CDN only, the exact appid's folder, fixed file-name patterns, size caps, VYSTRAL-set content types, no redirects, nothing written to disk |
 | Updates | Release packages | Velopack downloads over HTTPS from the project's GitHub releases and verifies SHA hashes from the release feed before applying. The installer is unsigned for now (see limitations). Updates never apply while a game runs. |
 | WebView2 | Navigation, popups, downloads, permissions | Navigation outside the app origin is cancelled; new windows, downloads and permission requests are denied; host objects, dev tools, context menus, autofill and password saving are disabled in release; CSP `default-src 'self'` |
 
 ## Explicit non-goals (never implemented)
 
-DLL injection, overlays inside game processes, memory reading, DRM or anti-cheat interaction, reading tokens/cookies/passwords, private or reverse-engineered APIs, overclocking/undervolting, fan or power-limit changes, killing Windows services, disabling security features, and administrator elevation (the app manifest is `asInvoker`).
+DLL injection, overlays inside game processes, memory reading, DRM or anti-cheat interaction, reading tokens/cookies/passwords, private or reverse-engineered APIs, overclocking/undervolting, fan or power-limit changes, killing Windows services, disabling security features, and running elevated (the app manifest is `asInvoker`).
+
+**The one elevated action:** if the user turns on frame-rate capture, VYSTRAL can, on an explicit button press, add the signed-in account to Windows' *Performance Log Users* group (`net localgroup … /add`, one UAC prompt). That group is what Windows requires for ETW frame tracing. VYSTRAL itself never runs elevated, and PresentMon is downloaded only on request and SHA-256-verified against a pinned hash before every run.
 
 ## Residual risks
 

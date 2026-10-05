@@ -1,0 +1,44 @@
+/* Track B settings: frame-rate capture steps, summon shortcut field, notification rows. */
+
+.sgroup__title .badge { margin-left: var(--s-2); vertical-align: middle; }
+
+.fpsx__step { align-items: flex-start; }
+.fpsx__badge { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: var(--text-3); background: var(--bg-2); box-shadow: inset 0 0 0 1px var(--line); }
+.fpsx__step[data-state='done'] .fpsx__badge { color: var(--ok); background: oklch(from var(--ok) l c h / 0.12); box-shadow: inset 0 0 0 1px oklch(from var(--ok) l c h / 0.3); }
+.fpsx__step[data-state='pending'] .fpsx__badge { color: var(--warn); background: oklch(from var(--warn) l c h / 0.12); }
+.fpsx__step .srow__hint { line-height: 1.55; max-width: 64ch; }
+.fpsx__step .progress { margin-top: var(--s-2); max-width: 360px; }
+.fpsx__step code { font-family: var(--font-mono); font-size: 0.92em; padding: 1px 5px; border-radius: 5px; background: var(--bg-2); color: var(--text-2); }
+.fpsx__warn { color: var(--warn); font-weight: var(--fw-medium); }
+.fpsx__details { padding: var(--s-3) var(--s-5) var(--s-4); border-top: 1px solid var(--line); font-size: var(--fs-sm); color: var(--text-3); }
+.fpsx__details summary { cursor: pointer; color: var(--text-2); font-weight: var(--fw-medium); width: fit-content; border-radius: 6px; }
+.fpsx__details dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px var(--s-4); margin: var(--s-3) 0; }
+.fpsx__details dt { color: var(--text-3); }
+.fpsx__details dd { margin: 0; color: var(--text-2); min-width: 0; }
+.fpsx__mono { font-family: var(--font-mono); font-size: var(--fs-xs); overflow-wrap: anywhere; }
+.fpsx__links { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+
+.hkx__control { display: flex; align-items: center; gap: var(--s-2); }
+.hkx__field {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  min-width: 190px; height: 40px; padding: 0 12px;
+  border-radius: var(--r-md); background: var(--bg-2); color: var(--text-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: box-shadow 160ms var(--ease-out, ease-out), background 160ms var(--ease-out, ease-out);
+}
+.hkx__field:hover:not(:disabled) { background: var(--bg-3); }
+.hkx__field[data-capturing] { box-shadow: inset 0 0 0 1px var(--accent-line), 0 0 0 3px var(--accent-ghost); color: var(--text-1); }
+.hkx__field:disabled { opacity: 0.55; cursor: not-allowed; }
+.hkx__keys { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.hkx__error, .hkx__ok { display: flex; align-items: flex-start; gap: 6px; margin-top: var(--s-2); font-size: var(--fs-sm); line-height: 1.45; }
+.hkx__error { color: var(--warn); }
+.hkx__error > svg, .hkx__ok > svg { flex: none; margin-top: 2px; }
+.hkx__ok { color: var(--ok); }
+.sgroup > .hkx__error { margin: var(--s-3) 0 0; }
+
+.nfx__control { display: flex; align-items: center; gap: var(--s-3); }
+.nfx__cat .srow__text { padding-left: var(--s-4); }
+@media (prefers-reduced-motion: reduce) {
+  .hkx__field { transition: none; }
+}
+.fpsx__num { font-size: var(--fs-sm); font-weight: var(--fw-semibold); }

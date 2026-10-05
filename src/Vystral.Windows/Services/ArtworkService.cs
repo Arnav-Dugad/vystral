@@ -49,8 +49,12 @@ public sealed class ArtworkService(AppPaths paths, LibraryRepository repo, HttpC
         }
     }
 
+    /// <summary>When it returns true (Data saver), artwork downloads are skipped; local imports still work.</summary>
+    public Func<bool>? SkipDownloads { get; set; }
+
     public async Task<bool> DownloadAsync(string gameId, ArtworkKind kind, string url, string source, CancellationToken ct)
     {
+        if (SkipDownloads?.Invoke() == true) return false;
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return false;
         try
         {
@@ -156,6 +160,55 @@ public sealed class ArtworkService(AppPaths paths, LibraryRepository repo, HttpC
         }
         return result;
     }
+
+    /// <summary>
+    /// Caches one achievement icon from Steam's CDN under &lt;gameId&gt;/ach/ so the UI can show it via
+    /// the art host (the page itself never loads remote images). Returns the cache-relative path,
+    /// or null when the URL isn't a trusted HTTPS Steam CDN image or the download failed.
+    /// </summary>
+    public async Task<string?> CacheAchievementIconAsync(string gameId, string url, CancellationToken ct)
+    {
+        if (Integrations.SteamWebApiClient.SafeIconUrl(url) is not { } safe) return null;
+        var baseName = Path.Combine(gameId, "ach", Hash(safe));
+        foreach (var ext in new[] { ".jpg", ".png", ".webp" })
+        {
+            if (File.Exists(Path.Combine(paths.ArtCache, baseName + ext))) return baseName + ext;
+        }
+        if (SkipDownloads?.Invoke() == true) return null;
+        try
+        {
+            using var response = await http.GetAsync(safe, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!response.IsSuccessStatusCode) return null;
+            const long maxIcon = 1024 * 1024;
+            if (response.Content.Headers.ContentLength > maxIcon) return null;
+            if (!(response.Content.Headers.ContentType?.MediaType ?? "").StartsWith("image/", StringComparison.OrdinalIgnoreCase)) return null;
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var buffer = new MemoryStream();
+            var chunk = new byte[16384];
+            int read;
+            while ((read = await stream.ReadAsync(chunk, ct)) > 0)
+            {
+                buffer.Write(chunk, 0, read);
+                if (buffer.Length > maxIcon) return null;
+            }
+            var bytes = buffer.ToArray();
+            if (!LooksLikeImage(bytes)) return null;
+            var relative = baseName + (bytes[0] == 0x89 ? ".png" : bytes[0] == 0xFF ? ".jpg" : ".webp");
+            var dest = Path.Combine(paths.ArtCache, relative);
+            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+            WriteAtomic(dest, bytes);
+            return relative;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException && !ct.IsCancellationRequested)
+        {
+            Log.Warn("art", "Achievement icon download failed", new { gameId, error = ex.GetType().Name });
+            return null;
+        }
+    }
+
+    /// <summary>True when a cache-relative file exists (cached files can be cleared from Settings).</summary>
+    public bool CachedFileExists(string? relative) =>
+        relative is not null && !relative.Contains("..") && File.Exists(Path.Combine(paths.ArtCache, relative));
 
     /// <summary>Deletes cached files that are no longer referenced (user-chosen files included only if unreferenced).</summary>
     public long ClearUnreferenced(IEnumerable<string> referencedRelativeFiles)

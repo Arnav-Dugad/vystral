@@ -54,6 +54,8 @@ public sealed class SettingsService
         new EnumDef("motion.reduce", "system", "system", "on", "off"),
         new BoolDef("startup.intro", true),
         new BoolDef("startup.immersive", false),
+        new BoolDef("immersive.attract", true),
+        new NumberDef("immersive.attractMinutes", 3, 1, 30),
         new BoolDef("launch.cinematic", true),
         new BoolDef("launch.minimizeOnStart", true),
         new BoolDef("launch.restoreOnExit", true),
@@ -73,6 +75,22 @@ public sealed class SettingsService
         new BoolDef("onboarding.completed", false),
         new BoolDef("privacy.localOnly", false),
         new BoolDef("moments.enabled", false),
+        // Track C: data saver and trailers.
+        new BoolDef("dataSaver.enabled", false),
+        new BoolDef("dataSaver.onMetered", true),
+        new BoolDef("trailers.autoplay", true),
+        // Track A: Steam Web API (the key itself lives in Windows Credential Manager, never here).
+        new BoolDef("steam.webApi.backgroundAchievements", true),
+        // Track B: frame-rate capture (opt-in), summon hotkey, Windows notifications.
+        new BoolDef("fps.captureEnabled", false),
+        new BoolDef("hotkey.enabled", true),
+        new StringDef("hotkey.summon", Hotkey.Default, 40, Hotkey.Pattern),
+        new BoolDef("notifications.enabled", true),
+        new BoolDef("notifications.sessions", true),
+        new BoolDef("notifications.updates", true),
+        new BoolDef("notifications.installs", true),
+        new BoolDef("notifications.thermal", true),
+        new BoolDef("notifications.onlyInBackground", true),
     ];
 
     private readonly LibraryRepository _repo;

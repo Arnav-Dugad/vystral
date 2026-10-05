@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  Activity, ArrowDown, ArrowUp, Cpu, Equal, Gamepad2, Gauge, GitCompareArrows, Info, MemoryStick, MonitorCog, RefreshCw, Thermometer, X,
+  ArrowDown, ArrowUp, Cpu, Equal, Gamepad2, Gauge, GitCompareArrows, Info, MemoryStick, MonitorCog, RefreshCw, Thermometer, X,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game, PerfSample, PerfSummary, Session } from '../bridge/types';
@@ -14,6 +14,8 @@ import { GameThumb, StatTile } from './perf/kit';
 import { useTrackedSessions } from './perf/hooks';
 import { gameTitle, timeOfDay } from './perf/text';
 import { LineChart } from './perf/LineChart';
+import { FrameRatePanel, ThermalPanel } from './perf/InsightPanels';
+import { useInsightSamples, useThrottleBands } from './perf/insightData';
 import {
   METRICS, NOISE_PCT, compareCandidates, compareValues, domainFor, downsampleSegments, extractSeries, formatMetric, parsePerfSummary,
   seriesStats, splitSegments, summaryValue, type MetricDef, type MetricKey, type Pt,
@@ -301,6 +303,8 @@ function SessionItem({ e, game, selected, comparing, onSelect }: { e: PerfEntry;
 
 function SessionDetail({ entry, game, compare }: { entry: PerfEntry; game: Game | undefined; compare: ReactNode }) {
   const samples = useSamples(entry.id);
+  const insight = useInsightSamples(entry.id);
+  const bands = useThrottleBands(insight.samples);
   const [hoverT, setHoverT] = useState<number | null>(null);
   const { summary, session } = entry;
 
@@ -368,19 +372,28 @@ function SessionDetail({ entry, game, compare }: { entry: PerfEntry; game: Game 
         })}
       </div>
 
-      <div className="pf-fps surface" role="note" aria-labelledby="pf-fps-title">
-        <span className="pf-fps__icon" aria-hidden><Activity size={16} /></span>
-        <div className="pf-fps__text">
-          <span className="caps">Frame rate</span>
-          <span id="pf-fps-title" className="pf-fps__value">FPS not measured</span>
-        </div>
-        <p className="pf-fps__body">{summary.fpsStatus} VYSTRAL shows no frame-rate figures rather than estimated ones.</p>
-      </div>
+      <ThermalPanel summary={summary} samples={insight.samples} />
+
+      <FrameRatePanel
+        summary={summary}
+        samples={insight.samples}
+        durationMs={Math.max(durationMs, insight.samples.reduce((mx, s) => Math.max(mx, s.t), 0))}
+        hoverT={hoverT}
+        onHover={setHoverT}
+        animateKey={entry.id}
+        bands={bands}
+      />
 
       <section className="surface vx-card" aria-labelledby="pf-charts-title">
         <SectionHead
           title={<span id="pf-charts-title">Over the session</span>}
-          meta={samples.status === 'ready' && samples.samples.length ? 'Hover, or focus a chart and use the arrow keys' : undefined}
+          meta={
+            samples.status === 'ready' && samples.samples.length
+              ? bands.length
+                ? 'Shaded: GPU slowed down for heat · hover, or focus a chart and use the arrow keys'
+                : 'Hover, or focus a chart and use the arrow keys'
+              : undefined
+          }
         />
         {samples.status === 'loading' && (
           <div className="pf-charts">
@@ -415,6 +428,7 @@ function SessionDetail({ entry, game, compare }: { entry: PerfEntry; game: Game 
                     hoverT={hoverT}
                     onHover={setHoverT}
                     animateKey={entry.id}
+                    bands={bands}
                     ariaLabel={`${m.label} over ${formatDuration(durationMs / 1000)}: average ${formatMetric(stats.avg, m.unit)}, lowest ${formatMetric(stats.min, m.unit)}, peak ${formatMetric(stats.max, m.unit)}.`}
                   />
                 </div>
@@ -505,7 +519,7 @@ function ComparePanel({
             <span>
               Differences under ~{NOISE_PCT}% are within normal run-to-run variation — background apps, scenes, settings and session length all move these numbers.
               {a.gameId !== b.gameId && ' These sessions are from different games, so most of the difference comes from the games themselves.'}
-              {' '}Frame rate isn’t compared because it isn’t measured.
+              {' '}Frame rate is shown per session above when it was measured.
             </span>
           </p>
         </>

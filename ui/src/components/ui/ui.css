@@ -30,6 +30,14 @@
   background: linear-gradient(180deg, var(--accent-hi), var(--accent));
   box-shadow: var(--inner-hi), 0 8px 24px -10px oklch(from var(--accent) l c h / 0.8);
 }
+.btn--primary::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
+  background: linear-gradient(110deg, transparent 30%, oklch(1 0 0 / 0.55) 50%, transparent 70%) no-repeat;
+  background-size: 250% 100%; background-position: 150% 0; opacity: 0;
+}
+.btn--primary:active:not(:disabled)::after,
+.btn--primary[data-loading='true']::after { opacity: 1; animation: btn-sweep 900ms var(--ease-out); }
+@keyframes btn-sweep { from { background-position: 150% 0; } to { background-position: -60% 0; } }
 .btn--primary:hover:not(:disabled) { box-shadow: var(--inner-hi), 0 10px 32px -8px oklch(from var(--accent) l c h / 0.95); }
 .btn--secondary { background: var(--bg-3); color: var(--text-1); box-shadow: var(--inner-hi), 0 0 0 1px var(--line); }
 .btn--secondary:hover:not(:disabled) { background: oklch(from var(--bg-3) calc(l + 0.03) c h); }
