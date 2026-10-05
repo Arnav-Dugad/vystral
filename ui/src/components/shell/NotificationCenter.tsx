@@ -129,7 +129,7 @@ function NotificationDrawer({ open, onClose }: { open: boolean; onClose: () => v
                           <div className="notif__text">
                             <div className="notif__title">{n.title}</div>
                             {n.body && <div className="notif__body">{n.body}</div>}
-                            {n.media && n.media.length > 0 && <ToastMedia media={n.media} />}
+                            {n.media && n.media.length > 0 && <ToastMedia media={n.media} shimmer={false} />}
                             <div className="notif__time">{formatRelative(new Date(n.at).toISOString())}</div>
                             {n.action && (
                               <button className="notif__action" onClick={() => { n.action!.run(); onClose(); }}>{n.action.label}</button>

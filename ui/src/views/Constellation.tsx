@@ -142,6 +142,7 @@ export function ConstellationView() {
         <Skeleton className="cst-skeleton" height={520} radius={22} />
       ) : visible.length === 0 ? (
         <EmptyState
+          art="constellation"
           icon={<Telescope size={36} aria-hidden />}
           title="No stars yet"
           body="Once VYSTRAL finds games on this PC, they appear here as a map of your library."

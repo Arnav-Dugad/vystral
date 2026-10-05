@@ -142,6 +142,7 @@ export function PerformanceView({ sessionId }: { sessionId?: string }) {
 
       {status === 'error' && !entries.length && (
         <EmptyState
+          art="none"
           icon={<Gauge size={34} />}
           title="Performance data couldn’t be loaded"
           body={error ?? 'Something went wrong while reading your sessions.'}

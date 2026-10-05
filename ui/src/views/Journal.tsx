@@ -196,6 +196,7 @@ export function JournalView({ tab: routeTab }: { tab?: JournalTab } = {}) {
 
       {status === 'error' && !hasHistory && (
         <EmptyState
+          art="none"
           icon={<BookOpen size={34} />}
           title="Your journal couldn’t be loaded"
           body={error ?? 'Something went wrong while reading your sessions.'}
@@ -650,6 +651,7 @@ function YearInReviewCard({ review, now, gamesById, reveal }: { review: YearRevi
 function JournalEmpty({ storeGames }: { storeGames: number }) {
   return (
     <EmptyState
+      art="tide"
       icon={<BookOpen size={34} />}
       title="Your journal starts with your next session"
       body={

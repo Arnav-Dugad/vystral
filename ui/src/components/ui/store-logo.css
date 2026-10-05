@@ -1,0 +1,41 @@
+/* Store marks: monochrome by default; the store's hue on hover, selection or when asked for. */
+.store-logo {
+  flex: none;
+  display: inline-block;
+  vertical-align: -0.15em;
+  color: inherit;
+  transition: color var(--dur-fast, 120ms) var(--ease-out, ease-out), opacity var(--dur-fast, 120ms) var(--ease-out, ease-out);
+}
+.store-logos { display: inline-flex; align-items: center; gap: 5px; flex: none; color: var(--text-3); }
+.store-logos .store-logo { opacity: 0.92; }
+
+.store-logo[data-brand],
+.platform-badge:hover .store-logo,
+:is(button, [role='button'], a):is(:hover, :focus-visible) .store-logos .store-logo,
+[aria-pressed='true'] .store-logo,
+[aria-selected='true'] .store-logo,
+[aria-checked='true'] .store-logo {
+  color: var(--pc, currentColor);
+  opacity: 1;
+}
+
+/* Light theme: the hues are tuned for dark surfaces; keep them ≥3:1 on light ones. */
+:root[data-theme='light'] .store-logo[data-brand],
+:root[data-theme='light'] .platform-badge:hover .store-logo,
+:root[data-theme='light'] :is(button, [role='button'], a):is(:hover, :focus-visible) .store-logos .store-logo,
+:root[data-theme='light'] :is([aria-pressed='true'], [aria-selected='true'], [aria-checked='true']) .store-logo {
+  color: oklch(from var(--pc) min(l, 0.5) max(c, 0.06) h);
+}
+
+/* Contexts that size marks with the text (Immersive scales its root font for 10-foot viewing). */
+.imm__store .store-logo { width: 1.15em; height: 1.15em; }
+.now-playing__store { display: inline-flex; color: var(--text-3); }
+.launch__store { display: inline-flex; vertical-align: -0.2em; margin-right: 0.45em; opacity: 0.9; }
+
+/* High contrast: marks stay in the text colour, never a hue. */
+:root[data-theme='contrast'] .store-logo,
+:root[data-theme='contrast'] .store-logos { color: currentColor !important; opacity: 1; }
+
+@media (forced-colors: active) {
+  .store-logo { color: CanvasText !important; }
+}

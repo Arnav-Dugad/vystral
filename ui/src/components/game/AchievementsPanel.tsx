@@ -9,6 +9,8 @@ import { spring } from '../../lib/motion';
 import { useReducedMotion, useStore } from '../../state/store';
 import { Badge, Button, EmptyState, Segmented, Skeleton } from '../ui/primitives';
 import { ProgressRing } from './InstallProgress';
+import { isFresh, shimmerTier, takeLastSeen, type ShimmerTier } from '../../lib/shimmer';
+import '../ui/shimmer.css';
 import './achievements.css';
 
 type Load = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'done'; data: AchievementsResult };
@@ -103,10 +105,11 @@ function AchievementsBody({ game, data, onRetry }: { game: Game; data: Achieveme
         />
       );
     case 'none':
-      return <EmptyState icon={<Trophy size={30} />} title="No Steam achievements" body={`${game.title} doesn’t have achievements on Steam.`} />;
+      return <EmptyState art="trophy" icon={<Trophy size={30} />} title="No Steam achievements" body={`${game.title} doesn’t have achievements on Steam.`} />;
     case 'error':
       return (
         <EmptyState
+          art="none"
           icon={<AlertTriangle size={30} />}
           title="Steam didn’t return achievements"
           body={data.message ?? 'Try again in a little while.'}
@@ -114,12 +117,16 @@ function AchievementsBody({ game, data, onRetry }: { game: Game; data: Achieveme
         />
       );
     default:
-      return <AchievementList data={data} />;
+      return <AchievementList data={data} gameId={game.id} />;
   }
 }
 
-function AchievementList({ data }: { data: AchievementsResult }) {
+function AchievementList({ data, gameId }: { data: AchievementsResult; gameId: string }) {
   const reduce = useReducedMotion();
+  // Track K: achievements unlocked since you last opened this game's tab shimmer once.
+  const [since] = useState(() => takeLastSeen(`game:${gameId}`));
+  const now = Date.now();
+  let fresh = 0;
   const [filter, setFilter] = useState<AchievementFilter>('all');
   const [query, setQuery] = useState('');
   const list = useMemo(() => filterAchievements(data.achievements, filter, query), [data.achievements, filter, query]);
@@ -179,35 +186,43 @@ function AchievementList({ data }: { data: AchievementsResult }) {
         <p className="ach__empty">{query ? `No achievements match “${query}”.` : filter === 'unlocked' ? 'None unlocked yet.' : 'Nothing left to unlock.'}</p>
       ) : (
         <ul className="ach__list" aria-label={`${list.length} achievements`}>
-          {list.map((a, i) => (
-            <motion.li
-              key={a.apiName}
-              className="ach-row"
-              data-achieved={a.achieved || undefined}
-              initial={reduce || i > 24 ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...spring.panel, delay: reduce ? 0 : Math.min(i, 24) * 0.018 }}
-            >
-              <AchievementRow a={a} />
-            </motion.li>
-          ))}
+          {list.map((a, i) => {
+            const isNew = a.achieved && isFresh(a.unlockedAt, since, now);
+            const order = isNew ? fresh++ : 0;
+            return (
+              <motion.li
+                key={a.apiName}
+                className={`ach-row${isNew ? ' shimmer' : ''}`}
+                data-achieved={a.achieved || undefined}
+                data-tier={isNew ? shimmerTier(a.globalPercent) : undefined}
+                data-new={isNew || undefined}
+                style={isNew ? { ['--shimmer-delay' as string]: `${0.4 + Math.min(order, 8) * 0.14}s` } : undefined}
+                initial={reduce || i > 24 ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...spring.panel, delay: reduce ? 0 : Math.min(i, 24) * 0.018 }}
+              >
+                <AchievementRow a={a} tier={isNew ? shimmerTier(a.globalPercent) : null} />
+              </motion.li>
+            );
+          })}
         </ul>
       )}
     </div>
   );
 }
 
-function AchievementRow({ a }: { a: Achievement }) {
+function AchievementRow({ a, tier: fresh }: { a: Achievement; tier?: ShimmerTier | null }) {
   const tier = rarityTier(a.globalPercent);
   const hiddenLocked = a.hidden && !a.achieved;
   return (
     <>
-      <div className="ach-row__icon" aria-hidden>
+      <div className={`ach-row__icon${fresh ? ' shimmer shimmer-ring' : ''}`} data-tier={fresh ?? undefined} aria-hidden>
         {a.icon ? <img src={a.icon} alt="" loading="lazy" decoding="async" draggable={false} /> : hiddenLocked ? <EyeOff size={20} /> : a.achieved ? <Trophy size={20} /> : <Lock size={18} />}
       </div>
       <div className="ach-row__main">
         <div className="ach-row__name">
           <span className="ach-row__title">{a.name}</span>
+          {fresh && <Badge tone="ok">New</Badge>}
           {tier === 'ultra' && <Badge tone="accent">Ultra rare</Badge>}
           {tier === 'rare' && <Badge>Rare</Badge>}
           {a.hidden && <span className="visually-hidden">Hidden achievement.</span>}

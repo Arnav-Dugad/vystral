@@ -210,6 +210,16 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
                     : sender.Environment.CreateWebResourceResponse(new MemoryStream(r.Body).AsRandomAccessStream(), r.Status, r.Reason, r.Headers("https://" + AppHost));
                 return;
             }
+            if (uri.Host == MediaService.MediaHost && uri.AbsolutePath.StartsWith(LiveTileService.PathPrefix, StringComparison.Ordinal))
+            {
+                // Home live tiles: Steam micro-trailers, allow-listed, size-capped, cached (see LiveTileService).
+                var range = e.Request.Headers.Contains("Range") ? e.Request.Headers.GetHeader("Range") : null;
+                var r = await _backend.LiveTiles.FetchAsync(uri.AbsolutePath, range, _life.Token);
+                e.Response = r is null
+                    ? sender.Environment.CreateWebResourceResponse(null, 404, "Not Found", "")
+                    : sender.Environment.CreateWebResourceResponse(new MemoryStream(r.Body).AsRandomAccessStream(), r.Status, r.Reason, r.Headers("https://" + AppHost));
+                return;
+            }
             var resolved = uri.Host == MediaService.MediaHost ? _backend.Media.Resolve(uri.AbsolutePath) : null;
             if (resolved is null)
             {

@@ -1,7 +1,9 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Game } from '../../bridge/types';
-import { formatDuration, formatRelative, lastPlayed, PLATFORM_NAMES } from '../../lib/format';
+import { formatDuration, formatRelative, lastPlayed } from '../../lib/format';
+import { StoreLogos } from '../ui/StoreLogo';
+import { LiveLayer } from './LiveTile';
 import { peekPalette, titleHue } from '../../lib/palette';
 import { useStore } from '../../state/store';
 import { IconButton, SectionHead } from '../ui/primitives';
@@ -11,13 +13,15 @@ import { useGameMenu } from './useGameMenu';
 import './shelf.css';
 
 /** Horizontal row of games with scroll buttons; native scrolling with snap (touchpad-friendly). */
-export function Shelf({ title, meta, games, variant = 'portrait', caption, action }: {
+export function Shelf({ title, meta, games, variant = 'portrait', caption, action, live }: {
   title: ReactNode;
   meta?: ReactNode;
   games: Game[];
   variant?: 'portrait' | 'landscape';
   caption?: (g: Game) => ReactNode;
   action?: ReactNode;
+  /** Track K: tiles animate with Steam micro-trailers while visible. */
+  live?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState({ start: true, end: true });
@@ -65,9 +69,9 @@ export function Shelf({ title, meta, games, variant = 'portrait', caption, actio
       />
       <div className={`shelf__track shelf__track--${variant}`} ref={ref} onScroll={onScroll}>
         {games.map((g) =>
-          variant === 'landscape' ? <LandscapeTile key={g.id} game={g} caption={caption?.(g)} /> : (
+          variant === 'landscape' ? <LandscapeTile key={g.id} game={g} caption={caption?.(g)} live={live} /> : (
             <div key={g.id} className="shelf__item">
-              <GameCard game={g} />
+              <GameCard game={g} live={live} />
               {caption && <div className="shelf__caption">{caption(g)}</div>}
             </div>
           ),
@@ -77,7 +81,7 @@ export function Shelf({ title, meta, games, variant = 'portrait', caption, actio
   );
 }
 
-function LandscapeTile({ game, caption }: { game: Game; caption?: ReactNode }) {
+export function LandscapeTile({ game, caption, live }: { game: Game; caption?: ReactNode; live?: boolean }) {
   const navigate = useStore((s) => s.navigate);
   const setFocusGame = useStore((s) => s.setFocusGame);
   const { open, element } = useGameMenu(game);
@@ -104,8 +108,9 @@ function LandscapeTile({ game, caption }: { game: Game; caption?: ReactNode }) {
         }}
         aria-label={`${game.title}${lp.at ? `, last played ${formatRelative(lp.at)}` : ''}`}
       >
-        <div className="card__frame">
+        <div className="card__frame" data-live={live || undefined}>
           <GameCover game={game} kind="hero" />
+          {live && <LiveLayer game={game} />}
         </div>
         <div className="tile__overlay">
           {game.art.logo ? <img className="tile__logo" src={game.art.logo} alt="" loading="lazy" /> : null}
@@ -115,7 +120,7 @@ function LandscapeTile({ game, caption }: { game: Game; caption?: ReactNode }) {
               <>
                 <span>{lp.at ? formatRelative(lp.at) : 'Not played yet'}</span>
                 {game.trackedSeconds > 0 && <span>{formatDuration(game.trackedSeconds)} tracked</span>}
-                <span>{[...new Set(game.installations.map((i) => PLATFORM_NAMES[i.platform]))].join(' · ')}</span>
+                <StoreLogos platforms={game.installations.map((i) => i.platform)} />
               </>
             )}
           </div>

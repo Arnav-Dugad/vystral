@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Clock3, FilePlus2, Heart, Info, Layers, Play, RefreshCw, Sparkles } from 'lucide-react';
-import type { Game } from '../bridge/types';
+import type { Game, PlatformKey } from '../bridge/types';
+import { StoreLogo } from '../components/ui/StoreLogo';
+import { NeverPlayedSection } from './home/NeverPlayed';
 import { formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../lib/format';
 import { ease, spring } from '../lib/motion';
 import { featuredGame, suggestGames } from '../lib/recommend';
@@ -38,7 +40,6 @@ export function HomeView() {
   const favorites = useMemo(() => visible.filter((g) => g.favorite).sort((a, b) => a.sortTitle.localeCompare(b.sortTitle)), [visible]);
   const recent = useMemo(() => [...visible].sort((a, b) => b.added.localeCompare(a.added)).filter((g) => now - Date.parse(g.added) < 30 * 86400000).slice(0, 16), [visible, now]);
   const suggestions = useMemo(() => suggestGames(visible, now, 12), [visible, now]);
-  const unplayed = useMemo(() => visible.filter((g) => isInstalled(g) && !lastPlayed(g).at && g.trackedSeconds === 0), [visible]);
 
   if (!loaded) return <HomeSkeleton />;
 
@@ -47,6 +48,7 @@ export function HomeView() {
     return (
       <div className="page">
         <EmptyState
+          art="orbits"
           icon={<Layers size={36} />}
           title={scan.running ? 'Looking for your games…' : 'Your universe is waiting'}
           body={
@@ -75,18 +77,19 @@ export function HomeView() {
     <div className="home">
       {featured && <Hero game={featured} />}
       <div className="page home__rows">
-        <Shelf title="Continue playing" games={continuePlaying} variant="landscape" />
+        <Shelf title="Continue playing" games={continuePlaying} variant="landscape" live />
         {suggestions.length > 0 && (
           <Shelf
             title={<span className="home__title-icon"><Sparkles size={16} /> Picked from your library</span>}
             meta="Based on what you play — no AI, no cloud"
             games={suggestions.map((s) => s.game)}
             caption={(g) => suggestions.find((s) => s.game.id === g.id)?.reason}
+            live
           />
         )}
-        <Shelf title="Favorites" meta={plural(favorites.length, 'game')} games={favorites} />
-        <Shelf title="Recently added" games={recent} />
-        <Shelf title="Ready and unplayed" meta={plural(unplayed.length, 'game')} games={unplayed.slice(0, 24)} />
+        <Shelf title="Favorites" meta={plural(favorites.length, 'game')} games={favorites} live />
+        <Shelf title="Recently added" games={recent} live />
+        <NeverPlayedSection games={visible} live />
         <LibraryPulse games={visible} />
       </div>
     </div>
@@ -177,8 +180,8 @@ function LibraryPulse({ games }: { games: Game[] }) {
       <div className="pulse__platforms">
         {[...byPlatform.entries()].sort((a, b) => b[1] - a[1]).map(([p, n]) => (
           <Badge key={p}>
-            <span className="platform-badge__dot" style={{ ['--pc' as string]: `var(--p-${p})`, width: 7, height: 7, borderRadius: 4, background: `var(--p-${p})` }} />
-            {PLATFORM_NAMES[p as keyof typeof PLATFORM_NAMES]} · {n}
+            <StoreLogo platform={p as PlatformKey} size={14} decorative />
+            {PLATFORM_NAMES[p as PlatformKey]} · {n}
           </Badge>
         ))}
       </div>

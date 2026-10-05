@@ -34,6 +34,7 @@
 | **Launches the right way** | Each game starts through its store’s official mechanism (or directly for DRM-free GOG/manual games). VYSTRAL confirms the game actually started before it says so, and never relaunches anything on its own. |
 | **Smart duplicates** | Own a game on two stores? It appears once, with a chooser for which store to play from. Different editions and remasters are never merged automatically — you decide. |
 | **Living Canvas** | A calm animated background that takes on each game’s colours and mood (light trails for racing, stars for space, fog for horror…). It pauses whenever you’re playing. |
+| **Live Home** | Steam games’ tiles come alive with their short, silent store loops while on screen (two at a time, never on Data saver); an *Owned, never played* gallery with gentle picks for tonight; optional ambient sound that follows each game’s mood. |
 | **Command bar** (`Ctrl+K`) | “installed racing games under 20 GB”, “launch forza”, “not played in 3 months”, “everything on my second SSD” — understood instantly, on your PC, without AI. |
 | **Immersive Mode** (`F11` / Menu button) | A separate full-screen, controller-first layout for TVs and couch gaming, with one gliding focus ring and an attract-mode slideshow when idle. |
 | **Performance Mode** | When a game starts, VYSTRAL minimizes and suspends its interface: **0% CPU** while minimized in our measurements. |
@@ -79,4 +80,4 @@ UI-only development with sample data: `cd ui && npm run dev` (a **Preview · sam
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Third-party components are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Game names, artwork and descriptions belong to their respective owners; VYSTRAL is not affiliated with Valve, Microsoft, Epic Games, GOG, Electronic Arts, Ubisoft or Blizzard.
+MIT — see [LICENSE](LICENSE). Third-party components are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Game names, artwork and descriptions belong to their respective owners; VYSTRAL is not affiliated with Valve, Microsoft, Epic Games, GOG, Electronic Arts, Ubisoft or Blizzard. Store names and logos are trademarks of their owners, used only to identify the store.

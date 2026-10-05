@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertTriangle, CheckCircle2, Download, Gamepad2, HardDrive, Info, Layers, Monitor, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Gamepad2, HardDrive, Info, Layers, Monitor, ShieldCheck } from 'lucide-react';
+import { StoreLogo } from '../ui/StoreLogo';
 import { call, on } from '../../bridge/bridge';
 import type { LaunchState, PreflightCheck, PreflightResult, PreflightStatus } from '../../bridge/types';
 import { spring } from '../../lib/motion';
@@ -9,7 +10,7 @@ import './preflight.css';
 
 const CHECK_ICONS: Record<string, ReactNode> = {
   disk: <HardDrive size={15} />,
-  steamUpdate: <Download size={15} />,
+  steamUpdate: <StoreLogo platform="steam" size={16} decorative />,
   controller: <Gamepad2 size={15} />,
   display: <Monitor size={15} />,
   launchers: <Layers size={15} />,

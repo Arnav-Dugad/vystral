@@ -7,7 +7,7 @@ import type {
 
 export type Route =
   | { name: 'home' }
-  | { name: 'library'; collectionId?: string; query?: string }
+  | { name: 'library'; collectionId?: string; query?: string; /** Track K: open with a quick filter (e.g. 'unplayed'). */ quick?: string }
   | { name: 'game'; id: string }
   | { name: 'journal'; tab?: 'sessions' | 'achievements' }
   | { name: 'performance'; sessionId?: string }

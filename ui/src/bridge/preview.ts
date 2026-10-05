@@ -14,6 +14,7 @@ import { controllerPreviewHandlers } from './preview.controller';
 import { INSIGHT_DEFAULT_SETTINGS, PREVIEW_EXPECTED_DETECT_MS, PREVIEW_FAILED_ACTIONS, decoratePreviewSessions, insightPreviewHandlers } from './preview.insights';
 import { DATA_INSIGHT_DEFAULT_SETTINGS, dataInsightPreviewHandlers } from './preview.dataInsights';
 import { updatesPreviewHandlers } from './preview.updates';
+import { TRACK_K_DEFAULT_SETTINGS, trackKPreviewHandlers } from './preview.trackK';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -55,6 +56,7 @@ const DEFAULT_SETTINGS: Settings = {
   'steam.webApi.backgroundAchievements': true,
   ...INSIGHT_DEFAULT_SETTINGS,
   ...DATA_INSIGHT_DEFAULT_SETTINGS,
+  ...TRACK_K_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -425,6 +427,8 @@ export function createPreviewBackend() {
     ...dataInsights,
     // Track J: what's new, "New" badges, rollback notice, network health (fictional data).
     ...updatesPreviewHandlers({ settings: () => settings }),
+    // Track K: live tiles (a bundled local loop, never the network).
+    ...trackKPreviewHandlers({ lib, settings: () => settings, liveTileRequests: [] }),
   };
 
   return {

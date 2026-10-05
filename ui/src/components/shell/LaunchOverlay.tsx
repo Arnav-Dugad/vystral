@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { AlertTriangle, CheckCircle2, Gauge, X } from 'lucide-react';
 import { call } from '../../bridge/bridge';
-import type { LaunchState, PerfSummary } from '../../bridge/types';
+import type { LaunchState, PerfSummary, PlatformKey } from '../../bridge/types';
+import { StoreLogo } from '../ui/StoreLogo';
 import { formatDuration, PLATFORM_NAMES } from '../../lib/format';
 import { ease, spring } from '../../lib/motion';
 import { findCoverElement, launchOriginFor } from '../../lib/flight';
@@ -121,7 +122,12 @@ export function LaunchOverlay() {
             </motion.div>
             <motion.div className="launch__status" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
               <StatusIcon launch={launch} />
-              <span>{statusText(launch)}</span>
+              <span>
+                {launch.phase === 'starting' && launch.platform in PLATFORM_NAMES && launch.platform !== 'manual' && (
+                  <span className="launch__store"><StoreLogo platform={launch.platform as PlatformKey} size={20} decorative /></span>
+                )}
+                {statusText(launch)}
+              </span>
             </motion.div>
             {launch.message && launch.phase !== 'starting' && launch.phase !== 'waiting' && <p className="launch__message">{launch.message}</p>}
             {(launch.phase === 'starting' || launch.phase === 'waiting' || launch.phase === 'notDetected') && <PreflightCard launch={launch} />}

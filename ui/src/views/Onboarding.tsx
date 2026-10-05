@@ -114,7 +114,7 @@ function Stores() {
           const count = scan.platforms[a.platform];
           return (
             <div key={a.platform} className="onb__store">
-              <PlatformBadge platform={a.platform} />
+              <PlatformBadge platform={a.platform} size={20} />
               <span style={{ marginLeft: 'auto' }}>
                 {a.status !== 'Available' ? (
                   <Badge>Not installed</Badge>

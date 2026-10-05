@@ -4,6 +4,8 @@ import { useReducedMotion, useStore } from '../../state/store';
 import { exit, pick, spring } from '../../lib/motion';
 import { IconButton } from './primitives';
 import { ToastMedia } from './ToastMedia';
+import { bestTier } from '../../lib/shimmer';
+import './shimmer.css';
 
 const ICONS = { success: CheckCircle2, warning: AlertTriangle, danger: XCircle, info: Info };
 
@@ -16,11 +18,14 @@ export function Toaster() {
       <AnimatePresence initial={false}>
         {toasts.map((t) => {
           const Icon = ICONS[t.tone];
+          // Track K: achievement toasts get a rarity-tinted shimmer sweep.
+          const tier = t.media?.length ? bestTier(t.media.map((m) => m.rare ?? 'common')) : null;
           return (
             <motion.div
               key={t.id}
               layout={!reduce}
-              className={`toast toast--${t.tone}`}
+              className={`toast toast--${t.tone}${tier ? ' shimmer' : ''}`}
+              data-tier={tier ?? undefined}
               role={t.tone === 'danger' ? 'alert' : 'status'}
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}

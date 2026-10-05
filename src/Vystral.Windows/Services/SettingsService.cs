@@ -96,6 +96,10 @@ public sealed class SettingsService
         new BoolDef("performance.backgroundApps", true),
         // Track E: the Living Canvas follows a playing hero trailer's colours.
         new BoolDef("canvas.followTrailer", true),
+        // Track K: Home live tiles (Steam micro-trailers), ambient mood sound (off by default).
+        new BoolDef("home.liveTiles", true),
+        new BoolDef("sound.ambient", false),
+        new NumberDef("sound.ambientVolume", 0.35, 0, 1),
     ];
 
     private readonly LibraryRepository _repo;

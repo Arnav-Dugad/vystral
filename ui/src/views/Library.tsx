@@ -10,7 +10,11 @@ import { parseQuery, searchGames, type ParsedQuery } from '../lib/search';
 import { addManualGame } from '../state/actions';
 import { STATUSES, statusRank } from '../lib/status';
 import '../components/game/status.css';
-import { useStore } from '../state/store';
+import { useReducedMotion, useStore } from '../state/store';
+import { isNeverPlayed, ageLabel } from '../lib/neverPlayed';
+import { platformFromName } from '../lib/storeMarks';
+import { StoreLogo } from '../components/ui/StoreLogo';
+import { useFlipGrid } from '../components/game/useFlipGrid';
 import { GameCard } from '../components/game/GameCard';
 import { GameCover } from '../components/game/GameCover';
 import { Badge, Button, EmptyState, IconButton, PlatformBadge, Segmented, Slider } from '../components/ui/primitives';
@@ -18,14 +22,14 @@ import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
 import './library.css';
 
-type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status';
+type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status' | 'waiting';
 type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'missing' | 'hidden' | `status:${GameStatus}`;
 
 const QUICK: { value: Quick; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'installed', label: 'Installed' },
   { value: 'favorites', label: 'Favorites' },
-  { value: 'unplayed', label: 'Unplayed' },
+  { value: 'unplayed', label: 'Never played' },
   { value: 'new', label: 'New this month' },
   { value: 'client', label: 'Needs store app' },
   { value: 'missing', label: 'Missing' },
@@ -34,7 +38,7 @@ const QUICK: { value: Quick; label: string }[] = [
 
 const VIEW_KEY = 'vystral.library.view';
 
-export function LibraryView({ collectionId }: { collectionId?: string }) {
+export function LibraryView({ collectionId, quick: initialQuick }: { collectionId?: string; quick?: string }) {
   const games = useStore((s) => s.library.games);
   const collections = useStore((s) => s.library.collections);
   const duplicates = useStore((s) => s.library.duplicateSuggestions);
@@ -45,8 +49,8 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
 
   const [text, setText] = useState('');
   const query = useDeferredValue(text);
-  const [quick, setQuick] = useState<Quick>('all');
-  const [sort, setSort] = useState<Sort>('recent');
+  const [quick, setQuick] = useState<Quick>(() => (QUICK.some((q) => q.value === initialQuick) ? (initialQuick as Quick) : 'all'));
+  const [sort, setSort] = useState<Sort>(() => (initialQuick === 'unplayed' ? 'waiting' : 'recent'));
   const [view, setView] = useState<'grid' | 'list'>(() => (localStorage.getItem(VIEW_KEY) as 'grid' | 'list') ?? 'grid');
   const [dupOpen, setDupOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -68,7 +72,7 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
         case 'hidden': return g.hidden;
         case 'installed': return !g.hidden && isInstalled(g);
         case 'favorites': return !g.hidden && g.favorite;
-        case 'unplayed': return !g.hidden && !lastPlayed(g).at && g.trackedSeconds === 0;
+        case 'unplayed': return isNeverPlayed(g);
         case 'new': return !g.hidden && now - Date.parse(g.added) < 30 * 86400000;
         case 'client': return !g.hidden && isInstalled(g) && g.installations.every((i) => i.state !== 'installed' || i.clientRequired);
         case 'missing': return !g.hidden && !isInstalled(g);
@@ -88,6 +92,7 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
         playtime: (a, b) => playtime(b) - playtime(a),
         size: (a, b) => (sizeOf(b) ?? -1) - (sizeOf(a) ?? -1),
         added: (a, b) => b.added.localeCompare(a.added),
+        waiting: (a, b) => a.added.localeCompare(b.added) || a.sortTitle.localeCompare(b.sortTitle),
         status: (a, b) => statusRank(a) - statusRank(b) || (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? '') || a.sortTitle.localeCompare(b.sortTitle),
       };
       found = [...found].sort(cmp[sort]);
@@ -150,6 +155,7 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
               <option value="size">Largest</option>
               <option value="added">Recently added</option>
               <option value="status">Play status</option>
+              <option value="waiting">Longest in library</option>
             </select>
           </label>
           {view === 'grid' && (
@@ -171,7 +177,16 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
 
       <div className="lib-quick" role="toolbar" aria-label="Quick filters">
         {QUICK.map((q) => (
-          <button key={q.value} className="chip" aria-pressed={quick === q.value} onClick={() => setQuick(q.value)}>
+          <button
+            key={q.value}
+            className="chip"
+            aria-pressed={quick === q.value}
+            onClick={() => {
+              setQuick(q.value);
+              // "Recently played" means nothing for games never played: show the longest-waiting first.
+              if (q.value === 'unplayed' && sort === 'recent') setSort('waiting');
+            }}
+          >
             {q.label}
           </button>
         ))}
@@ -191,13 +206,17 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
       {parsed.chips.length > 0 && (
         <div className="lib-chips" aria-live="polite">
           <span className="caps">Showing</span>
-          {parsed.chips.map((c) => <Badge key={c} tone="accent">{c}</Badge>)}
+          {parsed.chips.map((c) => {
+            const p = platformFromName(c);
+            return <Badge key={c} tone="accent" icon={p ? <StoreLogo platform={p} size={14} decorative /> : undefined}>{c}</Badge>;
+          })}
           {parsed.text && <Badge>Title contains “{parsed.text}”</Badge>}
         </div>
       )}
 
       {results.length === 0 ? (
         <EmptyState
+          art={games.length === 0 ? 'constellation' : 'shelf'}
           icon={<Search size={32} />}
           title={games.length === 0 ? 'No games yet' : collection && !text ? 'This collection is empty' : 'Nothing matches'}
           body={
@@ -210,7 +229,7 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
           actions={text || quick !== 'all' ? <Button onClick={() => { setText(''); setQuick('all'); }}>Clear filters</Button> : undefined}
         />
       ) : view === 'grid' ? (
-        <VirtualGrid games={results} size={gridSize} />
+        <VirtualGrid games={results} size={gridSize} caption={quick === 'unplayed' ? ageLabel : undefined} />
       ) : (
         <VirtualList games={results} />
       )}
@@ -248,11 +267,15 @@ export function LibraryView({ collectionId }: { collectionId?: string }) {
   );
 }
 
-/** Row-virtualized responsive grid: only visible rows are mounted, so 10k games stay fast. */
-function VirtualGrid({ games, size }: { games: Game[]; size: number }) {
+/**
+ * Row-virtualized responsive grid: only visible rows are mounted, so 10k games stay fast. When the
+ * order changes, on-screen cards glide to their new cells (useFlipGrid; Track K).
+ */
+function VirtualGrid({ games, size, caption }: { games: Game[]; size: number; caption?: (g: Game) => string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(1000);
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+  const reduce = useReducedMotion();
   const gap = 20;
 
   useLayoutEffect(() => {
@@ -264,7 +287,7 @@ function VirtualGrid({ games, size }: { games: Game[]; size: number }) {
 
   const columns = Math.max(2, Math.floor((width + gap) / (size + gap)));
   const cardW = (width - gap * (columns - 1)) / columns;
-  const rowH = cardW * 1.5 + 58 + gap;
+  const rowH = cardW * 1.5 + 58 + (caption ? 20 : 0) + gap;
   const rows = Math.ceil(games.length / columns);
 
   const virtual = useVirtualizer({
@@ -277,6 +300,9 @@ function VirtualGrid({ games, size }: { games: Game[]; size: number }) {
 
   useEffect(() => virtual.measure(), [rowH, virtual]);
 
+  const geometry = useMemo(() => ({ columns, cellW: cardW, rowH, gap }), [columns, cardW, rowH]);
+  const ghosts = useFlipGrid({ games, geometry, container: ref, scrollEl, offset: virtual.options.scrollMargin ?? 0, reduce });
+
   return (
     <div ref={ref} className="vgrid" style={{ height: virtual.getTotalSize() }} role="list" aria-label="Games">
       {virtual.getVirtualItems().map((row) => (
@@ -286,10 +312,20 @@ function VirtualGrid({ games, size }: { games: Game[]; size: number }) {
           style={{ transform: `translateY(${row.start - (virtual.options.scrollMargin ?? 0)}px)`, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap }}
         >
           {games.slice(row.index * columns, row.index * columns + columns).map((g) => (
-            <div key={g.id} role="listitem">
+            <div key={g.id} role="listitem" data-flip-id={g.id}>
               <GameCard game={g} />
+              {caption && <div className="vgrid__caption truncate">{caption(g)}</div>}
             </div>
           ))}
+        </div>
+      ))}
+      {ghosts.map((gh) => (
+        <div key={gh.key} className="vgrid__ghost" aria-hidden style={{ width: cardW, transform: `translate(${gh.x}px, ${gh.y}px)` }}>
+          <div className="card">
+            <div className="card__frame">
+              <GameCover game={gh.game} />
+            </div>
+          </div>
         </div>
       ))}
     </div>
@@ -302,6 +338,9 @@ function VirtualList({ games }: { games: Game[] }) {
   const navigate = useStore((s) => s.navigate);
   useLayoutEffect(() => setScrollEl(ref.current?.closest('[data-scroll-main]') as HTMLElement | null), []);
   const virtual = useVirtualizer({ count: games.length, getScrollElement: () => scrollEl, estimateSize: () => 64, overscan: 8, scrollMargin: ref.current?.offsetTop ?? 0 });
+  const reduce = useReducedMotion();
+  const geometry = useMemo(() => ({ columns: 1, cellW: 0, rowH: 64, gap: 0 }), []);
+  useFlipGrid({ games, geometry, container: ref, scrollEl, offset: virtual.options.scrollMargin ?? 0, reduce });
 
   return (
     <div className="vlist" role="table" aria-label="Games" aria-rowcount={games.length}>
@@ -325,6 +364,7 @@ function VirtualList({ games }: { games: Game[] }) {
               role="row"
               className="vlist__row"
               data-game-id={g.id}
+              data-flip-id={g.id}
               data-dim={!isInstalled(g) || undefined}
               style={{ transform: `translateY(${item.start - (virtual.options.scrollMargin ?? 0)}px)` }}
               onClick={() => navigate({ name: 'game', id: g.id })}
