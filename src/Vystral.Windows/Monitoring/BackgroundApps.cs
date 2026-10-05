@@ -26,7 +26,7 @@ public sealed class NtProcessSnapshotSource : IProcessSnapshotSource, IDisposabl
     private const int MaxBuffer = 16 * 1024 * 1024;
 
     // x64 SYSTEM_PROCESS_INFORMATION offsets (stable since Windows 7).
-    private const int OffNext = 0x00, OffPrivateWs = 0x08, OffUserTime = 0x28, OffKernelTime = 0x30,
+    private const int OffNext = 0x00, OffThreads = 0x04, OffPrivateWs = 0x08, OffUserTime = 0x28, OffKernelTime = 0x30,
         OffNameLength = 0x38, OffNameBuffer = 0x40, OffPid = 0x50, OffParent = 0x58, OffSession = 0x64;
 
     private IntPtr _buffer;
@@ -66,6 +66,14 @@ public sealed class NtProcessSnapshotSource : IProcessSnapshotSource, IDisposabl
             var nameBytes = Marshal.ReadInt16(p, OffNameLength) & 0xFFFF;
             var namePtr = Marshal.ReadIntPtr(p, OffNameBuffer);
             var pid = (int)Marshal.ReadIntPtr(p, OffPid);
+            // Track H: an exited process that something still holds a handle to has no threads; it isn't running.
+            if (pid != 0 && Marshal.ReadInt32(p, OffThreads) == 0)
+            {
+                var skip = Marshal.ReadInt32(p, OffNext);
+                if (skip <= 0) break;
+                p += skip;
+                continue;
+            }
             var name = namePtr == IntPtr.Zero || nameBytes == 0 ? (pid == 0 ? "Idle" : "System") : Marshal.PtrToStringUni(namePtr, Math.Min(nameBytes / 2, 260));
             list.Add(new ProcessEntry(pid, (int)Marshal.ReadIntPtr(p, OffParent), Marshal.ReadInt32(p, OffSession), name,
                 Marshal.ReadInt64(p, OffPrivateWs), Marshal.ReadInt64(p, OffUserTime) + Marshal.ReadInt64(p, OffKernelTime)));

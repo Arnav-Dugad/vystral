@@ -155,7 +155,7 @@ export interface Session {
   start: string;
   end: string | null;
   durationSeconds: number;
-  source: 'tracked' | 'imported';
+  source: SessionSource;
   perfSummary: string | null;
 }
 
@@ -725,4 +725,47 @@ export interface SystemAppearance {
 export interface BridgeEvents {
   /** Windows accent, theme or backdrop state changed. Also returned by call('system.accent') and call('window.backdrop', { value }). */
   'system.accent': SystemAppearance;
+}
+
+// ---------- Track H: games started outside VYSTRAL, background tracker (mirror of AppBackend.Tracking.cs) ----------
+
+/**
+ * How a session was recorded. 'tracked' = started from VYSTRAL; 'detected' = started outside VYSTRAL and noticed
+ * while it was open; 'background' = noticed by the background tracker while VYSTRAL was closed. All three are
+ * observed by VYSTRAL and count the same everywhere; 'imported' is store playtime and never mixed in.
+ */
+export type SessionSource = 'tracked' | 'detected' | 'background' | 'imported';
+
+export interface Settings {
+  /** Notice games started outside VYSTRAL, and keep tracking them while it is closed. Off by default. */
+  'tracking.background': boolean;
+}
+
+export interface LaunchState {
+  /** How VYSTRAL came to track this game (absent from older backends = 'tracked'). */
+  source?: Exclude<SessionSource, 'imported'> | null;
+}
+
+/** call('tracking.status'); call('tracking.setIgnored', { gameId, ignored }) returns it too. */
+export interface TrackingStatus {
+  enabled: boolean;
+  /** False in safe mode. */
+  available: boolean;
+  safeMode: boolean;
+  /** Only the installed app can start the tracker with Windows. */
+  build: 'installed' | 'development' | 'portable';
+  /** The per-user sign-in entry: 'disabledByWindows' = turned off in Task Manager › Startup apps. */
+  autostart: 'on' | 'off' | 'disabledByWindows' | 'stale' | 'unavailable';
+  helperRunning: boolean;
+  /** VYSTRAL itself is noticing games right now (it owns tracking and the setting is on). */
+  detecting: boolean;
+  owner: boolean;
+  watchedGames: number;
+  pollSeconds: number;
+  savingPollSeconds: number;
+  minSessionSeconds: number;
+  /** The newest finished session VYSTRAL noticed without launching it. */
+  lastSeen: { gameId: string; title: string; source: SessionSource; start: string; end: string | null; durationSeconds: number } | null;
+  /** Games the user asked VYSTRAL not to notice. */
+  ignored: { gameId: string; title: string }[];
 }

@@ -69,6 +69,24 @@ Its CSV is parsed as a stream: memory is fixed regardless of session length (a 0
 
 PresentMon's own overhead (an ETW consumer) has not been measured on the reference machine yet.
 
+### Background tracker (opt-in, v0.4)
+
+Measured 2026-10-05 on the reference machine (i7-13650HX, ~410 processes), Release build, the real `Vystral.exe --background-tracker --data-dir <scratch>` against a scratch data folder with 301 installed games. CPU from `TotalProcessorTime` deltas (15.6 ms accounting ticks, so short windows are rounded), memory from `PrivateMemorySize64` / `WorkingSet64`.
+
+| Measurement | Result |
+|---|---|
+| Start-up (process start → watching) | ~0.6 s; 0.4–0.6 s of CPU once |
+| **Idle CPU, waiting for a game** | **0.04–0.075% of one logical core** (406 ms over 540 s; 109 ms over 300 s after sessions) — under 0.005% of the whole 20-thread CPU |
+| Idle memory | 19–25 MB private; working set 7–35 MB (trimmed after start and after each session) |
+| Paused while VYSTRAL is open | waits on a mutex: no polling at all |
+| During a game, performance recording off | 0.8% of one core (a full process snapshot every 2 s) |
+| During a game, performance recording on | dominated by the existing sampler (below); 58 MB private, back to ~20 MB after |
+| App opens → app owns tracking | 13 ms (session parked and continued without a gap) |
+
+What one look costs: a full `NtQuerySystemInformation(SystemProcessInformation)` snapshot is ~10 ms of CPU with ~410 processes (mostly kernel time copying thread records), so it runs only once a minute while idle; the other looks every 4 s (15 s on battery or energy saver) cost a few microseconds (the foreground window's process plus processes already matched, one `SystemProcessIdInformation` path query each). Matching a snapshot against 301 installed games takes ~0.2 ms (folder index, not a scan per game).
+
+**Found while measuring:** the existing performance sampler (`PerfSampler`, used for every recorded session, in the app too) costs ~11% of one core while a game runs (110 ms of CPU per second), almost all of it reading Windows' *GPU Engine* performance counters (one counter per process per engine, re-enumerated every 15 s). This predates the background tracker and applies equally to sessions started from VYSTRAL; reading those counters through PDH wildcards or D3DKMT queries would cut it substantially.
+
 ## Not yet measured
 
 - Frame pacing of the Living Canvas on weak iGPUs (the "auto" quality setting lowers to "low" on ≤4-core CPUs).

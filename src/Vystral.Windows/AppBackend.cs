@@ -53,7 +53,8 @@ public sealed partial class AppBackend : IDisposable
         Database = new Database(Paths.Database);
         try
         {
-            Database.Migrate();
+            // Track H: the background tracker may migrate too (after an update); never both at once.
+            Tracking.TrackerSignals.WithLock(Tracking.TrackerNames.For(Paths.Root).Migrate, TimeSpan.FromSeconds(30), Database.Migrate);
         }
         catch (MigrationException ex)
         {
@@ -66,7 +67,10 @@ public sealed partial class AppBackend : IDisposable
             StartupProblem = $"Your library database couldn't be upgraded, so VYSTRAL started fresh. The old file was kept at {keep}.";
         }
         Repository = new LibraryRepository(Database);
-        var recovered = Repository.RecoverOpenSessions();
+        // Track H: a session the background tracker owns or handed over stays open; whoever tracks next continues or closes it.
+        var recovered = new Tracking.TrackerFiles(Paths.Root).ReadSession() is { } note
+            ? Repository.RecoverOpenSessions([note.SessionId])
+            : Repository.RecoverOpenSessions();
         if (recovered > 0) Log.Info("session", $"Closed {recovered} session(s) left open by a previous crash");
 
         Settings = new SettingsService(Repository);
@@ -101,6 +105,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterStatusHandlers();         // AppBackend.Status.cs: game status tracking, trailers
         RegisterShellHandlers();          // AppBackend.Shell.cs: Windows accent colour, Mica backdrop
         RegisterDataInsightHandlers();    // AppBackend.DataInsights.cs: achievement feed, driver comparison, background apps
+        RegisterTrackingHandlers();       // AppBackend.Tracking.cs: games started outside VYSTRAL, background tracker
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 
@@ -154,6 +159,7 @@ public sealed partial class AppBackend : IDisposable
     public void Shutdown()
     {
         _life.Cancel();
+        ShutdownTracking(); // Track H: hand a running session to the background tracker first
         Sessions.StopTracking();
         Updates.ApplyOnExitIfReady();
         try { File.Delete(Paths.CrashMarker); } catch (IOException) { }

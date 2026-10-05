@@ -159,7 +159,7 @@ public sealed partial class LibraryRepository(Database db)
         var statuses = LoadStatuses(conn);
         var stats = conn.Query<(string GameId, long Secs, int Count, string? Last)>("""
             SELECT game_id, SUM(duration_seconds), COUNT(*), MAX(start) FROM sessions
-            WHERE source='tracked' GROUP BY game_id
+            WHERE source IN ('tracked','detected','background') GROUP BY game_id
             """).ToDictionary(s => s.GameId);
 
         var dtos = games.Select(g =>

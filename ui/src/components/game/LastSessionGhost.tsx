@@ -5,6 +5,7 @@ import type { Game, InsightSample, PerfSample, PerfSummary, Session } from '../.
 import { chooseGhost, ghostCaption, ghostYAt, smoothPath, type Ghost } from '../../lib/ghost';
 import { useHeroTrailer } from '../../lib/trailer/tint';
 import { parsePerfSummary } from '../../views/perf/series';
+import { isObserved } from '../../lib/sessions';
 import { useReducedMotion } from '../../state/store';
 import './ghost.css';
 
@@ -24,7 +25,7 @@ const cache = new Map<string, GhostData | null>();
 async function loadGhost(gameId: string): Promise<GhostData | null> {
   const list = await call<Session[]>('sessions.list', { gameId, limit: 8 });
   const last = (Array.isArray(list) ? list : [])
-    .filter((s) => s.source === 'tracked' && s.end && s.durationSeconds > 0)
+    .filter((s) => isObserved(s.source) && s.end && s.durationSeconds > 0)
     .sort((a, b) => b.start.localeCompare(a.start))[0];
   if (!last) return null;
   if (cache.has(last.id)) return cache.get(last.id) ?? null;

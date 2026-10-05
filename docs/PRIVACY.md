@@ -10,8 +10,9 @@ VYSTRAL is local-first software. There is no VYSTRAL account, no server, no tele
   - the **graphics card name and driver version** it ran on (for the "FPS before/after a driver change" card);
   - the **program file names of the heaviest other apps** running alongside the game (for example `Discord.exe`), with their average/peak memory and average CPU share, and the system's memory load. No paths, window titles, command lines or contents. Your game, VYSTRAL itself and core Windows processes are left out, as are processes of other users and services. Turn this off with *Settings → Launching & sessions → Note which other apps are running*, and hide any app from the report;
   - cached Steam achievements (when you connected a Steam Web API key) power the Journal's achievement timeline; nothing extra is downloaded for it except achievement icons from Steam's CDN, and never with Offline mode or Data saver on.
+- With *Settings → Launching & sessions → Games started outside VYSTRAL* on (off by default), sessions of installed games you start from anywhere else are stored the same way, marked "Detected" (noticed while VYSTRAL was open) or "Background" (noticed by the background tracker while it was closed). Sessions shorter than a minute aren't kept; hidden games and games you tell VYSTRAL to ignore are never noticed. Two small files support it: `tracker-session.json` (the id, game, start and last-seen time of the session being tracked right now, deleted when it ends) and `tracker-ignored.json` (ids of games you chose not to track this way).
 - `cache\`: artwork copied from your stores' local caches or downloaded from Steam's public CDN, and thumbnails.
-- `logs\`: diagnostic logs, 7 days. They include file paths, never passwords or tokens.
+- `logs\`: diagnostic logs, 7 days (`vystral-tracker-*.log` for the background tracker). They include file paths, never passwords or tokens.
 - `webview\`: the interface's browser profile.
 - `backups\`: database backups.
 
@@ -24,6 +25,7 @@ Export your journal from Settings → Data. Delete tracked history there too (th
 - With Moments on: images and videos in Steam's screenshot folders, Xbox Game Bar captures and folders you add.
 - While a game you launched runs, if enabled: system CPU/GPU/memory load and GPU temperature (read-only counters).
 - Names and paths of running processes, to detect when your game starts and stops.
+- With *Games started outside VYSTRAL* on: which program owns the foreground window and the executable paths of running programs, compared in memory with your installed games' folders (every few seconds while VYSTRAL is open, and by the background tracker while it's closed). Nothing about programs that aren't your games is stored. The background tracker starts with Windows (`VYSTRAL Background Tracker` in Task Manager › Startup apps); turning the setting off stops it and removes that entry, and so does uninstalling.
 - While a game you launched runs, if enabled: names, memory and CPU time of other running processes (one handle-free system snapshot about every 30 seconds), and your graphics driver version (once per session).
 
 - With frame-rate capture on: frame timing events for the game you launched, via PresentMon (ETW). No game memory or content.

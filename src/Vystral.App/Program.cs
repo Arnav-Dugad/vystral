@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -5,6 +6,7 @@ using Microsoft.Windows.AppLifecycle;
 using Velopack;
 using Vystral.App.Host;
 using Vystral.Windows.Services;
+using Vystral.Windows.Tracking;
 
 namespace Vystral.App;
 
@@ -22,16 +24,48 @@ public static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        // Track H: "--background-tracker" runs the windowless tracker instead of the app (decided before anything else loads).
+        var tracker = TrackerCommandLine.Parse(args);
+
         // Must run first: handles install/update/uninstall hooks and may exit the process.
-        // The hooks register / remove the per-user vystral: URI scheme used by clickable notifications.
+        // The hooks register / remove the per-user vystral: URI scheme used by clickable notifications,
+        // and stop / restart the background tracker around updates (Velopack replaces current\).
         VelopackApp.Build()
-            .SetAutoApplyOnStartup(true) // a downloaded update installs on the next start
+            // A downloaded update installs on the next start of the app — never from the tracker, which starts at
+            // sign-in and must not show the updater's window then.
+            .SetAutoApplyOnStartup(!tracker.BackgroundTracker)
             .OnAfterInstallFastCallback(_ => ShellIntegration.OnInstalled())
-            .OnAfterUpdateFastCallback(_ => ShellIntegration.OnInstalled())
-            .OnBeforeUninstallFastCallback(_ => ShellIntegration.OnUninstalling())
+            .OnBeforeUpdateFastCallback(_ => TrackerLifecycle.BeforeUpdate())
+            .OnAfterUpdateFastCallback(_ =>
+            {
+                ShellIntegration.OnInstalled();
+                TrackerLifecycle.AfterUpdate();
+            })
+            .OnBeforeUninstallFastCallback(_ =>
+            {
+                TrackerLifecycle.BeforeUninstall();
+                ShellIntegration.OnUninstalling();
+            })
             .Run();
         ShellIntegration.InitializeProcessIdentity();
 
+        return tracker.BackgroundTracker ? RunBackgroundTracker(tracker) : RunApp(args);
+    }
+
+    /// <summary>
+    /// The background tracker: no window, no XAML, no WebView2. Kept in its own method (never inlined) so none
+    /// of the UI code below is compiled or loaded in that process.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int RunBackgroundTracker(TrackerCommand command)
+    {
+        var toast = new ProtocolToast(ShellIntegration.Aumid);
+        return BackgroundTrackerHost.Main(command, toast.Show);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int RunApp(string[] args)
+    {
         // A notification click (vystral:// URI) passes exactly "--uri <uri>". Anything a crafted URI
         // could smuggle onto that command line is ignored, including --safe-mode.
         var uriLaunch = args.Length > 0 && args[0] == ActivationUri.Switch;

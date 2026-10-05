@@ -323,8 +323,22 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
     {
         try
         {
+            // Track H: a game started outside VYSTRAL. Performance Mode still applies, but VYSTRAL doesn't move
+            // its own window around for a game the user didn't start from it.
+            var external = state.Source is not (null or "tracked");
             switch (state.Phase)
             {
+                case "running" when external:
+                    _gamepad.SetSuspended(true);
+                    if (_backend.Settings.GetBool("pulse.enabled")) SetPulseVisible(true);
+                    if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized }) await SuspendUiAsync();
+                    break;
+                case "ended" when external:
+                    _pulse?.Close();
+                    _pulse = null;
+                    ResumeUi();
+                    _gamepad.SetSuspended(false);
+                    break;
                 case "running":
                     _gamepad.SetSuspended(true);
                     if (_backend.Settings.GetBool("pulse.enabled")) SetPulseVisible(true);

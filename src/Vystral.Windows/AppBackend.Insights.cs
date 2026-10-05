@@ -170,6 +170,7 @@ public sealed partial class AppBackend : ILaunchFixRunner
     /// </summary>
     public void ObserveEvent(string eventName, string eventJson)
     {
+        if (eventName == "library.changed") _externalTracker?.InvalidateTargets(); // Track H: watch newly added games
         if (!NotifiableEvents.Contains(eventName)) return;
         var host = _insightHost;
         if (host is null || !host.NotificationsAvailable || _notifications is null) return;
@@ -270,15 +271,9 @@ public sealed partial class AppBackend : ILaunchFixRunner
 
     private FpsCapturePlan PlanFpsCapture()
     {
-        if (!Settings.GetBool("fps.captureEnabled")) return new FpsCapturePlan(null, PerfSampler.FpsUnavailable);
-        if (!_presentMon.IsInstalled())
-            return new FpsCapturePlan(null, "Frame-rate capture is on, but PresentMon isn't installed (or its file failed verification). Reinstall it in Settings › Launching & sessions. FPS is not recorded.");
-        return PresentMonInstaller.CheckPermission() switch
-        {
-            FpsPermission.Granted => new FpsCapturePlan(_presentMon.ExePath, ""),
-            FpsPermission.SignOutRequired => new FpsCapturePlan(null, "Frame-rate capture is ready, but Windows applies the Performance Log Users permission only after you sign out and back in. FPS is not recorded."),
-            _ => new FpsCapturePlan(null, "Frame-rate capture needs your account in the Performance Log Users group (Settings › Launching & sessions). FPS is not recorded."),
-        };
+        // Track H: shared with the background tracker (FpsCapturePlanner), so both capture under the same conditions.
+        var enabled = Settings.GetBool("fps.captureEnabled");
+        return FpsCapturePlanner.Plan(enabled, enabled && _presentMon.IsInstalled(), _presentMon.ExePath);
     }
 
     private object FpsStatus()

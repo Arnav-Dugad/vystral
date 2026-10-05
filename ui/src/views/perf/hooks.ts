@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useLayoutEffect, useState, type RefObject } from 'react';
 import { call, errorMessage, on } from '../../bridge/bridge';
 import type { Session } from '../../bridge/types';
+import { isObserved } from '../../lib/sessions';
 
 export interface SessionsState {
   status: 'loading' | 'ready' | 'error';
@@ -18,7 +19,7 @@ export function useTrackedSessions(): SessionsState {
   const load = useCallback(async () => {
     try {
       const list = await call<Session[]>('sessions.list', { gameId: null, limit: 10000 });
-      setState({ status: 'ready', sessions: Array.isArray(list) ? list.filter((s) => s.source === 'tracked') : [], error: null, loadedAt: Date.now() });
+      setState({ status: 'ready', sessions: Array.isArray(list) ? list.filter((s) => isObserved(s.source)) : [], error: null, loadedAt: Date.now() });
     } catch (err) {
       setState((s) => ({ ...s, status: s.status === 'ready' ? 'ready' : 'error', error: errorMessage(err), loadedAt: s.loadedAt || Date.now() }));
     }

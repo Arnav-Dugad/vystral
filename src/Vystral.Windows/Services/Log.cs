@@ -12,12 +12,16 @@ public static class Log
 {
     private static readonly BlockingCollection<string> Queue = new(boundedCapacity: 4096);
     private static string? _dir;
+    private static string _name = "vystral";
     private static Thread? _writer;
 
-    public static void Initialize(string directory)
+    /// <param name="fileName">File name prefix: "vystral" for the app, "vystral-tracker" for the background tracker
+    /// (two processes never append to the same file).</param>
+    public static void Initialize(string directory, string fileName = "vystral")
     {
         if (_dir is not null) return;
         _dir = directory;
+        _name = fileName;
         Directory.CreateDirectory(directory);
         try
         {
@@ -64,7 +68,7 @@ public static class Log
         {
             try
             {
-                File.AppendAllText(Path.Combine(_dir!, $"vystral-{DateTime.Now:yyyyMMdd}.log"), line + Environment.NewLine);
+                File.AppendAllText(Path.Combine(_dir!, $"{_name}-{DateTime.Now:yyyyMMdd}.log"), line + Environment.NewLine);
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }

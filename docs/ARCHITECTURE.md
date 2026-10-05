@@ -1,6 +1,6 @@
 # VYSTRAL architecture
 
-VYSTRAL is a **modular monolith**: one Windows process owns the window, the data and every integration; the interface is a React app hosted in WebView2 inside that process. There is no local web server and no background service.
+VYSTRAL is a **modular monolith**: one Windows process owns the window, the data and every integration; the interface is a React app hosted in WebView2 inside that process. There is no local web server and no Windows service. The only other process is the optional, off-by-default **background tracker** (the same `Vystral.exe` started with `--background-tracker`, see below), which records games while the app is closed.
 
 ```mermaid
 flowchart LR
@@ -55,6 +55,28 @@ flowchart LR
 
 **Launch is validated, observed and never repeated.** `LaunchValidator` allow-lists URI schemes per platform (`steam:` only for Steam, and so on), validates AUMIDs, and only starts `.exe` files inside the game's own install folder. URIs go through ShellExecute, executables through CreateProcess with an argument list (no shell), and packaged games through `IApplicationActivationManager`. `SessionService` reports *running* only after it observes a process under the install folder (using `PROCESS_QUERY_LIMITED_INFORMATION` image paths, the same data Task Manager shows). It follows launcher→game hand-offs and never relaunches anything.
 
+**Games started outside VYSTRAL (opt-in, `tracking.background`).** One detector (`Tracking/GameDetector`, a pure state machine) and one recorder serve both processes, so a game is recognised and recorded the same way whether VYSTRAL launched it, noticed it while open (`sessions.source = 'detected'`) or noticed it while closed (`'background'`):
+
+- *Matching* is exactly a launch's rule (`ProcessScanner.FindUnder`: an executable inside the installation's folder, or a hinted file name for games without one; store-client folders excluded), indexed by folder (`GameMatcher`). Folders too broad to identify a game (drive roots, Program Files, Windows, the profile, a folder holding a store client) and hidden or user-ignored games are never watched. A crash handler or redistributable installer alone never starts a session.
+- *Seeing processes* never opens one: the system list comes from `NtQuerySystemInformation(SystemProcessInformation)` (shared with the background-app report; exited-but-referenced processes are skipped) and executable paths from `SystemProcessIdInformation`, mapped from NT device paths to drive letters or mount folders. Idle, it looks every 4 s (15 s on battery or energy saver) only at the foreground window's process and the processes matched last time, with a full list once a minute; during a session it takes the full list every 2 s.
+- *Rules*: confirmed in two consecutive looks, starting when first seen; launcher → game hand-offs continue the session; it ends 8 s after the last process (the launch rule); detections shorter than 60 s are discarded; one game at a time (another running game starts its own session when the first ends); after *Stop tracking* the game is ignored until it exits.
+- *Recording* is `SessionService.TrackExternal`, which runs the same loop as a launch (`RunSessionAsync` + `Recorder`: samples, PresentMon FPS when enabled and installed, background apps, GPU driver, 30 s flushes). The running session is also written every 30 s to `tracker-session.json` as a heartbeat.
+
+**The background tracker process.** `Program.Main` parses `--background-tracker` (nothing else may follow except a development-only `--data-dir <folder>`), runs `VelopackApp.Run()` (with auto-apply-on-start turned off for this mode, so the updater window never appears at sign-in), and branches to `BackgroundTrackerHost` *before* the single-instance check, `StartupProtection` and any XAML, WinRT activation or WebView2 code. It uses only `Vystral.Core`/`Vystral.Windows`, opens SQLite without connection pooling (the file is open only during each short read or write), never creates a library (it waits until the app has created one) and migrates only under the cross-process migration lock, never moving the file on failure. Logs go to `logs\vystral-tracker-*.log`. Coordination uses session-local kernel objects whose names include a hash of the data folder (`TrackerNames`):
+
+| Object | Held / set by | Meaning |
+|---|---|---|
+| `…-app` mutex | the app, for its lifetime | the app is open: the tracker waits |
+| `…-tracker` mutex | whichever process tracks | exactly one tracker at a time; released automatically if its owner crashes |
+| `…-helper` mutex | the background tracker | single instance |
+| `…-yield` event | the app on start | "hand over now" (wakes the tracker immediately) |
+| `…-stop` event | the app (setting turned off), Velopack hooks | "exit"; the sender waits until `…-helper` is released |
+| `…-migrate` mutex | both, around `Database.Migrate()` | never two migrations at once |
+
+Hand-over: the process giving up tracking *parks* its session (flushes, leaves it open, writes `tracker-session.json` with `parked: true`); the next owner continues it if the game is still running (same session id, samples before the hand-over included in the summary) or ends it at its last sighting. Opening the app takes over in milliseconds; closing it hands a running session (launched or detected) to the tracker. Crash recovery skips the session named in the note and, when it closes it, uses the note's last-seen time rather than only the last performance sample.
+
+Startup and updates: turning the setting on writes `HKCU\…\CurrentVersion\Run\VYSTRAL Background Tracker = "%LOCALAPPDATA%\Vystral\Vystral.exe" --background-tracker` (Velopack's root launcher, never `current\`; installed builds only) and starts the tracker; turning it off removes the value and stops it. Velopack's updater stops every process running from the install folder before it replaces `current\`; the `--veloapp-obsolete` hook first stops the tracker gracefully (session parked), and the `--veloapp-updated` hook starts it again when the sign-in entry exists and isn't disabled in Task Manager. The uninstall hook stops it and removes the entry. "Session saved" notifications for background sessions go through the same `NotificationPolicy` and settings, shown by the tracker itself as protocol-activated toasts (`ProtocolToast`), so selecting one opens the Journal in VYSTRAL.
+
 **Performance Mode.** When a session is running, the host minimizes the window, hides the WebView2 controller and calls `TrySuspendAsync()`, which suspends the renderer. Controller polling stops and AI and metadata work pause. Events that arrive meanwhile are buffered and replayed on resume. Measured CPU while minimized is 0 ms over 15 s (see [PERFORMANCE.md](PERFORMANCE.md)).
 
 **Data.** SQLite in WAL mode at `%LOCALAPPDATA%\VYSTRAL.Data\vystral.db`, outside the install folder that Velopack replaces on update. Platform data (`installations`) is kept separate from canonical games (`games`) and from user data (notes, ratings, collections, sessions). Migrations are append-only, each runs in a transaction, and the file is backed up before any upgrade. A failed migration keeps the old file and starts fresh, so games remain launchable.
@@ -79,7 +101,9 @@ flowchart LR
 | WebView2 renderer crash | Host reloads the UI; native session tracking continues |
 | WebView2 runtime missing | Native error screen with a download link |
 | DB migration failure | Old DB kept in `backups/`, fresh DB created, user told |
-| Crash during a session | Open sessions are closed on next start using their last sample |
+| Crash during a session | Open sessions are closed on next start using their last sample (or the tracker heartbeat's last-seen time, when newer) |
+| Background tracker crashes or is killed (e.g. by the updater) | Its mutexes are released by Windows; the next owner continues or closes the session from `tracker-session.json` |
+| Background tracker hangs | The app still records its own launches; it only stops noticing outside games until the tracker yields |
 | Repeated crashes | Hold **Shift** on start (or `--safe-mode`) to disable effects, AI and downloads |
 
 ## Extension points

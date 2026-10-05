@@ -37,6 +37,16 @@
 - Local AI needs Ollama installed separately. Answers come from a small local model and can be wrong; they are labelled as such.
 - Store sale and update news (Library Radar) isn't implemented; there was no reliable, lawful free source.
 
+**Games started outside VYSTRAL (background tracker, opt-in)**
+- One game is tracked at a time. If two installed games run together, the second gets its own session (starting when it was first seen) only after the first closes, and without performance readings for the overlap.
+- Only installed games in the library are recognised, by install folder (or, for games without one, a distinctive executable name). Always-running apps that a store lists as games (wallpaper engines, frame-rate tools, recording software) would be recorded as play time: hide them in the library or choose *Don't track this game* in Settings. Games installed in a folder too broad to identify (a drive root, Program Files, the user profile) are never noticed.
+- A game that never takes the foreground (some console or server tools) is noticed by the once-a-minute full scan, so its session starts up to a minute late. Sessions shorter than a minute aren't kept.
+- After a hand-over between the app and the background tracker, the FPS summary (1% lows, frame-time histogram) covers only the part after the hand-over, and the background-app report only the part before it; CPU/GPU averages cover the whole session.
+- Starting with Windows needs the installed app: development builds and the portable copy notice games only while they're open. The tracker starts at sign-in, so games started before signing in (or while it's turned off in Task Manager › Startup apps) aren't seen until it runs.
+- During a background session with performance recording on, the tracker costs what the app costs while recording (most of it reading Windows' GPU engine counters; see PERFORMANCE.md).
+- The tracker never installs updates itself (the updater window would appear at sign-in); a downloaded update installs the next time VYSTRAL is opened or closed, as before. If the updater finds the tracker running, it stops it (gracefully when it can) and starts it again afterwards.
+- Verified with the real tracker process against a scratch data folder (detection, saved sessions, hand-over to a simulated app and back, stopping). The sign-in entry, the Velopack update/uninstall hooks and the toast from the tracker still need checking on an installed build.
+
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).
 - Display-scaling changes, monitor hot-plug, sleep/resume and controller hot-plug have not been tested yet.

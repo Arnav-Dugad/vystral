@@ -1,0 +1,13 @@
+/* Track H: Settings › Launching & sessions › Games started outside VYSTRAL. */
+.bgx .srow__hint { line-height: 1.55; max-width: 64ch; }
+.bgx__last { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-2); }
+.bgx__last-text { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--text-2); min-width: 0; }
+.bgx__last-text svg { flex: none; opacity: 0.8; }
+.bgx__list { list-style: none; margin: var(--s-2) 0 0; padding: 0; display: grid; gap: 4px; }
+.bgx__list li { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); font-size: var(--fs-sm); color: var(--text-2); min-width: 0; }
+.bgx__details dl { grid-template-columns: minmax(7rem, max-content) minmax(0, 1fr); }
+.bgx__details dd { line-height: 1.55; }
+@media (max-width: 640px) {
+  .bgx__details dl { grid-template-columns: minmax(0, 1fr); }
+  .bgx__details dt { margin-top: var(--s-2); }
+}

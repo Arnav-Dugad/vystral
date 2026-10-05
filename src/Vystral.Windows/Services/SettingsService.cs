@@ -96,6 +96,8 @@ public sealed class SettingsService
         new BoolDef("performance.backgroundApps", true),
         // Track E: the Living Canvas follows a playing hero trailer's colours.
         new BoolDef("canvas.followTrailer", true),
+        // Track H: notice games started outside VYSTRAL, and keep tracking them while it is closed (opt-in).
+        new BoolDef("tracking.background", false),
     ];
 
     private readonly LibraryRepository _repo;

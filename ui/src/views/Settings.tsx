@@ -17,6 +17,7 @@ import { SteamWebApiSettings } from './settings/SteamWebApiSettings';
 import { FpsCaptureSettings } from './settings/FpsCaptureSettings';
 import { WindowsIntegrationSettings } from './settings/WindowsIntegrationSettings';
 import { DataSaverSettings } from './settings/DataSaverSettings';
+import { BackgroundTrackingSettings } from './settings/BackgroundTrackingSettings';
 import './settings.css';
 
 interface Section {
@@ -29,7 +30,7 @@ interface Section {
 const SECTIONS: Section[] = [
   { id: 'appearance', label: 'Appearance', icon: <Palette size={17} />, keywords: 'theme dark light oled contrast accent colour color living canvas background motion animation reduced intro quality grid' },
   { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download' },
-  { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu background apps processes driver' },
+  { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu background apps processes driver tracker outside closed startup detected' },
   { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble sound audio immersive fullscreen' },
   { id: 'windows', label: 'Windows integration', icon: <Monitor size={17} />, keywords: 'hotkey shortcut summon notifications toast windows tray achievements' },
   { id: 'ai', label: 'Local AI', icon: <Bot size={17} />, keywords: 'ollama assistant model ai natural language' },
@@ -72,7 +73,7 @@ export function SettingsView({ section }: { section?: string }) {
         <div className="settings__content">
           {active === 'appearance' && <Appearance s={settings} />}
           {active === 'library' && <><LibrarySection s={settings} /><SteamWebApiSettings /></>}
-          {active === 'launching' && <><Launching s={settings} /><FpsCaptureSettings /></>}
+          {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /></>}
           {active === 'controller' && <Controller s={settings} />}
           {active === 'ai' && <AiSection s={settings} />}
           {active === 'updates' && <Updates s={settings} />}

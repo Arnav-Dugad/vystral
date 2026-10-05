@@ -6,6 +6,7 @@ import type { Game, GameStatus, Session } from '../../bridge/types';
 import { formatRelative } from '../../lib/format';
 import { exit, spring } from '../../lib/motion';
 import { STATUS_META, STATUSES } from '../../lib/status';
+import { isObserved } from '../../lib/sessions';
 import { dismiss, isDismissed, suggestStatus } from '../../lib/statusSuggest';
 import { setGameStatus } from '../../state/statusActions';
 import { useReducedMotion } from '../../state/store';
@@ -18,7 +19,7 @@ function useSessionStarts(gameId: string): number[] | null {
     let alive = true;
     const load = () =>
       call<Session[]>('sessions.list', { gameId, limit: 60 })
-        .then((list) => alive && setStarts(list.filter((s) => s.source === 'tracked').map((s) => Date.parse(s.start)).filter(Number.isFinite)))
+        .then((list) => alive && setStarts(list.filter((s) => isObserved(s.source)).map((s) => Date.parse(s.start)).filter(Number.isFinite)))
         .catch(() => alive && setStarts([]));
     setStarts(null);
     void load();

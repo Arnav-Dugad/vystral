@@ -8,6 +8,7 @@ import { call, errorMessage } from '../bridge/bridge';
 import type { Game } from '../bridge/types';
 import { Button, EmptyState, SectionHead, Segmented, Skeleton, Tabs } from '../components/ui/primitives';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
+import { SessionOriginChip } from '../components/game/SessionOriginChip';
 import { Dialog } from '../components/ui/Dialog';
 import { formatDuration, formatRelative, PLATFORM_NAMES, plural } from '../lib/format';
 import { spring } from '../lib/motion';
@@ -501,6 +502,7 @@ function SessionRow({ s, game }: { s: JSession; game: Game | undefined }) {
       <span className="jr-session__time num">{timeOfDay(s.startMs)}</span>
       <GameThumb game={game} size={28} />
       <span className="jr-session__title truncate">{title}</span>
+      <SessionOriginChip source={s.source} />
       {s.hasMetrics && (
         <span className="jr-session__metrics" title="Performance metrics were recorded">
           <Activity size={12} aria-hidden /> Metrics

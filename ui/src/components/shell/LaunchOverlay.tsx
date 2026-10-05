@@ -29,9 +29,12 @@ export function LaunchOverlay() {
   const [enjoy, setEnjoy] = useState<string | null>(null);
   const [returning, setReturning] = useState<{ game: Game; ticket: string } | null>(null);
 
+  // Track H: a game started outside VYSTRAL gets no launch sequence — only the title-bar chip and the summary.
+  const external = !!launch?.source && launch.source !== 'tracked';
+
   // Brief "Enjoy" beat when the game is detected, then get out of the way.
   useEffect(() => {
-    if (launch?.phase === 'running') {
+    if (launch?.phase === 'running' && !external) {
       setEnjoy(launch.ticket);
       const t = window.setTimeout(() => setEnjoy(null), 1400);
       return () => window.clearTimeout(t);
@@ -40,7 +43,7 @@ export function LaunchOverlay() {
 
   // Returning from a game: the art closes back into the game's cover (the launch, reversed).
   useEffect(() => {
-    if (launch?.phase === 'ended' && launch.sessionId && game && cinematic && !reduce) {
+    if (launch?.phase === 'ended' && launch.sessionId && game && cinematic && !reduce && !external) {
       setReturning({ game, ticket: launch.ticket });
       const t = window.setTimeout(() => setReturning(null), 1500);
       return () => window.clearTimeout(t);
@@ -61,13 +64,14 @@ export function LaunchOverlay() {
       } catch {
         // summary is optional
       }
-      toast({ tone: 'success', title: `Played ${game.title} for ${formatDuration(launch.durationSeconds)}`, body: `Session saved to your journal${perf}.` });
+      const where = external ? 'Started outside VYSTRAL and tracked automatically. ' : '';
+      toast({ tone: 'success', title: `Played ${game.title} for ${formatDuration(launch.durationSeconds)}`, body: `${where}Session saved to your journal${perf}.` });
     } else if (launch?.phase === 'ended' && launch.message) {
       toast({ tone: 'info', title: launch.message });
     }
   }, [launch?.phase, launch?.ticket]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const show = !!launch && !!game && dismissed !== launch.ticket && (ACTIVE.includes(launch.phase) || enjoy === launch.ticket);
+  const show = !!launch && !!game && !external && dismissed !== launch.ticket && (ACTIVE.includes(launch.phase) || enjoy === launch.ticket);
 
   // The interface recedes into depth behind the portal, and comes forward again on return.
   useEffect(() => {

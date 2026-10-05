@@ -1,10 +1,11 @@
 /**
  * Pure computations for the Gaming Journal. Everything here works on sessions VYSTRAL
- * recorded itself (source 'tracked'); store-imported playtime never enters these numbers.
+ * recorded itself (source 'tracked', 'detected' or 'background'); store-imported playtime never enters these numbers.
  * All calendar maths uses the user's local time zone and is DST-safe (days are stepped
  * with Date#setDate, never by adding 24h).
  */
 import type { Session } from '../../bridge/types';
+import { isObserved, type ObservedSource } from '../../lib/sessions';
 
 export type Range = 'week' | 'month' | 'year' | 'all';
 
@@ -20,16 +21,18 @@ export interface JSession {
   startMs: number;
   seconds: number;
   hasMetrics: boolean;
+  /** Track H: how VYSTRAL noticed the game (launched, detected while open, background tracker). */
+  source: ObservedSource;
 }
 
 export function normalizeSessions(list: readonly Session[]): JSession[] {
   const out: JSession[] = [];
   for (const s of list) {
-    if (s.source !== 'tracked') continue;
+    if (!isObserved(s.source)) continue;
     const startMs = Date.parse(s.start);
     if (!Number.isFinite(startMs)) continue;
     const seconds = Number.isFinite(s.durationSeconds) && s.durationSeconds > 0 ? s.durationSeconds : 0;
-    out.push({ id: s.id, gameId: s.gameId, startMs, seconds, hasMetrics: !!s.perfSummary });
+    out.push({ id: s.id, gameId: s.gameId, startMs, seconds, hasMetrics: !!s.perfSummary, source: s.source });
   }
   return out.sort((a, b) => b.startMs - a.startMs);
 }
