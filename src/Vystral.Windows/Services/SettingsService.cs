@@ -110,6 +110,9 @@ public sealed class SettingsService
         new StringDef("dataSources.priceCountry", "US", 2, "^[A-Z]{2}$"),
         // Track H: notice games started outside VYSTRAL, and keep tracking them while it is closed (opt-in).
         new BoolDef("tracking.background", false),
+        // Track M: anti-cheat notes before launch and on game pages; IGDB time-to-beat bars on library cards.
+        new BoolDef("launch.antiCheatNotes", true),
+        new BoolDef("library.timeToBeat", true),
     ];
 
     private readonly LibraryRepository _repo;

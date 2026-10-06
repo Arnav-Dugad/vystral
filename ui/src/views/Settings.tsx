@@ -22,6 +22,7 @@ import { NewBadge, NewBadgeGroup } from '../whatsnew/NewBadge';
 import { openWhatsNew } from '../whatsnew/state';
 import { LiveTilesSettings, SoundSettings } from './settings/LiveTilesAndSoundSettings';
 import { DataSourcesSettings } from './settings/DataSourcesSettings';
+import { AntiCheatNotesSettings, TimeToBeatSettings } from './settings/RecapSettings';
 import { BackgroundTrackingSettings } from './settings/BackgroundTrackingSettings';
 import './settings.css';
 
@@ -84,8 +85,8 @@ export function SettingsView({ section }: { section?: string }) {
         </nav>
         <div className="settings__content">
           {active === 'appearance' && <><Appearance s={settings} /><LiveTilesSettings /></>}
-          {active === 'library' && <><LibrarySection s={settings} /><SteamWebApiSettings /><DataSourcesSettings /></>}
-          {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /></>}
+          {active === 'library' && <><LibrarySection s={settings} /><SteamWebApiSettings /><DataSourcesSettings /><TimeToBeatSettings /></>}
+          {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /><AntiCheatNotesSettings /></>}
           {active === 'controller' && <><Controller s={settings} /><SoundSettings /></>}
           {active === 'ai' && <AiSection s={settings} />}
           {active === 'updates' && <Updates s={settings} />}

@@ -114,6 +114,8 @@ public sealed class DataSourcesService
 
     public bool LocalOnly => _settings.GetBool("privacy.localOnly");
     public bool DataSaver => _artwork.SkipDownloads?.Invoke() == true;
+    /// <summary>Whether the user's own key/credentials for a source are stored (Track M: time-to-beat bars need IGDB).</summary>
+    public bool IsConfigured(KeyedProvider provider) => _keys.IsConfigured(provider);
     public string Country => _settings.GetString("dataSources.priceCountry") is { Length: 2 } c && c.All(char.IsAsciiLetterUpper) ? c : "US";
 
     private void RequireOnline()

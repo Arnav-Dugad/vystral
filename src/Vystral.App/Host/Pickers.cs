@@ -27,7 +27,9 @@ internal static class Pickers
     public static Task<string?> PickSaveAsync(MainWindow window, string suggestedName, string extension, string description) =>
         window.OnUiAsync(async () =>
         {
-            var picker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, SuggestedFileName = suggestedName };
+            // Images (Track M replay cards) default to Pictures; everything else to Documents.
+            var start = extension.Equals(".png", StringComparison.OrdinalIgnoreCase) ? PickerLocationId.PicturesLibrary : PickerLocationId.DocumentsLibrary;
+            var picker = new FileSavePicker { SuggestedStartLocation = start, SuggestedFileName = suggestedName };
             picker.FileTypeChoices.Add(description, [extension]);
             WinRT.Interop.InitializeWithWindow.Initialize(picker, Win32.GetHwnd(window));
             var file = await picker.PickSaveFileAsync();

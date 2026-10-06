@@ -20,9 +20,12 @@ import { GameCover } from '../components/game/GameCover';
 import { Badge, Button, EmptyState, IconButton, PlatformBadge, Segmented, Slider } from '../components/ui/primitives';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
+import { TimeToBeatBar } from '../components/game/TimeToBeatBar';
+import { closestToFinishing } from '../lib/timeToBeat';
+import { useTimeToBeatMap } from '../state/recap';
 import './library.css';
 
-type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status' | 'waiting';
+type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status' | 'waiting' | 'finishing';
 type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'missing' | 'hidden' | `status:${GameStatus}`;
 
 const QUICK: { value: Quick; label: string }[] = [
@@ -56,6 +59,9 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const gridSize = settings?.['appearance.gridSize'] ?? 180;
+  // Track M: "Closest to finishing" needs IGDB time-to-beat estimates; the option only appears when some exist.
+  const ttb = useTimeToBeatMap();
+  const hasTtb = !!ttb && Object.keys(ttb.games).length > 0;
 
   useEffect(() => {
     try { localStorage.setItem(VIEW_KEY, view); } catch { /* ignore */ }
@@ -94,11 +100,12 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
         added: (a, b) => b.added.localeCompare(a.added),
         waiting: (a, b) => a.added.localeCompare(b.added) || a.sortTitle.localeCompare(b.sortTitle),
         status: (a, b) => statusRank(a) - statusRank(b) || (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? '') || a.sortTitle.localeCompare(b.sortTitle),
+        finishing: closestToFinishing(ttb?.games),
       };
       found = [...found].sort(cmp[sort]);
     }
     return found;
-  }, [games, collectionId, quick, parsed, sort, query]);
+  }, [games, collectionId, quick, parsed, sort, query, ttb]);
 
   const title = collection ? collection.name : 'Library';
   const totalSize = useMemo(() => results.reduce((s, g) => s + (sizeOf(g) ?? 0), 0), [results]);
@@ -156,6 +163,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
               <option value="added">Recently added</option>
               <option value="status">Play status</option>
               <option value="waiting">Longest in library</option>
+              {(hasTtb || sort === 'finishing') && <option value="finishing">Closest to finishing</option>}
             </select>
           </label>
           {view === 'grid' && (
@@ -381,6 +389,7 @@ function VirtualList({ games }: { games: Game[] }) {
               <span role="cell">{lp.at ? formatRelative(lp.at) : '—'}</span>
               <span role="cell" className="num">
                 {g.trackedSeconds > 0 ? formatDuration(g.trackedSeconds) : imported ? <span title="Reported by the store">{formatDuration(imported * 60)}*</span> : '—'}
+                <TimeToBeatBar game={g} variant="row" />
               </span>
               <span role="cell" className="num">{formatBytes(sizeOf(g))}</span>
               <span role="cell">{inst?.drive ?? (isInstalled(g) ? '—' : 'Not installed')}</span>

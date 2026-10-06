@@ -12,6 +12,7 @@ import { useReducedMotion, useStore } from '../../state/store';
 import { GameCover } from '../game/GameCover';
 import { Button } from '../ui/primitives';
 import { PreflightCard } from './PreflightCard';
+import { openReplay } from '../../state/recap';
 
 const ACTIVE = ['validating', 'starting', 'waiting', 'notDetected', 'failed'];
 
@@ -66,7 +67,12 @@ export function LaunchOverlay() {
         // summary is optional
       }
       const where = external ? 'Started outside VYSTRAL and tracked automatically. ' : '';
-      toast({ tone: 'success', title: `Played ${game.title} for ${formatDuration(launch.durationSeconds)}`, body: `${where}Session saved to your journal${perf}.` });
+      const sessionId = launch.sessionId;
+      toast({
+        tone: 'success', title: `Played ${game.title} for ${formatDuration(launch.durationSeconds)}`, body: `${where}Session saved to your journal${perf}.`,
+        // Track M: an animated recap of the session, saveable as an image.
+        action: { label: 'Replay', run: () => openReplay(sessionId) },
+      });
     } else if (launch?.phase === 'ended' && launch.message) {
       toast({ tone: 'info', title: launch.message });
     }

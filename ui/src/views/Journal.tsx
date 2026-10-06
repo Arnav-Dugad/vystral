@@ -1,12 +1,12 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import {
-  Activity, Award, BookOpen, CalendarDays, ChevronRight, Clock, Download, Flag, Flame, Gamepad2, Hourglass, Info, Medal, RefreshCw,
+  Activity, Award, BookOpen, CalendarDays, ChevronRight, Clapperboard, Clock, Download, Flag, Flame, Gamepad2, Hourglass, Info, Medal, RefreshCw,
   Sparkles, Store, Timer, Trash2, Trophy, X,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game } from '../bridge/types';
-import { Button, EmptyState, SectionHead, Segmented, Skeleton, Tabs } from '../components/ui/primitives';
+import { Button, EmptyState, IconButton, SectionHead, Segmented, Skeleton, Tabs } from '../components/ui/primitives';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { SessionOriginChip } from '../components/game/SessionOriginChip';
 import { Dialog } from '../components/ui/Dialog';
@@ -26,6 +26,7 @@ import {
   topGames, yearInReview, type DayGroup, type JSession, type Milestone, type Range, type YearReview,
 } from './journal/stats';
 import { NewBadge } from '../whatsnew/NewBadge';
+import { openReplay } from '../state/recap';
 import './journal.css';
 
 const RANGE_OPTIONS: { value: Range; label: string }[] = [
@@ -52,7 +53,7 @@ function storePlaytime(game: Game | undefined): { minutes: number; store: string
 
 export type JournalTab = 'sessions' | 'achievements' | 'value';
 
-export function JournalView({ tab: routeTab }: { tab?: JournalTab } = {}) {
+export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab; day?: number } = {}) {
   const { status, sessions: rawSessions, error, reload, loadedAt: now } = useTrackedSessions();
   const gamesById = useStore((s) => s.gamesById);
   const games = useStore((s) => s.library.games);
@@ -69,7 +70,13 @@ export function JournalView({ tab: routeTab }: { tab?: JournalTab } = {}) {
     setLinkedTab(routeTab);
     if (routeTab) setTab(routeTab);
   }
-  const [day, setDay] = useState<number | null>(null);
+  const [day, setDay] = useState<number | null>(routeDay ?? null);
+  // Track M: a deep link (e.g. the "While you were away" card) can open one day.
+  const [linkedDay, setLinkedDay] = useState(routeDay);
+  if (routeDay !== linkedDay) {
+    setLinkedDay(routeDay);
+    if (routeDay != null) setDay(routeDay);
+  }
   const timelineRef = useRef<HTMLElement>(null);
 
   const all = useMemo(() => normalizeSessions(rawSessions), [rawSessions]);
@@ -94,6 +101,9 @@ export function JournalView({ tab: routeTab }: { tab?: JournalTab } = {}) {
     },
     [reduce],
   );
+  useEffect(() => {
+    if (routeDay != null && status === 'ready') requestAnimationFrame(() => timelineRef.current?.scrollIntoView({ block: 'start' }));
+  }, [routeDay, status]);
   const switchTab = (t: JournalTab) => {
     setTab(t);
     useStore.getState().navigate({ name: 'journal', tab: t }, { replace: true });
@@ -524,7 +534,7 @@ function SessionRow({ s, game }: { s: JSession; game: Game | undefined }) {
     </>
   );
   return (
-    <li>
+    <li className="jr-replay-li">
       {clickable ? (
         <button
           type="button"
@@ -537,6 +547,8 @@ function SessionRow({ s, game }: { s: JSession; game: Game | undefined }) {
       ) : (
         <div className="jr-session">{body}</div>
       )}
+      {/* Track M: animated session recap (save or copy as an image). */}
+      <IconButton label={`Replay ${title} session`} size="sm" onClick={() => openReplay(s.id)}><Clapperboard size={14} /></IconButton>
     </li>
   );
 }

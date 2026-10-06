@@ -10,6 +10,7 @@ import { useGameMenu } from './useGameMenu';
 import { InstallBadge } from './InstallProgress';
 import { LiveLayer } from './LiveTile';
 import { StoreLogos } from '../ui/StoreLogo';
+import { TimeToBeatBar } from './TimeToBeatBar';
 
 /** Portrait library card. Hover/focus lifts and tilts it; Enter opens; context menu has quick actions. */
 export const GameCard = memo(function GameCard({
@@ -93,6 +94,8 @@ export const GameCard = memo(function GameCard({
         <div className="card__frame" ref={frameRef} data-live={live || undefined}>
           <GameCover game={game} />
           {live && <LiveLayer game={game} />}
+          {/* Track M: playtime vs IGDB time-to-beat (renders nothing without an estimate). */}
+          {showMeta && <TimeToBeatBar game={game} variant="card" />}
         </div>
         <div className="card__badges">
           <span />

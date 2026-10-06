@@ -42,6 +42,13 @@ These add art, details, prices and compatibility on top of the store integration
 
 Enrichment never overwrites a field that already has a value or that you set; every filled field records its source (`game_field_sources`), and the game page shows “From IGDB/RAWG” with how the match was made. Enrichment runs in the background (40 games per round, every six hours), pauses while a game runs, honours each provider's rate limits (IGDB 4/s, `Retry-After` on 429), and stops for the round on errors.
 
+### What VYSTRAL builds on these (v0.5, Track M; no extra requests)
+
+- **Time-to-beat bars** on library cards, list rows and game pages, and the *Closest to finishing* sort, read IGDB's cached `game_time_to_beats` (labelled “IGDB estimate”). Only with your IGDB credentials; off with *Settings → Library & stores → Time to beat*.
+- **Anti-cheat notes** in pre-flight and on game pages use the cached AreWeAntiCheatYet list and `AntiCheatClient.KernelLevel`; informative only (`status: info`), off with *Settings → Launching & sessions → Anti-cheat notes*.
+- **Estimated savings on your backlog** (Journal → Library value) uses cached CheapShark/IsThereAnyDeal quotes: best current offer minus the historical low, per currency.
+- **Next big sale** uses `src/Vystral.Windows/Recap/steam-sales.json`: Steam seasonal sale dates from Valve's Steamworks page *Upcoming Steam Events* (https://partner.steamgames.com/doc/marketing/upcoming_events), versioned with its retrieval date and validated by unit tests (https on a Valve domain, ordered, non-overlapping, ≤ 60 days each). Update it by hand when Valve publishes new dates.
+
 ## Adding a store
 
 Implement `IPlatformAdapter` (see `SteamAdapter` for the reference pattern), keep it read-only and tolerant of malformed data, add fixture tests using `TempDir` and `FakeRegistry`, register it in `AdapterCatalog`, and add its launch scheme to `LaunchValidator`.

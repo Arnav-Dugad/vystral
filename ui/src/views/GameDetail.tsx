@@ -29,6 +29,8 @@ import { HeroTrailer } from '../components/game/HeroTrailer';
 import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, SectionHead, Stars, Tabs } from '../components/ui/primitives';
 import { DriverChangeCard } from './perf/DataInsightCards';
 import { GameExtras, IdentityPanel } from '../components/game/GameDataPanels';
+import { TimeToBeatPanel } from '../components/game/TimeToBeatBar';
+import { AntiCheatNote } from '../components/game/AntiCheatNote';
 import { ArtSlotActions, useUserArt } from '../components/game/ArtPicker';
 import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
@@ -329,6 +331,8 @@ function Overview({ game }: { game: Game }) {
       <div className="overview__main">
         {game.description ? <p className="overview__desc selectable">{game.description}</p> : <p className="overview__desc" style={{ color: 'var(--text-3)' }}>No description available. VYSTRAL only shows information it can source reliably.</p>}
         {/* Track I: compatibility badges, IGDB/RAWG facts and deals, each with its source. */}
+        {/* Track M: playtime vs IGDB time to beat, and an informative kernel anti-cheat note (each renders nothing without data). */}
+        <div className="gd-recap"><TimeToBeatPanel game={game} /><AntiCheatNote game={game} /></div>
         <GameExtras game={game} />
         <div style={{ marginTop: 'var(--s-6)' }}>
           <Field label="Your notes" hint={saved ? 'Saved on this PC' : 'Saving…'} htmlFor="notes">

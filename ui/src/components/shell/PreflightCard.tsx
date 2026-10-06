@@ -14,6 +14,7 @@ const CHECK_ICONS: Record<string, ReactNode> = {
   controller: <Gamepad2 size={15} />,
   display: <Monitor size={15} />,
   launchers: <Layers size={15} />,
+  antiCheat: <ShieldCheck size={15} />, // Track M: informative kernel anti-cheat note
 };
 
 const STATUS: Record<PreflightStatus, { icon: ReactNode; word: string }> = {

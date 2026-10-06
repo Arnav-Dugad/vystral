@@ -36,6 +36,15 @@ The same applies to keys for optional data sources: `VYSTRAL/SteamGridDB`, `VYST
 
 What data sources return is cached in `vystral.db`: Wikidata store IDs per Steam/GOG ID, IGDB/RAWG details and which source filled which field, prices (6–24 hours), Steam Deck reports (7 days) and the AreWeAntiCheatYet list. Every lookup tells that provider that this IP address asked about that game; prefer leaving keyed sources off if that matters to you, and use Offline mode to stop all of them.
 
+Version 0.5 features that use only data already on your PC (no new hosts, nothing sent anywhere):
+
+- **While you were away** (Home) summarises sessions VYSTRAL noticed without launching them (background tracker or detected while open) since you last opened Home. It stores one timestamp, `home.awayLastSeen`, in `vystral.db`.
+- **Time-to-beat bars** read the IGDB estimates already saved by enrichment (only with your own IGDB credentials); turning them off (Settings → Library & stores → Time to beat) hides them.
+- **Anti-cheat notes** read the cached AreWeAntiCheatYet list; nothing is sent to anyone. Hide them in Settings → Launching & sessions.
+- **Next big sale** uses Steam seasonal sale dates shipped inside VYSTRAL (`src/Vystral.Windows/Recap/steam-sales.json`, as announced by Valve on Steamworks); nothing is downloaded. “Source” opens that Steamworks page in your browser only when you click it.
+- **Estimated savings on your backlog** uses prices already cached when you opened game pages (CheapShark/IsThereAnyDeal); it never looks up prices on its own.
+- **Session replay cards** are drawn in the interface. *Save as image* writes a 1920×1080 PNG only where you choose in the Windows save dialog; *Copy image* puts it on the Windows clipboard. The image never leaves your PC unless you share it.
+
 VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 
 ## When VYSTRAL uses the network

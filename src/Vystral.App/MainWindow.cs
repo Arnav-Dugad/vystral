@@ -80,6 +80,7 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         _hotkey = new GlobalHotkey(hwnd);
         _hotkey.Pressed += Summon;
         _backend.InsightHost = new InsightHost(this, hwnd, _hotkey, notifications);
+        _backend.ClipboardHost = new ClipboardHost(this); // Track M: "Copy image" on session replay cards
 
         Activated += (_, e) => _gamepad.SetWindowActive(e.WindowActivationState != WindowActivationState.Deactivated);
         AppWindow.Changed += OnAppWindowChanged;

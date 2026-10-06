@@ -109,6 +109,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterLiveTileHandlers();       // AppBackend.LiveTiles.cs: Home live tiles (Steam micro-trailers, cached proxy)
         RegisterDataSourceHandlers();     // AppBackend.DataSources.cs: art picker, enrichment, prices, identity, compatibility, value
         RegisterTrackingHandlers();       // AppBackend.Tracking.cs: games started outside VYSTRAL, background tracker
+        RegisterRecapHandlers();          // AppBackend.Recap.cs: away card, time to beat, anti-cheat notes, value forecast, session replay
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

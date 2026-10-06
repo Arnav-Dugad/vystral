@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  ArrowDown, ArrowUp, Cpu, Equal, Gamepad2, Gauge, GitCompareArrows, Info, MemoryStick, MonitorCog, RefreshCw, Thermometer, X,
+  ArrowDown, ArrowUp, Clapperboard, Cpu, Equal, Gamepad2, Gauge, GitCompareArrows, Info, MemoryStick, MonitorCog, RefreshCw, Thermometer, X,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game, PerfSample, PerfSummary, Session } from '../bridge/types';
@@ -11,6 +11,7 @@ import { SessionOriginChip } from '../components/game/SessionOriginChip';
 import { formatDuration, plural } from '../lib/format';
 import { spring } from '../lib/motion';
 import { useReducedMotion, useStore } from '../state/store';
+import { openReplay } from '../state/recap';
 import { GameThumb, StatTile } from './perf/kit';
 import { useTrackedSessions } from './perf/hooks';
 import { gameTitle, timeOfDay } from './perf/text';
@@ -355,11 +356,15 @@ function SessionDetail({ entry, game, compare }: { entry: PerfEntry; game: Game 
             <SessionOriginChip source={session.source} />
           </p>
         </div>
-        {game && (
-          <Button size="sm" className="pf-hero__action" icon={<Gamepad2 size={14} />} onClick={() => useStore.getState().navigate({ name: 'game', id: game.id })}>
-            Open game
-          </Button>
-        )}
+        <div className="pf-hero__action" style={{ display: 'flex', gap: 8 }}>
+          {/* Track M: ~10 s animated summary of this session, saveable as an image. */}
+          <Button size="sm" icon={<Clapperboard size={14} />} onClick={() => openReplay(entry.id)}>Replay</Button>
+          {game && (
+            <Button size="sm" icon={<Gamepad2 size={14} />} onClick={() => useStore.getState().navigate({ name: 'game', id: game.id })}>
+              Open game
+            </Button>
+          )}
+        </div>
       </section>
 
       {compare}

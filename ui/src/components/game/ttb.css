@@ -1,0 +1,67 @@
+/* Track M: IGDB time-to-beat bars (cards, list rows, game page). */
+.ttb { display: block; pointer-events: auto; }
+.ttb__track {
+  position: relative;
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: oklch(1 0 0 / 0.14);
+  overflow: visible;
+}
+:root[data-theme='light'] .ttb__track { background: oklch(0 0 0 / 0.1); }
+.ttb__fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hi));
+  box-shadow: 0 0 10px oklch(from var(--accent) l c h / 0.45);
+}
+.ttb[data-state='pastEstimate'] .ttb__fill { background: linear-gradient(90deg, var(--accent), var(--ok)); }
+.ttb__tick {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: oklch(1 0 0 / 0.55);
+}
+.ttb__tick[data-reached] { background: oklch(1 0 0 / 0.9); }
+:root[data-theme='light'] .ttb__tick { background: oklch(0 0 0 / 0.35); }
+
+/* Card: a slim bar along the bottom edge of the cover (no layout change). */
+.ttb--card {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 9px;
+  height: 4px;
+  z-index: 3;
+  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.6));
+}
+.ttb--card .ttb__track { background: oklch(0 0 0 / 0.45); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.12); }
+.ttb--card .ttb__tick:last-child { display: none; }
+
+/* List row: under the playtime value. */
+.ttb--row { width: 84px; height: 3px; margin-top: 5px; }
+
+/* Game page: holder for the time-to-beat panel and the anti-cheat note (collapses when both are empty). */
+.gd-recap { display: grid; gap: var(--s-4); margin-top: var(--s-6); }
+.gd-recap:empty { display: none; }
+
+/* Game page panel. */
+.ttb-panel { display: grid; gap: var(--s-3); padding: var(--s-4) var(--s-5); border-radius: var(--r-xl); }
+.ttb-panel__head { display: flex; align-items: center; gap: 8px; color: var(--accent-text); }
+.ttb-panel__title { margin: 0; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text-1); }
+.ttb-panel__src { margin-left: auto; font-size: var(--fs-2xs); color: var(--text-3); letter-spacing: var(--tracking-caps); text-transform: uppercase; }
+.ttb-panel__lead { margin: 0; font-size: var(--fs-sm); color: var(--text-2); }
+.ttb-panel__lead strong { color: var(--text-1); }
+.ttb--panel { height: 8px; margin: 6px 0 2px; }
+.ttb--panel .ttb__tick { top: -4px; bottom: -4px; }
+.ttb-panel__legend { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); margin: 0; padding: 0; list-style: none; }
+.ttb-panel__legend li { display: grid; gap: 2px; opacity: 0.75; }
+.ttb-panel__legend li[data-reached] { opacity: 1; }
+.ttb-panel__legend li[data-reached] strong::after { content: ' ✓'; color: var(--ok); }
+.ttb-panel__legend strong { font-size: var(--fs-md); color: var(--text-1); }
+.ttb-panel__foot { margin: 0; font-size: var(--fs-2xs); color: var(--text-3); line-height: 1.5; }

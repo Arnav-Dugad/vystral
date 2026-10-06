@@ -5,7 +5,7 @@
  */
 import type {
   AdapterInfo, AppInfo, Game, GameStatus, Installation, LaunchState, LibrarySnapshot, PerfSample, PlatformKey,
-  Session, Settings, StatusHistoryEntry, UpdateState, MediaItem,
+  Session, Settings, StatusHistoryEntry, UpdateState, MediaItem, PreflightResult, Enrichment,
 } from './types';
 import { BridgeError } from './bridge';
 import { steamPreviewHandlers } from './preview.steam';
@@ -17,6 +17,7 @@ import { updatesPreviewHandlers } from './preview.updates';
 import { TRACK_K_DEFAULT_SETTINGS, trackKPreviewHandlers } from './preview.trackK';
 import { DATA_SOURCE_DEFAULT_SETTINGS, dataSourcePreviewHandlers } from './preview.dataSources';
 import { TRACKING_DEFAULT_SETTINGS, decorateTrackingSessions, trackingPreviewHandlers } from './preview.tracking';
+import { RECAP_DEFAULT_SETTINGS, recapPreviewHandlers } from './preview.recap';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -61,6 +62,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_K_DEFAULT_SETTINGS,
   ...DATA_SOURCE_DEFAULT_SETTINGS,
   ...TRACKING_DEFAULT_SETTINGS,
+  ...RECAP_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -263,8 +265,15 @@ export function createPreviewBackend() {
     emit('launch.state', s);
   };
 
+  // Track M: away card, time to beat, anti-cheat notes (also added to pre-flight), forecast, session replay.
+  const dataSources = dataSourcePreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers });
+  const recap = recapPreviewHandlers({
+    lib, emit: () => emit, settings: () => settings,
+    // The bars use the same fictional IGDB estimates the game page shows.
+    igdbTimeToBeat: (gameId) => (dataSources['enrichment.get']({ gameId }) as Enrichment).sources.find((s) => s.source === 'igdb')?.facts?.timeToBeat ?? null,
+  });
   const insight = insightPreviewHandlers({
-    emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; }, timers,
+    emit: () => (name: string, payload: unknown) => emit(name, name === 'launch.preflight' ? recap.__decoratePreflight(payload as PreflightResult) : payload), settings: () => settings, setSettings: (s) => { settings = s; }, timers,
     withFps: (id) => id === 'preview' || !!lib.sessions.find((s) => s.id === id)?.perfSummary?.includes('"fpsAvg"'),
   });
   const dataInsights = dataInsightPreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers });
@@ -330,6 +339,7 @@ export function createPreviewBackend() {
         return failed;
       }
       setLaunch({ ...base, phase: 'starting', message: `Starting via ${inst.platform}…` });
+      recap.__launch({ ticket: base.ticket, gameId: g.id });
       insight.__preflight({ ticket: base.ticket, platform: inst.platform });
       timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'waiting', message: 'Waiting for the game window…', acceptedAt: new Date().toISOString() }), 700));
       timers.push(window.setTimeout(() => setLaunch({ ...base, phase: 'running', sessionId: 'preview', startedAt: new Date().toISOString(), message: null }), 2600));
@@ -435,9 +445,12 @@ export function createPreviewBackend() {
     // Track K: live tiles (a bundled local loop, never the network).
     ...trackKPreviewHandlers({ lib, settings: () => settings, liveTileRequests: [] }),
     // Track I: data sources — art picker, enrichment, prices, identity, compatibility, value (fictional data, local placeholder images).
-    ...dataSourcePreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
+    ...dataSources,
     // Track H: games started outside VYSTRAL (fictional status; ?detected simulates one).
     ...trackingPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setLaunch, timers }),
+    // Track M: away card (?away), time to beat (?ttb), anti-cheat notes (?antiCheat), forecast (?saleOn), session replay.
+    ...recap,
+    'launch.preflightResult': (p: { ticket: string }) => recap.__decoratePreflight(insight['launch.preflightResult'](p)),
   };
 
   return {
