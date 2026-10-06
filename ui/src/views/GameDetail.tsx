@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   AlertTriangle, ArrowLeft, BarChart3, Check, ChevronDown, Clock3, Eye, EyeOff, FolderOpen, FolderPlus, Heart, HardDrive,
-  ImagePlus, MoreHorizontal, Play, Split, Store, Trash2,
+  ImagePlus, MoreHorizontal, Play, Split, Trash2,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game, InstallProgress, Installation, PerfSummary, Session } from '../bridge/types';
@@ -27,6 +27,7 @@ import { useInstallFor } from '../state/installs';
 import { StatusPicker } from '../components/game/StatusPicker';
 import { HeroTrailer } from '../components/game/HeroTrailer';
 import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, SectionHead, Stars, Tabs } from '../components/ui/primitives';
+import { StoreLogo } from '../components/ui/StoreLogo';
 import { DriverChangeCard } from './perf/DataInsightCards';
 import { GameExtras, IdentityPanel } from '../components/game/GameDataPanels';
 import { TimeToBeatPanel } from '../components/game/TimeToBeatBar';
@@ -134,7 +135,7 @@ function DetailHero({ game }: { game: Game }) {
     { label: 'Open install folder', icon: <FolderOpen size={16} />, onSelect: () => void openFolder(game), disabled: !installed.length },
     ...installed.filter((i) => i.platform !== 'manual').map<MenuEntry>((i) => ({
       label: `Open in ${PLATFORM_NAMES[i.platform]}`,
-      icon: <Store size={16} />,
+      icon: <StoreLogo platform={i.platform} size={16} decorative />,
       onSelect: () => void call('game.openInStore', { installationId: i.id }).catch((err) => useStore.getState().toast({ tone: 'info', title: errorMessage(err) })),
     })),
     { kind: 'separator' },
@@ -508,7 +509,7 @@ function VersionCard({ game, inst, onUnmerge }: { game: Game; inst: Installation
         <div><dt className="caps">Title in store</dt><dd>{inst.title}</dd></div>
         <div><dt className="caps">Location</dt><dd className="selectable truncate" title={inst.installPath ?? ''}>{inst.installPath ?? '—'}</dd></div>
         <div><dt className="caps">Size</dt><dd className="num">{formatBytes(inst.sizeBytes)}</dd></div>
-        <div><dt className="caps">Starts via</dt><dd>{inst.launchKind === 'Uri' ? `${PLATFORM_NAMES[inst.platform]} (store app required)` : inst.launchKind === 'PackagedApp' ? 'Windows (Xbox app identity)' : 'Direct program launch'}</dd></div>
+        <div><dt className="caps">Starts via</dt><dd>{inst.launchKind === 'Uri' ? <span className="svc-name"><StoreLogo platform={inst.platform} size={14} decorative />{PLATFORM_NAMES[inst.platform]} (store app required)</span> : inst.launchKind === 'PackagedApp' ? 'Windows (Xbox app identity)' : 'Direct program launch'}</dd></div>
         <div><dt className="caps">Store ID</dt><dd className="num selectable">{inst.platformGameId}</dd></div>
         <div><dt className="caps">Last seen</dt><dd>{formatRelative(inst.lastSeen)}</dd></div>
       </dl>

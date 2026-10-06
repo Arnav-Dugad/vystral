@@ -32,6 +32,12 @@
 .now-playing__store { display: inline-flex; color: var(--text-3); }
 .launch__store { display: inline-flex; vertical-align: -0.2em; margin-right: 0.45em; opacity: 0.9; }
 
+/* Track R: marks beside headings, and store/service names written in running text. */
+.sgroup__title > .store-logo { margin-right: 0.4em; vertical-align: -0.2em; }
+.svc-name { display: inline-flex; align-items: center; gap: 0.3em; white-space: nowrap; }
+.svc-name > .store-logo { vertical-align: 0; }
+.svc-name--muted > .store-logo { opacity: 0.85; }
+
 /* High contrast: marks stay in the text colour, never a hue. */
 :root[data-theme='contrast'] .store-logo,
 :root[data-theme='contrast'] .store-logos { color: currentColor !important; opacity: 1; }

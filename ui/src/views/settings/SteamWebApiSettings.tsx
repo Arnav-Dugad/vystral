@@ -7,6 +7,7 @@ import { useStore } from '../../state/store';
 import { Badge, Button, Skeleton, Toggle } from '../../components/ui/primitives';
 import { HoldToConfirm } from '../../components/controller/HoldToConfirm';
 import { Dialog } from '../../components/ui/Dialog';
+import { StoreLogo } from '../../components/ui/StoreLogo';
 import './steam-web-api.css';
 
 const KEY_PAGE = 'https://steamcommunity.com/dev/apikey';
@@ -83,7 +84,7 @@ export function SteamWebApiSettings() {
   return (
     <section className="sgroup steamapi" aria-labelledby="steamapi-title">
       <h2 className="sgroup__title" id="steamapi-title">
-        Steam Web API <Badge>Optional</Badge>
+        <StoreLogo platform="steam" size={20} decorative />Steam Web API <Badge>Optional</Badge>
       </h2>
       <p className="sgroup__desc">
         With your own free key, VYSTRAL can list Steam games you own but haven’t installed, and show your achievements with how rare they are.

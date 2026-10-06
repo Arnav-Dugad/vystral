@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowDownToLine, ExternalLink, HardDrive, ShieldCheck, Store, X } from 'lucide-react';
+import { ArrowDownToLine, ExternalLink, HardDrive, ShieldCheck, X } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { Game, Installation } from '../../bridge/types';
 import { formatBytes, PLATFORM_NAMES } from '../../lib/format';
@@ -7,6 +7,7 @@ import { useInstallFor } from '../../state/installs';
 import { useStore } from '../../state/store';
 import { Button, IconButton } from '../ui/primitives';
 import { Dialog } from '../ui/Dialog';
+import { StoreLogo } from '../ui/StoreLogo';
 import { InstallProgressPanel } from './InstallProgress';
 import './install.css';
 
@@ -49,7 +50,7 @@ export function InstallButton({ game, size = 'lg' }: { game: Game; size?: 'md' |
   const name = PLATFORM_NAMES[store.platform];
   return (
     <div className="install-cta">
-      <Button size={size} icon={<Store size={size === 'xl' ? 20 : 17} />} onClick={() => openInStore(store)} aria-label={`Open ${name} to install ${game.title}`}>
+      <Button size={size} icon={<StoreLogo platform={store.platform} size={size === 'xl' ? 20 : 16} decorative motion />} onClick={() => openInStore(store)} aria-label={`Open ${name} to install ${game.title}`}>
         Install in {name}
       </Button>
       <span className="install-cta__hint">Opens {name}. Installing happens there.</span>

@@ -5,8 +5,9 @@ import {
   Sparkles, Store, Timer, Trash2, Trophy, X,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
-import type { Game } from '../bridge/types';
+import type { Game, PlatformKey } from '../bridge/types';
 import { Button, EmptyState, IconButton, SectionHead, Segmented, Skeleton, Tabs, tabPanelProps } from '../components/ui/primitives';
+import { StoreLogo } from '../components/ui/StoreLogo';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { SessionOriginChip } from '../components/game/SessionOriginChip';
 import { Dialog } from '../components/ui/Dialog';
@@ -41,12 +42,12 @@ const monthName = (ms: number, style: 'long' | 'short' | 'narrow' = 'long', year
   new Intl.DateTimeFormat(undefined, { month: style, year: year ? 'numeric' : undefined }).format(ms);
 
 /** Largest store-reported playtime for a game, with the store that reported it. */
-function storePlaytime(game: Game | undefined): { minutes: number; store: string } | null {
+function storePlaytime(game: Game | undefined): { minutes: number; store: string; platform: PlatformKey } | null {
   if (!game) return null;
-  let best: { minutes: number; store: string } | null = null;
+  let best: { minutes: number; store: string; platform: PlatformKey } | null = null;
   for (const i of game.installations) {
     if (i.importedPlaytimeMinutes != null && i.importedPlaytimeMinutes > 0 && (!best || i.importedPlaytimeMinutes > best.minutes))
-      best = { minutes: i.importedPlaytimeMinutes, store: PLATFORM_NAMES[i.platform] };
+      best = { minutes: i.importedPlaytimeMinutes, store: PLATFORM_NAMES[i.platform], platform: i.platform };
   }
   return best;
 }
@@ -458,7 +459,7 @@ function TopGameRow({ rank, game, seconds, sessions, max, reduce }: { rank: numb
           <span>{plural(sessions, 'session')}</span>
           {store && (
             <span className="vx-source vx-source--store" title={`Reported by ${store.store}. Not tracked by VYSTRAL.`}>
-              <Store size={10} aria-hidden /> {formatDuration(store.minutes * 60, { short: true })} from {store.store}
+              <StoreLogo platform={store.platform} size={12} decorative /> {formatDuration(store.minutes * 60, { short: true })} from {store.store}
             </span>
           )}
         </span>

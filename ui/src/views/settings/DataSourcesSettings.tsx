@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useState, type ReactNode } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronDown, CloudOff, ExternalLink, Globe2, KeyRound, Lock, PauseCircle, RefreshCw, Unplug } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, CloudOff, ExternalLink, KeyRound, Lock, PauseCircle, RefreshCw, Unplug } from 'lucide-react';
 import { call, errorMessage, on } from '../../bridge/bridge';
 import type { DataSourceId, DataSourcesStatus, ProviderAction, ProviderStatus, ProviderTest } from '../../bridge/types';
 import { formatRelative } from '../../lib/format';
@@ -8,6 +8,8 @@ import { useStore } from '../../state/store';
 import { Badge, Button, Skeleton, Toggle } from '../../components/ui/primitives';
 import { HoldToConfirm } from '../../components/controller/HoldToConfirm';
 import { Dialog } from '../../components/ui/Dialog';
+import { ServiceLogo } from '../../components/ui/ServiceLogo';
+import { DATA_SOURCE_SERVICE } from '../../lib/serviceMarks';
 import './data-sources.css';
 
 const COUNTRIES: [string, string][] = [
@@ -173,9 +175,11 @@ function ProviderCard({ p, localOnly, onStatus, fetchMetadata = true }: { p: Pro
   const headingId = `dsrc-${p.id}`;
 
   return (
-    <article className="dsrc-card surface" data-state={state} aria-labelledby={headingId}>
+    <article className="dsrc-card surface logo-host" data-state={state} aria-labelledby={headingId}>
       <header className="dsrc-card__head">
-        <span className="dsrc-card__mark" aria-hidden>{p.name.slice(0, 1)}</span>
+        <span className="dsrc-card__mark" aria-hidden>
+          {DATA_SOURCE_SERVICE[p.id] ? <ServiceLogo service={DATA_SOURCE_SERVICE[p.id]} size={20} decorative motion /> : p.name.slice(0, 1)}
+        </span>
         <div className="dsrc-card__title">
           <h4 id={headingId}>{p.name}</h4>
           <span className="dsrc-card__access">{ACCESS_LABEL[p.access]}</span>
@@ -292,7 +296,7 @@ function ConnectForm({ p, disabled, busy, onConnect, onLink }: {
     <form className="dsrc-connect" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
       {twitch ? (
         <div className="dsrc-connect__explain">
-          <Globe2 size={15} aria-hidden />
+          <ServiceLogo service="twitch" size={16} decorative />
           <p>
             IGDB is run by Twitch. Create <strong>your own</strong> free application at dev.twitch.tv (Category: Application Integration, Client Type:
             Confidential, any OAuth redirect such as http://localhost), then paste its Client ID and a new Client Secret. VYSTRAL never shares a key between users.

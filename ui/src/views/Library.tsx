@@ -14,7 +14,7 @@ import '../components/game/status.css';
 import { useReducedMotion, useStore } from '../state/store';
 import { isNeverPlayed, ageLabel } from '../lib/neverPlayed';
 import { platformFromName } from '../lib/storeMarks';
-import { StoreLogo } from '../components/ui/StoreLogo';
+import { StoreLogo, StoreLogos } from '../components/ui/StoreLogo';
 import { useFlipGrid } from '../components/game/useFlipGrid';
 import { GameCard } from '../components/game/GameCard';
 import { GameCover } from '../components/game/GameCover';
@@ -514,7 +514,7 @@ function DuplicatesDialog({ open, onClose }: { open: boolean; onClose: () => voi
                   <span className="vlist__thumb"><GameCover game={g} /></span>
                   <div>
                     <div>{g.title}</div>
-                    <div className="cmd__meta">{g.installations.map((i) => PLATFORM_NAMES[i.platform]).join(', ')}</div>
+                    <div className="cmd__meta"><StoreLogos platforms={g.installations.map((i) => i.platform)} size={14} decorative /> {g.installations.map((i) => PLATFORM_NAMES[i.platform]).join(', ')}</div>
                   </div>
                 </div>
               ))}

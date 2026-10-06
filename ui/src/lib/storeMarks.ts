@@ -4,16 +4,22 @@ import { PLATFORM_NAMES } from './format';
 /**
  * Store marks, drawn on a 24×24 grid.
  *
- * Brand marks are the official logos as published by Simple Icons 16.34.0 (CC0-1.0 for the
- * drawings; the marks themselves are trademarks of their owners and are used only to identify
- * the store a game comes from — see THIRD-PARTY-NOTICES.md). Simple Icons has no Xbox or
- * Microsoft Store mark (Microsoft asked for its marks to be removed), so Xbox gets a neutral
- * monogram rather than an imitation, and games you added yourself get a plain glyph.
+ * Brand marks are the official logos. Steam, Epic Games, GOG, EA, Ubisoft and Battle.net are the
+ * Simple Icons 16.34.0 drawings (CC0-1.0). Simple Icons dropped Microsoft's marks, so the Xbox sphere
+ * is Bootstrap Icons 1.13.1 `xbox` (MIT, © The Bootstrap Authors), moved from its 16-unit grid onto
+ * this 24-unit one (every coordinate × 1.5, nothing else changed). The marks themselves are
+ * trademarks of their owners, used only to identify the store a game comes from — see
+ * THIRD-PARTY-NOTICES.md. Games you added yourself get a plain glyph: a description, not a brand.
  */
-export type StoreMark =
-  | { kind: 'brand'; path: string; /** Simple Icons slug, for the notices file. */ slug: string; /** Optical inset: marks that fill the whole square read larger than wide ones. */ inset: number }
-  | { kind: 'monogram'; letter: 'X' }
-  | { kind: 'glyph' };
+export type BrandMark = {
+  kind: 'brand';
+  path: string;
+  /** Where the drawing comes from, for the notices file: a Simple Icons slug, or `bootstrap-icons:<name>`. */
+  slug: string;
+  /** Optical inset: marks that fill the whole square read larger than wide ones. */
+  inset: number;
+};
+export type StoreMark = BrandMark | { kind: 'glyph' };
 
 export const STORE_MARKS: Record<PlatformKey, StoreMark> = {
   steam: {
@@ -52,7 +58,13 @@ export const STORE_MARKS: Record<PlatformKey, StoreMark> = {
     inset: 0.3,
     path: 'M18.94 8.296C15.9 6.892 11.534 6 7.426 6.332c.206-1.36.714-2.308 1.548-2.508 1.148-.275 2.4.48 3.594 1.854.782.102 1.71.28 2.355.429C12.747 2.013 9.828-.282 7.607.565c-1.688.644-2.553 2.97-2.448 6.094-2.2.468-3.915 1.3-5.013 2.495-.056.065-.181.227-.137.305.034.058.146-.008.194-.04 1.274-.89 2.904-1.373 5.027-1.676.303 3.333 1.713 7.56 4.055 10.952-1.28.502-2.356.536-2.946-.087-.812-.856-.784-2.318-.19-4.04a26.764 26.764 0 0 1-.807-2.254c-2.459 3.934-2.986 7.61-1.143 9.11 1.402 1.14 3.847.725 6.502-.926 1.505 1.672 3.083 2.74 4.667 3.094.084.015.287.043.332-.034.034-.06-.08-.124-.131-.149-1.408-.657-2.64-1.828-3.964-3.515 2.735-1.929 5.691-5.263 7.457-8.988 1.076.86 1.64 1.773 1.398 2.595-.336 1.131-1.615 1.84-3.403 2.185a27.697 27.697 0 0 1-1.548 1.826c4.634.16 8.08-1.22 8.458-3.565.286-1.786-1.295-3.696-4.053-5.17.696-2.139.832-4.04.346-5.588-.029-.08-.106-.27-.196-.27-.068 0-.067.13-.063.187.135 1.547-.263 3.2-1.062 5.19zm-8.533 9.869c-1.96-3.145-3.09-6.849-3.082-10.594 3.702-.124 7.474.748 10.714 2.627-1.743 3.269-4.385 6.1-7.633 7.966h.001z',
   },
-  xbox: { kind: 'monogram', letter: 'X' },
+  xbox: {
+    kind: 'brand',
+    slug: 'bootstrap-icons:xbox',
+    // A full sphere, like Steam's disc: the same inset keeps the two the same optical size.
+    inset: 0.9,
+    path: 'M10.803 23.951a12 12 0 0 1-5.328-1.89c-1.347-.877-1.651-1.239-1.651-1.959 0-1.447 1.593-3.984 4.319-6.874C9.689 11.585 11.846 9.66 12.078 9.712c.453.102 4.077 3.635 5.433 5.297 2.145 2.629 3.132 4.784 2.631 5.744-.381.729-2.745 2.156-4.48 2.703-1.431.452-3.31.644-4.858.495m-8.799-5.355C.884 16.88.318 15.191.045 12.746c-.09-.808-.057-1.269.206-2.925 .327-2.065 1.503-4.455 2.918-5.925 .602-.625.656-.64 1.389-.394 .893.3 1.845.957 3.32 2.292l.861.779-.469.578C6.084 9.83 3.78 13.629 2.91 15.98c-.473 1.278-.663 2.561-.459 3.095 .137.36.011.225-.45-.479Zm19.652.293c.111-.54-.028-1.53-.357-2.53-.709-2.165-3.083-6.192-5.262-8.929l-.685-.862 .741-.681c.969-.889 1.643-1.422 2.37-1.875 .572-.355 1.391-.672 1.742-.672 .217 0 .981.792 1.598 1.656a12.6 12.6 0 0 1 2.015 4.653c.229 1.092.249 3.429.036 4.518a14.25 14.25 0 0 1-.9 2.84c-.268.59-.936 1.734-1.23 2.106-.15.192-.15.191-.064-.222ZM11.003 2.928c-1.005-.51-2.556-1.057-3.414-1.205a6 6 0 0 0-1.138-.064c-.706.036-.675 0 .459-.537A11.7 11.7 0 0 1 9.705.192c1.2-.253 3.459-.255 4.641-.007 1.275.27 2.78.828 3.627 1.35l.252.155-.577-.03c-1.149-.057-2.82.405-4.617 1.28-.541.264-1.014.474-1.048.468a18 18 0 0 1-.981-.479Z',
+  },
   manual: { kind: 'glyph' },
 };
 
@@ -71,13 +83,14 @@ export function opticalSize(px: number): OpticalSize {
  * little so they don't look bigger than wide, airy ones (EA); at 14px the inset is halved because
  * detail matters more than balance there.
  */
-export function markViewBox(mark: StoreMark, size: OpticalSize): string {
-  const inset = mark.kind === 'brand' ? (size === 14 ? mark.inset / 2 : mark.inset) : 0;
+export function markViewBox(mark: { kind: string; inset?: number }, size: OpticalSize): string {
+  const full = mark.kind === 'brand' ? (mark.inset ?? 0) : 0;
+  const inset = size === 14 ? full / 2 : full;
   return `${-inset} ${-inset} ${24 + inset * 2} ${24 + inset * 2}`;
 }
 
-/** Monogram stroke weight per optical size: heavier when small so it holds up next to filled marks. */
-export function monogramStroke(size: OpticalSize): number {
+/** Stroke weight of drawn glyphs per optical size: heavier when small so they hold up next to filled marks. */
+export function glyphStroke(size: OpticalSize): number {
   return { 14: 2.6, 16: 2.4, 20: 2.1, 24: 1.9 }[size];
 }
 

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  ArrowUp, Bot, Check, CloudOff, Copy, Cpu, Download, ExternalLink, Pause, Power, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Square, TriangleAlert, WifiOff,
+  ArrowUp, Bot, Check, CloudOff, Copy, Download, ExternalLink, Pause, Power, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Square, TriangleAlert, WifiOff,
 } from 'lucide-react';
 import type { AiStatus } from '../bridge/types';
 import { call, errorMessage, on } from '../bridge/bridge';
 import { Badge, Button, IconButton, Kbd, ProgressBar, Skeleton, Toggle } from '../components/ui/primitives';
 import { Dialog } from '../components/ui/Dialog';
+import { ServiceLogo } from '../components/ui/ServiceLogo';
 import { useGameRunning, useReducedMotion, useStore } from '../state/store';
 import { pick, spring } from '../lib/motion';
 import { IDLE_PULL, describePull, formatModelBytes, newId, reducePull, toWireMessages, type ChatMessage, type PullEvent, type PullState } from './assistant/chat';
@@ -78,7 +79,7 @@ export function AssistantView() {
 function Intro() {
   const reduce = useReducedMotion();
   const points = [
-    { icon: <Cpu size={18} aria-hidden />, title: 'Runs entirely on this PC', body: 'Powered by Ollama, a free local model runner. Your questions and library never leave this PC.' },
+    { icon: <ServiceLogo service="ollama" size={20} decorative />, title: 'Runs entirely on this PC', body: 'Powered by Ollama, a free local model runner. Your questions and library never leave this PC.' },
     { icon: <CloudOff size={18} aria-hidden />, title: 'No account, no cloud', body: 'Nothing to sign in to and nothing sent to a server.' },
     { icon: <Pause size={18} aria-hidden />, title: 'Paused during gameplay', body: 'It stops while a game is running so it never costs you frames.' },
     { icon: <ShieldCheck size={18} aria-hidden />, title: 'Suggests, never acts', body: 'It can’t launch, install, delete or change anything. You stay in control.' },
@@ -221,7 +222,7 @@ function ModelSetup({ status, onRefresh }: { status: AiStatus; onRefresh: () => 
   return (
     <section className="as-setup" aria-labelledby="as-setup-title">
       <div className="as-setup__head">
-        <div className="caps">Local AI · Ollama {status.version ? <span className="num">v{status.version}</span> : null}</div>
+        <div className="caps">Local AI · <span className="svc-name"><ServiceLogo service="ollama" size={14} decorative />Ollama</span> {status.version ? <span className="num">v{status.version}</span> : null}</div>
         <h1 id="as-setup-title" className="as-card__title">Choose a model</h1>
         <p className="as-card__body">
           Ollama is running. {status.selectedModel ? <>The selected model, <code className="num">{status.selectedModel}</code>, isn’t installed yet.</> : 'No model is selected yet.'}
@@ -343,7 +344,7 @@ function ModelSetup({ status, onRefresh }: { status: AiStatus; onRefresh: () => 
           </li>
           <li>
             <span>Stored by</span>
-            <span>Ollama, on this PC</span>
+            <span className="svc-name"><ServiceLogo service="ollama" size={14} decorative />Ollama, on this PC</span>
           </li>
         </ul>
         <p className="as-consent__note">You can cancel at any time. Nothing about your library is uploaded.</p>

@@ -9,6 +9,7 @@ import { formatDate, formatRelative } from '../../lib/format';
 import { DECK_LABEL, deckTone, formatHours, formatMoney, matchLabel } from '../../lib/dataSources';
 import { useReducedMotion, useStore } from '../../state/store';
 import { Badge, Button, PlatformBadge, Skeleton } from '../ui/primitives';
+import { ServiceLogo } from '../ui/ServiceLogo';
 import './game-data.css';
 
 /**
@@ -92,8 +93,10 @@ function Disclosure({ trigger, children, label, tone }: { trigger: ReactNode; ch
 function DeckBadge({ deck }: { deck: NonNullable<Compat['deck']> }) {
   const tone = deckTone(deck.category);
   const icon = deck.category === 'verified' ? <BadgeCheck size={14} aria-hidden /> : deck.category === 'playable' ? <Info size={14} aria-hidden /> : deck.category === 'unsupported' ? <XCircle size={14} aria-hidden /> : <CircleDashed size={14} aria-hidden />;
+  // Track R: the Steam Deck mark says which device; the status icon after it says how well it runs.
+  const trigger = <><ServiceLogo service="steamdeck" size={14} decorative />{DECK_LABEL[deck.category]}{icon}</>;
   return (
-    <Disclosure label={`${DECK_LABEL[deck.category]}: Valve’s test results`} tone={tone} trigger={<>{icon}{DECK_LABEL[deck.category]}</>}>
+    <Disclosure label={`${DECK_LABEL[deck.category]}: Valve’s test results`} tone={tone} trigger={trigger}>
       <strong className="gx-pop__title">Valve’s Steam Deck test results</strong>
       {deck.tests.length ? (
         <ul className="gx-tests">
@@ -154,7 +157,7 @@ function EnrichmentFacts({ game }: { game: Game }) {
         <motion.section key={s.source} className="gx-card surface" aria-labelledby={`gx-${s.source}`}
           initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
           <header className="gx-card__head">
-            <h3 id={`gx-${s.source}`}>From {s.name}</h3>
+            <h3 id={`gx-${s.source}`}>{(s.source === 'igdb' || s.source === 'rawg') && <ServiceLogo service={s.source} size={s.source === 'igdb' ? 20 : 16} decorative />}From {s.name}</h3>
             <span className="gx-card__meta">{matchLabel(s)}</span>
             {data.canFetch && <Button size="sm" variant="ghost" loading={busy} icon={<RefreshCw size={13} />} onClick={() => void run()} aria-label={`Refresh details from ${s.name}`} />}
           </header>
@@ -337,7 +340,7 @@ export function IdentityPanel({ game }: { game: Game }) {
       )}
       {data.wikidataId && (
         <p className="gx-attrib">
-          IDs from <button className="gx-link" onClick={openExternal('identity.open', { gameId: game.id, name: 'wikidata' })}>Wikidata {data.wikidataId} <ExternalLink size={11} aria-hidden /></button>
+          IDs from <button className="gx-link" onClick={openExternal('identity.open', { gameId: game.id, name: 'wikidata' })}><ServiceLogo service="wikidata" size={14} decorative /> Wikidata {data.wikidataId} <ExternalLink size={11} aria-hidden /></button>
           {data.fetched && ` · checked ${formatRelative(data.fetched).toLowerCase()}`}. Used only to suggest duplicates — VYSTRAL never merges games on its own.
         </p>
       )}

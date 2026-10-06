@@ -10,7 +10,7 @@ describe('store logo motion', () => {
   });
 
   it('stroked marks draw, simple filled marks trace, busy ones sweep', () => {
-    expect(logoMotion(STORE_MARKS.xbox, { interactive: true })).toBe('draw');
+    expect(logoMotion(STORE_MARKS.xbox, { interactive: true })).toBe('trace');
     expect(logoMotion(STORE_MARKS.manual, { interactive: true })).toBe('draw');
     expect(logoMotion(STORE_MARKS.steam, { interactive: true })).toBe('trace');
     expect(logoMotion(STORE_MARKS.ea, { interactive: true })).toBe('trace');

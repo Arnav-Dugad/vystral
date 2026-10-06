@@ -6,6 +6,7 @@ import { formatDuration } from '../../lib/format';
 import { playedSeconds, TTB_HINT, TTB_SOURCE, ttbProgress, ttbSummary } from '../../lib/timeToBeat';
 import { useReducedMotion } from '../../state/store';
 import { useTimeToBeat } from '../../state/recap';
+import { ServiceLogo } from '../ui/ServiceLogo';
 import './ttb.css';
 
 /**
@@ -64,7 +65,7 @@ export function TimeToBeatPanel({ game }: { game: Game }) {
         ))}
       </ul>
       <p className="ttb-panel__foot">
-        Player-reported averages from IGDB. Your time is the larger of VYSTRAL-tracked and store-reported playtime (store playtime already includes tracked sessions).
+        <ServiceLogo service="igdb" size={14} decorative /> Player-reported averages from IGDB. Your time is the larger of VYSTRAL-tracked and store-reported playtime (store playtime already includes tracked sessions).
       </p>
     </section>
   );
