@@ -1,0 +1,17 @@
+"AppState"
+{
+	"appid"		"620"
+	"name"		"Portal 2"
+	"StateFlags"		"6"
+	"installdir"		"Portal 2"
+	"SizeOnDisk"		"13000000000"
+	"buildid"		"100"
+	"UpdateResult"		"0"
+	"BytesToDownload"		"20000000000"
+	"BytesDownloaded"		"0"
+	"BytesToStage"		"25000000000"
+	"BytesStaged"		"0"
+	"TargetBuildID"		"200"
+	"AutoUpdateBehavior"		"1"
+	"ScheduledAutoUpdate"		"1786100000"
+}

@@ -1,0 +1,17 @@
+"AppState"
+{
+	"appid"		"400"
+	"name"		"Portal"
+	"StateFlags"		"2097158"
+	"installdir"		"Portal"
+	"SizeOnDisk"		"4000000000"
+	"buildid"		"10"
+	"UpdateResult"		"0"
+	"BytesToDownload"		"3000000000"
+	"BytesDownloaded"		"3000000000"
+	"BytesToStage"		"5000000000"
+	"BytesStaged"		"2000000000"
+	"TargetBuildID"		"11"
+	"AutoUpdateBehavior"		"0"
+	"ScheduledAutoUpdate"		"0"
+}

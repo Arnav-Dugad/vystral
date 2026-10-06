@@ -1,0 +1,102 @@
+/* Track P: update-space bar, chip and Home warning. */
+.usbar {
+  position: relative;
+  display: flex;
+  height: 14px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--bg-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.usbar--compact { height: 8px; }
+.usbar__seg { display: block; height: 100%; flex: none; }
+.usbar__seg + .usbar__seg { box-shadow: inset 1px 0 0 var(--bg-1); }
+.usbar__seg--update { background: linear-gradient(90deg, oklch(from var(--accent) l c h / 0.9), oklch(from var(--accent) l c h / 0.7)); }
+.usbar[data-status='tight'] .usbar__seg--update { background: linear-gradient(90deg, var(--warn), oklch(from var(--warn) l c h / 0.75)); }
+.usbar__seg--over {
+  background: repeating-linear-gradient(-45deg, var(--danger) 0 6px, oklch(from var(--danger) l c h / 0.55) 6px 12px);
+}
+.usbar__seg--free { background: transparent; }
+.usbar__tight {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 1px;
+  background: oklch(from var(--warn) l c h / 0.7);
+  pointer-events: none;
+}
+:root[data-theme='contrast'] .usbar__seg--update { background: var(--text-1); }
+:root[data-theme='contrast'] .usbar__seg--over { background: repeating-linear-gradient(-45deg, var(--text-1) 0 4px, transparent 4px 8px); }
+
+/* Game page chip under the status line. */
+.uschip {
+  display: inline-flex;
+  align-self: flex-start;
+  justify-self: start;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 4px 12px 4px 10px;
+  border: 0;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  background: oklch(0 0 0 / 0.32);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+:root[data-theme='light'] .uschip { background: oklch(1 0 0 / 0.7); }
+.uschip:hover, .uschip:focus-visible { background: oklch(0 0 0 / 0.45); }
+.uschip > svg { flex: none; }
+.uschip[data-fit='short'] { color: var(--text-1); box-shadow: inset 0 0 0 1px oklch(from var(--danger) l c h / 0.7); }
+.uschip[data-fit='short'] > svg { color: var(--danger); }
+.uschip[data-fit='tight'] > svg { color: var(--warn); }
+.uschip[data-fit='ok'] > svg { color: var(--ok); }
+.uschip__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uschip__fit { font-weight: var(--fw-semibold); }
+.uschip[data-fit='short'] .uschip__fit { color: var(--danger); }
+.uschip[data-fit='tight'] .uschip__fit { color: var(--warn); }
+
+/* Home warning card. */
+.diskwarn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-5) var(--s-6);
+  border-radius: var(--r-2xl);
+  box-shadow: var(--shadow-2), inset 0 0 0 1px oklch(from var(--dw-tone) l c h / 0.35);
+  --dw-tone: var(--warn);
+}
+.diskwarn[data-status='short'] { --dw-tone: var(--danger); }
+.diskwarn__glow {
+  position: absolute;
+  inset: -60% -10% auto auto;
+  width: 55%;
+  height: 200%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(closest-side, oklch(from var(--dw-tone) l c h / 0.16), transparent 70%);
+  filter: blur(8px);
+}
+.diskwarn__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.diskwarn__eyebrow { display: inline-flex; align-items: center; gap: 6px; color: var(--dw-tone); }
+.diskwarn__title { margin: 0; font-family: var(--font-display); font-size: var(--fs-lg); letter-spacing: var(--tracking-tight); color: var(--text-1); }
+.diskwarn__body { margin: 0; color: var(--text-2); max-width: 72ch; }
+.diskwarn__bar { margin-top: var(--s-2); display: grid; gap: 6px; }
+.diskwarn__legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: var(--fs-xs); color: var(--text-3); }
+.diskwarn__legend i { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 2px; vertical-align: 0; }
+.diskwarn__legend .k-free { background: var(--bg-3); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.diskwarn__legend .k-update { background: var(--accent); }
+.diskwarn[data-status='tight'] .diskwarn__legend .k-update { background: var(--warn); }
+.diskwarn__legend .k-over { background: var(--danger); }
+.diskwarn__more { margin: 0; font-size: var(--fs-sm); color: var(--text-3); }
+.diskwarn__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-2); }
+.diskwarn__safe { margin: 0; font-size: var(--fs-xs); color: var(--text-3); }

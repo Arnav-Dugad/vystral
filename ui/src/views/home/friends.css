@@ -1,0 +1,159 @@
+/* Track P: "Friends playing now" card on Home. */
+.friends {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-5) var(--s-6);
+  border-radius: var(--r-2xl);
+  box-shadow: var(--shadow-2), inset 0 0 0 1px var(--line);
+  /* Persona colours: Steam's convention (in game = green, online = blue), from the status tokens. */
+  --fr-playing: var(--ok);
+  --fr-online: var(--info);
+  --fr-busy: var(--danger);
+  --fr-away: var(--warn);
+  --fr-offline: var(--text-3);
+}
+.friends__glow {
+  position: absolute;
+  inset: -50% auto auto -10%;
+  width: 60%;
+  height: 170%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(closest-side, oklch(from var(--fr-playing) l c h / 0.12), transparent 70%);
+  filter: blur(8px);
+}
+.friends__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.friends__eyebrow { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-text); }
+.friends__tools { display: inline-flex; align-items: center; gap: var(--s-2); }
+.friends__when { font-size: var(--fs-xs); color: var(--text-3); }
+.friends__when[data-stale] { color: var(--warn); }
+.friends__spin { animation: friends-spin 0.9s linear infinite; }
+@keyframes friends-spin { to { transform: rotate(360deg); } }
+.friends__title { margin: 0; font-family: var(--font-display); font-size: var(--fs-xl); letter-spacing: var(--tracking-tight); color: var(--text-1); }
+.friends__note { margin: 0; font-size: var(--fs-sm); color: var(--text-3); }
+
+.friends__games { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: var(--s-3); margin: var(--s-2) 0 0; padding: 0; list-style: none; }
+.friends__game {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'cover text stack' 'cover chip chip';
+  align-items: center;
+  gap: 6px var(--s-3);
+  padding: 10px 12px 10px 10px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(100deg, oklch(0.6 0.08 var(--fg-hue, 280) / 0.10), oklch(1 0 0 / 0.03) 60%);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+:root[data-theme='light'] .friends__game { background: linear-gradient(100deg, oklch(0.6 0.08 var(--fg-hue, 280) / 0.10), oklch(0 0 0 / 0.02) 60%); }
+:root[data-theme='contrast'] .friends__game { background: var(--bg-1); }
+.friends__cover { grid-area: cover; display: block; width: 44px; height: 66px; overflow: hidden; border-radius: var(--r-sm); box-shadow: var(--shadow-1); }
+.friends__cover-blank { display: grid; place-items: center; width: 100%; height: 100%; color: var(--text-3); background: var(--bg-2); }
+.friends__game-text { grid-area: text; display: grid; gap: 2px; min-width: 0; }
+.friends__game-title { font-weight: var(--fw-semibold); color: var(--text-1); }
+.friends__names { font-size: var(--fs-sm); color: var(--text-2); }
+.friends__chip {
+  grid-area: chip;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--accent-text);
+  background: var(--accent-ghost);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.friends__chip:hover, .friends__chip:focus-visible { background: oklch(from var(--accent) l c h / 0.24); transform: translateY(-1px); }
+.friends__chip--muted { color: var(--text-3); background: none; cursor: default; padding-left: 0; }
+.friends__chip--muted:hover { background: none; transform: none; }
+
+.friends__stack { grid-area: stack; display: flex; align-items: center; margin: 0; padding: 0 0 0 8px; list-style: none; }
+.friends__stack > li { margin-left: -8px; }
+.friends__more {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  margin-left: -8px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-2xs);
+  color: var(--text-2);
+  background: var(--bg-3);
+  box-shadow: 0 0 0 2px var(--bg-1);
+}
+.friends__more--inline { margin-left: 0; height: 24px; min-width: 24px; box-shadow: none; }
+
+/* Avatar with a persona-state ring (2px ring + 2px gap in the panel colour). */
+.favatar {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  background: var(--bg-2);
+  box-shadow: 0 0 0 2px var(--bg-1), 0 0 0 4px var(--ring, var(--fr-offline));
+}
+.favatar img, .favatar__initials { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.favatar__initials {
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  color: oklch(0.97 0 0);
+  background: linear-gradient(135deg, oklch(0.62 0.12 var(--fa-hue, 280)), oklch(0.38 0.1 calc(var(--fa-hue, 280) + 40)));
+}
+.favatar[data-tone='playing'] { --ring: var(--fr-playing); }
+.favatar[data-tone='online'] { --ring: var(--fr-online); }
+.favatar[data-tone='busy'] { --ring: var(--fr-busy); }
+.favatar[data-tone='away'] { --ring: oklch(from var(--fr-away) l c h / 0.75); }
+.favatar[data-tone='offline'] { --ring: oklch(from var(--fr-offline) l c h / 0.5); }
+.favatar[data-tone='offline'] img { filter: grayscale(0.7); opacity: 0.8; }
+
+.friends__online { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); margin-top: var(--s-2); }
+.friends__label { font-size: var(--fs-2xs); color: var(--text-3); }
+.friends__online-list { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 0; padding: 0; list-style: none; }
+.friends__person { display: inline-flex; align-items: center; gap: 8px; max-width: 160px; font-size: var(--fs-sm); color: var(--text-2); }
+.friends__person-name { min-width: 0; }
+
+.friends__quiet { display: grid; gap: var(--s-2); margin-top: var(--s-1); }
+.friends__quiet > p { margin: 0; color: var(--text-2); }
+.friends__recent { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; padding: 0; list-style: none; }
+.friends__recent > li { display: inline-flex; align-items: center; gap: 8px; max-width: 220px; font-size: var(--fs-sm); color: var(--text-2); }
+.friends__ago { font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; }
+
+.friends__problem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-1);
+  padding: 12px 14px;
+  border-radius: var(--r-lg);
+  background: oklch(1 0 0 / 0.03);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+:root[data-theme='light'] .friends__problem { background: oklch(0 0 0 / 0.02); }
+.friends__problem > svg { color: var(--warn); }
+.friends__problem[data-status='offline'] > svg, .friends__problem[data-status='dataSaver'] > svg { color: var(--text-3); }
+.friends__problem p { margin: 0; color: var(--text-2); font-size: var(--fs-sm); }
+@media (max-width: 900px) { .friends__problem { grid-template-columns: auto minmax(0, 1fr); } .friends__problem-actions { grid-column: 2; } }
+
+.friends__privacy { display: flex; align-items: center; gap: 6px; margin: var(--s-2) 0 0; font-size: var(--fs-xs); color: var(--text-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .friends__chip { transition: none; }
+  .friends__chip:hover { transform: none; }
+  .friends__spin { animation: none; }
+}
+:root[data-reduced-motion='true'] .friends__spin { animation: none; }
+:root[data-theme='contrast'] .favatar { box-shadow: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--ring, var(--text-1)); }

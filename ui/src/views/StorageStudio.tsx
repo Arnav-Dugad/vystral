@@ -14,6 +14,7 @@ import { Badge, Button, EmptyState, PlatformBadge, SectionHead, Skeleton } from 
 import { EmptyArt } from '../components/ui/EmptyArt';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
+import { PendingUpdates } from './storage/PendingUpdates';
 import './storage-studio.css';
 
 /** Storage Studio: where installed games live, and what could be freed up through the stores. */
@@ -51,6 +52,8 @@ export function StorageStudioView() {
           See where your installed games live and what you could free up. VYSTRAL never deletes files: uninstalling always happens in the store that installed the game.
         </p>
       </header>
+
+      <PendingUpdates />{/* Track P: pending Steam updates per drive (nothing when none) */}
 
       {!loaded || drives == null ? (
         <div className="storage__layout">

@@ -862,3 +862,19 @@ export interface SystemStatus {
   /** Connected Xbox-compatible controllers; battery 0–1, null when wired or unknown. */
   controllers: { battery: number | null; charging: boolean; wired: boolean }[];
 }
+
+// ---------- Track P: friends playing now (opt-in), update-space forecast (types in types.trackP.ts) ----------
+
+export interface Settings {
+  /** "Friends playing now" on Home: reads your friends' public Steam status with your own key. Off by default. */
+  'home.friendsActivity': boolean;
+  /** Windows notification when a pending Steam update won't fit (or leaves a drive nearly full). */
+  'notifications.diskSpace': boolean;
+}
+
+export interface BridgeEvents {
+  /** The update-space forecast changed (pushed by the native manifest watcher). */
+  'disk.forecast': import('./types.trackP').DiskForecast;
+}
+
+export type * from './types.trackP';

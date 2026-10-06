@@ -31,6 +31,7 @@ import { DriverChangeCard } from './perf/DataInsightCards';
 import { GameExtras, IdentityPanel } from '../components/game/GameDataPanels';
 import { TimeToBeatPanel } from '../components/game/TimeToBeatBar';
 import { AntiCheatNote } from '../components/game/AntiCheatNote';
+import { UpdateSpaceChip } from '../components/game/UpdateSpaceChip';
 import { ArtSlotActions, useUserArt } from '../components/game/ArtPicker';
 import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
@@ -181,6 +182,7 @@ function DetailHero({ game }: { game: Game }) {
             {status.tone === 'warn' ? <AlertTriangle size={15} aria-hidden /> : <HardDrive size={15} aria-hidden />}
             <span>{status.text}</span>
           </div>
+          <UpdateSpaceChip game={game} />{/* Track P: room the next Steam update needs */}
           <div className="dhero__actions">
             <div className="split-btn">
               <PlayButton game={game} autoFocus joined={installed.length > 1} />

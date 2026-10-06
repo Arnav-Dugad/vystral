@@ -118,6 +118,9 @@ public sealed class SettingsService
         new NumberDef("immersive.scale", 1, 1, 1.3),
         new NumberDef("immersive.safeArea", 0, 0, 0.06),
         new BoolDef("immersive.tourDone", false),
+        // Track P: friends playing now on Home (opt-in, reads friends' public Steam status), low-disk-space-for-updates notifications.
+        new BoolDef("home.friendsActivity", false),
+        new BoolDef("notifications.diskSpace", true),
     ];
 
     private readonly LibraryRepository _repo;

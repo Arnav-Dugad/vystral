@@ -21,6 +21,8 @@ import { artPackPreviewHandlers } from './preview.artPacks';
 import type { DataSourcesStatus, UserArt } from './types';
 import { RECAP_DEFAULT_SETTINGS, recapPreviewHandlers } from './preview.recap';
 import { TRACK_L_DEFAULT_SETTINGS, immersivePreviewHandlers } from './preview.immersive';
+import { TRACK_P_DEFAULT_SETTINGS, previewFriendsOn, trackPPreviewHandlers } from './preview.trackP';
+import type { SteamApiStatus } from './types';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -67,6 +69,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACKING_DEFAULT_SETTINGS,
   ...RECAP_DEFAULT_SETTINGS,
   ...TRACK_L_DEFAULT_SETTINGS,
+  ...TRACK_P_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -235,6 +238,7 @@ export function createPreviewBackend() {
   let settings: Settings = { ...DEFAULT_SETTINGS, 'onboarding.completed': !params.has('onboarding') };
   if (params.has('reduced')) settings['motion.reduce'] = 'on';
   if (params.has('vibration')) settings['controller.vibration'] = true;
+  if (previewFriendsOn(params)) settings['home.friendsActivity'] = true; // Track P: ?friends, ?friendsPrivate
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
   let launch: LaunchState | null = null;
@@ -463,6 +467,8 @@ export function createPreviewBackend() {
     'launch.preflightResult': (p: { ticket: string }) => recap.__decoratePreflight(insight['launch.preflightResult'](p)),
     // Track L: Immersive system bar (a fictional laptop on Wi-Fi with one wireless controller).
     ...immersivePreviewHandlers(),
+    // Track P: friends playing now (?friends, ?friendsPrivate), update-space forecast (?diskTight; also overrides system.drives then).
+    ...trackPPreviewHandlers({ lib, settings: () => settings, steamStatus: () => handlers['steam.status']({}) as SteamApiStatus }),
   };
 
   return {

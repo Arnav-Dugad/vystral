@@ -1,0 +1,17 @@
+"AppState"
+{
+	"appid"		"70"
+	"name"		"Half-Life"
+	"StateFlags"		"6"
+	"installdir"		"Half-Life"
+	"SizeOnDisk"		"1000000000"
+	"buildid"		"5"
+	"UpdateResult"		"0"
+	"BytesToDownload"		"100"
+	"BytesDownloaded"		"100"
+	"BytesToStage"		"200"
+	"BytesStaged"		"200"
+	"TargetBuildID"		"5"
+	"AutoUpdateBehavior"		"0"
+	"ScheduledAutoUpdate"		"0"
+}

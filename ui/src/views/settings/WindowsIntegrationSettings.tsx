@@ -164,6 +164,7 @@ const CATEGORIES: { key: SettingKey; label: string; hint: string }[] = [
   { key: 'notifications.achievements', label: 'Achievements unlocked', hint: 'After a Steam game closes: “You unlocked 3 achievements — 1 is rarer than 2%”. Needs your Steam Web API key.' },
   { key: 'notifications.installs', label: 'Install finished', hint: 'When a game you installed through VYSTRAL is ready to play.' },
   { key: 'notifications.updates', label: 'VYSTRAL update ready', hint: 'When a new version has downloaded and is ready to install.' },
+  { key: 'notifications.diskSpace', label: 'Not enough space for an update', hint: 'When a pending Steam update won’t fit on its drive, or would leave it nearly full. Read from Steam’s files on this PC.' },
 ];
 
 function NotificationSettings() {
