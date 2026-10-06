@@ -11,6 +11,7 @@ import { InstallBadge } from './InstallProgress';
 import { LiveLayer } from './LiveTile';
 import { StoreLogos } from '../ui/StoreLogo';
 import { TimeToBeatBar } from './TimeToBeatBar';
+import { CloudBadge } from '../cloud/CloudBits';
 
 /** Portrait library card. Hover/focus lifts and tilts it; Enter opens; context menu has quick actions. */
 export const GameCard = memo(function GameCard({
@@ -119,6 +120,7 @@ export const GameCard = memo(function GameCard({
           </div>
           <div className="card__sub">
             <StoreLogos platforms={platforms} />
+            <CloudBadge gameId={game.id} />
             {lp.at && <span className="truncate">{formatRelative(lp.at)}</span>}
           </div>
         </div>

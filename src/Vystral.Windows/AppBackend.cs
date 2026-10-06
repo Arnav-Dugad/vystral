@@ -112,6 +112,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterImmersiveHandlers();      // AppBackend.Immersive.cs: Immersive system bar (battery, network, controller batteries)
         RegisterTrackPHandlers();         // AppBackend.TrackP.cs: friends playing now (opt-in), update-space forecast
         RegisterHealthHandlers();         // AppBackend.Health.cs: library health check, per-game Steam Input layouts (Track Q)
+        RegisterCloudHandlers();          // AppBackend.Cloud.cs: Xbox Cloud Gaming and GeForce NOW (opt-in), hours meter
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 
@@ -157,8 +158,8 @@ public sealed partial class AppBackend : IDisposable
         }
     }
 
-    /// <summary>A game is starting or running (one rule everywhere: <see cref="SessionService.IsActivePhase"/>).</summary>
-    public bool IsGameActive => Sessions.IsBusy;
+    /// <summary>A game is starting or running (one rule everywhere: <see cref="SessionService.IsActivePhase"/>), or a cloud stream started from VYSTRAL is running.</summary>
+    public bool IsGameActive => Sessions.IsBusy || CloudSessionActive; // Track O: a cloud stream counts too
 
     /// <summary>Data saver is on (manually, or because the connection is metered): no optional downloads in the background.</summary>
     private bool DataSaverActive => _trailers?.DataSaverActive == true;
@@ -221,6 +222,7 @@ public sealed partial class AppBackend : IDisposable
         if (Interlocked.Exchange(ref _shutdown, 1) == 1) return; // also run by "Restart to update", before the window closes
         _life.Cancel();
         ShutdownTracking(); // Track H: hand a running session to the background tracker first
+        ShutdownCloud();    // Track O: save a running cloud session up to now
         Sessions.StopTracking();
         Updates.ApplyOnExitIfReady();
         RecordCleanExit();
@@ -233,6 +235,8 @@ public sealed partial class AppBackend : IDisposable
     {
         Sessions.Dispose();
         _liveTiles?.Dispose();
+        _cloud?.Dispose();
+        _cloudHttp?.Dispose();
         _http.Dispose();
         _life.Dispose();
     }

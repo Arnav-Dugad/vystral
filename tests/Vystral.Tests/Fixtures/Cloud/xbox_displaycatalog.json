@@ -1,0 +1,123 @@
+{
+ "Products": [
+  {
+   "LastModifiedDate": "2026-02-11T21:21:39.2325623Z",
+   "LocalizedProperties": [
+    {
+     "ProductTitle": "1000xRESIST",
+     "PublisherName": "Fellow Traveller"
+    }
+   ],
+   "ProductId": "9NPDN9R45JX4",
+   "Properties": {
+    "PackageFamilyName": "SurpriseAttackPtyLtd.1000xResist_8k24hnfn3vvj0",
+    "PackageIdentityName": "SurpriseAttackPtyLtd.1000xResist",
+    "Attributes": [
+     {
+      "Name": "BroadcastSupport",
+      "Minimum": null,
+      "Maximum": null,
+      "ApplicablePlatforms": null,
+      "Group": null
+     },
+     {
+      "Name": "Capability4k",
+      "Minimum": null,
+      "Maximum": null,
+      "ApplicablePlatforms": [
+       "Xbox"
+      ],
+      "Group": null
+     },
+     {
+      "Name": "SinglePlayer",
+      "Minimum": null,
+      "Maximum": null,
+      "ApplicablePlatforms": [
+       "Xbox",
+       "Desktop"
+      ],
+      "Group": null
+     }
+    ]
+   },
+   "ProductKind": "Game"
+  },
+  {
+   "LastModifiedDate": "2026-08-13T06:45:51.0751400Z",
+   "LocalizedProperties": [
+    {
+     "ProductTitle": "Age of Empires II: Definitive Edition",
+     "PublisherName": "Xbox Game Studios"
+    }
+   ],
+   "ProductId": "9N42SSSX2MTG",
+   "Properties": {
+    "PackageFamilyName": "",
+    "PackageIdentityName": "",
+    "Attributes": [
+     {
+      "Name": "XblOnlineCoop",
+      "Minimum": 2,
+      "Maximum": 7,
+      "ApplicablePlatforms": null,
+      "Group": null
+     },
+     {
+      "Name": "XblOnlineMultiPlayer",
+      "Minimum": 2,
+      "Maximum": 8,
+      "ApplicablePlatforms": null,
+      "Group": null
+     },
+     {
+      "Name": "BroadcastSupport",
+      "Minimum": null,
+      "Maximum": null,
+      "ApplicablePlatforms": null,
+      "Group": null
+     }
+    ]
+   },
+   "ProductKind": "Game"
+  },
+  {
+   "LastModifiedDate": "2026-09-28T15:48:50.3184596Z",
+   "LocalizedProperties": [
+    {
+     "ProductTitle": "Among Us",
+     "PublisherName": "Innersloth"
+    }
+   ],
+   "ProductId": "9NG07QJNK38J",
+   "Properties": {
+    "PackageFamilyName": "Innersloth.AmongUs_fw5x688tam7rm",
+    "PackageIdentityName": "Innersloth.AmongUs",
+    "Attributes": [
+     {
+      "Name": "XblOnlineCoop",
+      "Minimum": 4,
+      "Maximum": 15,
+      "ApplicablePlatforms": null,
+      "Group": null
+     },
+     {
+      "Name": "XblOnlineMultiPlayer",
+      "Minimum": 4,
+      "Maximum": 15,
+      "ApplicablePlatforms": null,
+      "Group": null
+     },
+     {
+      "Name": "BroadcastSupport",
+      "Minimum": null,
+      "Maximum": null,
+      "ApplicablePlatforms": null,
+      "Group": null
+     }
+    ]
+   },
+   "ProductKind": "Game"
+  }
+ ]
+}

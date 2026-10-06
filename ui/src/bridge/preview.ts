@@ -24,6 +24,7 @@ import { TRACK_L_DEFAULT_SETTINGS, immersivePreviewHandlers } from './preview.im
 import { TRACK_P_DEFAULT_SETTINGS, previewFriendsOn, trackPPreviewHandlers } from './preview.trackP';
 import type { SteamApiStatus } from './types';
 import { healthPreviewHandlers } from './preview.health';
+import { CLOUD_DEFAULT_SETTINGS, cloudPreviewHandlers } from './preview.cloud';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -72,6 +73,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_L_DEFAULT_SETTINGS,
   'controller.onScreenKeyboard': true, // Track S
   ...TRACK_P_DEFAULT_SETTINGS,
+  ...CLOUD_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -473,6 +475,8 @@ export function createPreviewBackend() {
     ...trackPPreviewHandlers({ lib, settings: () => settings, steamStatus: () => handlers['steam.status']({}) as SteamApiStatus }),
     // Track Q: library health check (?health = many issues; healthy by default), Steam Input layouts (?controls).
     ...healthPreviewHandlers({ lib, emit: () => emit, timers }),
+    // Track O: cloud play (fictional catalogue; ?cloud turns it on, ?cloudMeter=near|reached|free|none, ?cloudNoData).
+    ...cloudPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; }, timers }),
   };
 
   return {

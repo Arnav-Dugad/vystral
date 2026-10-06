@@ -16,6 +16,7 @@ import { Intro, rememberIntroPreference } from './components/shell/Intro';
 import { UpdateCenterDialog } from './components/shell/UpdateCenter';
 import { WhatsNewHost } from './whatsnew/WhatsNewHost';
 import { Toaster } from './components/ui/Toaster';
+import { CloudSessionPill } from './components/cloud/CloudPlayButton';
 import { Dialog } from './components/ui/Dialog';
 import { Button, Skeleton } from './components/ui/primitives';
 import { createCollection } from './state/actions';
@@ -105,6 +106,7 @@ export default function App() {
           <main className="main" aria-busy={!ready}>
             <Routes />
           </main>
+          <CloudSessionPill />
         </div>
       )}
       {onboarding && (

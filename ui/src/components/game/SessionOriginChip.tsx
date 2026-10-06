@@ -1,5 +1,5 @@
-import { Moon, Radar } from 'lucide-react';
-import { sessionOrigin } from '../../lib/sessions';
+import { Cloud, Moon, Radar } from 'lucide-react';
+import { isCloud, sessionOrigin } from '../../lib/sessions';
 import './origin.css';
 
 /**
@@ -10,7 +10,7 @@ import './origin.css';
 export function SessionOriginChip({ source, compact }: { source: string | null | undefined; compact?: boolean }) {
   const origin = sessionOrigin(source);
   if (!origin) return null;
-  const Icon = source === 'background' ? Moon : Radar;
+  const Icon = source === 'background' ? Moon : isCloud(source) ? Cloud : Radar;
   return (
     <span className="origin-chip" data-source={source} data-compact={compact || undefined} title={origin.title}>
       <Icon size={11} aria-hidden />

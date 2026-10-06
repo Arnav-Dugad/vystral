@@ -33,6 +33,7 @@ import { GameExtras, IdentityPanel } from '../components/game/GameDataPanels';
 import { TimeToBeatPanel } from '../components/game/TimeToBeatBar';
 import { AntiCheatNote } from '../components/game/AntiCheatNote';
 import { UpdateSpaceChip } from '../components/game/UpdateSpaceChip';
+import { CloudPlayButton } from '../components/cloud/CloudPlayButton';
 import { ArtSlotActions, useUserArt } from '../components/game/ArtPicker';
 import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
@@ -210,6 +211,8 @@ function DetailHero({ game }: { game: Game }) {
                 </button>
               )}
             </div>
+            {/* Track O: Play in the cloud (renders nothing unless cloud play is on and a service lists this game). */}
+            <CloudPlayButton game={game} />
             <IconButton label={game.favorite ? 'Remove from favorites' : 'Add to favorites'} pressed={game.favorite} onClick={() => void toggleFavorite(game)} className="dhero__icon">
               <Heart size={19} fill={game.favorite ? 'currentColor' : 'none'} />
             </IconButton>

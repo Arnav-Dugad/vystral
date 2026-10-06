@@ -1,0 +1,49 @@
+{
+ "data": {
+  "apps": {
+   "numberReturned": 2,
+   "pageInfo": {
+    "endCursor": "Njc1MA==",
+    "hasNextPage": false
+   },
+   "items": [
+    {
+     "id": "8d211495-3d9f-4454-9c79-fd1b5200d804",
+     "cmsId": 108693527,
+     "title": "Crown Of Hispania",
+     "sortName": "crown_of_hispania",
+     "gfn": {
+      "playType": "INSTALL_TO_PLAY",
+      "minimumMembershipTierLabel": "Premium"
+     },
+     "variants": [
+      {
+       "id": "108698087",
+       "appStore": "STEAM",
+       "storeId": "3374640",
+       "publisherName": "Regalis Studio"
+      }
+     ]
+    },
+    {
+     "id": "e3644e6d-27d0-4f56-830f-a425f1e6ebbb",
+     "cmsId": 108694075,
+     "title": "Approximately Up",
+     "sortName": "approximately_up",
+     "gfn": {
+      "playType": "INSTALL_TO_PLAY",
+      "minimumMembershipTierLabel": "Premium"
+     },
+     "variants": [
+      {
+       "id": "108698907",
+       "appStore": "STEAM",
+       "storeId": "3904850",
+       "publisherName": "Approximately Games"
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

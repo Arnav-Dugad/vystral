@@ -123,6 +123,14 @@ public sealed class SettingsService
         // Track P: friends playing now on Home (opt-in, reads friends' public Steam status), low-disk-space-for-updates notifications.
         new BoolDef("home.friendsActivity", false),
         new BoolDef("notifications.diskSpace", true),
+        // Track O: cloud play (opt-in, off by default) — services, market override, GeForce NOW membership, meter reset day, browser.
+        new BoolDef("cloud.enabled", false),
+        new BoolDef("cloud.gfn", true),
+        new BoolDef("cloud.xbox", true),
+        new StringDef("cloud.market", "", 2, "^([A-Z]{2})?$"),
+        new EnumDef("cloud.gfnPlan", "none", "none", "free", "performance", "ultimate", "daypass"),
+        new NumberDef("cloud.resetDay", 1, 1, 31),
+        new EnumDef("cloud.browser", "edge", "edge", "default"),
     ];
 
     private readonly LibraryRepository _repo;

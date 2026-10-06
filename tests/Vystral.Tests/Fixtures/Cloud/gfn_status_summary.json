@@ -1,0 +1,157 @@
+{
+ "page": {
+  "id": "2bdwmtrb0hg9",
+  "name": "NVIDIA GeForce NOW",
+  "url": "https://status.geforcenow.com",
+  "time_zone": "America/Los_Angeles",
+  "updated_at": "2026-10-06T07:26:58.271-07:00"
+ },
+ "components": [
+  {
+   "id": "y2tsrqzycnc5",
+   "name": "NVIDIA Global Services",
+   "status": "operational",
+   "created_at": "2019-05-23T10:34:16.559-07:00",
+   "updated_at": "2026-05-23T12:29:07.709-07:00",
+   "position": 1,
+   "description": null,
+   "showcase": false,
+   "start_date": null,
+   "group_id": null,
+   "page_id": "2bdwmtrb0hg9",
+   "group": false,
+   "only_show_if_degraded": false
+  },
+  {
+   "id": "msyrbxr3qk14",
+   "name": "NPA-TKC-ESB-01",
+   "status": "operational",
+   "created_at": "2021-02-10T10:21:15.906-08:00",
+   "updated_at": "2026-09-30T15:43:59.280-07:00",
+   "position": 1,
+   "description": null,
+   "showcase": false,
+   "start_date": "2021-02-10",
+   "group_id": "b1v88gwr23bk",
+   "page_id": "2bdwmtrb0hg9",
+   "group": false,
+   "only_show_if_degraded": false
+  },
+  {
+   "id": "9kzvp79zhhgp",
+   "name": "NPA-TKC-IST-01",
+   "status": "operational",
+   "created_at": "2021-07-19T13:44:11.899-07:00",
+   "updated_at": "2024-07-23T15:38:54.252-07:00",
+   "position": 1,
+   "description": null,
+   "showcase": false,
+   "start_date": "2021-07-19",
+   "group_id": "gtnw45mpk0w2",
+   "page_id": "2bdwmtrb0hg9",
+   "group": false,
+   "only_show_if_degraded": false
+  },
+  {
+   "id": "j5tylccs1293",
+   "name": "NPA-ABY-MVD-01",
+   "status": "operational",
+   "created_at": "2021-08-30T17:52:48.734-07:00",
+   "updated_at": "2026-07-07T13:11:31.456-07:00",
+   "position": 1,
+   "description": null,
+   "showcase": false,
+   "start_date": "2021-08-30",
+   "group_id": "rwq4v6gb2ph7",
+   "page_id": "2bdwmtrb0hg9",
+   "group": false,
+   "only_show_if_degraded": false
+  },
+  {
+   "id": "jsnnlwz0t9ql",
+   "name": "NPA-GCS-EVN-01 [RTX 3080 / 4080]",
+   "status": "operational",
+   "created_at": "2023-02-27T14:56:59.517-08:00",
+   "updated_at": "2025-12-06T05:34:25.962-08:00",
+   "position": 1,
+   "description": null,
+   "showcase": false,
+   "start_date": "2023-02-27",
+   "group_id": "6wx3xm45f7pp",
+   "page_id": "2bdwmtrb0hg9",
+   "group": false,
+   "only_show_if_degraded": false
+  },
+  {
+   "id": "91960dxpx8c8",
+   "name": "NPA-YES-KUL-01",
+   "status": "operational",
+   "created_at": "2023-03-15T14:05:20.379-07:00",
+   "updated_at": "2024-02-11T07:35:07.089-08:00",
+   "position": 1,
+   "description": null,
+   "showcase": false,
+   "start_date": "2023-03-15",
+   "group_id": "ssb7qk63yjh7",
+   "page_id": "2bdwmtrb0hg9",
+   "group": false,
+   "only_show_if_degraded": false
+  },
+  {
+   "id": "0dhw3pt6sfzm",
+   "name": "NP-AMS-08 [RTX 5080]",
+   "status": "under_maintenance",
+   "created_at": "2025-04-01T02:41:21.891-07:00",
+   "updated_at": "2026-10-05T23:01:16.979-07:00",
+   "position": 7,
+   "description": null,
+   "showcase": false,
+   "start_date": "2025-04-01",
+   "group_id": "kcn9s5cxq8lh",
+   "page_id": "2bdwmtrb0hg9",
+   "group": false,
+   "only_show_if_degraded": false
+  },
+  {
+   "id": "kcn9s5cxq8lh",
+   "name": "Netherlands North [RTX 5080]",
+   "status": "under_maintenance",
+   "created_at": "2019-12-06T14:52:36.839-08:00",
+   "updated_at": "2026-07-15T02:19:04.846-07:00",
+   "position": 17,
+   "description": null,
+   "showcase": false,
+   "start_date": null,
+   "group_id": null,
+   "page_id": "2bdwmtrb0hg9",
+   "group": true,
+   "only_show_if_degraded": false,
+   "components": [
+    "jvlhc86z3hln",
+    "0dhw3pt6sfzm",
+    "54fzqwfbrm2p"
+   ]
+  }
+ ],
+ "incidents": [
+  {
+   "id": "6jpt5rg9hqjy",
+   "name": "Wuthering Waves in maintenance",
+   "status": "identified",
+   "impact": "none",
+   "shortlink": "https://stspg.io/18l4y3ty0821"
+  },
+  {
+   "id": "18v6nmq53rpc",
+   "name": "S.T.A.L.K.E.R. 2: Heart of Chornobyl maintenance",
+   "status": "identified",
+   "impact": "none",
+   "shortlink": "https://stspg.io/j8fxpvncs8m4"
+  }
+ ],
+ "scheduled_maintenances": [],
+ "status": {
+  "indicator": "maintenance",
+  "description": "Service Under Maintenance"
+ }
+}

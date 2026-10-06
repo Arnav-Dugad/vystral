@@ -89,6 +89,15 @@
 - Art resolution is read from cached files' headers (first 64 KB); a file whose size can't be read is never called low resolution.
 - Controls shows Steam games only, and only layouts Steam has saved or downloaded on this PC. Steam's per-game *Steam Input on/off* override isn't read (it lives in `localconfig.vdf`, next to data VYSTRAL doesn't touch), so a layout can be shown for a game where you turned Steam Input off. Layouts for other controllers (DualSense, Switch Pro, Steam Deck) are drawn on the Xbox diagram with Xbox names; trackpads, gyro and back paddles are listed in the table. Radial and touch menus, chords and mode shifts are named but their contents aren't drawn. Checked against every template and downloaded layout on the dev PC (136 files, all read); a per-game config set with `template` / `workshop` entries wasn't present there, so those paths are covered by fixtures only.
 
+**Cloud play (Track O, opt-in)**
+- The catalogues are undocumented public lists behind nvidia.com and xbox.com. They can change or disappear without notice (NVIDIA's older `gfnpc.json` already returns `null`); VYSTRAL then keeps the last good copy and says it couldn't update.
+- Whether a service *includes* a game for you can't be known without signing in, which VYSTRAL never does. Xbox entries are worded “may be included with Game Pass”; GeForce NOW needs your own copy on a supported store. The vendor's page has the final answer.
+- Epic, Ubisoft, EA and Battle.net copies are matched to GeForce NOW by title only (marked “Likely match”), because their store IDs aren't verified to match. Xbox entries whose console product has a different package family name from the PC version are matched by title too.
+- The GeForce NOW `--url-route` argument is undocumented (it's what the app's own shortcuts use); if NVIDIA changes it, the app may open without starting the game. The Xbox app opens the game's page; there's no documented way to start the stream directly.
+- Session times are estimates. The GeForce NOW streamer process and the Xbox app's foreground time haven't been checked against real streams on this PC yet, and Edge's process model with `--user-data-dir` is assumed. A second launch while VYSTRAL's Edge window is still open from a previous VYSTRAL run can't be followed and waits for *I'm done*. Sessions are capped at the membership's session length (8 hours otherwise). The meter can't see play on other devices, rolled-over hours, top-ups or Founders' unlimited time.
+- The first Xbox catalogue download fetches about 35 MB of Microsoft Store product details (only package names and titles are kept), spread over about a minute; later refreshes fetch only new products.
+- Service marks are a generic cloud glyph for now.
+
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).
 - Display-scaling changes, monitor hot-plug, sleep/resume and controller hot-plug have not been tested yet.

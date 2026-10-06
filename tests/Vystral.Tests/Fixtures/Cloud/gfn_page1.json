@@ -1,0 +1,223 @@
+{
+ "data": {
+  "apps": {
+   "numberReturned": 9,
+   "pageInfo": {
+    "endCursor": "NzUw",
+    "hasNextPage": true
+   },
+   "items": [
+    {
+     "id": "e5bd86f0-3f67-4bec-a505-d1315f3c0d50",
+     "cmsId": 100885011,
+     "title": "Half-Life® 2",
+     "sortName": "half_life_2",
+     "gfn": {
+      "playType": "READY_TO_PLAY",
+      "minimumMembershipTierLabel": null
+     },
+     "variants": [
+      {
+       "id": "19111",
+       "appStore": "STEAM",
+       "storeId": "220",
+       "publisherName": "Valve Software"
+      }
+     ]
+    },
+    {
+     "id": "d8eb7470-9d43-472c-aa49-125f5c3111d4",
+     "cmsId": 101550411,
+     "title": "Wolcen: Lords of Mayhem",
+     "sortName": "wolcen:_lords_of_mayhem",
+     "gfn": {
+      "playType": "READY_TO_PLAY",
+      "minimumMembershipTierLabel": null
+     },
+     "variants": [
+      {
+       "id": "300",
+       "appStore": "STEAM",
+       "storeId": "424370",
+       "publisherName": "WOLCEN STUDIO"
+      }
+     ]
+    },
+    {
+     "id": "c4e2040b-221f-4633-a5c4-87179f1f9a1f",
+     "cmsId": 100884311,
+     "title": " Wolfenstein®: The New Order™",
+     "sortName": "wolfenstein_i_a",
+     "gfn": {
+      "playType": "READY_TO_PLAY",
+      "minimumMembershipTierLabel": null
+     },
+     "variants": [
+      {
+       "id": "102353311",
+       "appStore": "EPIC",
+       "storeId": "283080ad58e64fd084d30413888a571c",
+       "publisherName": "Bethesda Softworks"
+      },
+      {
+       "id": "10591111",
+       "appStore": "STEAM",
+       "storeId": "201810",
+       "publisherName": "Bethesda Softworks"
+      },
+      {
+       "id": "102353411",
+       "appStore": "XBOX",
+       "storeId": "9P75CBJ9WT9W",
+       "publisherName": "Bethesda Softworks"
+      }
+     ]
+    },
+    {
+     "id": "4ca718bc-04ef-4b30-b8b3-b62960bf12e7",
+     "cmsId": 100873011,
+     "title": "Far Cry® 3 Deluxe Edition",
+     "sortName": "far_cry_3_deluxe_edition",
+     "gfn": {
+      "playType": "READY_TO_PLAY",
+      "minimumMembershipTierLabel": null
+     },
+     "variants": [
+      {
+       "id": "3134111",
+       "appStore": "UPLAY",
+       "storeId": "599",
+       "publisherName": "Ubisoft"
+      }
+     ]
+    },
+    {
+     "id": "23346751-e1e5-40c6-8899-ec3fe6962e3a",
+     "cmsId": 100883811,
+     "title": "The Witcher® 3: Wild Hunt — Remastered",
+     "sortName": "witcher_3",
+     "gfn": {
+      "playType": "READY_TO_PLAY",
+      "minimumMembershipTierLabel": "Premium"
+     },
+     "variants": [
+      {
+       "id": "108704000",
+       "appStore": "BATTLENET",
+       "storeId": "1431458625",
+       "publisherName": "CD PROJEKT RED"
+      },
+      {
+       "id": "100817611",
+       "appStore": "EPIC",
+       "storeId": "c4aa05d55afd4254b2542ee713cd4971",
+       "publisherName": "CD PROJEKT RED"
+      },
+      {
+       "id": "108389497",
+       "appStore": "GOG",
+       "storeId": "1207664643",
+       "publisherName": "CD PROJEKT RED"
+      },
+      {
+       "id": "100044011",
+       "appStore": "STEAM",
+       "storeId": "292030",
+       "publisherName": "CD PROJEKT RED"
+      }
+     ]
+    },
+    {
+     "id": "f5281abc-aac2-49f3-92a0-f7e838038870",
+     "cmsId": 101070111,
+     "title": "Diablo® III",
+     "sortName": "diablo_03",
+     "gfn": {
+      "playType": "READY_TO_PLAY",
+      "minimumMembershipTierLabel": null
+     },
+     "variants": [
+      {
+       "id": "106654966",
+       "appStore": "UPLAY",
+       "storeId": "65750",
+       "publisherName": "Blizzard Entertainment, Inc."
+      },
+      {
+       "id": "17937711",
+       "appStore": "BATTLENET",
+       "storeId": "17459",
+       "publisherName": "Blizzard Entertainment, Inc."
+      }
+     ]
+    },
+    {
+     "id": "15a7da65-505f-4ae8-a220-81d136b1d3ca",
+     "cmsId": 101929211,
+     "title": "STAR WARS Jedi: Fallen Order™",
+     "sortName": "star_wars_jedi:_fallen_order",
+     "gfn": {
+      "playType": "READY_TO_PLAY",
+      "minimumMembershipTierLabel": null
+     },
+     "variants": [
+      {
+       "id": "102269511",
+       "appStore": "EA_APP",
+       "storeId": "Origin.OFR.50.0003798",
+       "publisherName": "Electronic Arts Inc."
+      },
+      {
+       "id": "100282511",
+       "appStore": "STEAM",
+       "storeId": "1172380",
+       "publisherName": "Electronic Arts Inc."
+      }
+     ]
+    },
+    {
+     "id": "353ebd14-d0ce-49db-be91-86e857f0e5eb",
+     "cmsId": 101571011,
+     "title": "Thief",
+     "sortName": "thief_4",
+     "gfn": {
+      "playType": "READY_TO_PLAY",
+      "minimumMembershipTierLabel": null
+     },
+     "variants": [
+      {
+       "id": "102735111",
+       "appStore": "EPIC",
+       "storeId": "2bc4445cab514d02a6cd0cc1ebfa5a4c",
+       "publisherName": "Eidos Interactive Corp."
+      },
+      {
+       "id": "3315111",
+       "appStore": "STEAM",
+       "storeId": "239160",
+       "publisherName": "Eidos Interactive Corp."
+      }
+     ]
+    },
+    {
+     "id": "fa1e304a-c874-4b5e-ba62-44dd0b99ab88",
+     "cmsId": 101505811,
+     "title": "Tomb Raider: Anniversary",
+     "sortName": "tomb_raider_1_remake",
+     "gfn": {
+      "playType": "INSTALL_TO_PLAY",
+      "minimumMembershipTierLabel": "Premium"
+     },
+     "variants": [
+      {
+       "id": "1141111",
+       "appStore": "STEAM",
+       "storeId": "8000",
+       "publisherName": "Crystal Dynamics"
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

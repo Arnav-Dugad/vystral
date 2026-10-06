@@ -773,7 +773,7 @@ export type * from './types.dataSources';
  * while it was open; 'background' = noticed by the background tracker while VYSTRAL was closed. All three are
  * observed by VYSTRAL and count the same everywhere; 'imported' is store playtime and never mixed in.
  */
-export type SessionSource = 'tracked' | 'detected' | 'background' | 'imported';
+export type SessionSource = 'tracked' | 'detected' | 'background' | 'imported' | 'cloud-gfn' | 'cloud-xbox'; // Track O: cloud streams started from VYSTRAL
 
 export interface Settings {
   /** Notice games started outside VYSTRAL, and keep tracking them while it is closed. Off by default. */
@@ -895,3 +895,27 @@ export interface BridgeEvents {
 
 export type * from './types.health';
 export type * from './types.controls';
+
+// ---------- Track O: cloud play — Xbox Cloud Gaming and GeForce NOW (types in ./types.cloud) ----------
+
+export interface Settings {
+  /** Cloud play (opt-in, off by default): download the vendors' public cloud catalogues and offer "Play in the cloud". */
+  'cloud.enabled': boolean;
+  'cloud.gfn': boolean;
+  'cloud.xbox': boolean;
+  /** Two-letter market override; '' = the Windows region. */
+  'cloud.market': string;
+  'cloud.gfnPlan': import('./types.cloud').GfnPlanId;
+  /** Day of the month the hours meter resets (1–31; clamped to short months). */
+  'cloud.resetDay': number;
+  /** Browser fallback: a separate Edge window (VYSTRAL never reads it) or the default browser. */
+  'cloud.browser': 'edge' | 'default';
+}
+
+export interface BridgeEvents {
+  'cloud.changed': import('./types.cloud').CloudStatus;
+  /** A cloud session changed: the active session, or { ended: true, … } when it finished. */
+  'cloud.session': import('./types.cloud').CloudSession | { ended: true; gameId: string; service: string; seconds: number; saved: boolean } | null;
+}
+
+export type * from './types.cloud';
