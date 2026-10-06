@@ -10,7 +10,6 @@ VYSTRAL is built on these open-source components. A full machine-readable list o
 | Velopack | MIT | Installer and auto-update |
 | Microsoft.Data.Sqlite / SQLitePCLRaw / SQLite | MIT / Apache-2.0 / Public domain | Local database |
 | Dapper | Apache-2.0 | Data access |
-| System.Diagnostics.PerformanceCounter | MIT | Read-only performance counters |
 | React, React DOM | MIT | Interface |
 | Motion | MIT | Animation |
 | Zustand | MIT | State |
