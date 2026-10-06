@@ -224,6 +224,7 @@ function CommandBody({ onClose }: { onClose: () => void }) {
           onKeyDown={onKey}
           placeholder="Try “installed racing under 20 GB” or “launch …”"
           aria-label="Search"
+          data-osk-predict="games"
           aria-controls="cmd-list"
           aria-activedescendant={items[sel] ? `cmd-${items[sel].id}` : undefined}
           role="combobox"

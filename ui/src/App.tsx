@@ -24,6 +24,7 @@ import { HomeView } from './views/Home';
 import { LibraryView } from './views/Library';
 // Loaded eagerly: the card → page cover flight needs the page to mount in the same frame.
 import { GameDetailView } from './views/GameDetail';
+import { FieldKeyboardHost } from './components/controller/FieldKeyboard';
 import './components/shell/shell.css';
 
 const SettingsView = lazy(() => import('./views/Settings').then((m) => ({ default: m.SettingsView })));
@@ -118,6 +119,7 @@ export default function App() {
       <WhatsNewHost />
       <NewCollectionDialog />
       <Toaster />
+      <FieldKeyboardHost />
     </>
   );
 }

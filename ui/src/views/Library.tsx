@@ -166,6 +166,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
             onChange={(e) => setText(e.target.value)}
             placeholder="Filter… try “steam racing under 30 gb” or “not played in 3 months”"
             aria-label="Filter library"
+            data-osk-predict="games"
             spellCheck={false}
           />
           {text && (

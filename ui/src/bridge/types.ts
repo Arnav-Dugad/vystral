@@ -862,3 +862,10 @@ export interface SystemStatus {
   /** Connected Xbox-compatible controllers; battery 0–1, null when wired or unknown. */
   controllers: { battery: number | null; charging: boolean; wired: boolean }[];
 }
+
+// ---------- Track S: docked on-screen keyboard in desktop mode (mirror of SettingsService) ----------
+
+export interface Settings {
+  /** A controller user activating a text field in desktop mode gets the docked on-screen keyboard. */
+  'controller.onScreenKeyboard': boolean;
+}

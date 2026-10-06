@@ -26,6 +26,7 @@ import { AntiCheatNotesSettings, TimeToBeatSettings } from './settings/RecapSett
 import { BackgroundTrackingSettings } from './settings/BackgroundTrackingSettings';
 import { ArtPacksSettings } from './settings/ArtPacksSettings';
 import { ImmersiveSettings } from './settings/ImmersiveSettings';
+import { OnScreenKeyboardRows } from './settings/KeyboardSettings';
 import './settings.css';
 
 interface Section {
@@ -39,7 +40,7 @@ const SECTIONS: Section[] = [
   { id: 'appearance', label: 'Appearance', icon: <Palette size={17} />, keywords: 'theme dark light oled contrast accent colour color living canvas background motion animation reduced intro quality grid home live tiles trailer' },
   { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download data sources steamgriddb igdb twitch rawg isthereanydeal cheapshark prices deals wikidata steam deck anti-cheat api key art packs style covers logos backgrounds blurred material' },
   { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu background apps processes driver tracker outside closed startup detected' },
-  { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble sound audio ambient volume mood immersive fullscreen' },
+  { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble on-screen keyboard typing text suggestions sound audio ambient volume mood immersive fullscreen' },
   { id: 'windows', label: 'Windows integration', icon: <Monitor size={17} />, keywords: 'hotkey shortcut summon notifications toast windows tray achievements' },
   { id: 'ai', label: 'Local AI', icon: <Bot size={17} />, keywords: 'ollama assistant model ai natural language' },
   { id: 'updates', label: 'Updates', icon: <Download size={17} />, keywords: 'update version release automatic download' },
@@ -298,6 +299,7 @@ function Controller({ s }: { s: Settings }) {
       <Group title="Controller" description="Works with Xbox-compatible controllers. VYSTRAL only reads the controller while its own window is focused, and stops completely while a game is running.">
         <BoolRow s={s} k="controller.enabled" label="Navigate with a controller" />
         <BoolRow s={s} k="controller.vibration" label="Gentle vibration feedback" />
+        <OnScreenKeyboardRows />
         <BoolRow s={s} k="startup.immersive" label="Start in Immersive Mode" hint="The full-screen, controller-first layout. Press F11 or the Menu button to switch any time." />
         <BoolRow s={s} k="immersive.attract" label="Screensaver in Immersive Mode" hint="After a few idle minutes, slowly cycles your games' artwork and your own screenshots. Any button returns you exactly where you were." />
         <Row
@@ -308,7 +310,7 @@ function Controller({ s }: { s: Settings }) {
         <Row label="Try Immersive Mode" control={<Button size="sm" icon={<Gamepad2 size={14} />} onClick={() => void setMode('immersive')}>Open</Button>} />
       </Group>
       <div className="pad-legend surface">
-        {[['A', 'Select'], ['B', 'Back'], ['X', 'Options'], ['Y', 'Search'], ['LB / RB', 'Back / forward'], ['Menu', 'Immersive Mode'], ['Right stick', 'Scroll']].map(([b, d]) => (
+        {[['A', 'Select'], ['B', 'Back'], ['X', 'Options'], ['A on a text box', 'On-screen keyboard'], ['Y', 'Search'], ['LB / RB', 'Back / forward'], ['Menu', 'Immersive Mode'], ['Right stick', 'Scroll']].map(([b, d]) => (
           <div key={b}><span className="kbd">{b}</span> {d}</div>
         ))}
       </div>
