@@ -22,7 +22,7 @@ public static partial class ActivationUri
 
     /// <summary>Route names a notification may open (a subset of the UI's routes).</summary>
     public static readonly IReadOnlySet<string> RouteNames = new HashSet<string>(StringComparer.Ordinal)
-        { "home", "library", "game", "journal", "performance", "settings", "storage" };
+        { "home", "library", "game", "journal", "performance", "settings", "storage", "health" };
 
     /// <summary>The one optional parameter each route accepts, and whether it is required.</summary>
     private static readonly Dictionary<string, (string Key, bool Required)> RouteParam = new(StringComparer.Ordinal)

@@ -3,19 +3,20 @@ import { Cloud } from 'lucide-react';
 import type { CloudMeter as Meter, CloudService } from '../../bridge/types';
 import { badgeLabel, formatHours, meterSummary, resetLabel, SERVICE_NAME } from '../../lib/cloud';
 import { useCloudMap } from '../../state/cloud';
+import { ServiceLogo } from '../ui/ServiceLogo';
 import './cloud.css';
 
-/**
- * Generic service mark: a cloud glyph with a one-letter tag. Deliberately not either vendor's logo (a real logo
- * registry can replace it); the service is always named in text or aria-label next to it.
- */
+/** The service's mark from the logo registry (GeForce NOW: NVIDIA's mark; Xbox Cloud Gaming: the Xbox sphere), or a
+ * cloud glyph when no service is given. Decorative: the service is always named in text or aria-label next to it. */
 export function CloudMark({ service, size = 16 }: { service?: CloudService; size?: number }) {
   return (
     <span className="cloud-mark" data-service={service} style={{ ['--cm' as string]: `${size}px` }} aria-hidden>
-      <Cloud size={size} strokeWidth={2} />
+      {service ? <ServiceLogo service={CLOUD_SERVICE_MARK[service]} size={size} decorative /> : <Cloud size={size} strokeWidth={2} />}
     </span>
   );
 }
+
+export const CLOUD_SERVICE_MARK = { gfn: 'geforce-now', xbox: 'xbox-cloud' } as const satisfies Record<CloudService, string>;
 
 /** Small badge on library cards and list rows: shows only for games a cloud service lists (cloud play on). */
 export const CloudBadge = memo(function CloudBadge({ gameId }: { gameId: string }) {

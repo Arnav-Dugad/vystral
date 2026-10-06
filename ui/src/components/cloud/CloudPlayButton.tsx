@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronDown, CircleStop, Cloud, ExternalLink, Info, Radio } from 'lucide-react';
+import { ChevronDown, CircleStop, ExternalLink, Info, Radio } from 'lucide-react';
 import { call } from '../../bridge/bridge';
 import type { CloudGame, CloudOption, CloudServiceHealth, CloudSession, Game } from '../../bridge/types';
 import { clock, healthTone, playTypeLabel, preferredOption, sessionLeft, SERVICE_SHORT } from '../../lib/cloud';
 import { exit, pick, spring } from '../../lib/motion';
 import { endCloudSession, launchCloud, useCloudActive, useCloudEnabled, useCloudMap, useCloudStore } from '../../state/cloud';
 import { useReducedMotion } from '../../state/store';
-import { CloudMark, CloudMeterView, XboxCloudTime } from './CloudBits';
+import { CLOUD_SERVICE_MARK, CloudMark, CloudMeterView, XboxCloudTime } from './CloudBits';
+import { ServiceLogo } from '../ui/ServiceLogo';
 import './cloud.css';
 
 /** Loads the game's cloud options when cloud play is on and the map lists it; reloads on cloud changes. */
@@ -78,7 +79,7 @@ export function CloudPlayButton({ game }: { game: Game }) {
         aria-describedby={`${menuId}-sub`}
       >
         <span className="cloud-split__icon" aria-hidden>
-          {mine?.state === 'running' ? <Radio size={18} /> : <Cloud size={19} strokeWidth={2.1} />}
+          {mine?.state === 'running' ? <Radio size={18} /> : <ServiceLogo service={CLOUD_SERVICE_MARK[preferred.service]} size={20} decorative />}
         </span>
         <span className="cloud-split__text">
           <span className="cloud-split__label">{mainLabel}</span>
@@ -259,7 +260,7 @@ export function ImmersiveCloudActions({ game, onClose }: { game: Game; onClose: 
             void launchCloud(game.id, o.service);
           }}
         >
-          <Cloud size="1em" /> {SERVICE_SHORT[o.service]}
+          <ServiceLogo service={CLOUD_SERVICE_MARK[o.service]} size={20} decorative /> {SERVICE_SHORT[o.service]}
         </button>
       ))}
     </>

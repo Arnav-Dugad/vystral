@@ -16,6 +16,7 @@ public class ActivationUriTests
     [InlineData("vystral://open/?route=journal", "journal")]
     [InlineData("VYSTRAL://OPEN?route=library", "library")]
     [InlineData("vystral://open?route=storage", "storage")]
+    [InlineData("vystral://open?route=health", "health")]
     public void Accepts_known_routes(string uri, string name)
     {
         var r = Parse(uri)!;

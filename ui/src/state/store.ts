@@ -396,7 +396,7 @@ function subscribeEvents(set: (p: Partial<State>) => void, get: () => State) {
   on('window.state', (w) => set({ window: w }));
   // Clicking a Windows notification brings VYSTRAL forward and opens the relevant page.
   on('app.navigate', ({ route }) => {
-    const known = ['home', 'library', 'game', 'journal', 'performance', 'moments', 'constellation', 'assistant', 'settings', 'storage'];
+    const known = ['home', 'library', 'game', 'journal', 'performance', 'moments', 'constellation', 'assistant', 'settings', 'storage', 'health'];
     if (!route || !known.includes(route.name) || (route.name === 'game' && !route.id)) return;
     if (get().window.mode === 'immersive' && route.name !== 'game') void get().setMode('desktop');
     get().navigate(route as Route);
