@@ -23,7 +23,10 @@ interface Stored {
 }
 
 /** The preview "installed version": the newest version with a tour or changelog section. */
-export const PREVIEW_VERSION = [...CURATED.map((t) => t.version), ...RELEASES.map((r) => r.version)].sort((a, b) => compareVersions(b, a))[0] ?? '0.4.0';
+const LATEST = [...CURATED.map((t) => t.version), ...RELEASES.map((r) => r.version)].sort((a, b) => compareVersions(b, a))[0] ?? '0.4.0';
+/** `?version=x.y.z` pins the preview's installed version (tests use it so new releases don't change them). */
+const PINNED = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('version') : null;
+export const PREVIEW_VERSION = PINNED && /^\d+\.\d+\.\d+$/.test(PINNED) ? PINNED : LATEST;
 
 function read(params: URLSearchParams): Stored {
   try {

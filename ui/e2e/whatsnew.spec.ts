@@ -8,7 +8,8 @@ async function open(page: Page, query: string) {
   await page.addInitScript(() => sessionStorage.setItem('vystral.introPlayed', '1'));
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto(`/${query}`);
+  // Pinned so the assertions (0.4 tour, 0.4.x rollback text, badge lifetimes) don't drift with each release.
+  await page.goto(`/${query}${query.includes('?') ? '&' : '?'}version=0.4.0`);
   await expect(page.locator('.shell')).toBeVisible();
   return errors;
 }
