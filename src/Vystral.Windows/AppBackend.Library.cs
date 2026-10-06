@@ -21,9 +21,7 @@ public sealed partial class AppBackend
         {
             if (!PlatformInfo.TryParse(p.Platform, out var platform) || platform == PlatformId.Manual)
                 throw new BridgeException("invalid", "Unknown platform.");
-            var map = Settings.GetAll()["library.platformsEnabled"]?.AsObject().DeepClone().AsObject() ?? [];
-            map[platform.Key()] = p.Enabled;
-            var error = Settings.Set("library.platformsEnabled", map);
+            var error = Settings.SetPlatformEnabled(platform.Key(), p.Enabled);
             if (error is not null) throw new BridgeException("invalid", error);
             return Task.FromResult<object?>(Library.GetAdapters());
         });

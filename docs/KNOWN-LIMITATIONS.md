@@ -23,6 +23,10 @@
 - CPU/GPU/RAM are system-wide values while your game runs, not per-game.
 - **GPU load and VRAM (since 0.5)** come from Windows' kernel graphics statistics (the data behind Task Manager's GPU graphs), with the PDH counters as fallback. GPU load is the busiest 3D engine of *one* GPU: on PCs with two GPUs (gaming laptops, desktops with the iGPU enabled) it is the GPU that has done the most 3D work since the session started, which in practice is the game's. VYSTRAL doesn't open the game's process to ask, so a game that barely uses its GPU while the other one is busier (e.g. a light game on the RTX while a video plays on the iGPU) is reported on the busier one. Before 0.5 the 3D load of every GPU was added together, so on two-GPU PCs older sessions read higher (the desktop's few percent on the iGPU were included; ~38% then vs ~30% now in our test) — keep that in mind when comparing sessions across the update. Load counts the 3D engine only, as before: work a game does only on compute, copy or video engines isn't included.
 - VRAM is the dedicated memory in use on that same GPU (it used to be summed over all GPUs, which on hybrid laptops gave the same figure). A game running on an integrated GPU has no VRAM of its own, so VRAM is left empty instead of showing 0 or the other GPU's memory. This works the same on NVIDIA, AMD and Intel; only temperature, clocks and throttling need NVIDIA (above). The AMD and Intel-only paths are covered by tests and by the iGPU of the reference laptop, not by a machine with an AMD GPU.
+- Play time excludes system sleep and hibernation: a gap of more than 30 s between the session's 2-second steps counts as not played. A session recovered after a crash (no clean end) can still include a sleep, because recovery only has the last performance sample's time and the heartbeat's last-seen time to go on. A hand-over between the app and the background tracker loses the few seconds the hand-over takes.
+
+**Launching**
+- One launch or session at a time. While VYSTRAL is still waiting for a game to start (also after "not detected yet"), another game can't be started from VYSTRAL until you choose *Stop waiting*.
 
 **Features**
 - Controller haptics and the on-screen keyboard were tested with simulated controller input only; how the vibration patterns feel on a physical controller hasn't been tuned by hand yet.
@@ -63,6 +67,7 @@
 - Closing VYSTRAL before its interface has appeared counts as a failed start; doing that twice right after an update could roll it back.
 - "What's new" and "New" badges can't know which version you used before this feature existed, so on the first update that has them (0.4.0) existing users see 0.3 and 0.4 badges once.
 - Network health checks reachability from this PC at that moment; it can't see a service's own status page, and a check through a proxy reports the proxy's behaviour.
+- With Data saver on (or automatically on a metered connection), VYSTRAL still checks for updates but doesn't download them in the background; *Download* in Settings still works. Offline mode blocks update checks and downloads entirely, including the buttons in Settings. Background data-source work (anti-cheat list, Wikidata, IGDB/RAWG enrichment) also skips its round under Data saver and tries again half an hour later.
 
 **Games started outside VYSTRAL (background tracker, opt-in)**
 - One game is tracked at a time. If two installed games run together, the second gets its own session (starting when it was first seen) only after the first closes, and without performance readings for the overlap.

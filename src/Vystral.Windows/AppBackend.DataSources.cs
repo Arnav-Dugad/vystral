@@ -176,7 +176,7 @@ public sealed partial class AppBackend
     /// <summary>
     /// Background, polite and pausable: refreshes the anti-cheat list (weekly), Wikidata identity
     /// for the library (one batched query at a time), and IGDB/RAWG enrichment (only with keys).
-    /// Never while a game runs or Offline mode is on; repeats every six hours.
+    /// Never while a game runs, Offline mode or Data saver is on; repeats every six hours.
     /// </summary>
     private void StartDataSourceWork(TimeSpan delay)
     {
@@ -188,13 +188,17 @@ public sealed partial class AppBackend
                 await Task.Delay(delay, _life.Token);
                 while (!_life.IsCancellationRequested)
                 {
-                    if (!Settings.GetBool("privacy.localOnly") && !IsGameActive)
+                    // Data saver (manual, or a metered connection) skips the round, like Offline mode and a running game;
+                    // a skipped round is tried again sooner.
+                    var ran = false;
+                    if (!Settings.GetBool("privacy.localOnly") && !IsGameActive && !DataSaverActive)
                     {
+                        ran = true;
                         try
                         {
                             if (Settings.GetBool("dataSources.antiCheat")) await _dataSources.RefreshAntiCheatAsync(force: false, _life.Token);
-                            if (!IsGameActive) await _dataSources.RefreshLibraryIdentityAsync(500, _life.Token);
-                            var changed = await _dataSources.Enrichment.RunAsync(40, () => IsGameActive, _life.Token);
+                            if (!IsGameActive && !DataSaverActive) await _dataSources.RefreshLibraryIdentityAsync(500, _life.Token);
+                            var changed = await _dataSources.Enrichment.RunAsync(40, () => IsGameActive || DataSaverActive, _life.Token);
                             if (changed > 0) _events.Emit("library.changed", new { reason = "enrichment" });
                         }
                         catch (DataSourceException ex)
@@ -202,7 +206,7 @@ public sealed partial class AppBackend
                             Log.Warn("datasource", "Background data-source work stopped for this round", new { outcome = ex.Outcome.ToString() });
                         }
                     }
-                    await Task.Delay(TimeSpan.FromHours(6), _life.Token);
+                    await Task.Delay(ran ? TimeSpan.FromHours(6) : TimeSpan.FromMinutes(30), _life.Token);
                 }
             }
             catch (OperationCanceledException) { }

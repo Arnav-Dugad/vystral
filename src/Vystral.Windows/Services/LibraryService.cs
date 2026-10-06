@@ -24,7 +24,9 @@ public sealed class LibraryService
     private readonly MetadataService _metadata;
     private readonly IEventSink _events;
     private readonly SemaphoreSlim _scanLock = new(1, 1);
-    private readonly Dictionary<PlatformId, AdapterScanResult> _lastResults = new();
+    // Written by scans, read by adapters.list on the bridge thread at the same time.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<PlatformId, AdapterScanResult> _lastResults = new();
+    private readonly Lock _enrichLock = new();
     private CancellationTokenSource? _enrichCts;
 
     public Func<bool> IsGameRunning { get; set; } = () => false;
@@ -129,8 +131,14 @@ public sealed class LibraryService
     public void StartEnrichment()
     {
         if (!_settings.GetBool("library.fetchMetadata") || _settings.GetBool("privacy.localOnly")) return;
-        _enrichCts?.Cancel();
-        var cts = _enrichCts = new CancellationTokenSource();
+        var cts = new CancellationTokenSource();
+        // Swapped under a lock: two callers at once (scan end, setting change, session end) must each cancel
+        // the run before theirs, never leave one running that nothing can cancel.
+        lock (_enrichLock)
+        {
+            _enrichCts?.Cancel();
+            _enrichCts = cts;
+        }
         var fetchArt = _settings.GetBool("library.fetchArtwork");
         _ = Task.Run(async () =>
         {
@@ -153,7 +161,10 @@ public sealed class LibraryService
         }, cts.Token);
     }
 
-    public void StopEnrichment() => _enrichCts?.Cancel();
+    public void StopEnrichment()
+    {
+        lock (_enrichLock) _enrichCts?.Cancel();
+    }
 
     /// <summary>
     /// Covers first: Steam's CDN isn't behind the store API's rate limit, so a library of hundreds
@@ -173,6 +184,7 @@ public sealed class LibraryService
             foreach (var (gameId, appId) in games)
             {
                 ct.ThrowIfCancellationRequested();
+                if (IsGameRunning()) return; // a game started: no disk work now, the next run continues
                 var existing = _repo.GetArtwork(gameId);
                 foreach (var (kind, path) in SteamAdapter.FindLocalArtwork(steamPath, appId))
                 {
@@ -199,7 +211,7 @@ public sealed class LibraryService
                 Interlocked.Exchange(ref pending, 0);
                 _events.Emit("library.changed", new { reason = "artwork" });
             }
-        }, ct);
+        }, ct, IsGameRunning);
         if (Interlocked.Exchange(ref pending, 0) == 1) _events.Emit("library.changed", new { reason = "artwork" });
         if (landed > 0) Log.Info("art", $"Fetched {landed} of {games.Count} missing Steam covers");
     }

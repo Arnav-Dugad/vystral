@@ -34,6 +34,7 @@ public sealed class NtImagePathResolver : IDisposable
     private readonly Lock _lock = new();
     private IntPtr _buffer;
     private int _bufferBytes;
+    private bool _disposed;
     private List<(string Device, string Mount)> _devices = [];
     private DateTime _devicesRead;
 
@@ -43,6 +44,7 @@ public sealed class NtImagePathResolver : IDisposable
         if (pid <= 4) return null;
         lock (_lock)
         {
+            if (_disposed) return null;
             var nt = QueryNtPath(pid);
             if (nt is null) return null;
             var dos = ToDosPath(nt, _devices);
@@ -161,6 +163,7 @@ public sealed class NtImagePathResolver : IDisposable
     {
         lock (_lock)
         {
+            _disposed = true;
             if (_buffer != IntPtr.Zero) Marshal.FreeHGlobal(_buffer);
             _buffer = IntPtr.Zero;
         }
@@ -267,8 +270,12 @@ public sealed class HandleFreeProcessSource : IRunningProcessSource, IDisposable
 
     public void Dispose()
     {
-        (_snapshots as IDisposable)?.Dispose();
-        _owned?.Dispose();
+        // Not while a snapshot is being taken or parsed (a session step may still be running at shutdown).
+        lock (this)
+        {
+            (_snapshots as IDisposable)?.Dispose();
+            _owned?.Dispose();
+        }
     }
 
     [DllImport("user32.dll")]

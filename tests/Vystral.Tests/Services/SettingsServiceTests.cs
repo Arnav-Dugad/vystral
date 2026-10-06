@@ -264,4 +264,33 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.True(_s.IsPlatformEnabled("epic"));
         Assert.False(new SettingsService(_t.Repo).IsPlatformEnabled("steam"));
     }
+
+    [Fact]
+    public async Task Toggling_several_stores_at_once_loses_none_of_the_changes()
+    {
+        string[] stores = ["steam", "epic", "gog", "ea", "ubisoft", "xbox", "battlenet"];
+        using var start = new Barrier(stores.Length);
+        await Task.WhenAll(stores.Select(p => Task.Run(() =>
+        {
+            start.SignalAndWait(TestContext.Current.CancellationToken);
+            Assert.Null(_s.SetPlatformEnabled(p, false));
+        })));
+
+        Assert.All(stores, p => Assert.False(_s.IsPlatformEnabled(p)));
+        var reloaded = new SettingsService(_t.Repo); // what the database holds matches memory
+        Assert.All(stores, p => Assert.False(reloaded.IsPlatformEnabled(p)));
+        Assert.Equal(stores.Length, reloaded.GetAll()["library.platformsEnabled"]!.AsObject().Count);
+    }
+
+    [Fact]
+    public async Task Concurrent_writes_of_one_key_leave_the_database_and_memory_in_agreement()
+    {
+        await Task.WhenAll(Enumerable.Range(0, 16).Select(i => Task.Run(() =>
+        {
+            for (var n = 0; n < 10; n++) Assert.Null(_s.Set("appearance.gridSize", J((120 + i * 10 + n).ToString())));
+        })));
+
+        var inMemory = _s.GetNumber("appearance.gridSize");
+        Assert.Equal(inMemory, new SettingsService(_t.Repo).GetNumber("appearance.gridSize"));
+    }
 }

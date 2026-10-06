@@ -31,10 +31,23 @@ public sealed class NtProcessSnapshotSource : IProcessSnapshotSource, IDisposabl
 
     private IntPtr _buffer;
     private int _size;
+    private bool _disposed;
+    // Take() and Dispose() can run on different threads (a session step while the app shuts down):
+    // the native buffer is only read, resized and freed under this lock.
+    private readonly Lock _lock = new();
 
     public IReadOnlyList<ProcessEntry> Take()
     {
         if (!Environment.Is64BitProcess) return [];
+        lock (_lock)
+        {
+            if (_disposed) return [];
+            return TakeLocked();
+        }
+    }
+
+    private IReadOnlyList<ProcessEntry> TakeLocked()
+    {
         try
         {
             for (var attempt = 0; attempt < 4; attempt++)
@@ -93,8 +106,13 @@ public sealed class NtProcessSnapshotSource : IProcessSnapshotSource, IDisposabl
 
     public void Dispose()
     {
-        if (_buffer != IntPtr.Zero) Marshal.FreeHGlobal(_buffer);
-        _buffer = IntPtr.Zero;
+        lock (_lock)
+        {
+            _disposed = true;
+            if (_buffer != IntPtr.Zero) Marshal.FreeHGlobal(_buffer);
+            _buffer = IntPtr.Zero;
+            _size = 0;
+        }
     }
 
     [DllImport("ntdll.dll")]

@@ -118,6 +118,8 @@ public sealed class SettingsService
     private readonly LibraryRepository _repo;
     private readonly Dictionary<string, Def> _defs = Definitions.ToDictionary(d => d.Key);
     private readonly Lock _lock = new();
+    /// <summary>Serializes writers (database + cache); readers only take <see cref="_lock"/>.</summary>
+    private readonly Lock _writeLock = new();
     private Dictionary<string, JsonNode> _values = [];
 
     public event Action<string>? Changed;
@@ -163,20 +165,46 @@ public sealed class SettingsService
     {
         if (!_defs.TryGetValue(key, out var def)) return $"Unknown setting '{key}'.";
         if (!def.Validate(value)) return $"Invalid value for '{key}'.";
-        _repo.SetSetting(key, value!.ToJsonString());
-        lock (_lock) _values[key] = value.DeepClone();
+        // One writer at a time across the database and the cache, so two writes of a key can't end up with
+        // the database holding one value and memory the other.
+        lock (_writeLock) Store(key, value!);
         Changed?.Invoke(key);
         return null;
     }
 
+    /// <summary>Turns one store's scan on or off (a read-modify-write of the platform map, atomic against other writers).</summary>
+    public string? SetPlatformEnabled(string platformKey, bool enabled)
+    {
+        const string key = "library.platformsEnabled";
+        lock (_writeLock)
+        {
+            var map = Get(key) is JsonObject current ? current.DeepClone().AsObject() : new JsonObject();
+            map[platformKey] = enabled;
+            if (!_defs[key].Validate(map)) return $"Invalid value for '{key}'.";
+            Store(key, map);
+        }
+        Changed?.Invoke(key);
+        return null;
+    }
+
+    /// <summary>Callers hold <see cref="_writeLock"/>.</summary>
+    private void Store(string key, JsonNode value)
+    {
+        _repo.SetSetting(key, value.ToJsonString());
+        lock (_lock) _values[key] = value.DeepClone();
+    }
+
     public void ResetAll()
     {
-        foreach (var def in Definitions)
+        lock (_writeLock)
         {
-            if (def.Key == "onboarding.completed") continue;
-            _repo.SetSetting(def.Key, def.Default.ToJsonString());
+            foreach (var def in Definitions)
+            {
+                if (def.Key == "onboarding.completed") continue;
+                _repo.SetSetting(def.Key, def.Default.ToJsonString());
+            }
+            Reload();
         }
-        Reload();
         Changed?.Invoke("*");
     }
 

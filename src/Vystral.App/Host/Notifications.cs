@@ -128,7 +128,7 @@ public sealed class AppNotifications
             using (var doc = JsonDocument.Parse(request.RouteJson))
             {
                 foreach (var p in doc.RootElement.EnumerateObject())
-                    if (p.Value.ValueKind == JsonValueKind.String && p.Name is "name" or "id" or "sessionId" or "section")
+                    if (p.Value.ValueKind == JsonValueKind.String && p.Name is "name" or "id" or "sessionId" or "section" or "tab")
                         builder.AddArgument(p.Name == "name" ? "route" : p.Name, p.Value.GetString()!);
             }
             builder.AddText(ToastXml.Clean(request.Title, ToastXml.MaxTitle)).AddText(ToastXml.Clean(request.Body, ToastXml.MaxBody));

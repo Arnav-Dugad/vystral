@@ -20,7 +20,12 @@ public partial class App : Application
             // Keep running: a failure in one view must never stop the user from launching games.
             e.Handled = true;
         };
-        AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Error("app", "Fatal exception", e.ExceptionObject as Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            Log.Error("app", "Fatal exception", e.ExceptionObject as Exception);
+            // The process is about to end: let the background writer put the line on disk first.
+            Log.Flush(TimeSpan.FromSeconds(1));
+        };
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
             Log.Error("app", "Unobserved task exception", e.Exception);

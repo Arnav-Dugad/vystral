@@ -170,7 +170,9 @@ public sealed partial class AppBackend : ILaunchFixRunner
     /// </summary>
     public void ObserveEvent(string eventName, string eventJson)
     {
-        if (eventName == "library.changed") _externalTracker?.InvalidateTargets(); // Track H: watch newly added games
+        // Track H: watch newly added games. Artwork and metadata arrive every 1.5 s during enrichment and don't change
+        // which games exist, are hidden or merged, so they don't make the detector reload its targets.
+        if (eventName == "library.changed" && !IsCosmeticLibraryChange(eventJson)) OnLibraryIdentityChanged();
         if (!NotifiableEvents.Contains(eventName)) return;
         var host = _insightHost;
         if (host is null || !host.NotificationsAvailable || _notifications is null) return;
@@ -184,6 +186,25 @@ public sealed partial class AppBackend : ILaunchFixRunner
         catch (Exception ex)
         {
             Log.Warn("notify", "Notification failed", ex: ex);
+        }
+    }
+
+    /// <summary>library.changed reasons that never change the detector's targets (installations, hidden, merged games).</summary>
+    private static readonly HashSet<string> CosmeticLibraryReasons = ["artwork", "metadata", "enrichment", "session", "history"];
+
+    internal static bool IsCosmeticLibraryChange(string eventJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(eventJson);
+            return doc.RootElement.ValueKind == JsonValueKind.Object &&
+                   doc.RootElement.TryGetProperty("payload", out var payload) && payload.ValueKind == JsonValueKind.Object &&
+                   payload.TryGetProperty("reason", out var reason) && reason.ValueKind == JsonValueKind.String &&
+                   CosmeticLibraryReasons.Contains(reason.GetString()!);
+        }
+        catch (JsonException)
+        {
+            return false;
         }
     }
 

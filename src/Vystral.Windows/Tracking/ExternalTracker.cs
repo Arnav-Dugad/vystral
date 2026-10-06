@@ -163,6 +163,12 @@ public sealed class ExternalTracker : IDisposable
     {
         var end = lastSeen < open.Start ? open.Start : lastSeen;
         var duration = (int)Math.Max(0, (end - open.Start).TotalSeconds);
+        // The other process recorded the time actually played (system sleep excluded); prefer it when it has one.
+        try
+        {
+            if (_repo.GetOpenSessionSeconds(open.Id) is int played and > 0) duration = Math.Min(duration, played);
+        }
+        catch (Exception ex) { Log.Warn("tracker", "Couldn't read the handed-over session's progress", ex: ex); }
         if (open.Source != SessionSources.Tracked && end - open.Start < SessionService.MinExternalSession)
         {
             _repo.DeleteSession(open.Id);
@@ -290,6 +296,10 @@ public sealed class ExternalTracker : IDisposable
         _sessions.Heartbeat -= OnHeartbeat;
         _sessions.SessionClosed -= OnSessionClosed;
         _sessions.TrackingStopped -= OnTrackingStopped;
-        if (_processes.IsValueCreated) (_processes.Value as IDisposable)?.Dispose();
+        // Under the lock every poll and session step holds while it reads processes (the source also guards itself).
+        lock (_lock)
+        {
+            if (_processes.IsValueCreated) (_processes.Value as IDisposable)?.Dispose();
+        }
     }
 }

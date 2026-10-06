@@ -79,6 +79,13 @@ public sealed class SteamTrailerTests
     [InlineData("""{"1903340":{"success":true,"data":{"movies":[]}}}""")]
     [InlineData("""{"1903340":{"success":true,"data":{"movies":[{"id":"abc","hls_h264":"x"}]}}}""")]
     [InlineData("""{"42":{"success":true,"data":{"movies":[]}}}""")]
+    // Malformed answers of the wrong shape: never an exception (it used to stop the enrichment run).
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("\"text\"")]
+    [InlineData("""{"1903340":null}""")]
+    [InlineData("""{"1903340":{"success":true,"data":[]}}""")]
+    [InlineData("""{"1903340":{"success":true,"data":{"movies":[null,1,"x",{"id":null}]}}}""")]
     public void Payloads_without_a_usable_movie_return_null(string json) => Assert.Null(SteamTrailers.Select("1903340", json));
 
     [Fact]
