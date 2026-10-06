@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { NewBadge } from '../../whatsnew/NewBadge';
 import { AlertTriangle, Cloud, CloudOff, ExternalLink, Gauge, Lock, PauseCircle, RefreshCw } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { CloudLink, CloudService, CloudServiceHealth, CloudServiceState, CloudStatus, GfnPlanId } from '../../bridge/types';
@@ -103,7 +104,7 @@ export function CloudSettings() {
           <div className="sgroup__rows surface">
             <div className="srow">
               <div className="srow__text">
-                <label className="srow__label" htmlFor="cloud-enabled">Cloud play</label>
+                <label className="srow__label" htmlFor="cloud-enabled">Cloud play<NewBadge k="settings.cloud.play" variant="pill" seenWhenVisible /></label>
                 <div className="srow__hint">Badges, the library filter and Play in the cloud. Turning it off keeps your cloud sessions in the Journal.</div>
               </div>
               <div className="srow__control"><Toggle id="cloud-enabled" label="Cloud play" checked={enabled} onChange={(v) => void setSetting('cloud.enabled', v)} /></div>

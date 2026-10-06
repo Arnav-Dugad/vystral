@@ -2,6 +2,40 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
+## [0.6.0] — 2026-10-06
+
+Your library, settings and history carry over.
+
+### Cloud play
+- **Play in the cloud (opt-in).** GeForce NOW and Xbox Cloud Gaming for games you own. VYSTRAL checks the services' public game lists (at most once a day; only your region is sent) and opens the official app or website. It never signs in for you and never shows the stream itself.
+- **Honest badges.** Library cards get a cloud badge, the Library a "Playable in the cloud" filter, and game pages a Play in the cloud button that says what each service needs ("may be included with Game Pass", "Install-to-Play (Performance/Ultimate)", "Likely match").
+- **Hours meter.** Pick your GeForce NOW membership and reset day to see the hours left this month and the time left in a session, estimated from sessions VYSTRAL saw. Xbox Cloud Gaming time is shown too, and cloud sessions appear in your Journal.
+
+### Home, Library and game pages
+- **Friends playing now (opt-in).** With your Steam Web API key, Home shows which friends are online and what they're playing, grouped by game, with a shortcut to games you own. It reads only their public status and pauses offline, in Data saver and while you play.
+- **Library health.** One page lists everything wrong with your library (games that can't start, unplugged drives, duplicates, missing or blurry art, missing details, sessions that never ended), each with a safe fix, a health score and "Fix all safe issues". It runs on your PC and never deletes anything.
+- **Controls tab.** See a game's Steam Input layout before you play, drawn on a controller with every binding labelled, with action sets and layers. Read-only from Steam's files on this PC.
+- **Update-space forecast.** VYSTRAL reads Steam's own update sizes and warns on Home, on the game page and in Storage Studio (new *Pending Steam updates*) when an update won't fit or would leave the drive nearly full, with an optional Windows notification.
+
+### Immersive Mode
+- **A guide on the Menu button.** Return to your game, desktop mode, display, voice-over, settings and Close VYSTRAL (never shuts down or sleeps the PC).
+- **Voice-over and captions (off by default).** Immersive reads out the game, row or menu you're on, with captions, using Windows' own voices on your PC. Nothing goes online.
+- **New rows.** Now playing (with a live session clock and Return to game) and Downloads. All games gains sort and store filters, and LT/RT jump through it by letter.
+- **More to love.** An achievement showcase on game pages, a Controls tab, Immersive remembers where you were, leaving lands the desktop on the same game, palette colours crossfade between games, and couch text at 130% now fits 1080p TVs.
+
+### Controller
+- **Button icons, redrawn.** Controller buttons are crisp, perfectly centred icons everywhere, with PlayStation and Nintendo layouts and automatic detection.
+- **Type with your controller.** In desktop mode, press A on any text box and a Big Picture-style keyboard slides up: number pads for numbers, email and web keys, hidden passwords, and suggestions from your library or your own words. X deletes, Y adds a space, LB/RB move the cursor, LT is Shift and RT is Done.
+
+### Logos
+- **The real Xbox logo.** Xbox games now wear the Xbox sphere everywhere in place of the placeholder "X".
+- **Logos where they help.** Data sources, Steam Deck, local AI, GPU makers, cloud services and store buttons ("Install in EA app") show their logos, monochrome until you hover. Services without an openly licensed logo get a plain icon.
+
+### Fixed
+- Controller button hints in Immersive Mode were off-centre and unevenly spaced.
+- Couch text at 130% pushed Immersive's game info into the header and cut off the hints on 1080p screens.
+- Immersive overlays swallowed button presses while they animated out.
+
 ## [0.5.0] — 2026-10-06
 
 Your library, settings and history carry over.

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useState, type ReactNode } from 'react';
+import { NewBadge } from '../../whatsnew/NewBadge';
 import { AlertTriangle, CheckCircle2, CloudOff, ExternalLink, KeyRound, Lock, RefreshCw, Unplug } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { SteamActionResult, SteamApiStatus, SteamTestResult } from '../../bridge/types';
@@ -144,7 +145,7 @@ export function SteamWebApiSettings() {
             />
             <Row
               id="steamapi-friends"
-              label="Friends playing now on Home"
+              label={<>Friends playing now on Home<NewBadge k="settings.library.friends" variant="pill" seenWhenVisible /></>}
               hint="Shows which of your Steam friends are online and what they’re playing. VYSTRAL reads your friends list and their public profile status from Steam every few minutes while Home is open — only what anyone can see on their Steam profiles. Your friends list must be public in Steam’s privacy settings. Nothing is stored or shared."
               control={<Toggle id="steamapi-friends" label="Friends playing now on Home" checked={friends} disabled={localOnly} onChange={(v) => void setSetting('home.friendsActivity', v)} />}
             />

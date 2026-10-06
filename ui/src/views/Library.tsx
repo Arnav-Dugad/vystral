@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { NewBadge } from '../whatsnew/NewBadge';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowDownWideNarrow, Cloud, FilePlus2, Grid3x3, List, Pencil, Search, Trash2, X, Copy, Wand2, HeartPulse } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
@@ -160,7 +161,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
             </Button>
           )}
           <Button size="sm" variant="ghost" icon={<Wand2 size={14} />} onClick={() => setPacksOpen(true)}>Art packs</Button>
-          {!collection && <Button size="sm" variant="ghost" icon={<HeartPulse size={14} />} onClick={() => useStore.getState().navigate({ name: 'health' })}>Library health</Button>}
+          {!collection && <Button size="sm" variant="ghost" icon={<HeartPulse size={14} />} onClick={() => useStore.getState().navigate({ name: 'health' })}>Library health<NewBadge k="library.health" /></Button>}
           <Button size="sm" icon={<FilePlus2 size={14} />} onClick={() => void addManualGame()}>Add a game</Button>
         </div>
       </header>

@@ -43,6 +43,13 @@ export const NEW_FEATURES: NewFeature[] = [
   { key: 'settings.library.art-packs', since: '0.5.0' },
   { key: 'settings.library.time-to-beat', since: '0.5.0' },
   { key: 'settings.launching.anti-cheat-notes', since: '0.5.0' },
+  // 0.6.0
+  { key: 'settings.cloud.play', since: '0.6.0' },
+  { key: 'settings.library.friends', since: '0.6.0' },
+  { key: 'settings.library.health', since: '0.6.0' },
+  { key: 'settings.controller.voiceover', since: '0.6.0' },
+  { key: 'settings.controller.keyboard', since: '0.6.0' },
+  { key: 'library.health', since: '0.6.0', seenOn: { name: 'health' } },
 ];
 
 const BY_KEY = new Map(NEW_FEATURES.map((f) => [f.key, f]));

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { NewBadge } from '../../whatsnew/NewBadge';
 import { Button, Toggle } from '../../components/ui/primitives';
 import { forgetWords, rememberedWordCount } from '../../lib/textEntry';
 import { useStore } from '../../state/store';
@@ -15,7 +16,7 @@ export function OnScreenKeyboardRows() {
     <>
       <div className="srow">
         <div className="srow__text">
-          <label className="srow__label" htmlFor="controller.onScreenKeyboard">On-screen keyboard when using a controller</label>
+          <label className="srow__label" htmlFor="controller.onScreenKeyboard">On-screen keyboard when using a controller<NewBadge k="settings.controller.keyboard" variant="pill" seenWhenVisible /></label>
           <div className="srow__hint">
             Press A on any text box to type with your controller. It only appears for controller input — never for a mouse or keyboard.
           </div>

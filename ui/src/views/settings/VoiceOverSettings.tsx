@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { NewBadge } from '../../whatsnew/NewBadge';
 import { AudioLines } from 'lucide-react';
 import type { PadFamily } from '../../lib/padFamily';
 import { detectedFamily, FAMILY_LABEL, usePadFamily } from '../../lib/padFamily';
@@ -53,7 +54,7 @@ export function VoiceOverSettings() {
         <div className="sgroup__rows surface">
           <div className="srow">
             <div className="srow__text">
-              <label className="srow__label" htmlFor="voiceover.enabled">Voice-over in Immersive Mode</label>
+              <label className="srow__label" htmlFor="voiceover.enabled">Voice-over in Immersive Mode<NewBadge k="settings.controller.voiceover" variant="pill" seenWhenVisible /></label>
               <div className="srow__hint">
                 {noVoices
                   ? 'No Windows voices are installed on this PC, so this shows captions only. Add one in Windows Settings › Time & language › Speech.'

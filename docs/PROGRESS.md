@@ -1,6 +1,6 @@
 # Progress
 
-Status as of **v0.5.0 (2026-10-06)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
+Status as of **v0.6.0 (2026-10-06)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
 
 ## Phase 1 — Foundation ✅
 - ✅ Repository, solution, CI and release workflows
@@ -70,6 +70,16 @@ Status as of **v0.5.0 (2026-10-06)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Velopack per-user installer, portable zip, delta updates, in-app update viewer
 - ✅ GitHub Releases with a stable "latest" download link
 - See "Verification record" below for the release check.
+
+## Verification record (v0.6.0)
+
+| Check | Result |
+|---|---|
+| .NET tests | **1610 passed, 0 failed** |
+| UI unit tests | **580 passed, 0 failed** |
+| Playwright e2e + axe + visual regression | **173 passed, 1 flaky** (a cold-start page load that passed on retry) |
+| Real app (dev build, owner's library of 204 games) | Library health ran in 3.9 s with a score of 96 and four real "no details" findings; Controls tab on a Steam game (no Steam Input layout saved, shown correctly) in desktop and Immersive; Immersive hints with the drawn glyphs aligned; WebView2 lists 9 local Windows voices for voice-over; real Xbox mark; no page errors |
+| Not verified | Cloud play against the live catalogues and real streams (left off on the owner's PC: it's opt-in); friends' activity with a real key; a real pending Steam update; PlayStation/Nintendo pads; spoken voice-over by ear |
 
 ## Verification record (v0.5.0)
 

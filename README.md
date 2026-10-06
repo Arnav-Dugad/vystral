@@ -36,14 +36,16 @@
 | **Living Canvas** | A calm animated background that takes on each game’s colours and mood (light trails for racing, stars for space, fog for horror…). It pauses whenever you’re playing. |
 | **Live Home** | Steam games’ tiles come alive with their short, silent store loops while on screen (two at a time, never on Data saver); an *Owned, never played* gallery with gentle picks for tonight; optional ambient sound that follows each game’s mood. |
 | **Command bar** (`Ctrl+K`) | “installed racing games under 20 GB”, “launch forza”, “not played in 3 months”, “everything on my second SSD” — understood instantly, on your PC, without AI. |
-| **Immersive Mode** (`F11` / Menu button) | A console-grade full-screen layout with a cinematic way in, trailer backdrops, a radial quick menu, a game page with tabs, a live system bar, couch text sizes and spatial sounds. |
+| **Immersive Mode** (`F11`) | A console-grade full-screen layout with a cinematic way in, trailer backdrops, a guide on the Menu button, a radial quick menu, Now playing and Downloads rows, letter jumps, a game page with tabs, a live system bar, couch text sizes, spatial sounds and optional voice-over with captions. |
 | **Performance Mode** | When a game starts, VYSTRAL minimizes and suspends its interface: **0% CPU** while minimized in our measurements. |
 | **Journal & Performance** | Private play history, playtime charts, milestones, game status (Backlog → Completed) and per-session CPU/GPU/temperature graphs. Optional real FPS, 1% lows and stutters via Intel PresentMon. Nothing is estimated or faked. |
 | **Launches that explain themselves** | A pre-flight card (disk space, pending updates, controller battery, HDR), a progress arc that learns how long each game takes, one-click fixes when something fails, and GPU heat alerts afterwards. |
 | **Storage Studio** | A map of each drive showing which games take the space, with gentle suggestions. VYSTRAL never deletes: uninstalling happens in the store. |
+| **Library health** | One page finds games that can't start, unplugged drives, duplicates, blurry art and sessions that never ended, with safe fixes. Steam updates that won't fit are flagged before they start. |
+| **Cloud play (optional)** | GeForce NOW and Xbox Cloud Gaming for games you own, from the services' public game lists, opened in their official app or site, with an hours-left meter. |
 | **Play calendar & achievements** | A year of play day by day with streaks, every Steam achievement on one timeline (rare ones highlighted), achievement toasts after a session, and frame rates before vs after a driver update. |
-| **Controller-first** | Gentle haptics, an on-screen keyboard with library suggestions, and hold-to-confirm for anything you can't undo. |
-| **Steam extras** | Live install progress and trailers; with your own Steam Web API key (kept in Windows Credential Manager), games you own but haven’t installed and achievements with rarity. |
+| **Controller-first** | Crisp button icons for Xbox, PlayStation and Nintendo pads, gentle haptics, a docked on-screen keyboard for every text box, and hold-to-confirm for anything you can't undo. |
+| **Steam extras** | Live install progress and trailers, each game's Steam Input layout on a Controls tab, friends playing now (opt-in); with your own Steam Web API key (kept in Windows Credential Manager), games you own but haven’t installed and achievements with rarity. |
 | **Tracks games you start anywhere** | Launch from Steam or a shortcut and the session is still recorded, even while VYSTRAL is closed (optional tiny helper). |
 | **Art, details and deals** | SteamGridDB art picker, IGDB/RAWG details, CheapShark/IsThereAnyDeal prices, Steam Deck and anti-cheat badges, cross-store IDs from Wikidata. Keys are your own. |
 | **Windows integration** | A summon shortcut (`Ctrl+Alt+V`), Windows notifications, a notification centre and a now-playing chip. |
