@@ -1,0 +1,243 @@
+/* ===== Track S: docked on-screen keyboard (desktop mode, controller only) =====
+   Docked to the bottom edge, above dialogs and toasts (z 118), below the intro and mode switch.
+   Theme-aware through the design tokens; High contrast is solid black with a yellow ring. */
+.fkb {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 118;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.fkb__panel {
+  --fkb-key-h: clamp(2.35rem, 5vh, 3.05rem);
+  position: relative;
+  display: grid;
+  gap: 0.7rem;
+  width: min(60rem, 100%);
+  padding: 1rem 1.25rem 0.8rem;
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  background: var(--glass-strong);
+  backdrop-filter: blur(28px) saturate(1.2);
+  box-shadow: var(--shadow-3), 0 0 0 1px var(--line-strong), inset 0 1px 0 oklch(1 0 0 / 0.08);
+  color: var(--text-1);
+  pointer-events: auto;
+  isolation: isolate;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.fkb__panel::before {
+  /* the accent glow along the top edge */
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 6rem;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(55% 100% at 50% 0%, oklch(from var(--accent) l c h / 0.2), transparent 70%);
+  pointer-events: none;
+}
+
+/* Field caption and live preview */
+.fkb__head { display: grid; gap: 0.35rem; }
+.fkb__label { display: flex; align-items: center; gap: 0.45rem; min-width: 0; font-size: var(--fs-xs, 0.78rem); font-weight: var(--fw-semibold); color: var(--text-2); }
+.fkb__label-text { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fkb__tag { flex: none; padding: 1px 8px; border-radius: var(--r-pill); background: oklch(from var(--text-1) l c h / 0.08); color: var(--text-2); font-weight: var(--fw-medium); }
+.fkb__value-row { display: flex; align-items: center; gap: 0.75rem; }
+.fkb__value {
+  flex: 1;
+  min-width: 0;
+  height: 2.9rem;
+  padding: 0 0.9rem;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: oklch(from var(--text-1) l c h / 0.06);
+  box-shadow: inset 0 0 0 1px oklch(from var(--accent) l c h / 0.55), 0 0 0 4px oklch(from var(--accent) l c h / 0.12);
+  font-size: 1.3rem;
+  font-weight: var(--fw-medium);
+  line-height: 2.9rem;
+  white-space: pre;
+}
+.fkb__value[data-multiline] { height: auto; max-height: 5.4rem; padding: 0.45rem 0.9rem; line-height: 1.5rem; font-size: 1.08rem; white-space: pre-wrap; overflow-wrap: anywhere; overflow-y: hidden; }
+.fkb__value[data-secret] { letter-spacing: 0.18em; }
+.fkb__placeholder { color: var(--text-3); font-weight: var(--fw-regular); letter-spacing: normal; }
+.fkb__value[data-empty] .fkb__placeholder { margin-right: -1px; }
+.fkb__value[data-empty] { display: flex; align-items: center; flex-direction: row-reverse; justify-content: flex-end; }
+.fkb__value[data-empty][data-multiline] { align-items: flex-start; }
+.fkb__sel { background: oklch(from var(--accent) l c h / 0.38); color: inherit; border-radius: 3px; }
+.fkb__caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  margin: 0 -1px;
+  vertical-align: -0.2em;
+  border-radius: 1px;
+  background: var(--accent-hi);
+  box-shadow: 0 0 8px oklch(from var(--accent) l c h / 0.7);
+  animation: fkb-blink 1.05s steps(1) infinite;
+}
+@keyframes fkb-blink { 50% { opacity: 0; } }
+.fkb__count { flex: none; min-width: 4.2rem; text-align: right; font-size: 0.82rem; color: var(--text-3); }
+.fkb__count[data-full] { color: var(--warn); font-weight: var(--fw-semibold); }
+
+/* Suggestions and keys share one positioned stage for the travelling ring. */
+.fkb__stage { position: relative; display: grid; gap: 0.55rem; }
+.fkb__suggest { display: flex; align-items: center; gap: 0.5rem; height: 2.35rem; overflow: hidden; }
+.fkb__suggest-empty { font-size: 0.86rem; color: var(--text-3); }
+.fkb__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+  max-width: 18rem;
+  height: 100%;
+  padding: 0 0.95rem;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: oklch(from var(--text-1) l c h / 0.07);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 0.98rem;
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  outline: none;
+  transition: background 150ms var(--ease-out), transform 220ms var(--ease-emph);
+}
+.fkb__chip[data-title] { color: var(--accent-text, var(--text-1)); }
+.fkb__chip:hover { background: oklch(from var(--text-1) l c h / 0.12); }
+.fkb__chip[data-focused='true'] { background: oklch(from var(--text-1) l c h / 0.15); transform: scale(1.04); }
+
+.fkb__keys { display: grid; grid-template-columns: repeat(var(--fkb-cols), minmax(0, 1fr)); gap: 0.42rem; }
+.fkb[data-kind='number'] .fkb__panel, .fkb[data-kind='tel'] .fkb__panel { width: min(36rem, 100%); }
+.fkb[data-kind='number'] .fkb__keys, .fkb[data-kind='tel'] .fkb__keys { width: min(24rem, 100%); justify-self: center; }
+.fkb__key {
+  position: relative;
+  height: var(--fkb-key-h);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: oklch(from var(--text-1) l c h / 0.075);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 1px 0 oklch(0 0 0 / 0.25);
+  color: var(--text-1);
+  font-size: 1.15rem;
+  font-weight: var(--fw-semibold);
+  outline: none;
+  transition: background 130ms var(--ease-out), transform 200ms var(--ease-emph), color 130ms;
+}
+.fkb__key:hover { background: oklch(from var(--text-1) l c h / 0.12); }
+.fkb__key:active { transform: scale(0.95); }
+.fkb__key[data-focused='true'] { background: oklch(from var(--text-1) l c h / 0.17); transform: scale(1.04); }
+.fkb__key--space, .fkb__key--backspace, .fkb__key--layer, .fkb__key--shift, .fkb__key--newline, .fkb__key--clear, .fkb__key--text, .fkb__key--sign {
+  background: oklch(from var(--text-1) l c h / 0.045);
+  font-size: 0.92rem;
+  color: var(--text-2);
+}
+.fkb__key--text { color: var(--text-1); }
+.fkb__key--shift[data-on] { background: oklch(from var(--accent) l c h / 0.3); color: var(--text-1); }
+.fkb__key--done { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--text-on-accent); font-size: 0.98rem; }
+.fkb__key--done:hover, .fkb__key--done[data-focused='true'] { background: linear-gradient(180deg, var(--accent-hi), var(--accent-hi)); }
+.fkb__key--done svg, .fkb__key--done .fkb__glyph { color: var(--text-on-accent); }
+.fkb__face {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 100%;
+  animation: fkb-face-in 180ms var(--ease-out);
+}
+.fkb__face[data-pressed] { animation: fkb-press 220ms var(--ease-emph); }
+.fkb__face[data-pressed]::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: radial-gradient(circle at center, oklch(from var(--accent) 0.9 c h / 0.45), transparent 62%);
+  animation: fkb-ripple 420ms var(--ease-out) forwards;
+  pointer-events: none;
+}
+@keyframes fkb-face-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes fkb-press { 0% { transform: scale(1); } 35% { transform: scale(0.86); } 100% { transform: scale(1); } }
+@keyframes fkb-ripple { from { opacity: 1; transform: scale(0.4); } to { opacity: 0; transform: scale(1.3); } }
+.fkb__glyph { display: inline-flex; opacity: 0.85; }
+.fkb__glyph .pad-glyph { width: 1.3em; height: 1.3em; font-size: 0.6rem; }
+.fkb__glyph .pad-glyph--bumper { width: auto; min-width: 2em; padding: 0 0.3em; border-radius: 0.4em; }
+
+/* The travelling focus ring, in the accent colour. */
+.fkb__ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  border-radius: calc(var(--r-md) + 3px);
+  pointer-events: none;
+  box-shadow:
+    0 0 0 3px oklch(from var(--accent) 0.9 min(c, 0.16) h),
+    0 0 0 6px oklch(from var(--accent) l c h / 0.24),
+    0 0 28px 3px oklch(from var(--accent) l c h / 0.38);
+}
+
+.fkb__hints { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.35rem 1.1rem; font-size: 0.78rem; color: var(--text-2); }
+.fkb__hints > span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.fkb__hints .pad-glyph { width: 1.4em; height: 1.4em; font-size: 0.66rem; }
+.fkb__hints .pad-glyph--bumper { width: auto; min-width: 2em; padding: 0 0.35em; border-radius: 0.4em; }
+.fkb__hint-close { color: var(--text-1); font-weight: var(--fw-semibold); }
+
+/* The field being edited wears the accent ring while the keyboard is open. */
+[data-osk-target] { box-shadow: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent-hi), 0 0 18px 2px oklch(from var(--accent) l c h / 0.35) !important; }
+/* Room below a page's content so a field near the end can scroll above the keyboard. */
+[data-fkb-room] { padding-bottom: calc(var(--fkb-h, 0px) + 24px) !important; }
+
+/* "A Type" chip under a text field the D-pad landed on. */
+.fkb-hint {
+  position: fixed;
+  z-index: 117;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 4px 10px 4px 5px;
+  border-radius: var(--r-pill);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-2), 0 0 0 1px var(--line-strong);
+  font-size: var(--fs-xs, 0.78rem);
+  font-weight: var(--fw-semibold);
+  color: var(--text-1);
+  pointer-events: none;
+  animation: fkb-hint-in 220ms var(--ease-emph);
+}
+@keyframes fkb-hint-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+@media (max-height: 700px) {
+  .fkb__panel { --fkb-key-h: 2.2rem; gap: 0.5rem; padding: 0.7rem 1rem 0.55rem; }
+  .fkb__value { height: 2.4rem; line-height: 2.4rem; font-size: 1.1rem; }
+  .fkb__hints { display: none; }
+}
+
+/* Reduced motion: no springs, presses, ripples or blinking — the same layout, still. */
+.fkb[data-reduced='true'] .fkb__face, .fkb[data-reduced='true'] .fkb__face[data-pressed] { animation: none; }
+.fkb[data-reduced='true'] .fkb__face[data-pressed]::after { display: none; }
+.fkb[data-reduced='true'] .fkb__caret { animation: none; }
+.fkb[data-reduced='true'] .fkb__key, .fkb[data-reduced='true'] .fkb__chip { transition: none; }
+.fkb[data-reduced='true'] .fkb__key[data-focused='true'], .fkb[data-reduced='true'] .fkb__chip[data-focused='true'] { transform: none; }
+:root[data-reduced-motion='true'] .fkb-hint { animation: none; }
+
+/* High contrast: solid, outlined, the yellow ring. */
+:root[data-theme='contrast'] .fkb__panel { background: #000; backdrop-filter: none; box-shadow: 0 0 0 2px #fff; }
+:root[data-theme='contrast'] .fkb__panel::before { display: none; }
+:root[data-theme='contrast'] .fkb__key, :root[data-theme='contrast'] .fkb__chip { background: #000; box-shadow: inset 0 0 0 1px #fff; color: #fff; }
+:root[data-theme='contrast'] .fkb__key--done { background: oklch(0.9 0.18 100); color: #000; }
+:root[data-theme='contrast'] .fkb__key--done svg, :root[data-theme='contrast'] .fkb__key--done .fkb__glyph { color: #000; }
+:root[data-theme='contrast'] .fkb__key--shift[data-on] { background: #fff; color: #000; }
+:root[data-theme='contrast'] .fkb__ring { box-shadow: 0 0 0 3px oklch(0.9 0.18 100); }
+:root[data-theme='contrast'] .fkb__value { background: #000; box-shadow: inset 0 0 0 2px oklch(0.9 0.18 100); }
+:root[data-theme='contrast'] .fkb__caret { background: oklch(0.9 0.18 100); box-shadow: none; }
+:root[data-theme='contrast'] .fkb__sel { background: oklch(0.9 0.18 100); color: #000; }
+:root[data-theme='contrast'] [data-osk-target] { box-shadow: 0 0 0 3px #000, 0 0 0 6px oklch(0.9 0.18 100) !important; }
+:root[data-theme='contrast'] .fkb-hint { background: #000; box-shadow: 0 0 0 2px #fff; }
+@media (forced-colors: active) {
+  .fkb__panel, .fkb__key, .fkb__chip { border: 1px solid CanvasText; }
+  .fkb__ring { outline: 3px solid Highlight; }
+}

@@ -118,6 +118,8 @@ public sealed class SettingsService
         new NumberDef("immersive.scale", 1, 1, 1.3),
         new NumberDef("immersive.safeArea", 0, 0, 0.06),
         new BoolDef("immersive.tourDone", false),
+        // Track S: the docked on-screen keyboard for text fields when desktop mode is driven by a controller.
+        new BoolDef("controller.onScreenKeyboard", true),
     ];
 
     private readonly LibraryRepository _repo;

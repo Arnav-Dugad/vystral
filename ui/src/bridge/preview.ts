@@ -67,6 +67,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACKING_DEFAULT_SETTINGS,
   ...RECAP_DEFAULT_SETTINGS,
   ...TRACK_L_DEFAULT_SETTINGS,
+  'controller.onScreenKeyboard': true, // Track S
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [

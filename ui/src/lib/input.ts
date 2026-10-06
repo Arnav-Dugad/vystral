@@ -26,6 +26,23 @@ export function pushPadHandler(h: PadHandler): () => void {
 
 let started = false;
 
+/**
+ * Track S: when A is pressed on a focused text field, this decides whether the docked on-screen
+ * keyboard takes it (returns true) instead of the default click. Registered by FieldKeyboardHost.
+ */
+export type TextFieldActivator = (el: HTMLElement) => boolean;
+let textFieldActivator: TextFieldActivator | null = null;
+
+export function setTextFieldActivator(fn: TextFieldActivator | null): () => void {
+  textFieldActivator = fn;
+  return () => {
+    if (textFieldActivator === fn) textFieldActivator = null;
+  };
+}
+
+/** When the controller last moved focus with the D-pad / stick, and when any button was last pressed (performance.now()). */
+export const padActivity = { dirAt: -Infinity, pressAt: -Infinity };
+
 export function startInput() {
   if (started) return;
   started = true;
@@ -38,6 +55,7 @@ export function startInput() {
       held.delete(button);
       return;
     }
+    padActivity.pressAt = performance.now();
     dispatch(button, false);
     if (DIRS[button] || button === 'LT' || button === 'RT') {
       let delay = 380;
@@ -64,7 +82,10 @@ export function startInput() {
     if (e.movementX === 0 && e.movementY === 0) return;
     document.documentElement.dataset.input = 'mouse';
   }, { passive: true });
-  window.addEventListener('keydown', () => (document.documentElement.dataset.input = 'keyboard'), { passive: true });
+  // Only real key presses: the UI's own synthetic events (B → Escape, the on-screen keyboard's Enter) aren't the user switching to a keyboard.
+  window.addEventListener('keydown', (e) => {
+    if (e.isTrusted) document.documentElement.dataset.input = 'keyboard';
+  }, { passive: true });
 }
 
 function dispatch(button: GamepadButton, repeat: boolean) {
@@ -76,6 +97,7 @@ function defaultHandler(button: GamepadButton, repeat: boolean) {
   const s = useStore.getState();
   const dir = DIRS[button];
   if (dir) {
+    padActivity.dirAt = performance.now();
     moveFocus(dir);
     return;
   }
@@ -83,6 +105,7 @@ function defaultHandler(button: GamepadButton, repeat: boolean) {
   const active = document.activeElement as HTMLElement | null;
   switch (button) {
     case 'A':
+      if (active && active !== document.body && textFieldActivator?.(active)) break;
       if (active && active !== document.body) {
         active.click();
         haptic('tick');

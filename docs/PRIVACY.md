@@ -14,7 +14,7 @@ VYSTRAL is local-first software. There is no VYSTRAL account, no server, no tele
 - `cache\`: artwork copied from your stores' local caches or downloaded from Steam's public CDN, and thumbnails.
 - `artpacks\`: the undo record of your last ten art packs — for each slot a pack changed, the game ID, the cache file it put there and the file it replaced. Files a record can put back are kept when you clear the artwork cache. Which stretch of each cached live-tile clip to loop is stored in `vystral.db`, keyed by a hash of the clip.
 - `logs\`: diagnostic logs, 7 days (`vystral-tracker-*.log` for the background tracker). They include file paths, never passwords or tokens.
-- `webview\`: the interface's browser profile.
+- `webview\`: the interface's browser profile. It also holds the on-screen keyboard's word list: words of three or more letters (no digits) that you typed with the controller keyboard in ordinary text fields, up to 300, used only for suggestions. Words from passwords, API keys and number fields are never kept. Clear it with *Settings → Controller & sound → Typed-word suggestions → Forget words*.
 - `backups\`: database backups.
 
 Export your journal from Settings → Data. Delete tracked history there too (this also deletes the recorded background-app names, the list of apps you hid, and the driver versions stored with sessions), or delete the whole folder to remove everything.
