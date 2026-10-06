@@ -26,6 +26,7 @@ import { AntiCheatNotesSettings, TimeToBeatSettings } from './settings/RecapSett
 import { BackgroundTrackingSettings } from './settings/BackgroundTrackingSettings';
 import { ArtPacksSettings } from './settings/ArtPacksSettings';
 import { ImmersiveSettings } from './settings/ImmersiveSettings';
+import { ServiceLogo } from '../components/ui/ServiceLogo';
 import './settings.css';
 
 interface Section {
@@ -319,7 +320,7 @@ function Controller({ s }: { s: Settings }) {
 function AiSection({ s }: { s: Settings }) {
   const navigate = useStore((st) => st.navigate);
   return (
-    <Group title="Local AI (optional)" description="Uses Ollama running on this PC. Nothing is sent to the cloud, no account is needed, and AI pauses while you play. Everything in VYSTRAL works without it.">
+    <Group title="Local AI (optional)" description={<>Uses <span className="svc-name"><ServiceLogo service="ollama" size={14} decorative />Ollama</span> running on this PC. Nothing is sent to the cloud, no account is needed, and AI pauses while you play. Everything in VYSTRAL works without it.</>}>
       <BoolRow s={s} k="ai.enabled" label="Enable local AI" hint="Adds natural-language search to the command bar and the Assistant page." />
       <Row label="Model" hint={<span className="num">{s['ai.model']}</span>} control={<Button size="sm" icon={<Sparkles size={14} />} onClick={() => navigate({ name: 'assistant' })}>Manage in Assistant</Button>} />
     </Group>

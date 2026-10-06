@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { motion } from 'motion/react';
-import { CalendarClock, Coins, Gem, Info, Library, RefreshCw, Store } from 'lucide-react';
+import { CalendarClock, Coins, Gem, Info, Library, RefreshCw } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { PlatformKey, ValueTimeline } from '../../bridge/types';
 import { formatRelative, PLATFORM_NAMES } from '../../lib/format';
@@ -147,7 +147,7 @@ export function LibraryValue() {
       </div>
       {/* Track M: next Steam sale (dates announced by Valve) and an estimate of backlog savings from past lows. */}
       <ValueForecast />
-      <p className="lv-foot"><Store size={12} aria-hidden /> Prices come from the Steam store’s public price data for {data.country}; games from other stores are counted but not priced.</p>
+      <p className="lv-foot"><StoreLogo platform="steam" size={14} decorative /> Prices come from the Steam store’s public price data for {data.country}; games from other stores are counted but not priced.</p>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowDown, ArrowUp, Cpu, Equal, Eye, EyeOff, GitCompareA
 import { call, errorMessage, on } from '../../bridge/bridge';
 import type { BackgroundAppStat, BackgroundImpact, DriverGameComparison, DriverInsight, Game } from '../../bridge/types';
 import { Badge, Button, IconButton, SectionHead, Skeleton } from '../../components/ui/primitives';
+import { DeviceName } from '../../components/ui/ServiceLogo';
 import { plural } from '../../lib/format';
 import { spring } from '../../lib/motion';
 import { useReducedMotion, useStore } from '../../state/store';
@@ -83,6 +84,7 @@ export function DriverChangeCard({ gameId, hideWhenEmpty }: { gameId?: string | 
       />
       {data.games.length > 0 ? (
         <div className="di-driver-list">
+          {last?.gpuName && <p className="di-muted di-device"><DeviceName name={last.gpuName} /></p>}
           {data.games.slice(0, gameId ? 1 : 4).map((c) => (
             <DriverComparisonView key={c.gameId} c={c} game={gamesById.get(c.gameId)} showGame={!gameId} />
           ))}
@@ -97,7 +99,7 @@ export function DriverChangeCard({ gameId, hideWhenEmpty }: { gameId?: string | 
         <div className="di-empty">
           <p className="di-change">
             Driver changed on <strong>{fmtDate(last.firstSeen)}</strong>: <span className="num">{prev.version}</span> → <span className="num">{last.version}</span>
-            {last.gpuName && <span className="di-muted"> · {last.gpuName}</span>}
+            {last.gpuName && <span className="di-muted"> · <DeviceName name={last.gpuName} /></span>}
           </p>
           <p className="di-muted">
             {data.sessionsWithFps === 0
@@ -113,7 +115,7 @@ export function DriverChangeCard({ gameId, hideWhenEmpty }: { gameId?: string | 
       ) : (
         <p className="di-muted">
           {last
-            ? <>Every session so far ran on driver <strong className="num">{last.version}</strong>{last.gpuName ? ` (${last.gpuName})` : ''}. When the driver changes, VYSTRAL compares your frame rates before and after.</>
+            ? <>Every session so far ran on driver <strong className="num">{last.version}</strong>{last.gpuName ? <> (<DeviceName name={last.gpuName} />)</> : ''}. When the driver changes, VYSTRAL compares your frame rates before and after.</>
             : 'VYSTRAL records the graphics driver version with each new session (read-only). When it changes, this card compares your frame rates before and after.'}
         </p>
       )}

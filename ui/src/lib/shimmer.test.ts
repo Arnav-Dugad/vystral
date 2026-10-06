@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { bestTier, FIRST_VISIT_WINDOW, isFresh, MAX_FRESH_AGE, shimmerTier, takeLastSeen } from './shimmer';
-import { markViewBox, monogramStroke, opticalSize, platformFromName, STORE_MARKS } from './storeMarks';
+import { glyphStroke, markViewBox, opticalSize, platformFromName, STORE_MARKS } from './storeMarks';
 
 const NOW = Date.parse('2026-10-05T12:00:00Z');
 
@@ -46,14 +46,14 @@ describe('fresh unlocks', () => {
 });
 
 describe('store marks', () => {
-  it('has a mark for every store, brand marks only where a licensed drawing exists', () => {
+  it('has a mark for every store: licensed brand marks, and a plain glyph for games you added', () => {
     expect(STORE_MARKS.steam.kind).toBe('brand');
     expect(STORE_MARKS.epic.kind).toBe('brand');
     expect(STORE_MARKS.gog.kind).toBe('brand');
     expect(STORE_MARKS.ea.kind).toBe('brand');
     expect(STORE_MARKS.ubisoft.kind).toBe('brand');
     expect(STORE_MARKS.battlenet.kind).toBe('brand');
-    expect(STORE_MARKS.xbox.kind).toBe('monogram');
+    expect(STORE_MARKS.xbox.kind).toBe('brand');
     expect(STORE_MARKS.manual.kind).toBe('glyph');
     for (const m of Object.values(STORE_MARKS)) if (m.kind === 'brand') expect(m.path).toMatch(/^M[\d.\-\s,a-zA-Z]+$/);
   });
@@ -65,8 +65,9 @@ describe('store marks', () => {
     expect(opticalSize(40)).toBe(24);
     expect(markViewBox(STORE_MARKS.steam, 24)).toBe('-0.9 -0.9 25.8 25.8');
     expect(markViewBox(STORE_MARKS.steam, 14)).toBe('-0.45 -0.45 24.9 24.9');
-    expect(markViewBox(STORE_MARKS.xbox, 16)).toBe('0 0 24 24');
-    expect(monogramStroke(14)).toBeGreaterThan(monogramStroke(24));
+    expect(markViewBox(STORE_MARKS.xbox, 16)).toBe('-0.9 -0.9 25.8 25.8');
+    expect(markViewBox(STORE_MARKS.manual, 16)).toBe('0 0 24 24');
+    expect(glyphStroke(14)).toBeGreaterThan(glyphStroke(24));
   });
 
   it('maps search chip names back to stores', () => {

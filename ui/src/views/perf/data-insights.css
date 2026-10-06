@@ -98,3 +98,4 @@
   .di-app { grid-template-columns: 32px minmax(0, 1fr) auto; }
   .di-app__stats { grid-column: 2; }
 }
+.di-device { margin: 0; } /* Track R: the GPU these comparisons ran on, with its maker's mark */

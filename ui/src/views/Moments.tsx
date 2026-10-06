@@ -1,10 +1,11 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { motion } from 'motion/react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Camera, Clapperboard, Film, FolderCog, FolderPlus, Gamepad2, Images, Info, Play, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { Film, FolderCog, FolderPlus, Gamepad2, Images, Info, Play, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
 import type { Game, MediaFolder, MediaItem } from '../bridge/types';
 import { call, errorMessage } from '../bridge/bridge';
 import { Button, EmptyState, IconButton, Segmented, Skeleton } from '../components/ui/primitives';
+import { StoreLogo } from '../components/ui/StoreLogo';
 import { useReducedMotion, useStore } from '../state/store';
 import { formatDate, plural } from '../lib/format';
 import { pick, spring } from '../lib/motion';
@@ -41,8 +42,8 @@ function OptIn() {
     setBusy(false);
   };
   const sources = [
-    { icon: <Camera size={18} aria-hidden />, title: 'Steam screenshots', body: 'From the screenshot folders Steam keeps for each of your accounts.' },
-    { icon: <Clapperboard size={18} aria-hidden />, title: 'Xbox Game Bar captures', body: 'Screenshots and clips saved with Win + Alt + PrtScn or Win + G.' },
+    { icon: <StoreLogo platform="steam" size={20} decorative />, title: 'Steam screenshots', body: 'From the screenshot folders Steam keeps for each of your accounts.' },
+    { icon: <StoreLogo platform="xbox" size={20} decorative />, title: 'Xbox Game Bar captures', body: 'Screenshots and clips saved with Win + Alt + PrtScn or Win + G.' },
     { icon: <FolderPlus size={18} aria-hidden />, title: 'Folders you choose', body: 'Add any folder where you keep captures, such as NVIDIA or OBS recordings.' },
   ];
   return (

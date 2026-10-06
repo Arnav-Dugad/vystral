@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { HardDrive, Info, Recycle, ShieldCheck, Store, Trash2 } from 'lucide-react';
+import { HardDrive, Info, Recycle, ShieldCheck, Trash2 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { DriveInfo, Game, PlatformKey } from '../bridge/types';
 import { formatBytes, formatRelative, PLATFORM_NAMES } from '../lib/format';
@@ -11,6 +11,7 @@ import { useReducedMotion, useStore } from '../state/store';
 import { GameCover } from '../components/game/GameCover';
 import { InstallBadge } from '../components/game/InstallProgress';
 import { Badge, Button, EmptyState, PlatformBadge, SectionHead, Skeleton } from '../components/ui/primitives';
+import { StoreLogo } from '../components/ui/StoreLogo';
 import { EmptyArt } from '../components/ui/EmptyArt';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
@@ -365,7 +366,7 @@ function StoreAction({ item, onUninstall }: { item: DriveGame; onUninstall: (g: 
     <Button
       size="sm"
       variant="ghost"
-      icon={<Store size={14} />}
+      icon={<StoreLogo platform={item.platform as PlatformKey} size={14} decorative motion />}
       aria-label={`Open ${item.game.title} in ${PLATFORM_NAMES[item.platform]}`}
       onClick={() =>
         void call('game.openInStore', { installationId: item.installation.id }).catch((err) =>

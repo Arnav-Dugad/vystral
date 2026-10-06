@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, Check, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import type { Settings } from '../bridge/types';
@@ -6,6 +6,8 @@ import { ease, pick, spring } from '../lib/motion';
 import { PLATFORM_NAMES } from '../lib/format';
 import { useReducedMotion, useStore } from '../state/store';
 import { Badge, Button, PlatformBadge, Toggle } from '../components/ui/primitives';
+import { StoreLogo } from '../components/ui/StoreLogo';
+import { ServiceLogo } from '../components/ui/ServiceLogo';
 import './onboarding.css';
 
 const STEPS = ['welcome', 'look', 'stores', 'features', 'privacy'] as const;
@@ -174,12 +176,13 @@ function Stores() {
 function Features() {
   const s = useStore((st) => st.settings)!;
   const set = useStore((st) => st.setSetting);
-  const rows: { k: keyof Settings; label: string; hint: string }[] = [
-    { k: 'library.fetchMetadata', label: 'Game details & artwork', hint: 'Looks up genres, descriptions and missing artwork on Steam’s public store pages. Exact matches only.' },
+  // Track R: the marks of the services a feature talks to, beside its name.
+  const rows: { k: keyof Settings; label: string; hint: string; marks?: ReactNode }[] = [
+    { k: 'library.fetchMetadata', label: 'Game details & artwork', hint: 'Looks up genres, descriptions and missing artwork on Steam’s public store pages. Exact matches only.', marks: <StoreLogo platform="steam" size={14} decorative /> },
     { k: 'performance.collectMetrics', label: 'Session performance history', hint: 'Records CPU/GPU/memory load (read-only) while games you launch from VYSTRAL run.' },
-    { k: 'moments.enabled', label: 'Moments', hint: 'Shows your Steam screenshots and Xbox Game Bar captures. Files are never uploaded or changed.' },
+    { k: 'moments.enabled', label: 'Moments', hint: 'Shows your Steam screenshots and Xbox Game Bar captures. Files are never uploaded or changed.', marks: <><StoreLogo platform="steam" size={14} decorative /><StoreLogo platform="xbox" size={14} decorative /></> },
     { k: 'updates.autoCheck', label: 'Check for VYSTRAL updates', hint: 'Looks for new versions on GitHub shortly after starting.' },
-    { k: 'ai.enabled', label: 'Local AI (advanced)', hint: 'Needs Ollama installed separately. Runs on this PC only; you choose and approve any model download.' },
+    { k: 'ai.enabled', label: 'Local AI (advanced)', hint: 'Needs Ollama installed separately. Runs on this PC only; you choose and approve any model download.', marks: <ServiceLogo service="ollama" size={14} decorative /> },
   ];
   return (
     <>
@@ -189,7 +192,7 @@ function Features() {
         {rows.map((r) => (
           <div key={r.k} className="onb__row">
             <div>
-              <div className="srow__label">{r.label}</div>
+              <div className="srow__label">{r.label}{r.marks && <span className="onb__marks">{r.marks}</span>}</div>
               <div className="srow__hint">{r.hint}</div>
             </div>
             <Toggle label={r.label} checked={!!s[r.k]} onChange={(v) => void set(r.k, v as never)} />

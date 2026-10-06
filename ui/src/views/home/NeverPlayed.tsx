@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Archive, BookmarkPlus, Moon, Play, Store } from 'lucide-react';
+import { Archive, BookmarkPlus, Moon, Play } from 'lucide-react';
 import type { Game } from '../../bridge/types';
 import { isInstalled, PLATFORM_NAMES, plural } from '../../lib/format';
 import { ageLabel, ageSourceNote, neverPlayedGames, tonightPicks } from '../../lib/neverPlayed';
@@ -13,7 +13,7 @@ import { LiveLayer } from '../../components/game/LiveTile';
 import { Shelf } from '../../components/game/Shelf';
 import { openInStore } from '../../components/game/InstallButton';
 import { Button, SectionHead } from '../../components/ui/primitives';
-import { StoreLogos } from '../../components/ui/StoreLogo';
+import { StoreLogo, StoreLogos } from '../../components/ui/StoreLogo';
 import './never-played.css';
 
 /**
@@ -83,7 +83,7 @@ function TonightCard({ game, reason, index, live }: { game: Game; reason: string
               Play
             </Button>
           ) : store ? (
-            <Button size="sm" variant="primary" icon={<Store size={14} />} onClick={() => openInStore(store)} aria-label={`Install ${game.title} in ${PLATFORM_NAMES[store.platform]}`}>
+            <Button size="sm" variant="primary" icon={<StoreLogo platform={store.platform} size={14} decorative motion />} onClick={() => openInStore(store)} aria-label={`Install ${game.title} in ${PLATFORM_NAMES[store.platform]}`}>
               Install
             </Button>
           ) : null}

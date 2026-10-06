@@ -41,8 +41,35 @@ test.describe('store logos', () => {
     for (const store of ['Steam', 'Epic Games', 'GOG', 'EA app', 'Ubisoft Connect', 'Xbox']) {
       await expect(page.locator('.adapter__head .platform-badge', { hasText: store }).locator('svg.store-logo')).toBeVisible();
     }
-    // Xbox has no licensed mark: a neutral monogram, never an imitation.
-    await expect(page.locator('svg.store-logo[data-platform="xbox"]').first()).toHaveAttribute('data-kind', 'monogram');
+    // Xbox shows its real sphere mark (Bootstrap Icons drawing, MIT), like every other store.
+    await expect(page.locator('svg.store-logo[data-platform="xbox"]').first()).toHaveAttribute('data-kind', 'brand');
+    expect(errors).toEqual([]);
+  });
+
+  // Track R: services that aren't stores show their licensed marks, or a plain icon when none exists.
+  test('service marks on data sources, Steam Web API and local AI; store marks on install buttons', async ({ page }) => {
+    const errors = await open(page, '?reduced');
+    await nav(page, 'Settings');
+    await page.getByRole('button', { name: 'Library & stores' }).click();
+    await expect(page.locator('#steamapi-title svg.store-logo[data-platform="steam"]')).toBeAttached();
+    const card = (id: string) => page.locator(`.dsrc-card svg.service-logo[data-service="${id}"]`);
+    await expect(card('igdb')).toHaveAttribute('data-kind', 'brand');
+    await expect(card('wikidata')).toHaveAttribute('data-kind', 'brand');
+    await expect(card('steamdeck')).toHaveAttribute('data-kind', 'brand');
+    // No openly licensed mark: a descriptive icon, never an imitation.
+    await expect(card('rawg')).toHaveAttribute('data-kind', 'generic');
+    await expect(card('awacy')).toHaveAttribute('data-kind', 'generic');
+    // The card names the source in text, so its mark is hidden from assistive technology.
+    await expect(card('igdb')).toHaveAttribute('aria-hidden', 'true');
+    expect(await seriousViolations(page)).toEqual([]);
+
+    await page.getByRole('button', { name: 'Local AI' }).click();
+    await expect(page.locator('.sgroup__desc svg.service-logo[data-service="ollama"]')).toBeVisible();
+
+    await nav(page, /Library/);
+    await page.getByLabel('Filter library').fill('Echoes of Vael');
+    await page.getByRole('button', { name: /^Echoes of Vael/ }).first().click();
+    await expect(page.getByRole('button', { name: /Install in EA app/ }).first().locator('svg.store-logo[data-platform="ea"]')).toBeVisible();
     expect(errors).toEqual([]);
   });
 });

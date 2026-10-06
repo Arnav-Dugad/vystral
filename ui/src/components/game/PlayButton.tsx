@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { AnimatePresence, motion, useSpring } from 'motion/react';
 import { ArrowDownToLine, Play, RefreshCw, RotateCcw, Square, Store, X } from 'lucide-react';
+import { StoreLogo } from '../ui/StoreLogo';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { Game } from '../../bridge/types';
 import { exit, spring } from '../../lib/motion';
@@ -227,7 +228,8 @@ function Glyph({ icon, state }: { icon: PlayIcon; state: PlayState }) {
     case 'download':
       return <ArrowDownToLine size={21} />;
     case 'store':
-      return <Store size={20} />;
+      // Track R: "Install in EA app" shows the EA mark, so you see where you're going.
+      return state.store ? <StoreLogo platform={state.store.platform} size={20} decorative motion /> : <Store size={20} />;
     case 'rescan':
       return <RefreshCw size={19} />;
     default:

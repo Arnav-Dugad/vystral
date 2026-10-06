@@ -4,6 +4,7 @@ import { AlertTriangle, Award, CloudOff, EyeOff, Gem, KeyRound, RefreshCw, Spark
 import { call, errorMessage, on } from '../../bridge/bridge';
 import type { AchievementFeed, AchievementFeedItem, AchievementOverview, Game, NearCompletion } from '../../bridge/types';
 import { Button, EmptyState, SectionHead, Skeleton } from '../../components/ui/primitives';
+import { StoreLogo } from '../../components/ui/StoreLogo';
 import { ProgressRing } from '../../components/game/InstallProgress';
 import { formatPercent, groupFeedByDay, mergeFeed, rarity, sortNearCompletion } from '../../lib/achievements';
 import { formatRelative, plural } from '../../lib/format';
@@ -112,7 +113,7 @@ export function AchievementTimeline() {
       </div>
 
       <p className="at-source">
-        From Steam, through your own Web API key{overview.lastFetched ? ` · updated ${formatRelative(overview.lastFetched).toLowerCase()}` : ''}. Rarity is the share of all Steam players who unlocked it.
+        <StoreLogo platform="steam" size={14} decorative /> From Steam, through your own Web API key{overview.lastFetched ? ` · updated ${formatRelative(overview.lastFetched).toLowerCase()}` : ''}. Rarity is the share of all Steam players who unlocked it.
         {overview.message && <> {overview.message}</>}
       </p>
 

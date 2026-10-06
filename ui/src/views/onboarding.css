@@ -24,3 +24,4 @@
 .onb__store .platform-badge { font-size: var(--fs-md); color: var(--text-1); }
 .onb__shield { width: 84px; height: 84px; border-radius: 26px; display: grid; place-items: center; color: var(--ok); background: oklch(from var(--ok) l c h / 0.12); }
 .onb__bullets { text-align: left; color: var(--text-2); display: grid; gap: 10px; max-width: 52ch; line-height: 1.5; }
+.onb__marks { display: inline-flex; gap: 5px; margin-left: 8px; vertical-align: -0.15em; color: var(--text-3); }
