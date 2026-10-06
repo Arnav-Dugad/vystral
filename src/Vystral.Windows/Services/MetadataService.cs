@@ -57,6 +57,13 @@ public sealed partial class MetadataService(LibraryRepository repo, ArtworkServi
                 Log.Warn("metadata", "Steam store rate limit reached; pausing enrichment for this run.");
                 break;
             }
+            catch (Exception ex) when (ex is (InvalidOperationException and not ObjectDisposedException) or KeyNotFoundException or FormatException)
+            {
+                // An answer of an unexpected shape: skip this game for good instead of stopping every later run on it.
+                Log.Warn("metadata", "Steam's answer for this game couldn't be read", new { gameId }, ex);
+                try { repo.MarkMetadataAttempted(gameId); }
+                catch (Microsoft.Data.Sqlite.SqliteException e) { Log.Warn("metadata", "Couldn't mark the game as looked up", new { gameId }, e); }
+            }
             catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException && !ct.IsCancellationRequested)
             {
                 Log.Warn("metadata", "Metadata lookup failed", new { gameId }, ex);
@@ -80,36 +87,37 @@ public sealed partial class MetadataService(LibraryRepository repo, ArtworkServi
     private void CaptureTrailer(string gameId, string appId, string json)
     {
         try { repo.SetTrailer(gameId, appId, Vystral.Core.Media.SteamTrailers.Select(appId, json)); }
-        catch (Exception ex) when (ex is JsonException or Microsoft.Data.Sqlite.SqliteException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or Microsoft.Data.Sqlite.SqliteException)
         {
             Log.Warn("metadata", "Trailer details couldn't be recorded", new { gameId }, ex);
         }
     }
 
+    /// <summary>
+    /// Reads appdetails. Steam's answer is untrusted: any shape other than the expected one (null, arrays,
+    /// wrongly-typed fields) yields null or skips the field, never an exception. Invalid JSON still throws
+    /// <see cref="JsonException"/> (usually an error page: network trouble, retried on a later run).
+    /// </summary>
     internal static SteamDetails? ParseDetails(string appId, string json)
     {
         using var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty(appId, out var entry) ||
+        if (DataSources.JsonRead.Obj(doc.RootElement, appId) is not { } entry ||
             !entry.TryGetProperty("success", out var ok) || ok.ValueKind != JsonValueKind.True ||
-            !entry.TryGetProperty("data", out var data))
+            DataSources.JsonRead.Obj(entry, "data") is not { } data)
             return null;
 
         static IReadOnlyList<string> Strings(JsonElement e, string name) =>
-            e.TryGetProperty(name, out var arr) && arr.ValueKind == JsonValueKind.Array
-                ? arr.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => Clean(x.GetString()!, 120)).Where(s => s.Length > 0).Take(5).ToList()
-                : [];
+            DataSources.JsonRead.Arr(e, name).Where(x => x.ValueKind == JsonValueKind.String)
+                .Select(x => Clean(x.GetString()!, 120)).Where(s => s.Length > 0).Take(5).ToList();
 
-        var genres = data.TryGetProperty("genres", out var g) && g.ValueKind == JsonValueKind.Array
-            ? g.EnumerateArray().Select(x => x.TryGetProperty("description", out var d) ? Clean(d.GetString() ?? "", 40) : "")
-                .Where(s => s.Length > 0).Distinct().Take(8).ToList()
-            : [];
-        var description = data.TryGetProperty("short_description", out var sd) ? Clean(sd.GetString() ?? "", 1200) : null;
-        var release = data.TryGetProperty("release_date", out var rd) && rd.TryGetProperty("date", out var date)
-            ? Clean(date.GetString() ?? "", 40) : null;
-        var name = data.TryGetProperty("name", out var n) ? Clean(n.GetString() ?? "", 200) : "";
+        var genres = DataSources.JsonRead.Arr(data, "genres")
+            .Select(x => DataSources.JsonRead.Str(x, "description", 40) ?? "")
+            .Where(s => s.Length > 0).Distinct().Take(8).ToList();
+        var description = DataSources.JsonRead.Str(data, "short_description", 1200);
+        var release = DataSources.JsonRead.Obj(data, "release_date") is { } rd ? DataSources.JsonRead.Str(rd, "date", 40) : null;
+        var name = DataSources.JsonRead.Str(data, "name", 200) ?? "";
 
-        return new SteamDetails(name, string.IsNullOrEmpty(description) ? null : description,
-            Strings(data, "developers"), Strings(data, "publishers"), genres, string.IsNullOrEmpty(release) ? null : release);
+        return new SteamDetails(name, description, Strings(data, "developers"), Strings(data, "publishers"), genres, release);
     }
 
     private async Task<string?> FindExactSteamMatchAsync(string title, CancellationToken ct)
@@ -123,12 +131,19 @@ public sealed partial class MetadataService(LibraryRepository repo, ArtworkServi
     internal static string? PickExactMatch(string title, string searchJson)
     {
         using var doc = JsonDocument.Parse(searchJson);
-        if (!doc.RootElement.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array) return null;
         var target = TitleNormalizer.Normalize(title).Full;
-        var matches = items.EnumerateArray()
-            .Where(i => i.TryGetProperty("type", out var t) && t.GetString() == "app")
-            .Where(i => i.TryGetProperty("name", out var n) && TitleNormalizer.Normalize(n.GetString() ?? "").Full == target)
-            .Select(i => i.GetProperty("id").ToString())
+        // Untrusted answer: items that aren't objects, or lack a string type/name or a numeric id, are skipped.
+        var matches = DataSources.JsonRead.Arr(doc.RootElement, "items")
+            .Where(i => i.ValueKind == JsonValueKind.Object)
+            .Where(i => i.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String && t.GetString() == "app")
+            .Where(i => i.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String && TitleNormalizer.Normalize(n.GetString()!).Full == target)
+            .Select(i => i.TryGetProperty("id", out var id) ? id.ValueKind switch
+            {
+                JsonValueKind.Number => id.GetRawText(),
+                JsonValueKind.String => id.GetString(),
+                _ => null,
+            } : null)
+            .Where(id => id is { Length: > 0 and <= 10 } && id.All(char.IsAsciiDigit))
             .Distinct()
             .ToList();
         // Ambiguity (two different apps with the same normalized title) means we can't be sure.

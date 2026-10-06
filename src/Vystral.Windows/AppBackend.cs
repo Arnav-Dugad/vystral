@@ -60,11 +60,8 @@ public sealed partial class AppBackend : IDisposable
         {
             // Keep the broken file for recovery and start with a fresh database so games can still be launched.
             Log.Error("db", "Migration failed; starting with a fresh database", ex);
-            var keep = Path.Combine(Paths.Backups, $"failed-migration-{DateTime.Now:yyyyMMddHHmmss}.db");
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            File.Move(Paths.Database, keep, overwrite: true);
-            Database.Migrate();
-            StartupProblem = $"Your library database couldn't be upgraded, so VYSTRAL started fresh. The old file was kept at {keep}.";
+            StartupProblem = RecoverFromFailedMigration(out var fresh);
+            Database = fresh;
         }
         Repository = new LibraryRepository(Database);
         // Track H: a session the background tracker owns or handed over stays open; whoever tracks next continues or closes it.
@@ -91,9 +88,10 @@ public sealed partial class AppBackend : IDisposable
         Ai = new OllamaService(Settings, events);
         Media = new MediaService(Repository, Settings, _steam);
 
-        Func<bool> gameRunning = () => Sessions.Current?.Phase is "running" or "waiting" or "starting";
+        Func<bool> gameRunning = () => IsGameActive;
         Library.IsGameRunning = gameRunning;
         Updates.IsGameRunning = gameRunning;
+        Updates.BeforeRestart = Shutdown; // "Restart to update" exits the process: run the clean-exit path first
         Ai.IsGameRunning = gameRunning;
         Sessions.StateChanged += OnLaunchStateChanged;
 
@@ -112,7 +110,53 @@ public sealed partial class AppBackend : IDisposable
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 
-    public bool IsGameActive => Sessions.Current?.Phase is "running" or "waiting" or "starting";
+    /// <summary>
+    /// The database couldn't be migrated: move it aside, with its -wal/-shm journal (they belong to it, and a stale
+    /// journal next to a fresh file must never be replayed into it), and start fresh. When a file is in use (the
+    /// background tracker may hold it open), everything moved is put back and this run uses a fresh database in
+    /// the backups folder instead, so startup never fails.
+    /// </summary>
+    private string RecoverFromFailedMigration(out Database fresh)
+    {
+        var stamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+        var keep = Path.Combine(Paths.Backups, $"failed-migration-{stamp}.db");
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        var moved = new List<(string From, string To)>();
+        try
+        {
+            Directory.CreateDirectory(Paths.Backups);
+            // Journal first: if the database itself then can't move, nothing is left half-moved after the roll-back.
+            foreach (var (from, to) in new[] { (Paths.Database + "-wal", keep + "-wal"), (Paths.Database + "-shm", keep + "-shm"), (Paths.Database, keep) })
+            {
+                if (!File.Exists(from)) continue;
+                File.Move(from, to, overwrite: true);
+                moved.Add((from, to));
+            }
+            fresh = new Database(Paths.Database);
+            fresh.Migrate();
+            return $"Your library database couldn't be upgraded, so VYSTRAL started fresh. The old file was kept at {keep}.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error("db", "Couldn't move the database aside; using a temporary one for this run", ex);
+            for (var i = moved.Count - 1; i >= 0; i--)
+            {
+                try { File.Move(moved[i].To, moved[i].From, overwrite: false); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Log.Warn("db", "Couldn't put a database file back", ex: e); }
+            }
+            var temporary = Path.Combine(Paths.Backups, $"temporary-{stamp}.db");
+            Directory.CreateDirectory(Paths.Backups);
+            fresh = new Database(temporary);
+            fresh.Migrate();
+            return "Your library database couldn't be upgraded, and another VYSTRAL process is using it, so this session started with an empty library. Your games and history are safe: close VYSTRAL (and turn off background tracking if it's on), then open it again.";
+        }
+    }
+
+    /// <summary>A game is starting or running (one rule everywhere: <see cref="SessionService.IsActivePhase"/>).</summary>
+    public bool IsGameActive => Sessions.IsBusy;
+
+    /// <summary>Data saver is on (manually, or because the connection is metered): no optional downloads in the background.</summary>
+    private bool DataSaverActive => _trailers?.DataSaverActive == true;
 
     /// <summary>Called once the UI has rendered: kicks off the first scan and the update check.</summary>
     private void OnUiReady()
@@ -138,7 +182,8 @@ public sealed partial class AppBackend : IDisposable
                         if (Settings.GetBool("updates.autoCheck") && !Settings.GetBool("privacy.localOnly"))
                         {
                             var state = await Updates.CheckAsync();
-                            if (state.Phase == "available" && Settings.GetBool("updates.autoDownload")) state = await Updates.DownloadAsync();
+                            // Data saver (manual or metered connection): check only; the download waits for the user or a later round.
+                            if (state.Phase == "available" && Settings.GetBool("updates.autoDownload") && !DataSaverActive) state = await Updates.DownloadAsync();
                             if (state.Phase == "ready") break; // installs on the next start
                         }
                         await Task.Delay(TimeSpan.FromHours(6), _life.Token);
@@ -150,25 +195,33 @@ public sealed partial class AppBackend : IDisposable
         }
     }
 
+    private int _enrichmentPausedForGame;
+
     private void OnLaunchStateChanged(LaunchStateDto state)
     {
-        if (state.Phase == "running") Library.StopEnrichment();
-        if (state.Phase == "ended" && state.SessionId is not null)
+        // Background enrichment stops as soon as a launch starts (not only once the game runs) and resumes after.
+        if (SessionService.IsActivePhase(state.Phase))
         {
-            _events.Emit("library.changed", new { reason = "session" });
-            Library.StartEnrichment();
+            if (Interlocked.Exchange(ref _enrichmentPausedForGame, 1) == 0) Library.StopEnrichment();
+            return;
         }
+        if (state.Phase == "ended" && state.SessionId is not null) _events.Emit("library.changed", new { reason = "session" });
+        if (!IsGameActive && Interlocked.Exchange(ref _enrichmentPausedForGame, 0) == 1) Library.StartEnrichment();
     }
+
+    private int _shutdown;
 
     public void Shutdown()
     {
+        if (Interlocked.Exchange(ref _shutdown, 1) == 1) return; // also run by "Restart to update", before the window closes
         _life.Cancel();
         ShutdownTracking(); // Track H: hand a running session to the background tracker first
         Sessions.StopTracking();
         Updates.ApplyOnExitIfReady();
         RecordCleanExit();
-        try { File.Delete(Paths.CrashMarker); } catch (IOException) { }
+        try { File.Delete(Paths.CrashMarker); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         Log.Info("app", "Clean shutdown");
+        Log.Flush(TimeSpan.FromSeconds(1));
     }
 
     public void Dispose()

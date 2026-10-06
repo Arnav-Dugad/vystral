@@ -144,15 +144,19 @@ public sealed partial class AppBackend
         });
 
         Dispatcher.Register("update.state", _ => Task.FromResult<object?>(Updates.State));
-        Dispatcher.Register("update.check", async _ => await Updates.CheckAsync());
-        Dispatcher.Register("update.download", async _ => await Updates.DownloadAsync());
-        Dispatcher.Register("update.cancel", _ => { Updates.CancelDownload(); return Task.FromResult<object?>(Updates.State); });
-        Dispatcher.Register("update.apply", _ =>
+        Dispatcher.Register("update.check", async _ =>
         {
-            var state = Updates.ApplyAndRestart();
-            if (state.Phase == "applying") Shutdown();
-            return Task.FromResult<object?>(state);
+            EnsureOnline("check for updates");
+            return await Updates.CheckAsync();
         });
+        Dispatcher.Register("update.download", async _ =>
+        {
+            EnsureOnline("download the update");
+            return await Updates.DownloadAsync();
+        });
+        Dispatcher.Register("update.cancel", _ => { Updates.CancelDownload(); return Task.FromResult<object?>(Updates.State); });
+        // The clean-exit path (Shutdown) runs inside, right before Velopack exits the process (Updates.BeforeRestart).
+        Dispatcher.Register("update.apply", _ => Task.FromResult<object?>(Updates.ApplyAndRestart()));
         Dispatcher.Register("update.openReleases", _ =>
         {
             _shell.OpenUri(new Uri(UpdateService.RepositoryUrl + "/releases"));
@@ -163,7 +167,17 @@ public sealed partial class AppBackend
         Dispatcher.Register<ModelParams>("ai.pull", (p, ct) =>
         {
             if (!OllamaService.IsValidModelName(p.Model)) throw new BridgeException("invalid", "That model name isn't valid.");
-            _ = Task.Run(() => Ai.PullAsync(p.Model));
+            var model = p.Model;
+            _ = Task.Run(async () =>
+            {
+                try { await Ai.PullAsync(model); }
+                catch (Exception ex)
+                {
+                    // The UI waits for a final status: always send one.
+                    Log.Warn("ai", "Model download failed", ex: ex);
+                    _events.Emit("ai.pull", new { model, status = "error", error = ex is BridgeException b ? b.Message : "Download failed." });
+                }
+            });
             return Task.FromResult<object?>(true);
         });
         Dispatcher.Register("ai.cancelPull", _ => { Ai.CancelPull(); return Task.FromResult<object?>(true); });
@@ -177,6 +191,12 @@ public sealed partial class AppBackend
             {
                 try { await Ai.ChatAsync(requestId, history, context); }
                 catch (BridgeException ex) { _events.Emit("ai.chat", new { requestId, done = true, error = ex.Message }); }
+                catch (Exception ex)
+                {
+                    // The UI waits for a final event: always send one.
+                    Log.Warn("ai", "Chat failed", ex: ex);
+                    _events.Emit("ai.chat", new { requestId, done = true, error = "Something went wrong talking to Ollama. Try again." });
+                }
             });
             return Task.FromResult<object?>(true);
         });
@@ -191,4 +211,11 @@ public sealed partial class AppBackend
     }
 
     private string OllamaService_BuildContext() => OllamaService.BuildLibraryContext(Library.Snapshot());
+
+    /// <summary>Offline mode: nothing that contacts the internet runs, even when asked from Settings.</summary>
+    private void EnsureOnline(string toDo)
+    {
+        if (Settings.GetBool("privacy.localOnly"))
+            throw new BridgeException("offline", $"Offline mode is on. Turn it off in Settings → Privacy to {toDo}.");
+    }
 }

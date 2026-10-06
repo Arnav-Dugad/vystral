@@ -139,10 +139,9 @@ public sealed class UpdateService
     {
         if (_manager is null || _pending is null) return State;
         if (IsGameRunning()) return Set(State with { Message = "Updates download after your game closes." });
-        var cts = _downloadCts = new CancellationTokenSource();
+        if (!TryBeginDownload(out var cts)) return State;
         var sw = Stopwatch.StartNew();
         var total = State.TotalBytes ?? _pending.TargetFullRelease.Size;
-        Set(State with { Phase = "downloading", Progress = 0, Message = null, BytesPerSecond = null });
         try
         {
             // Velopack deletes the running version's package once the new one is downloaded: keep it for a rollback.
@@ -170,7 +169,38 @@ public sealed class UpdateService
         }
     }
 
-    public void CancelDownload() => _downloadCts?.Cancel();
+    /// <summary>
+    /// Moves to "downloading" unless a download is already running or done. One download at a time (the background
+    /// loop and the Settings button can ask at once): a second caller gets false and never replaces the running
+    /// download's cancellation.
+    /// </summary>
+    internal bool TryBeginDownload(out CancellationTokenSource cts)
+    {
+        UpdateStateDto started;
+        lock (_lock)
+        {
+            if (_state.Phase is "downloading" or "ready" or "applying")
+            {
+                cts = null!;
+                return false;
+            }
+            cts = _downloadCts = new CancellationTokenSource();
+            started = _state = _state with { Phase = "downloading", Progress = 0, Message = null, BytesPerSecond = null };
+        }
+        _events.Emit("update.state", started);
+        return true;
+    }
+
+    public void CancelDownload()
+    {
+        lock (_lock) _downloadCts?.Cancel();
+    }
+
+    /// <summary>
+    /// Runs the app's clean-exit path (session hand-over, clean-exit record, crash marker, log flush) right before
+    /// the restart. Velopack's restart exits the process, so nothing after it runs.
+    /// </summary>
+    public Action? BeforeRestart { get; set; }
 
     /// <summary>Restarts into the new version. Refused while a game is being tracked.</summary>
     public UpdateStateDto ApplyAndRestart()
@@ -178,7 +208,19 @@ public sealed class UpdateService
         if (_manager is null || _pending is null || State.Phase != "ready") return State;
         if (IsGameRunning()) return Set(State with { Message = "Close your game first; VYSTRAL restarts to finish updating." });
         Set(State with { Phase = "applying" });
-        _manager.ApplyUpdatesAndRestart(_pending.TargetFullRelease);
+        try { BeforeRestart?.Invoke(); }
+        catch (Exception ex) { Log.Warn("update", "Shutting down before the restart failed", ex: ex); }
+        try
+        {
+            _manager.ApplyUpdatesAndRestart(_pending.TargetFullRelease);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("update", "Restarting into the update failed", ex);
+            Set(State with { Phase = "ready", Message = "VYSTRAL couldn't restart to install the update. It installs when you close VYSTRAL." });
+            ApplyOnExitIfReady(); // the clean-exit path already ran, so arrange the install for this process's exit here
+            return State;
+        }
         return State;
     }
 

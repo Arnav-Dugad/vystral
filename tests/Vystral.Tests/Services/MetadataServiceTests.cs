@@ -190,6 +190,72 @@ public sealed class MetadataServiceTests
     public void PickExactMatch_returns_null_without_items(string json) =>
         Assert.Null(MetadataService.PickExactMatch("Hades", json));
 
+    // ---------- Malformed answers (used to throw and stop every later enrichment run on the same game) ----------
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("42")]
+    [InlineData("""{"items":[null, 1, "x", []]}""")]
+    [InlineData("""{"items":[{"type":"app","name":"Hades"}]}""")]
+    [InlineData("""{"items":[{"type":"app","name":"Hades","id":null}]}""")]
+    [InlineData("""{"items":[{"type":"app","name":"Hades","id":{"x":1}}]}""")]
+    [InlineData("""{"items":[{"type":"app","name":"Hades","id":"../1"}]}""")]
+    [InlineData("""{"items":[{"type":1,"name":"Hades","id":1}]}""")]
+    [InlineData("""{"items":[{"type":"app","name":["Hades"],"id":1}]}""")]
+    public void PickExactMatch_never_throws_on_wrongly_shaped_answers(string json) =>
+        Assert.Null(MetadataService.PickExactMatch("Hades", json));
+
+    [Fact]
+    public void PickExactMatch_skips_broken_items_but_keeps_a_good_one() =>
+        Assert.Equal("1145360", MetadataService.PickExactMatch("Hades", """{"items":[null,{"type":"app","name":"Hades"},{"type":"app","name":"Hades","id":1145360}]}"""));
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("""{"10":null}""")]
+    [InlineData("""{"10":[]}""")]
+    [InlineData("""{"10":{"success":true,"data":null}}""")]
+    [InlineData("""{"10":{"success":true,"data":[]}}""")]
+    [InlineData("""{"10":{"success":true,"data":"x"}}""")]
+    public void ParseDetails_returns_null_for_wrongly_shaped_answers(string json) =>
+        Assert.Null(MetadataService.ParseDetails("10", json));
+
+    [Fact]
+    public void ParseDetails_skips_wrongly_typed_fields()
+    {
+        var d = MetadataService.ParseDetails("10", """
+            {"10":{"success":true,"data":{"name":5,"short_description":null,"developers":"Valve","publishers":[1,"Valve",null],
+              "genres":[null,"Action",{"description":7},{"description":"RPG"},{"id":1}],"release_date":"2020"}}}
+            """)!;
+        Assert.Equal("5", d.Name);
+        Assert.Null(d.Description);
+        Assert.Empty(d.Developers);
+        Assert.Equal(["Valve"], d.Publishers);
+        Assert.Equal(["7", "RPG"], d.Genres);
+        Assert.Null(d.ReleaseDate);
+    }
+
+    [Fact]
+    public async Task A_malformed_answer_marks_the_game_looked_up_so_the_next_run_moves_on()
+    {
+        using var t = new Vystral.Tests.Support.TestDb();
+        var game = t.Repo.AddManualGame("Odd Game", @"C:\Games\odd\odd.exe", null);
+        var requests = 0;
+        using var http = new HttpClient(new Vystral.Tests.SteamAccount.FakeHandler(_ =>
+        {
+            Interlocked.Increment(ref requests);
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("null") };
+        }));
+        var art = new ArtworkService(new AppPaths(Path.Combine(t.Dir.Path, "data")), t.Repo, http);
+        var metadata = new MetadataService(t.Repo, art, http);
+
+        Assert.Equal(0, await metadata.EnrichAsync(5, fetchArtwork: false, () => false, TestContext.Current.CancellationToken));
+
+        Assert.DoesNotContain(t.Repo.GamesNeedingMetadata(10), g => g.GameId == game);
+        Assert.Equal(1, requests);
+    }
+
     // ---------- Clean ----------
 
     [Theory]

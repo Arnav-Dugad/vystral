@@ -99,8 +99,9 @@ public sealed class BackgroundTrackerHost : IDisposable
         }
         finally
         {
-            try { _app?.Tracker.Dispose(); } catch (Exception) { }
+            // Stop the session loop first: it reads the tracker's process snapshots.
             try { _app?.Sessions.Dispose(); } catch (Exception) { }
+            try { _app?.Tracker.Dispose(); } catch (Exception) { }
             single.ReleaseMutex();
         }
     }

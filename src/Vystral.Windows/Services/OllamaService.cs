@@ -73,25 +73,33 @@ public sealed partial class OllamaService
         if (!IsValidModelName(model)) throw new BridgeException("invalid", "That model name isn't valid.");
         _pullCts?.Cancel();
         var cts = _pullCts = new CancellationTokenSource();
+        // Progress arrives every few seconds while a model downloads; a long silence means Ollama stalled.
+        using var stall = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+        stall.CancelAfter(PullIdleLimit);
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, "api/pull") { Content = JsonContent.Create(new { model, stream = true }) };
-            using var res = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            using var res = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, stall.Token);
             res.EnsureSuccessStatusCode();
             var failed = false;
-            await foreach (var obj in ReadNdjson(res, cts.Token))
+            await foreach (var obj in ReadNdjson(res, stall.Token))
             {
+                stall.CancelAfter(PullIdleLimit);
                 failed |= obj["error"] is not null;
                 _events.Emit("ai.pull", new
                 {
                     model,
-                    status = obj["status"]?.GetValue<string>() ?? (obj["error"] is null ? "working" : "error"),
-                    total = obj["total"]?.GetValue<long>(),
-                    completed = obj["completed"]?.GetValue<long>(),
-                    error = obj["error"]?.GetValue<string>(),
+                    status = Str(obj["status"]) ?? (obj["error"] is null ? "working" : "error"),
+                    total = Num(obj["total"]),
+                    completed = Num(obj["completed"]),
+                    error = Str(obj["error"]),
                 });
             }
             if (!failed) _events.Emit("ai.pull", new { model, status = "done" });
+        }
+        catch (OperationCanceledException) when (!cts.IsCancellationRequested)
+        {
+            _events.Emit("ai.pull", new { model, status = "error", error = "Download failed: Ollama stopped responding." });
         }
         catch (OperationCanceledException)
         {
@@ -101,9 +109,21 @@ public sealed partial class OllamaService
         {
             _events.Emit("ai.pull", new { model, status = "error", error = $"Download failed: {ex.Message}" });
         }
+        catch (Exception ex)
+        {
+            // Anything else (an unexpected answer shape, a broken stream) still ends the download in the UI.
+            Log.Warn("ai", "Model download failed", ex: ex);
+            _events.Emit("ai.pull", new { model, status = "error", error = "Download failed: Ollama sent an answer VYSTRAL couldn't read." });
+        }
     }
 
     public void CancelPull() => _pullCts?.Cancel();
+
+    /// <summary>A model download that reports no progress for this long is ended.</summary>
+    internal static readonly TimeSpan PullIdleLimit = TimeSpan.FromMinutes(5);
+
+    private static string? Str(JsonNode? n) => n is JsonValue v && v.TryGetValue<string>(out var s) ? s : null;
+    private static long? Num(JsonNode? n) => n is JsonValue v && v.TryGetValue<long>(out var l) ? l : null;
 
     /// <summary>Streams an assistant answer grounded in the provided library context.</summary>
     public async Task ChatAsync(string requestId, IReadOnlyList<(string Role, string Content)> history, string libraryContext)
@@ -126,36 +146,49 @@ public sealed partial class OllamaService
             ["think"] = false,
             ["options"] = new JsonObject { ["temperature"] = 0.4, ["num_ctx"] = 8192 },
         };
+        // Ollama can accept the request and then never answer: a stall (nothing streamed for ChatIdleLimit) ends it.
+        using var stall = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+        stall.CancelAfter(ChatIdleLimit);
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, "api/chat") { Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json") };
-            using var res = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            using var res = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, stall.Token);
             if (!res.IsSuccessStatusCode)
             {
                 _events.Emit("ai.chat", new { requestId, done = true, error = await ModelError(res) });
                 return;
             }
-            await foreach (var obj in ReadNdjson(res, cts.Token))
+            await foreach (var obj in ReadNdjson(res, stall.Token))
             {
+                stall.CancelAfter(ChatIdleLimit);
                 if (IsGameRunning())
                 {
                     _events.Emit("ai.chat", new { requestId, done = true, error = "Paused because a game is running." });
                     return;
                 }
-                var delta = obj["message"]?["content"]?.GetValue<string>();
+                var delta = obj["message"]?["content"] is JsonValue v && v.TryGetValue<string>(out var s) ? s : null;
                 if (!string.IsNullOrEmpty(delta)) _events.Emit("ai.chat", new { requestId, delta });
             }
             _events.Emit("ai.chat", new { requestId, done = true });
         }
         catch (OperationCanceledException)
         {
-            _events.Emit("ai.chat", new { requestId, done = true, error = "Stopped." });
+            _events.Emit("ai.chat", new { requestId, done = true, error = cts.IsCancellationRequested ? "Stopped." : "Ollama stopped responding." });
         }
         catch (HttpRequestException)
         {
             _events.Emit("ai.chat", new { requestId, done = true, error = "Ollama stopped responding." });
         }
+        catch (Exception ex)
+        {
+            // Whatever went wrong, the conversation must end in the UI instead of waiting forever.
+            Log.Warn("ai", "Chat failed", ex: ex);
+            _events.Emit("ai.chat", new { requestId, done = true, error = "Something went wrong talking to Ollama. Try again." });
+        }
     }
+
+    /// <summary>A chat that streams nothing for this long is ended (the first token can take a while on a slow PC).</summary>
+    internal static readonly TimeSpan ChatIdleLimit = TimeSpan.FromMinutes(3);
 
     public void CancelChat() => _chatCts?.Cancel();
 

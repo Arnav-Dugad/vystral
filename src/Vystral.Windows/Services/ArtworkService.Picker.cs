@@ -50,17 +50,18 @@ public sealed partial class ArtworkService
     {
         try
         {
-            using var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
+            using var timeout = RequestTimeouts.Link(ct, RequestTimeouts.Media);
+            using var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden || !response.IsSuccessStatusCode) return null;
             // Redirects must stay on HTTPS.
             if (response.RequestMessage?.RequestUri is { } final && final.Scheme != Uri.UriSchemeHttps) return null;
             if (response.Content.Headers.ContentLength > maxBytes) return null;
             if (!(response.Content.Headers.ContentType?.MediaType ?? "").StartsWith("image/", StringComparison.OrdinalIgnoreCase)) return null;
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
             using var buffer = new MemoryStream();
             var chunk = new byte[65536];
             int read;
-            while ((read = await stream.ReadAsync(chunk, ct)) > 0)
+            while ((read = await stream.ReadAsync(chunk, timeout.Token)) > 0)
             {
                 buffer.Write(chunk, 0, read);
                 if (buffer.Length > maxBytes) return null;
@@ -68,7 +69,7 @@ public sealed partial class ArtworkService
             var bytes = buffer.ToArray();
             return LooksLikeImage(bytes) ? bytes : null;
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException && !ct.IsCancellationRequested)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException && !ct.IsCancellationRequested)
         {
             Log.Warn("art", "Picker image download failed", new { host = uri.Host, error = ex.GetType().Name });
             return null;

@@ -133,17 +133,20 @@ public sealed partial class LiveTileService : IDisposable
         var temp = path + ".part";
         try
         {
-            using var response = await _media.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
+            // HttpClient.Timeout stops at the headers with ResponseHeadersRead: limit the body read too,
+            // so a stalled download can't hold one of the download slots forever.
+            using var timeout = RequestTimeouts.Link(ct, RequestTimeouts.Media);
+            using var response = await _media.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             if (response.StatusCode != HttpStatusCode.OK) return false;
             if (response.Content.Headers.ContentLength > SteamMicroTrailers.MaxBytes) return false;
-            var body = await ReadCappedAsync(response.Content, SteamMicroTrailers.MaxBytes, ct);
+            var body = await ReadCappedAsync(response.Content, SteamMicroTrailers.MaxBytes, timeout.Token);
             if (body is null || !SteamMicroTrailers.LooksLikeMp4(body)) return false;
             await File.WriteAllBytesAsync(temp, body, ct);
             File.Move(temp, path, overwrite: true);
             Evict(gameId, path);
             return true;
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException or TaskCanceledException && !ct.IsCancellationRequested)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException or OperationCanceledException && !ct.IsCancellationRequested)
         {
             Log.Warn("live-tiles", "Micro-trailer download failed", new { gameId, host = uri.Host }, ex);
             return false;

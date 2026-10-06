@@ -43,7 +43,9 @@ public static partial class SteamTrailers
     {
         if (!AppIdPattern().IsMatch(appId)) return null;
         using var doc = JsonDocument.Parse(appDetailsJson);
-        if (!doc.RootElement.TryGetProperty(appId, out var entry) || entry.ValueKind != JsonValueKind.Object ||
+        // Untrusted: "null", an array or a string at the top must not throw.
+        if (doc.RootElement.ValueKind != JsonValueKind.Object ||
+            !doc.RootElement.TryGetProperty(appId, out var entry) || entry.ValueKind != JsonValueKind.Object ||
             !entry.TryGetProperty("success", out var ok) || ok.ValueKind != JsonValueKind.True ||
             !entry.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object ||
             !data.TryGetProperty("movies", out var movies) || movies.ValueKind != JsonValueKind.Array)

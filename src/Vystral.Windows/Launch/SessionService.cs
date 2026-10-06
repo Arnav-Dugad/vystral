@@ -33,7 +33,9 @@ public sealed record LaunchStateDto(
     string? Source = null);
 
 /// <summary>A running session as the trackers hand it to each other (and as the crash-recovery heartbeat describes it).</summary>
-public sealed record ActiveSessionInfo(string SessionId, string GameId, string? InstallationId, string Source, DateTimeOffset Start, DateTimeOffset LastSeen);
+/// <param name="PlayedSeconds">Time actually played so far (system sleep excluded); null when unknown.</param>
+public sealed record ActiveSessionInfo(string SessionId, string GameId, string? InstallationId, string Source, DateTimeOffset Start, DateTimeOffset LastSeen,
+    int? PlayedSeconds = null);
 
 /// <summary>One step of a running session: its processes now, or that it has ended.</summary>
 /// <param name="Keep">For an ended session: whether it is long enough to keep (detected sessions under a minute aren't).</param>
@@ -80,8 +82,16 @@ public static class LaunchTiming
 /// </summary>
 public sealed class SessionService : IDisposable
 {
-    private static readonly TimeSpan DetectionWindow = TimeSpan.FromSeconds(120);
-    private static readonly TimeSpan SlowWatchWindow = TimeSpan.FromMinutes(10);
+    /// <summary>After this long without seeing the game, the launch shows "notDetected" (tests shorten it).</summary>
+    internal TimeSpan DetectionWindow { get; set; } = TimeSpan.FromSeconds(120);
+    /// <summary>After this long without seeing the game, VYSTRAL stops waiting (tests shorten it).</summary>
+    internal TimeSpan SlowWatchWindow { get; set; } = TimeSpan.FromMinutes(10);
+    /// <summary>How the game is started (tests replace it so no process is created).</summary>
+    internal Func<Installation, string?, string?, LaunchStartResult> Starter { get; set; } = ProcessLauncher.Start;
+    /// <summary>The session clock (tests use a fake one to simulate system sleep).</summary>
+    internal Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
+    /// <summary>Time between two steps of a running session.</summary>
+    internal TimeSpan TickInterval { get; set; } = TimeSpan.FromSeconds(2);
     private const int MaxCaptureRestarts = 6;
 
     private readonly LibraryRepository _repo;
@@ -158,22 +168,66 @@ public sealed class SessionService : IDisposable
     /// <summary>Track H: raised when the user stopped tracking a running game, with its installation id.</summary>
     public event Action<string>? TrackingStopped;
 
-    /// <summary>True while a launch is in progress or a session is being recorded.</summary>
-    public bool IsBusy => Current?.Phase is "validating" or "starting" or "waiting" or "notDetected" or "running";
+    /// <summary>
+    /// The one "a game is starting or running" rule used everywhere (launch gate, detector, update apply,
+    /// enrichment, local AI, haptics, background network work, Performance Mode): a launch being validated,
+    /// started or waited for (also after "not detected yet"), or a session being recorded.
+    /// </summary>
+    public static bool IsActivePhase(string? phase) => phase is "validating" or "starting" or "waiting" or "notDetected" or "running";
+
+    /// <summary>True while a launch is in progress or a session is being recorded (see <see cref="IsActivePhase"/>).</summary>
+    public bool IsBusy => IsActivePhase(Current?.Phase);
 
     public LaunchStateDto Launch(string gameId, string? installationId)
     {
         var ticket = LibraryRepository.NewId();
+        var cts = new CancellationTokenSource();
+        string? busyMessage = null;
         lock (_lock)
         {
-            if (_current is { Phase: "starting" or "waiting" or "running" } busy)
-                return Fail(ticket, gameId, installationId ?? "", "", busy.Phase != "running"
-                    ? "Another game is still starting."
-                    : busy.Source is null or Core.Domain.SessionSources.Tracked
-                        ? "A game started from VYSTRAL is still running. Close it first, or stop tracking it."
-                        : "VYSTRAL is tracking a game you started outside it. Close that game first, or stop tracking it.");
+            if (IsBusyLocked())
+            {
+                busyMessage = BusyMessage(_current!);
+            }
+            else
+            {
+                // Reserve the slot before the lock is released: a second launch (or a detected game) now waits
+                // for this one, and "Stop waiting" works from the first moment.
+                _watchCts?.Cancel();
+                _watchCts = cts;
+                _current = new LaunchStateDto(ticket, gameId, installationId ?? "", "", "validating", null,
+                    Source: Core.Domain.SessionSources.Tracked);
+            }
+        }
+        if (busyMessage is not null)
+        {
+            cts.Dispose();
+            return Fail(ticket, gameId, installationId ?? "", "", busyMessage);
         }
 
+        try
+        {
+            return LaunchReserved(ticket, gameId, installationId, cts);
+        }
+        catch (Exception ex)
+        {
+            // Never leave the slot reserved: that would block every later launch.
+            Log.Error("launch", "Launch failed unexpectedly", ex);
+            return Fail(ticket, gameId, installationId ?? "", "", "VYSTRAL couldn't start the game. Try again.");
+        }
+    }
+
+    private static string BusyMessage(LaunchStateDto busy) => busy.Phase switch
+    {
+        "running" => busy.Source is null or Core.Domain.SessionSources.Tracked
+            ? "A game started from VYSTRAL is still running. Close it first, or stop tracking it."
+            : "VYSTRAL is tracking a game you started outside it. Close that game first, or stop tracking it.",
+        "notDetected" => "VYSTRAL is still waiting for another game to start. Stop waiting for it first.",
+        _ => "Another game is still starting.",
+    };
+
+    private LaunchStateDto LaunchReserved(string ticket, string gameId, string? installationId, CancellationTokenSource cts)
+    {
         var game = _repo.GetGame(gameId);
         if (game is null) return Fail(ticket, gameId, installationId ?? "", "", "This game is no longer in your library.");
 
@@ -227,7 +281,7 @@ public sealed class SessionService : IDisposable
         StartPreflight(ticket, inst);
 
         var steamExe = inst.Platform == PlatformId.Steam ? clientStatus?.ClientPath : null;
-        var start = ProcessLauncher.Start(inst, userArgs, steamExe);
+        var start = Starter(inst, userArgs, steamExe);
         _repo.Audit("game.launch", $"{inst.Platform.Key()}:{inst.PlatformGameId} ({(start.Started ? "accepted" : start.Error)})");
         if (!start.Started)
         {
@@ -254,12 +308,6 @@ public sealed class SessionService : IDisposable
             .Where(d => inst.InstallPath is null || !Path.GetFullPath(inst.InstallPath).StartsWith(Path.GetFullPath(d), StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        var cts = new CancellationTokenSource();
-        lock (_lock)
-        {
-            _watchCts?.Cancel();
-            _watchCts = cts;
-        }
         _ = Task.Run(() => WatchAsync(waiting, inst, start.ProcessId, excluded, accepted, cts.Token));
         return waiting;
     }
@@ -462,7 +510,7 @@ public sealed class SessionService : IDisposable
         }
     }
 
-    private bool IsBusyLocked() => _current?.Phase is "validating" or "starting" or "waiting" or "notDetected" or "running";
+    private bool IsBusyLocked() => IsActivePhase(_current?.Phase);
 
     private async Task RunSessionAsync(LaunchStateDto state, Installation inst, string sessionId, string source, DateTimeOffset sessionStart,
         List<int> pids, ISessionFeed feed, bool adopted, CancellationToken ct)
@@ -471,28 +519,33 @@ public sealed class SessionService : IDisposable
         using var wake = CancellationTokenSource.CreateLinkedTokenSource(ct, park.Token);
         var running = new RunningSession(park);
         lock (_lock) _running = running;
-        var lastSeen = DateTimeOffset.UtcNow;
+        var lastSeen = Clock();
+        // Playtime excludes system sleep. A handed-over session continues from what the other process played.
+        var played = adopted && SafePlayedSoFar(sessionId) is int prior
+            ? new ActiveTime(lastSeen, prior, lastSeen)
+            : new ActiveTime(sessionStart, 0, lastSeen);
         SessionTick? ended = null;
         var parked = false;
         var closed = false;
-        ActiveSessionInfo Info() => new(sessionId, inst.GameId, inst.Id, source, sessionStart, lastSeen);
+        ActiveSessionInfo Info() => new(sessionId, inst.GameId, inst.Id, source, sessionStart, lastSeen, played.SecondsAt(lastSeen));
 
         try
         {
             _trackedPids = [.. pids];
             Emit(state);
             Beat(Info());
-            var lastBeat = DateTimeOffset.UtcNow;
+            var lastBeat = Clock();
             using var recorder = new Recorder(this, sessionId, sessionStart, adopted);
             try
             {
                 recorder.Begin(pids);
                 while (!ct.IsCancellationRequested)
                 {
-                    await Task.Delay(2000, wake.Token).ContinueWith(_ => { }, TaskScheduler.Default);
+                    await Task.Delay(TickInterval, wake.Token).ContinueWith(_ => { }, TaskScheduler.Default);
                     if (park.IsCancellationRequested) { parked = true; break; }
                     if (ct.IsCancellationRequested) break;
-                    var now = DateTimeOffset.UtcNow;
+                    var now = Clock();
+                    played.Tick(now);
                     var tick = feed.Next(now);
                     if (tick.Ended)
                     {
@@ -520,6 +573,9 @@ public sealed class SessionService : IDisposable
             {
                 recorder.Flush();
                 var info = Info();
+                // The next process continues from the time played so far (see SafePlayedSoFar).
+                try { _repo.TouchOpenSession(sessionId, info.PlayedSeconds ?? 0); }
+                catch (Exception ex) { Log.Warn("session", "Couldn't record session progress", ex: ex); }
                 try { feed.Parked(); } catch (Exception ex) { Log.Warn("session", "Hand-over handler failed", ex: ex); }
                 running.Parked.TrySetResult(info);
                 Log.Info("session", "Session handed over", new { sessionId, source });
@@ -534,7 +590,8 @@ public sealed class SessionService : IDisposable
                 try { TrackingStopped?.Invoke(inst.Id); } catch (Exception ex) { Log.Warn("session", "TrackingStopped handler failed", ex: ex); }
             }
             var end = ended?.LastSeen is { } seen && seen != default ? seen : lastSeen;
-            var duration = (int)Math.Max(0, (end - sessionStart).TotalSeconds);
+            // Time played, not time elapsed: a PC that slept or hibernated with the game open didn't play.
+            var duration = played.SecondsAt(end);
             var keep = source == Core.Domain.SessionSources.Tracked || (ended?.Keep ?? end - sessionStart >= MinExternalSession);
             if (!keep)
             {
@@ -586,11 +643,55 @@ public sealed class SessionService : IDisposable
         if (nowTicks - Interlocked.Read(ref _lastPersistedBeat) >= 30_000)
         {
             Interlocked.Exchange(ref _lastPersistedBeat, nowTicks);
-            try { _repo.TouchOpenSession(info.SessionId, (int)Math.Clamp((info.LastSeen - info.Start).TotalSeconds, 0, int.MaxValue)); }
+            var seconds = info.PlayedSeconds ?? (int)Math.Clamp((info.LastSeen - info.Start).TotalSeconds, 0, int.MaxValue);
+            try { _repo.TouchOpenSession(info.SessionId, seconds); }
             catch (Exception ex) { Log.Warn("session", "Couldn't record session progress", ex: ex); }
         }
         try { Heartbeat?.Invoke(info); }
         catch (Exception ex) { Log.Warn("session", "Heartbeat handler failed", ex: ex); }
+    }
+
+    /// <summary>What a handed-over session recorded as played before the hand-over, or null when unknown.</summary>
+    private int? SafePlayedSoFar(string sessionId)
+    {
+        try { return _repo.GetOpenSessionSeconds(sessionId); }
+        catch (Exception ex)
+        {
+            Log.Warn("session", "Couldn't read the handed-over session's progress", ex: ex);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Time actually played in a session: wall-clock time minus the gaps between session steps long enough to
+    /// be system sleep or hibernation (steps run every ~2 s while the PC is awake, so a gap over
+    /// <see cref="SleepGap"/> means the PC wasn't). Counted from <c>origin</c> on top of <c>priorSeconds</c>.
+    /// </summary>
+    internal sealed class ActiveTime(DateTimeOffset origin, int priorSeconds, DateTimeOffset now)
+    {
+        public static readonly TimeSpan SleepGap = TimeSpan.FromSeconds(30);
+        private readonly List<(DateTimeOffset From, DateTimeOffset To)> _gaps = [];
+        private DateTimeOffset _last = now;
+
+        /// <summary>One session step at <paramref name="now"/>.</summary>
+        public void Tick(DateTimeOffset now)
+        {
+            if (now - _last > SleepGap) _gaps.Add((_last, now));
+            if (now > _last) _last = now;
+        }
+
+        /// <summary>Seconds played from the session start up to <paramref name="end"/>.</summary>
+        public int SecondsAt(DateTimeOffset end)
+        {
+            var seconds = (end - origin).TotalSeconds;
+            foreach (var (from, to) in _gaps)
+            {
+                var a = from < origin ? origin : from;
+                var b = to > end ? end : to;
+                if (b > a) seconds -= (b - a).TotalSeconds;
+            }
+            return (int)Math.Clamp(priorSeconds + Math.Max(0, seconds), 0, int.MaxValue);
+        }
     }
 
     /// <summary>
@@ -889,13 +990,21 @@ public sealed class SessionService : IDisposable
         return state;
     }
 
-    private void Emit(LaunchStateDto state)
+    internal void Emit(LaunchStateDto state)
     {
         lock (_lock)
         {
-            if (state.Phase is "failed" && _current is { Phase: "starting" or "waiting" or "running" } && _current.Ticket != state.Ticket)
+            if (_current is { } current && current.Ticket != state.Ticket)
             {
-                // A rejected second launch must not overwrite the active one.
+                if (state.Phase is not "failed")
+                {
+                    // Every launch and session reserves _current (its own ticket) before it emits anything, so a
+                    // state for another ticket comes from a superseded watcher: it must not touch the current one.
+                    Log.Info("session", "Ignored a state from a superseded launch", new { state.Phase });
+                    return;
+                }
+                // A rejected second launch is reported, but doesn't overwrite the active one.
+                if (!IsBusyLocked()) _current = state;
             }
             else
             {

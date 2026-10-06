@@ -32,7 +32,9 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
     private readonly GamepadBridge _gamepad;
     private readonly AppearanceHost _appearance;
     private readonly WindowPlacement _placement;
-    private readonly List<string> _bufferedEvents = [];
+    /// <summary>Messages held while the interface is suspended (event name, or null for a bridge reply).</summary>
+    private readonly List<(string? Event, string Json)> _bufferedEvents = [];
+    private const int MaxBufferedEvents = 500;
     private readonly CancellationTokenSource _life = new();
     private PulseWindow? _pulse;
     private CoreWebView2? _core;
@@ -274,7 +276,7 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
             Log.Error("bridge", $"Event {eventName} could not be serialised", ex);
             return;
         }
-        DispatcherQueue.TryEnqueue(() => Post(json, bufferIfSuspended: true));
+        DispatcherQueue.TryEnqueue(() => Post(json, bufferIfSuspended: true, eventName));
         // Windows notifications are decided from the same events (session saved, update ready, install finished).
         _backend?.ObserveEvent(eventName, json);
     }
@@ -312,12 +314,12 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         }
     }
 
-    private void Post(string json, bool bufferIfSuspended)
+    private void Post(string json, bool bufferIfSuspended, string? eventName = null)
     {
         if (_core is null || _closing) return;
         if (_suspended)
         {
-            if (bufferIfSuspended && _bufferedEvents.Count < 500) _bufferedEvents.Add(json);
+            if (bufferIfSuspended) Buffer(eventName, json);
             return;
         }
         try { _core.PostWebMessageAsJson(json); }
@@ -325,6 +327,28 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         {
             Log.Warn("bridge", "Post to UI failed", ex: ex);
         }
+    }
+
+    /// <summary>
+    /// Holds a message for when the interface resumes. When full, the oldest event that a newer one of the same
+    /// name supersedes is dropped (frequent samples first), else the oldest event other than a launch state; a
+    /// bridge reply never is. So the newest state of everything, the final launch.state included, always arrives.
+    /// </summary>
+    private void Buffer(string? eventName, string json)
+    {
+        if (_bufferedEvents.Count >= MaxBufferedEvents)
+        {
+            var later = new HashSet<string>(StringComparer.Ordinal);
+            if (eventName is not null) later.Add(eventName);
+            var drop = -1;
+            for (var i = _bufferedEvents.Count - 1; i >= 0; i--)
+            {
+                if (_bufferedEvents[i].Event is { } name && !later.Add(name)) drop = i;
+            }
+            if (drop < 0) drop = _bufferedEvents.FindIndex(b => b.Event is not null and not "launch.state");
+            if (drop >= 0) _bufferedEvents.RemoveAt(drop);
+        }
+        _bufferedEvents.Add((eventName, json));
     }
 
     // ---------------- Performance Mode ----------------
@@ -405,7 +429,7 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         try { _core.Resume(); } catch (Exception ex) { Log.Warn("perfmode", "Resume failed", ex: ex); }
         _web.Visibility = Visibility.Visible;
         _suspended = false;
-        foreach (var json in _bufferedEvents) Post(json, bufferIfSuspended: false);
+        foreach (var (_, json) in _bufferedEvents) Post(json, bufferIfSuspended: false);
         _bufferedEvents.Clear();
     }
 
@@ -415,10 +439,12 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         // While minimized (and not in a game), hide the WebView so the page reports itself hidden
         // and pauses animation; this is what keeps VYSTRAL near-idle in the background.
         var minimized = sender.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized };
+        // Restored while suspended for a game (taskbar, Alt+Tab, a second launch): wake the interface, never show a blank window.
+        if (!minimized && _suspended) ResumeUi();
         if (!_suspended) _web.Visibility = minimized ? Visibility.Collapsed : Visibility.Visible;
         if (!minimized) Emit("window.state", GetWindowState());
         // Summoned during a game and minimized again: go back to Performance Mode.
-        if (minimized && !_suspended && _backend.Sessions.Current?.Phase == "running" && _backend.Settings.GetBool("launch.minimizeOnStart"))
+        if (minimized && !_suspended && _backend.IsGameActive && _backend.Settings.GetBool("launch.minimizeOnStart"))
             _ = SuspendUiAsync();
     }
 
@@ -439,6 +465,8 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
 
     public void BringToFront()
     {
+        // Shown on purpose (second launch, session ended): the interface must be awake, also if the window wasn't minimized.
+        if (DispatcherQueue.HasThreadAccess) ResumeUi();
         if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } p) p.Restore();
         AppWindow.Show();
         Activate();

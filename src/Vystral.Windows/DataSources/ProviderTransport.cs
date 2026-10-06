@@ -49,6 +49,9 @@ public sealed class ProviderTransport(HttpClient http, string provider, string d
     /// <summary>When the provider last asked for a pause, until when (UTC); null when not paused.</summary>
     public DateTimeOffset? BlockedUntil => _blockedUntil > DateTime.UtcNow ? new DateTimeOffset(_blockedUntil, TimeSpan.Zero) : null;
 
+    /// <summary>Limit for one request, body included (tests shorten it).</summary>
+    internal TimeSpan RequestTimeout { get; set; } = Services.RequestTimeouts.Json;
+
     /// <summary>Test hook: replaces the real delay.</summary>
     internal Func<TimeSpan, CancellationToken, Task> Delay { get; set; } = Task.Delay;
 
@@ -67,12 +70,14 @@ public sealed class ProviderTransport(HttpClient http, string provider, string d
             var path = request.RequestUri?.AbsolutePath ?? "";
             if (request.RequestUri is not { Scheme: "https" })
                 throw new DataSourceException(DataSourceOutcome.Malformed, "VYSTRAL only talks to data sources over HTTPS.");
+            // One limit for sending and reading the body (HttpClient.Timeout stops at the headers here).
+            using var timeout = Services.RequestTimeouts.Link(ct, RequestTimeout);
             HttpResponseMessage response;
             try
             {
-                response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+                response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+            catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException && !ct.IsCancellationRequested)
             {
                 Log.Warn("datasource", "Request failed", new { provider = Provider, path, error = ex.GetType().Name });
                 throw new DataSourceException(DataSourceOutcome.Unavailable, $"VYSTRAL couldn’t reach {DisplayName}. Check your connection and try again.");
@@ -90,8 +95,15 @@ public sealed class ProviderTransport(HttpClient http, string provider, string d
                 }
                 if (response.Content.Headers.ContentLength > maxBytes)
                     throw new DataSourceException(DataSourceOutcome.Malformed, $"{DisplayName} sent an unexpectedly large answer.");
-                var body = await ReadCappedAsync(response.Content, maxBytes, ct)
-                           ?? throw new DataSourceException(DataSourceOutcome.Malformed, $"{DisplayName} sent an unexpectedly large answer.");
+                string? body;
+                try { body = await ReadCappedAsync(response.Content, maxBytes, timeout.Token); }
+                catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException && !ct.IsCancellationRequested)
+                {
+                    Log.Warn("datasource", "Reading the answer failed", new { provider = Provider, path, error = ex.GetType().Name });
+                    throw new DataSourceException(DataSourceOutcome.Unavailable, $"{DisplayName} stopped answering. Check your connection and try again.");
+                }
+                if (body is null)
+                    throw new DataSourceException(DataSourceOutcome.Malformed, $"{DisplayName} sent an unexpectedly large answer.");
                 if ((int)response.StatusCode >= 500)
                 {
                     Log.Warn("datasource", "Server error", new { provider = Provider, path, status = (int)response.StatusCode });

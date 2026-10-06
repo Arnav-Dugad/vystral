@@ -21,6 +21,10 @@
 - GPU temperature, clocks and thermal-throttle detection are NVIDIA-only (NVML, read-only). Other GPUs show "unavailable" and no throttle alert.
 - Pre-flight checks show the controller battery only where Windows reports it (wireless Xbox controllers; most wired pads don't), and HDR state only on Windows 10 1709+ displays that expose advanced-colour info.
 - CPU/GPU/RAM are system-wide values while your game runs, not per-game.
+- Play time excludes system sleep and hibernation: a gap of more than 30 s between the session's 2-second steps counts as not played. A session recovered after a crash (no clean end) can still include a sleep, because recovery only has the last performance sample's time and the heartbeat's last-seen time to go on. A hand-over between the app and the background tracker loses the few seconds the hand-over takes.
+
+**Launching**
+- One launch or session at a time. While VYSTRAL is still waiting for a game to start (also after "not detected yet"), another game can't be started from VYSTRAL until you choose *Stop waiting*.
 
 **Features**
 - Controller haptics and the on-screen keyboard were tested with simulated controller input only; how the vibration patterns feel on a physical controller hasn't been tuned by hand yet.
@@ -51,6 +55,7 @@
 - Closing VYSTRAL before its interface has appeared counts as a failed start; doing that twice right after an update could roll it back.
 - "What's new" and "New" badges can't know which version you used before this feature existed, so on the first update that has them (0.4.0) existing users see 0.3 and 0.4 badges once.
 - Network health checks reachability from this PC at that moment; it can't see a service's own status page, and a check through a proxy reports the proxy's behaviour.
+- With Data saver on (or automatically on a metered connection), VYSTRAL still checks for updates but doesn't download them in the background; *Download* in Settings still works. Offline mode blocks update checks and downloads entirely, including the buttons in Settings. Background data-source work (anti-cheat list, Wikidata, IGDB/RAWG enrichment) also skips its round under Data saver and tries again half an hour later.
 
 **Games started outside VYSTRAL (background tracker, opt-in)**
 - One game is tracked at a time. If two installed games run together, the second gets its own session (starting when it was first seen) only after the first closes, and without performance readings for the overlap.

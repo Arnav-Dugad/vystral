@@ -126,7 +126,8 @@ public sealed partial class TrailerService : IDisposable
             var json = await _api.GetStringAsync($"https://store.steampowered.com/api/appdetails?appids={appId}&l=english", ct);
             _repo.SetTrailer(gameId, appId, SteamTrailers.Select(appId, json));
         }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException && !ct.IsCancellationRequested)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or (InvalidOperationException and not ObjectDisposedException)
+                                       or OperationCanceledException && !ct.IsCancellationRequested)
         {
             // Keep whatever was known before; try again on a later visit.
             Log.Warn("trailer", "Trailer lookup failed", new { gameId }, ex);
@@ -162,17 +163,19 @@ public sealed partial class TrailerService : IDisposable
         await _upstream.WaitAsync(ct);
         try
         {
-            using var response = await _media.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            // HttpClient.Timeout doesn't cover reading a body streamed with ResponseHeadersRead: cap the whole request.
+            using var timeout = RequestTimeouts.Link(ct, RequestTimeouts.Media);
+            using var response = await _media.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             if (response.StatusCode is not (HttpStatusCode.OK or HttpStatusCode.PartialContent)) return null;
             if (response.Content.Headers.ContentLength > limit) return null;
-            var body = await ReadCappedAsync(response.Content, limit, ct);
+            var body = await ReadCappedAsync(response.Content, limit, timeout.Token);
             if (body is null) return null;
             var type = SteamTrailers.ContentTypeFor(trailer, relative);
             if (response.StatusCode == HttpStatusCode.PartialContent && response.Content.Headers.ContentRange is { } cr)
                 return new TrailerResponse(206, "Partial Content", body, type, cr.ToString());
             return new TrailerResponse(200, "OK", body, type, null);
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException && !ct.IsCancellationRequested)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException && !ct.IsCancellationRequested)
         {
             Log.Warn("trailer", "Trailer request failed", new { gameId, host = upstream.Host }, ex);
             return null;

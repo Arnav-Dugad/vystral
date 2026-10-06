@@ -108,6 +108,13 @@ public sealed partial class LibraryRepository
         return new ObservedSessionRow(row.Id, row.GameId, row.Title, row.Source, start, end, row.Duration);
     }
 
+    /// <summary>The time an open session has recorded as played so far, or null when it isn't open or has none.</summary>
+    public int? GetOpenSessionSeconds(string sessionId)
+    {
+        using var conn = db.Open();
+        return conn.ExecuteScalar<int?>("SELECT duration_seconds FROM sessions WHERE id=@sessionId AND end IS NULL", new { sessionId });
+    }
+
     /// <summary>Records how long an open session has run so far (its end stays empty until it really ends).</summary>
     public void TouchOpenSession(string sessionId, int seconds)
     {

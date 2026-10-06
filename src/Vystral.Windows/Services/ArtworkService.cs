@@ -77,18 +77,20 @@ public sealed partial class ArtworkService(AppPaths paths, LibraryRepository rep
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return false;
         try
         {
-            using var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
+            // HttpClient.Timeout stops at the headers with ResponseHeadersRead: limit the body read too.
+            using var timeout = RequestTimeouts.Link(ct, RequestTimeouts.Media);
+            using var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden) return false;
             response.EnsureSuccessStatusCode();
             if (response.Content.Headers.ContentLength > MaxBytes) return false;
             var media = response.Content.Headers.ContentType?.MediaType ?? "";
             if (!media.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) return false;
 
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
             using var buffer = new MemoryStream();
             var chunk = new byte[81920];
             int read;
-            while ((read = await stream.ReadAsync(chunk, ct)) > 0)
+            while ((read = await stream.ReadAsync(chunk, timeout.Token)) > 0)
             {
                 buffer.Write(chunk, 0, read);
                 if (buffer.Length > MaxBytes) return false;
@@ -108,7 +110,7 @@ public sealed partial class ArtworkService(AppPaths paths, LibraryRepository rep
             repo.SetArtwork(gameId, kind, relative, source, isUser: false);
             return true;
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException && !ct.IsCancellationRequested)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException && !ct.IsCancellationRequested)
         {
             Log.Warn("art", "Artwork download failed", new { gameId, kind, host = uri.Host }, ex);
             return false;
@@ -159,18 +161,22 @@ public sealed partial class ArtworkService(AppPaths paths, LibraryRepository rep
     /// have hashed asset names are resolved with one batched asset-index request per 40 apps.
     /// <paramref name="onCover"/> is called after each cover lands so the UI can refresh in batches.
     /// </summary>
-    public async Task<int> PrefetchSteamCoversAsync(IReadOnlyList<(string GameId, string AppId)> games, Action onCover, CancellationToken ct)
+    /// <param name="shouldStop">Checked before every download (e.g. a game started); once true, the rest is left for a later run.</param>
+    public async Task<int> PrefetchSteamCoversAsync(IReadOnlyList<(string GameId, string AppId)> games, Action onCover, CancellationToken ct,
+        Func<bool>? shouldStop = null)
     {
         if (games.Count == 0 || SkipDownloads?.Invoke() == true) return 0;
         var landed = 0;
         var missing = new System.Collections.Concurrent.ConcurrentBag<(string GameId, string AppId)>();
         var options = new ParallelOptions { MaxDegreeOfParallelism = CoverParallelism, CancellationToken = ct };
+        bool Stop() => shouldStop?.Invoke() == true;
 
         await Parallel.ForEachAsync(games, options, async (g, token) =>
         {
-            if (!IsSteamAppId(g.AppId)) return;
+            if (!IsSteamAppId(g.AppId) || Stop()) return;
             foreach (var file in (string[])["library_600x900_2x.jpg", "library_600x900.jpg"])
             {
+                if (Stop()) return;
                 if (await DownloadAsync(g.GameId, ArtworkKind.Cover, $"{SteamCdn}steam/apps/{g.AppId}/{file}", "steam-cdn", token))
                 {
                     Interlocked.Increment(ref landed);
@@ -183,11 +189,11 @@ public sealed partial class ArtworkService(AppPaths paths, LibraryRepository rep
 
         foreach (var chunk in missing.Chunk(40))
         {
-            if (SkipDownloads?.Invoke() == true) break;
+            if (SkipDownloads?.Invoke() == true || Stop()) break;
             var index = await GetHashedAssetsAsync(chunk.Select(c => c.AppId).ToList(), ct);
             await Parallel.ForEachAsync(chunk, options, async (g, token) =>
             {
-                if (!index.TryGetValue(g.AppId, out var assets)) return;
+                if (Stop() || !index.TryGetValue(g.AppId, out var assets)) return;
                 if ((assets.TryGetValue("library_capsule_2x", out var url) || assets.TryGetValue("library_capsule", out url)) &&
                     await DownloadAsync(g.GameId, ArtworkKind.Cover, url, "steam-cdn", token))
                 {
@@ -308,16 +314,17 @@ public sealed partial class ArtworkService(AppPaths paths, LibraryRepository rep
         if (SkipDownloads?.Invoke() == true) return null;
         try
         {
-            using var response = await http.GetAsync(safe, HttpCompletionOption.ResponseHeadersRead, ct);
+            using var timeout = RequestTimeouts.Link(ct, RequestTimeouts.Media);
+            using var response = await http.GetAsync(safe, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             if (!response.IsSuccessStatusCode) return null;
             const long maxIcon = 1024 * 1024;
             if (response.Content.Headers.ContentLength > maxIcon) return null;
             if (!(response.Content.Headers.ContentType?.MediaType ?? "").StartsWith("image/", StringComparison.OrdinalIgnoreCase)) return null;
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
             using var buffer = new MemoryStream();
             var chunk = new byte[16384];
             int read;
-            while ((read = await stream.ReadAsync(chunk, ct)) > 0)
+            while ((read = await stream.ReadAsync(chunk, timeout.Token)) > 0)
             {
                 buffer.Write(chunk, 0, read);
                 if (buffer.Length > maxIcon) return null;
@@ -330,7 +337,7 @@ public sealed partial class ArtworkService(AppPaths paths, LibraryRepository rep
             WriteAtomic(dest, bytes);
             return relative;
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException && !ct.IsCancellationRequested)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException && !ct.IsCancellationRequested)
         {
             Log.Warn("art", "Achievement icon download failed", new { gameId, error = ex.GetType().Name });
             return null;

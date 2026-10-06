@@ -104,12 +104,14 @@ public sealed class SteamWebApiClient(HttpClient http, Func<string?> apiKey)
             _next = DateTime.UtcNow + MinSpacing;
 
             using var request = new HttpRequestMessage(HttpMethod.Get, new Uri($"https://{Host}/{pathAndQuery}"));
+            // One limit for sending and reading the body (HttpClient.Timeout stops at the headers here).
+            using var timeout = Services.RequestTimeouts.Link(ct, Services.RequestTimeouts.Json);
             HttpResponseMessage response;
             try
             {
-                response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+                response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+            catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException && !ct.IsCancellationRequested)
             {
                 // Log only the endpoint name, never the query (it contains the key).
                 Log.Warn("steamapi", "Request failed", new { endpoint = Endpoint(pathAndQuery), error = ex.GetType().Name });
@@ -126,7 +128,13 @@ public sealed class SteamWebApiClient(HttpClient http, Func<string?> apiKey)
                 }
                 if (response.Content.Headers.ContentLength > 8 * 1024 * 1024)
                     throw new SteamApiException(SteamApiOutcome.Malformed, "Steam sent an unexpectedly large response.");
-                var body = await response.Content.ReadAsStringAsync(ct);
+                string body;
+                try { body = await response.Content.ReadAsStringAsync(timeout.Token); }
+                catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException && !ct.IsCancellationRequested)
+                {
+                    Log.Warn("steamapi", "Reading the answer failed", new { endpoint = Endpoint(pathAndQuery), error = ex.GetType().Name });
+                    throw new SteamApiException(SteamApiOutcome.Unavailable, "Steam stopped answering. Check your connection and try again.");
+                }
                 if (body.Length > 8 * 1024 * 1024) throw new SteamApiException(SteamApiOutcome.Malformed, "Steam sent an unexpectedly large response.");
                 return (response.StatusCode, body);
             }

@@ -297,7 +297,14 @@ public sealed class FrameCapture : IDisposable
     {
         try
         {
-            if (!HasExited)
+            if (!HasExited && !PresentMonInstaller.VerifyFile(_exe, PresentMonRelease.Pinned.Sha256))
+            {
+                // The threat model promises the hash is checked before every run, the "stop" run included:
+                // a file that changed since it started is never run; the capture is ended directly instead.
+                Log.Warn("fps", "PresentMon's file changed while it ran; ending the capture without running it again");
+                TryKill(_process);
+            }
+            else if (!HasExited)
             {
                 try
                 {
