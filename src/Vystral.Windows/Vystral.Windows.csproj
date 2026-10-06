@@ -16,4 +16,8 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Vystral.Tests" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Track M: Steam seasonal sale dates as announced by Valve (versioned, with source and retrieval date). -->
+    <EmbeddedResource Include="Recap\steam-sales.json" LogicalName="Vystral.Windows.Recap.steam-sales.json" />
+  </ItemGroup>
 </Project>

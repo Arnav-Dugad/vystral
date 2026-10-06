@@ -10,6 +10,7 @@ import { TitleBar } from './components/shell/TitleBar';
 import { Sidebar } from './components/shell/Sidebar';
 import { CommandBar } from './components/shell/CommandBar';
 import { LaunchOverlay } from './components/shell/LaunchOverlay';
+import { ReplayHost } from './components/replay/ReplayHost';
 import { Intro, rememberIntroPreference } from './components/shell/Intro';
 import { UpdateCenterDialog } from './components/shell/UpdateCenter';
 import { WhatsNewHost } from './whatsnew/WhatsNewHost';
@@ -110,6 +111,7 @@ export default function App() {
       )}
       <CommandBar />
       <LaunchOverlay />
+      <ReplayHost />
       <UpdateCenterDialog />
       <WhatsNewHost />
       <NewCollectionDialog />
@@ -224,7 +226,7 @@ function View({ route }: { route: Route }) {
     case 'home': return <HomeView />;
     case 'library': return <LibraryView collectionId={route.collectionId} quick={route.quick} />;
     case 'game': return <GameDetailView id={route.id} />;
-    case 'journal': return <JournalView tab={route.tab} />;
+    case 'journal': return <JournalView tab={route.tab} day={route.day} />;
     case 'performance': return <PerformanceView sessionId={route.sessionId} />;
     case 'moments': return <MomentsView />;
     case 'constellation': return <ConstellationView />;

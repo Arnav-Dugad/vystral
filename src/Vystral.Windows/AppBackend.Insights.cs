@@ -239,6 +239,7 @@ public sealed partial class AppBackend : ILaunchFixRunner
             new PreflightCheck("disk", _ => PreflightChecks.ProbeDisk(inst.InstallPath)),
             new PreflightCheck("steamUpdate", _ => PreflightChecks.ProbeSteamUpdate(inst)),
             new PreflightCheck("launchers", _ => PreflightChecks.Launchers(PreflightChecks.SnapshotLauncherProcesses(), inst.Platform)),
+            new PreflightCheck("antiCheat", _ => AntiCheatPreflight(inst)), // Track M: informative kernel anti-cheat note
         };
         if (host is not null)
         {

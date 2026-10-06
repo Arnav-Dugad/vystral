@@ -110,6 +110,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterDataSourceHandlers();     // AppBackend.DataSources.cs: art picker, enrichment, prices, identity, compatibility, value
         RegisterArtPackHandlers();        // AppBackend.ArtPacks.cs: one SteamGridDB style across the library, undoable
         RegisterTrackingHandlers();       // AppBackend.Tracking.cs: games started outside VYSTRAL, background tracker
+        RegisterRecapHandlers();          // AppBackend.Recap.cs: away card, time to beat, anti-cheat notes, value forecast, session replay
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

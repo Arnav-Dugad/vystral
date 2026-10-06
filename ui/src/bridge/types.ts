@@ -831,3 +831,13 @@ export interface LiveTileInfo {
 }
 
 export type * from './types.artPacks';
+// ---------- Track M (v0.5): away card, time to beat, anti-cheat notes, value forecast, session replay (types in ./types.recap) ----------
+
+export interface Settings {
+  /** Informative kernel anti-cheat notes before launch and on game pages. */
+  'launch.antiCheatNotes': boolean;
+  /** IGDB time-to-beat bars on library cards, list rows and game pages (needs the user's IGDB key). */
+  'library.timeToBeat': boolean;
+}
+
+export type * from './types.recap';

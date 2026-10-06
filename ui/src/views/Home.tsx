@@ -4,6 +4,7 @@ import { Clock3, FilePlus2, Heart, Info, Layers, Play, RefreshCw, Sparkles } fro
 import type { Game, PlatformKey } from '../bridge/types';
 import { StoreLogo } from '../components/ui/StoreLogo';
 import { NeverPlayedSection } from './home/NeverPlayed';
+import { AwayCard } from './home/AwayCard';
 import { formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../lib/format';
 import { ease, spring } from '../lib/motion';
 import { featuredGame, suggestGames } from '../lib/recommend';
@@ -77,6 +78,8 @@ export function HomeView() {
     <div className="home">
       {featured && <Hero game={featured} />}
       <div className="page home__rows">
+        {/* Track M: games played while VYSTRAL was closed or in the background (renders nothing otherwise). */}
+        <AwayCard />
         <Shelf title="Continue playing" games={continuePlaying} variant="landscape" live />
         {suggestions.length > 0 && (
           <Shelf

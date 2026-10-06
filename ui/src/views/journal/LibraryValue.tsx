@@ -9,6 +9,7 @@ import { useReducedMotion, useStore } from '../../state/store';
 import { Button, EmptyState, SectionHead, Segmented, Skeleton } from '../../components/ui/primitives';
 import { StoreLogo } from '../../components/ui/StoreLogo';
 import { StatTile } from '../perf/kit';
+import { ValueForecast } from './ValueForecast';
 import { useElementWidth } from '../perf/hooks';
 import '../perf/kit.css';
 import './library-value.css';
@@ -144,6 +145,8 @@ export function LibraryValue() {
           </ul>
         </section>
       </div>
+      {/* Track M: next Steam sale (dates announced by Valve) and an estimate of backlog savings from past lows. */}
+      <ValueForecast />
       <p className="lv-foot"><Store size={12} aria-hidden /> Prices come from the Steam store’s public price data for {data.country}; games from other stores are counted but not priced.</p>
     </div>
   );

@@ -1,0 +1,18 @@
+/* Track M: session replay card dialog. */
+.replay { display: grid; gap: var(--s-3); }
+.replay__canvas, .replay__skeleton {
+  display: block;
+  width: min(100%, 1040px);
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border-radius: var(--r-xl);
+  background: #07070c;
+  box-shadow: var(--shadow-3), inset 0 0 0 1px var(--line);
+}
+.replay__error { margin: 0; color: var(--danger); }
+.replay__note { margin: 0; font-size: var(--fs-xs); color: var(--text-3); }
+.replay__foot { margin: 0; font-size: var(--fs-2xs); color: var(--text-3); }
+/* Journal timeline rows get a small Replay button beside them. */
+.jr-replay-li { display: flex; align-items: center; gap: 4px; }
+.jr-replay-li > .jr-session { flex: 1; min-width: 0; }
+.dialog:has(.replay) { width: min(1100px, calc(100vw - 48px)); max-width: none; }
