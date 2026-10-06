@@ -305,7 +305,7 @@ function Controller({ s }: { s: Settings }) {
         <BoolRow s={s} k="controller.enabled" label="Navigate with a controller" />
         <BoolRow s={s} k="controller.vibration" label="Gentle vibration feedback" />
         <OnScreenKeyboardRows />
-        <BoolRow s={s} k="startup.immersive" label="Start in Immersive Mode" hint="The full-screen, controller-first layout. Press F11 or the Menu button to switch any time." />
+        <BoolRow s={s} k="startup.immersive" label="Start in Immersive Mode" hint="The full-screen, controller-first layout. Press F11 to switch any time; in Immersive Mode the Menu button opens the guide." />
         <BoolRow s={s} k="immersive.attract" label="Screensaver in Immersive Mode" hint="After a few idle minutes, slowly cycles your games' artwork and your own screenshots. Any button returns you exactly where you were." />
         <Row
           label="Start the screensaver after"

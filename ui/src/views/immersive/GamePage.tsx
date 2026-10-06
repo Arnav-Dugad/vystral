@@ -28,13 +28,15 @@ import { StoreLogo } from '../../components/ui/StoreLogo';
 import '../../components/ui/shimmer.css';
 import { playBurst } from './PlayBurst';
 import { ImmersiveCloudActions } from '../../components/cloud/CloudPlayButton';
+import { ControlsPanel } from '../../components/game/ControlsPanel';
 
-export type PageTab = 'overview' | 'achievements' | 'sessions' | 'media';
+export type PageTab = 'overview' | 'achievements' | 'sessions' | 'media' | 'controls';
 const TABS: { id: PageTab; label: string; icon: typeof Info }[] = [
   { id: 'overview', label: 'Overview', icon: Info },
   { id: 'achievements', label: 'Achievements', icon: Trophy },
   { id: 'sessions', label: 'Sessions', icon: History },
   { id: 'media', label: 'Media', icon: Images },
+  { id: 'controls', label: 'Controls', icon: Gamepad2 },
 ];
 
 const KEY_DIRS: Record<string, Dir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
@@ -199,6 +201,7 @@ export function GamePage({ gameId, tab, onTab, onClose }: { gameId: string; tab:
                 {tab === 'achievements' && <Achievements game={game} />}
                 {tab === 'sessions' && <Sessions game={game} />}
                 {tab === 'media' && <Media game={game} />}
+                {tab === 'controls' && <ControlsPanel game={game} variant="immersive" />}
               </motion.div>
             </AnimatePresence>
           </div>
