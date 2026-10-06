@@ -34,16 +34,23 @@ import { AntiCheatNote } from '../components/game/AntiCheatNote';
 import { ArtSlotActions, useUserArt } from '../components/game/ArtPicker';
 import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
+import { ControlsPanel } from '../components/game/ControlsPanel';
+import { takeGameTab } from '../lib/gameTab';
 import './detail.css';
 
-type Tab = 'overview' | 'achievements' | 'sessions' | 'versions' | 'artwork';
+type Tab = 'overview' | 'achievements' | 'sessions' | 'versions' | 'artwork' | 'controls';
+const TABS: Tab[] = ['overview', 'achievements', 'sessions', 'versions', 'artwork', 'controls'];
 
 export function GameDetailView({ id }: { id: string }) {
   const game = useStore((s) => s.gamesById.get(id));
   const loaded = useStore((s) => s.libraryLoaded);
   const navigate = useStore((s) => s.navigate);
   const setFocusGame = useStore((s) => s.setFocusGame);
-  const [tab, setTab] = useState<Tab>('overview');
+  // Track Q: another page can ask for a tab ("See versions" from the health check).
+  const [tab, setTab] = useState<Tab>(() => {
+    const requested = takeGameTab(id);
+    return TABS.find((t) => t === requested) ?? 'overview';
+  });
 
   useEffect(() => {
     if (game) {
@@ -82,6 +89,7 @@ export function GameDetailView({ id }: { id: string }) {
               { value: 'sessions', label: `Sessions${game.sessionCount ? ` · ${game.sessionCount}` : ''}` },
               { value: 'versions', label: `Versions${game.installations.length > 1 ? ` · ${game.installations.length}` : ''}` },
               { value: 'artwork', label: 'Artwork' },
+              { value: 'controls', label: 'Controls' },
             ]}
           />
         </div>
@@ -91,6 +99,7 @@ export function GameDetailView({ id }: { id: string }) {
           {tab === 'versions' && <Versions game={game} />}
           {tab === 'artwork' && <ArtworkTab game={game} />}
           {tab === 'achievements' && <AchievementsPanel game={game} />}
+          {tab === 'controls' && <ControlsPanel game={game} />}
         </div>
         <Related game={game} />
       </div>

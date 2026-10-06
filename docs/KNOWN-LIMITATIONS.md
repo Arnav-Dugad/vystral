@@ -79,6 +79,11 @@
 - The tracker never installs updates itself (the updater window would appear at sign-in); a downloaded update installs the next time VYSTRAL is opened or closed, as before. If the updater finds the tracker running, it stops it (gracefully when it can) and starts it again afterwards.
 - Verified with the real tracker process against a scratch data folder (detection, saved sessions, hand-over to a simulated app and back, stopping). The sign-in entry, the Velopack update/uninstall hooks and the toast from the tracker still need checking on an installed build.
 
+**Library health and Controls (v0.6, Track Q)**
+- The health check reads only what VYSTRAL already knows plus file-existence checks: a game whose files are present but broken (a failed update, a missing DLL) looks healthy. Duplicate installs across Steam libraries are found from `appmanifest_*.acf` files on connected drives only. *Get it again* works for Steam games only (others offer *Choose…*), and low-resolution art you chose is never replaced automatically.
+- Art resolution is read from cached files' headers (first 64 KB); a file whose size can't be read is never called low resolution.
+- Controls shows Steam games only, and only layouts Steam has saved or downloaded on this PC. Steam's per-game *Steam Input on/off* override isn't read (it lives in `localconfig.vdf`, next to data VYSTRAL doesn't touch), so a layout can be shown for a game where you turned Steam Input off. Layouts for other controllers (DualSense, Switch Pro, Steam Deck) are drawn on the Xbox diagram with Xbox names; trackpads, gyro and back paddles are listed in the table. Radial and touch menus, chords and mode shifts are named but their contents aren't drawn. Checked against every template and downloaded layout on the dev PC (136 files, all read); a per-game config set with `template` / `workshop` entries wasn't present there, so those paths are covered by fixtures only.
+
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).
 - Display-scaling changes, monitor hot-plug, sleep/resume and controller hot-plug have not been tested yet.

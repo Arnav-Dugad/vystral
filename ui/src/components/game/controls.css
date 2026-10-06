@@ -1,0 +1,115 @@
+/* Track Q: Steam Input layout panel and the Xbox diagram. Tokens only; reduced motion and High contrast below. */
+
+.controls { display: grid; gap: var(--s-5); }
+.controls__skeleton { margin-top: var(--s-3); }
+.controls__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--s-4); }
+.controls__title { font-size: var(--fs-xl); font-weight: var(--fw-semibold); }
+.controls__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; color: var(--text-3); font-size: var(--fs-sm); }
+.controls__desc { margin-top: 6px; max-width: 70ch; color: var(--text-2); font-size: var(--fs-sm); }
+.controls__switch { display: grid; justify-items: end; gap: 8px; }
+.controls__layers { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--text-3); }
+
+.controls__stage {
+  position: relative;
+  border-radius: var(--r-2xl);
+  padding: var(--s-4) var(--s-3);
+  background:
+    radial-gradient(60% 70% at 50% 45%, oklch(from var(--accent) l c h / 0.12), transparent 70%),
+    var(--bg-1);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+.controls__diagram { width: 100%; }
+.controls__legend { display: flex; align-items: center; gap: 8px; margin: 4px 0 0 var(--s-3); color: var(--text-3); font-size: var(--fs-xs); }
+.controls__swatch { width: 12px; height: 12px; border-radius: 4px; background: var(--warn); }
+
+/* ---------- diagram ---------- */
+.pad { display: block; width: 100%; height: auto; max-height: 520px; overflow: visible; }
+.pad__shade1 { stop-color: oklch(from var(--bg-3) calc(l + 0.06) c h); }
+.pad__shade2 { stop-color: var(--bg-2); }
+.pad__body { fill: url(#pad-body); stroke: var(--line-strong); stroke-width: 1.5; }
+.pad__trigger { fill: var(--bg-3); stroke: var(--line-strong); stroke-width: 1.5; }
+.pad__bumper { fill: none; stroke: var(--bg-3); stroke-width: 13; stroke-linecap: round; }
+.pad__well { fill: var(--bg-0); stroke: var(--line); stroke-width: 1.5; }
+.pad__cap { fill: var(--bg-3); stroke: var(--line-strong); stroke-width: 1.5; }
+.pad__dir { fill: var(--bg-3); }
+.pad__face circle { fill: var(--bg-3); stroke: var(--line-strong); stroke-width: 1.5; }
+.pad__face text { font: 600 13px var(--font-ui); fill: var(--text-2); pointer-events: none; }
+.pad__small, .pad__guide { fill: var(--bg-3); stroke: var(--line-strong); stroke-width: 1.5; }
+
+/* Bound controls glow faintly in the accent; the hovered one fully. Layer changes take the warm tone. */
+.pad [data-bound] { --hl: var(--accent); }
+.pad [data-layer] { --hl: var(--warn); }
+.pad__trigger[data-bound], .pad__face[data-bound] circle, .pad__small[data-bound], .pad__guide[data-bound], .pad__stick[data-bound] .pad__cap, .pad__dir[data-bound] {
+  stroke: oklch(from var(--hl) l c h / 0.7);
+  fill: oklch(from var(--hl) calc(l * 0.5) calc(c * 0.6) h / 0.9);
+  transition: fill var(--dur-base) var(--ease-out), stroke var(--dur-base) var(--ease-out);
+}
+.pad__dir[data-bound] { stroke-width: 1.5; }
+.pad__bumper[data-bound] { stroke: oklch(from var(--hl) calc(l * 0.6) calc(c * 0.7) h); }
+.pad__face[data-bound] text { fill: var(--text-1); }
+.pad [data-active].pad__trigger, .pad [data-active] circle, .pad [data-active].pad__small, .pad [data-active].pad__guide, .pad [data-active].pad__dir, .pad [data-active] .pad__cap {
+  fill: var(--hl, var(--accent));
+  stroke: var(--text-1);
+}
+.pad [data-active].pad__bumper { stroke: var(--hl, var(--accent)); }
+.pad__face[data-active] text { fill: var(--text-on-accent); }
+
+.pad__callout { cursor: default; }
+.pad__line { fill: none; stroke: var(--line-strong); stroke-width: 1.25; stroke-dasharray: 1; stroke-dashoffset: 0; animation: pad-draw 520ms var(--ease-out) both; animation-delay: calc(var(--i) * 28ms); }
+.pad__dot { fill: var(--text-2); }
+.pad__label { font-family: var(--font-ui); animation: pad-fade 360ms var(--ease-out) both; animation-delay: calc(var(--i) * 28ms + 160ms); }
+.pad__label-main { font-size: 15px; font-weight: 600; fill: var(--text-1); }
+.pad__label-sub { font-size: 12px; fill: var(--text-3); }
+.pad__callout[data-layer] .pad__label-main { fill: var(--warn); }
+.pad__callout[data-layer] .pad__dot { fill: var(--warn); }
+.pad__callout[data-active] .pad__line { stroke: var(--accent); stroke-width: 2; }
+.pad__callout[data-active] .pad__dot { fill: var(--accent); }
+.pad__callout[data-active] .pad__label-main { fill: var(--accent-text); }
+@keyframes pad-draw { from { stroke-dashoffset: 1; } }
+@keyframes pad-fade { from { opacity: 0; } }
+
+/* ---------- table ---------- */
+.controls__table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.controls__table thead th { text-align: left; color: var(--text-3); font-weight: var(--fw-medium); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tracking-caps); padding: 0 var(--s-3) 8px; }
+.controls__table tbody tr { border-top: 1px solid var(--line); transition: background var(--dur-fast) var(--ease-out); }
+.controls__table tbody tr[data-active] { background: var(--bg-2); }
+.controls__table tbody tr[data-layer] th { box-shadow: inset 3px 0 0 var(--warn); }
+.controls__table th[scope='row'] { width: 32%; text-align: left; font-weight: var(--fw-semibold); vertical-align: top; padding: 10px var(--s-3); }
+.controls__table td { padding: 10px var(--s-3); color: var(--text-2); vertical-align: top; }
+.controls__mode { display: block; margin-top: 2px; font-weight: var(--fw-regular); color: var(--text-3); font-size: var(--fs-xs); }
+.controls__binds { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.controls__binds li { color: var(--text-1); }
+.controls__detail { color: var(--text-3); }
+.controls__detail::before { content: '·'; margin-right: 4px; }
+.controls__muted { color: var(--text-3); }
+.controls__foot { color: var(--text-3); font-size: var(--fs-xs); }
+
+/* ---------- messages ---------- */
+.controls--message { display: flex; gap: var(--s-4); align-items: flex-start; padding: var(--s-6); border-radius: var(--r-xl); background: var(--bg-1); box-shadow: inset 0 0 0 1px var(--line); }
+.controls__msg-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--bg-2); color: var(--accent-text); flex: none; }
+.controls__msg-title { font-size: var(--fs-lg); font-weight: var(--fw-semibold); }
+.controls__msg-body { margin-top: 4px; color: var(--text-2); max-width: 64ch; }
+
+/* Immersive: bigger diagram, the table becomes a compact list. */
+.controls[data-variant='immersive'] .pad { max-height: 60vh; }
+.controls[data-variant='immersive'] .controls__table { font-size: var(--fs-md); }
+
+[data-reduced-motion='true'] .pad__line, [data-reduced-motion='true'] .pad__label,
+[data-performance='true'] .pad__line, [data-performance='true'] .pad__label { animation: none; }
+
+:root[data-theme='contrast'] .controls__stage { background: #000; box-shadow: inset 0 0 0 2px var(--text-1); }
+:root[data-theme='contrast'] .pad__body, :root[data-theme='contrast'] .pad__trigger, :root[data-theme='contrast'] .pad__well,
+:root[data-theme='contrast'] .pad__cap, :root[data-theme='contrast'] .pad__face circle, :root[data-theme='contrast'] .pad__small,
+:root[data-theme='contrast'] .pad__guide, :root[data-theme='contrast'] .pad__dir { fill: #000; stroke: #fff; }
+:root[data-theme='contrast'] .pad__bumper { stroke: #fff; stroke-width: 4; }
+:root[data-theme='contrast'] .pad [data-bound] { --hl: var(--accent); }
+:root[data-theme='contrast'] .pad__line { stroke: #fff; }
+:root[data-theme='contrast'] .pad__label-main, :root[data-theme='contrast'] .pad__label-sub, :root[data-theme='contrast'] .pad__face text { fill: #fff; }
+:root[data-theme='contrast'] .pad__callout[data-layer] .pad__label-main { fill: var(--accent); text-decoration: underline; }
+@media (forced-colors: active) {
+  .pad__body, .pad__trigger, .pad__well, .pad__cap, .pad__face circle, .pad__small, .pad__guide, .pad__dir { fill: Canvas; stroke: CanvasText; }
+  .pad__line { stroke: CanvasText; }
+  .pad__label-main, .pad__label-sub, .pad__face text { fill: CanvasText; }
+  .pad [data-active] circle, .pad [data-active].pad__trigger { fill: Highlight; }
+}

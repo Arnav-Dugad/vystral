@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   BarChart3, BookOpen, Bot, CornerDownLeft, FilePlus2, Gamepad2, Home, Images, LibraryBig, Moon, Play, RefreshCw,
-  Search, Settings2, Sparkles, Wand2, ArrowDownToLine,
+  Search, Settings2, Sparkles, Wand2, ArrowDownToLine, HeartPulse,
 } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { AiQuery, Game } from '../../bridge/types';
@@ -144,6 +144,8 @@ function CommandBody({ onClose }: { onClose: () => void }) {
       run: () => void setSetting('appearance.theme', settings?.['appearance.theme'] === 'light' ? 'obsidian' : 'light'),
     },
     { id: 'a-upd', group: 'Actions', label: 'Check for updates', icon: <ArrowDownToLine size={16} />, run: () => { onClose(); openUpdateCenter(); } },
+    // Track Q: the library health check (broken shortcuts, missing drives, duplicates, art…).
+    { id: 'a-health', group: 'Actions', label: 'Check library health (fix broken games, art, duplicates)', icon: <HeartPulse size={16} />, run: go({ name: 'health' }) },
   ];
   const pages: Item[] = [
     { id: 'p-home', group: 'Go to', label: 'Home', icon: <Home size={16} />, run: go({ name: 'home' }) },

@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowDownWideNarrow, FilePlus2, Grid3x3, List, Pencil, Search, Trash2, X, Copy, Wand2 } from 'lucide-react';
+import { ArrowDownWideNarrow, FilePlus2, Grid3x3, List, Pencil, Search, Trash2, X, Copy, Wand2, HeartPulse } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game, GameStatus, PlatformKey } from '../bridge/types';
 import { ArtPacksDialog } from '../components/artpacks/ArtPacksDialog';
@@ -154,6 +154,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
             </Button>
           )}
           <Button size="sm" variant="ghost" icon={<Wand2 size={14} />} onClick={() => setPacksOpen(true)}>Art packs</Button>
+          {!collection && <Button size="sm" variant="ghost" icon={<HeartPulse size={14} />} onClick={() => useStore.getState().navigate({ name: 'health' })}>Library health</Button>}
           <Button size="sm" icon={<FilePlus2 size={14} />} onClick={() => void addManualGame()}>Add a game</Button>
         </div>
       </header>

@@ -14,6 +14,7 @@ VYSTRAL is local-first software. There is no VYSTRAL account, no server, no tele
 - `cache\`: artwork copied from your stores' local caches or downloaded from Steam's public CDN, and thumbnails.
 - `artpacks\`: the undo record of your last ten art packs — for each slot a pack changed, the game ID, the cache file it put there and the file it replaced. Files a record can put back are kept when you clear the artwork cache. Which stretch of each cached live-tile clip to loop is stored in `vystral.db`, keyed by a hash of the clip.
 - `logs\`: diagnostic logs, 7 days (`vystral-tracker-*.log` for the background tracker). They include file paths, never passwords or tokens.
+- `ui-state\health.json`: the ids of library health issues you dismissed (for example `artMissing:<game id>-cover`), with when. *Show dismissed* on the health page clears it.
 - `webview\`: the interface's browser profile.
 - `backups\`: database backups.
 
@@ -45,6 +46,11 @@ Version 0.5 features that use only data already on your PC (no new hosts, nothin
 - **Next big sale** uses Steam seasonal sale dates shipped inside VYSTRAL (`src/Vystral.Windows/Recap/steam-sales.json`, as announced by Valve on Steamworks); nothing is downloaded. “Source” opens that Steamworks page in your browser only when you click it.
 - **Estimated savings on your backlog** uses prices already cached when you opened game pages (CheapShark/IsThereAnyDeal); it never looks up prices on its own.
 - **Session replay cards** are drawn in the interface. *Save as image* writes a 1920×1080 PNG only where you choose in the Windows save dialog; *Copy image* puts it on the Windows clipboard. The image never leaves your PC unless you share it.
+
+Version 0.6 (Track Q), also local only:
+
+- **Library health** (Library → *Library health*) reads only `vystral.db`, whether install folders, programs and cached art files exist, the size headers of cached art, and which Steam library folders hold an `appmanifest_*.acf` for the same game. The check itself never uses the network and never changes anything. Of its fixes, only *Get it again* downloads (Steam's public CDN, the same art requests as before; skipped in Offline mode and Data saver) and *Look again* lets the usual Steam store details lookup try a game again. *Locate the program…* stores the file you pick in the native file dialog.
+- **Controls** (game page) reads Steam Input layouts Steam keeps on this PC: `steamapps/common/Steam Controller Configs/<account>/config/` (which layout each game uses, and your own edits), `controller_base/templates/`, layouts Steam already downloaded under `steamapps/workshop/content/241100/`, and the older `userdata/<account>/241100/remote/controller_config/`. Read-only and size-capped; nothing is stored or sent. It doesn't read `localconfig.vdf`.
 
 VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 

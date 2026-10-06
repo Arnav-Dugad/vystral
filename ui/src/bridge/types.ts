@@ -862,3 +862,13 @@ export interface SystemStatus {
   /** Connected Xbox-compatible controllers; battery 0–1, null when wired or unknown. */
   controllers: { battery: number | null; charging: boolean; wired: boolean }[];
 }
+
+// ---------- Track Q: library health check, per-game Steam Input layouts (types in ./types.health, ./types.controls) ----------
+
+export interface BridgeEvents {
+  /** "Fix all safe issues" progress. */
+  'health.progress': import('./types.health').HealthProgress;
+}
+
+export type * from './types.health';
+export type * from './types.controls';

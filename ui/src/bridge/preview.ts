@@ -21,6 +21,7 @@ import { artPackPreviewHandlers } from './preview.artPacks';
 import type { DataSourcesStatus, UserArt } from './types';
 import { RECAP_DEFAULT_SETTINGS, recapPreviewHandlers } from './preview.recap';
 import { TRACK_L_DEFAULT_SETTINGS, immersivePreviewHandlers } from './preview.immersive';
+import { healthPreviewHandlers } from './preview.health';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -463,6 +464,8 @@ export function createPreviewBackend() {
     'launch.preflightResult': (p: { ticket: string }) => recap.__decoratePreflight(insight['launch.preflightResult'](p)),
     // Track L: Immersive system bar (a fictional laptop on Wi-Fi with one wireless controller).
     ...immersivePreviewHandlers(),
+    // Track Q: library health check (?health = many issues; healthy by default), Steam Input layouts (?controls).
+    ...healthPreviewHandlers({ lib, emit: () => emit, timers }),
   };
 
   return {

@@ -35,6 +35,7 @@ const AssistantView = lazy(() => import('./views/Assistant').then((m) => ({ defa
 const StorageStudioView = lazy(() => import('./views/StorageStudio').then((m) => ({ default: m.StorageStudioView })));
 const OnboardingView = lazy(() => import('./views/Onboarding').then((m) => ({ default: m.OnboardingView })));
 const ImmersiveView = lazy(() => import('./views/Immersive').then((m) => ({ default: m.ImmersiveView })));
+const HealthView = lazy(() => import('./views/Health').then((m) => ({ default: m.HealthView })));
 
 export default function App() {
   const init = useStore((s) => s.init);
@@ -235,6 +236,7 @@ function View({ route }: { route: Route }) {
     case 'assistant': return <AssistantView />;
     case 'settings': return <SettingsView section={route.section} />;
     case 'storage': return <StorageStudioView />;
+    case 'health': return <HealthView />;
   }
 }
 
