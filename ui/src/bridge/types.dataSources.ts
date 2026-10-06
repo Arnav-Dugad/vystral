@@ -82,6 +82,8 @@ export interface UserArt {
   /** 'file' (chosen from disk) or a source such as 'steamgriddb'. */
   source: string;
   author: string | null;
+  /** Track N: for art applied by an art pack (source 'artpack'), the pack's name. */
+  pack?: string | null;
 }
 
 export interface DealOffer {

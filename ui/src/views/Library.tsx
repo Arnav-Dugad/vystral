@@ -1,8 +1,9 @@
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowDownWideNarrow, FilePlus2, Grid3x3, List, Pencil, Search, Trash2, X, Copy } from 'lucide-react';
+import { ArrowDownWideNarrow, FilePlus2, Grid3x3, List, Pencil, Search, Trash2, X, Copy, Wand2 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
-import type { Game, GameStatus } from '../bridge/types';
+import type { Game, GameStatus, PlatformKey } from '../bridge/types';
+import { ArtPacksDialog } from '../components/artpacks/ArtPacksDialog';
 import {
   formatBytes, formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural, sizeOf,
 } from '../lib/format';
@@ -37,6 +38,7 @@ const QUICK: { value: Quick; label: string }[] = [
 ];
 
 const VIEW_KEY = 'vystral.library.view';
+const STORE_ORDER: PlatformKey[] = ['steam', 'xbox', 'epic', 'gog', 'ea', 'ubisoft', 'battlenet', 'manual'];
 
 export function LibraryView({ collectionId, quick: initialQuick }: { collectionId?: string; quick?: string }) {
   const games = useStore((s) => s.library.games);
@@ -55,6 +57,13 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
   const [dupOpen, setDupOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [packsOpen, setPacksOpen] = useState(false);
+  // Track N: filter by store (the chips' marks draw themselves on hover/focus).
+  const [store, setStore] = useState<PlatformKey | null>(null);
+  const stores = useMemo(() => {
+    const present = new Set(games.flatMap((g) => g.installations.map((i) => i.platform)));
+    return STORE_ORDER.filter((p) => present.has(p));
+  }, [games]);
   const gridSize = settings?.['appearance.gridSize'] ?? 180;
 
   useEffect(() => {
@@ -67,6 +76,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
   const results = useMemo(() => {
     const now = Date.now();
     let base = collectionId ? games.filter((g) => g.collections.includes(collectionId)) : games;
+    if (store) base = base.filter((g) => g.installations.some((i) => i.platform === store));
     base = base.filter((g) => {
       switch (quick) {
         case 'hidden': return g.hidden;
@@ -98,7 +108,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
       found = [...found].sort(cmp[sort]);
     }
     return found;
-  }, [games, collectionId, quick, parsed, sort, query]);
+  }, [games, collectionId, quick, parsed, sort, query, store]);
 
   const title = collection ? collection.name : 'Library';
   const totalSize = useMemo(() => results.reduce((s, g) => s + (sizeOf(g) ?? 0), 0), [results]);
@@ -125,6 +135,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
               Review {plural(duplicates.length, 'possible duplicate')}
             </Button>
           )}
+          <Button size="sm" variant="ghost" icon={<Wand2 size={14} />} onClick={() => setPacksOpen(true)}>Art packs</Button>
           <Button size="sm" icon={<FilePlus2 size={14} />} onClick={() => void addManualGame()}>Add a game</Button>
         </div>
       </header>
@@ -201,6 +212,17 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
             </button>
           );
         })}
+        {stores.length > 1 && (
+          <>
+            <span className="lib-quick__sep" aria-hidden style={{ width: 1, alignSelf: 'stretch', margin: '4px 4px', background: 'var(--line-strong)' }} />
+            {stores.map((p) => (
+              <button key={p} className="chip lib-store-chip" aria-pressed={store === p} onClick={() => setStore(store === p ? null : p)}>
+                <StoreLogo platform={p} size={14} decorative motion />
+                {PLATFORM_NAMES[p]}
+              </button>
+            ))}
+          </>
+        )}
       </div>
 
       {parsed.chips.length > 0 && (
@@ -226,7 +248,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
                 ? 'Add games from their right-click menu, or from the Collections section of a game’s page.'
                 : 'Try fewer words, a different quick filter, or clear the filter.'
           }
-          actions={text || quick !== 'all' ? <Button onClick={() => { setText(''); setQuick('all'); }}>Clear filters</Button> : undefined}
+          actions={text || quick !== 'all' || store ? <Button onClick={() => { setText(''); setQuick('all'); setStore(null); }}>Clear filters</Button> : undefined}
         />
       ) : view === 'grid' ? (
         <VirtualGrid games={results} size={gridSize} caption={quick === 'unplayed' ? ageLabel : undefined} />
@@ -235,6 +257,11 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
       )}
 
       <DuplicatesDialog open={dupOpen} onClose={() => setDupOpen(false)} />
+      <ArtPacksDialog
+        open={packsOpen}
+        onClose={() => setPacksOpen(false)}
+        initial={{ scope: collection ? `collection:${collection.id}` : store ? `platform:${store}` : quick === 'installed' ? 'installed' : 'all' }}
+      />
       {collection && (
         <>
           <RenameDialog open={renameOpen} onClose={() => setRenameOpen(false)} id={collection.id} name={collection.name} />

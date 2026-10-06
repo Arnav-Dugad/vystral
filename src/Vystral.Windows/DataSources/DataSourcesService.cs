@@ -26,7 +26,8 @@ public sealed record SgdbGameDto(string Id, string Name, int? Year);
 public sealed record ArtOptionsDto(string Kind, SgdbGameDto? Game, string? MatchedBy, IReadOnlyList<ArtOptionDto> Items, IReadOnlyList<SgdbGameDto> Candidates,
     IReadOnlyList<string> Styles, bool PreviewsPaused, bool HasMore);
 
-public sealed record UserArtDto(string Kind, string Source, string? Author);
+/// <param name="Pack">Track N: for art applied by an art pack, the pack's name.</param>
+public sealed record UserArtDto(string Kind, string Source, string? Author, string? Pack = null);
 
 public sealed record OfferDto(string Id, string Shop, double Price, double? Regular, int Cut);
 
@@ -109,6 +110,12 @@ public sealed class DataSourcesService
     }
 
     internal ProviderTransport Transport(string id) => _transports[id];
+
+    /// <summary>Track N: the provider's polite request lane (art packs share SteamGridDB's).</summary>
+    public ProviderTransport TransportFor(string id) => _transports[id];
+
+    /// <summary>True when the user's own key (or Twitch app) is stored for a provider.</summary>
+    public bool HasKey(KeyedProvider provider) => _keys.IsConfigured(provider);
 
     // ---------- Gates ----------
 
@@ -412,17 +419,18 @@ public sealed class DataSourcesService
     public IReadOnlyList<UserArtDto> UserArt(string gameId) =>
         _repo.UserArtwork(gameId).Select(kv =>
         {
-            string? author = null;
-            if (kv.Value == "steamgriddb" && _repo.GetProviderCache("art-credit", $"{gameId}:{kv.Key}") is { } c)
+            string? author = null, pack = null;
+            if (kv.Value is "steamgriddb" or LibraryRepository.ArtPackSource && _repo.GetProviderCache("art-credit", $"{gameId}:{kv.Key}") is { } c)
             {
                 try
                 {
                     using var doc = JsonDocument.Parse(c.Body);
                     author = JsonRead.Str(doc.RootElement, "author", 60);
+                    if (kv.Value == LibraryRepository.ArtPackSource) pack = JsonRead.Str(doc.RootElement, "pack", 40);
                 }
                 catch (JsonException) { }
             }
-            return new UserArtDto(kv.Key, kv.Value == "user" ? "file" : kv.Value, author);
+            return new UserArtDto(kv.Key, kv.Value == "user" ? "file" : kv.Value, author, pack);
         }).ToList();
 
     // ---------- Deals (CheapShark, IsThereAnyDeal) ----------

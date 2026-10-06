@@ -8,7 +8,12 @@ namespace Vystral.Windows.Services;
 
 /// <summary>What a Home tile needs to animate: a proxied micro-trailer URL, or why there is none.</summary>
 /// <param name="Reason">off, gameRunning, noSteamApp, none, notChecked, offline, dataSaver, lookupsOff.</param>
-public sealed record LiveTileDto(string GameId, string? Src, string? Reason);
+/// <param name="Loop">Track N: the segment the live-tile director chose to loop (null = the whole clip).</param>
+/// <param name="Directed">Track N: the cached clip was already analysed (so the page needn't analyse it again).</param>
+public sealed record LiveTileDto(string GameId, string? Src, string? Reason, LiveLoopDto? Loop = null, bool Directed = false);
+
+/// <summary>Track N: the most interesting stretch of a micro-trailer, in seconds.</summary>
+public sealed record LiveLoopDto(double Start, double Duration);
 
 /// <summary>
 /// Live tiles on Home: Steam's short silent micro-trailers, served to the page from
@@ -78,8 +83,10 @@ public sealed partial class LiveTileService : IDisposable
         if (SteamMicroTrailers.Resolve(row.Value.Trailer) is not { } uri) return new LiveTileDto(gameId, null, "none");
         var key = SteamMicroTrailers.CacheKey(uri);
         // Not cached yet and the network is off-limits: say why instead of handing out a URL that would 404.
-        if (!File.Exists(CachePath(gameId, key)) && _trailers.BlockReason() is { } net) return new LiveTileDto(gameId, null, net);
-        return new LiveTileDto(gameId, $"https://{MediaService.MediaHost}{PathPrefix}{gameId}/{key}.mp4", null);
+        var path = CachePath(gameId, key);
+        if (!File.Exists(path) && _trailers.BlockReason() is { } net) return new LiveTileDto(gameId, null, net);
+        var (directed, loop) = Director(path);
+        return new LiveTileDto(gameId, $"https://{MediaService.MediaHost}{PathPrefix}{gameId}/{key}.mp4", null, loop, directed);
     }
 
     /// <summary>
@@ -184,6 +191,7 @@ public sealed partial class LiveTileService : IDisposable
     /// <summary>Deletes every cached micro-trailer; returns the bytes freed.</summary>
     public long ClearCache()
     {
+        _hashes.Clear();
         long freed = 0;
         foreach (var f in new DirectoryInfo(CacheDirectory).GetFiles())
         {
@@ -196,6 +204,76 @@ public sealed partial class LiveTileService : IDisposable
             catch (IOException) { }
         }
         return freed;
+    }
+
+    // ---------- Track N: the live-tile director ----------
+
+    /// <summary>Bump when the page's scoring changes enough that stored choices should be redone.</summary>
+    public const int DirectorVersion = 1;
+    public const double MinLoopSeconds = 1.0, MaxLoopSeconds = 4.0;
+    private readonly ConcurrentDictionary<string, (long Length, string Hash)> _hashes = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Remembers which stretch of this game's cached micro-trailer to loop, keyed by a hash of the file's
+    /// bytes (so a new trailer is analysed afresh, and the same file is never analysed twice). The page
+    /// does the analysis; this only validates and stores the answer. <paramref name="start"/> null = loop the whole clip.
+    /// </summary>
+    public bool SetLoop(string gameId, double? start, double? duration, double score)
+    {
+        if (BlockReason() is not null) return false;
+        if (SteamMicroTrailers.Resolve(_repo.GetTrailer(gameId)?.Trailer) is not { } uri) return false;
+        var path = CachePath(gameId, SteamMicroTrailers.CacheKey(uri));
+        if (FileHash(path) is not { } hash) return false;
+        if (start is { } s && (!double.IsFinite(s) || s < 0 || s > 120)) return false;
+        if (duration is { } d && (!double.IsFinite(d) || d < MinLoopSeconds || d > MaxLoopSeconds)) return false;
+        if ((start is null) != (duration is null) || !double.IsFinite(score)) return false;
+        _repo.SetProviderCache("live-director", hash, System.Text.Json.JsonSerializer.Serialize(new
+        {
+            v = DirectorVersion,
+            start = start is { } a ? Math.Round(a, 3) : (double?)null,
+            duration = duration is { } b ? Math.Round(b, 3) : (double?)null,
+            score = Math.Round(Math.Clamp(score, -10, 10), 4),
+        }), TimeSpan.FromDays(3650));
+        return true;
+    }
+
+    /// <summary>Whether a cached clip was analysed, and the segment chosen for it.</summary>
+    internal (bool Directed, LiveLoopDto? Loop) Director(string path)
+    {
+        if (FileHash(path) is not { } hash || _repo.GetProviderCache("live-director", hash) is not { } row) return (false, null);
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(row.Body);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("v", out var v) || v.ValueKind != System.Text.Json.JsonValueKind.Number || v.GetInt32() != DirectorVersion) return (false, null);
+            if (root.TryGetProperty("start", out var st) && st.ValueKind == System.Text.Json.JsonValueKind.Number &&
+                root.TryGetProperty("duration", out var du) && du.ValueKind == System.Text.Json.JsonValueKind.Number)
+                return (true, new LiveLoopDto(st.GetDouble(), du.GetDouble()));
+            return (true, null);
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or FormatException or InvalidOperationException)
+        {
+            return (false, null);
+        }
+    }
+
+    /// <summary>SHA-256 (first 16 hex digits) of a cached clip, remembered per file size; null when it isn't cached.</summary>
+    internal string? FileHash(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            if (!info.Exists) return null;
+            if (_hashes.TryGetValue(path, out var known) && known.Length == info.Length) return known.Hash;
+            using var stream = File.OpenRead(path);
+            var hash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(stream))[..16];
+            _hashes[path] = (info.Length, hash);
+            return hash;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     private string CachePath(string gameId, string key) => Path.Combine(CacheDirectory, $"{gameId}-{key}.mp4");

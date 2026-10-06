@@ -444,9 +444,9 @@ function VersionCard({ game, inst, onUnmerge }: { game: Game; inst: Installation
     }
   };
   return (
-    <div className="version surface">
+    <div className="version surface logo-host">
       <div className="version__head">
-        <PlatformBadge platform={inst.platform} />
+        <PlatformBadge platform={inst.platform} motion />
         {inst.state === 'installed' ? <Badge tone="ok">Installed</Badge> : inst.state === 'missing' ? <Badge tone="warn">Missing</Badge> : <Badge>Not installed</Badge>}
         {preferred && <Badge tone="accent">Preferred</Badge>}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>

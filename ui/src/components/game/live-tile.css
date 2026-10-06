@@ -26,6 +26,23 @@
   .cover__img {
   animation: live-kenburns 14s var(--ease-out) forwards;
 }
+/*
+ * Track N: the director loops only the clip's best ~2 s. At the loop point the last frame is frozen on
+ * this canvas, the video jumps back, and the canvas dissolves into the restarted segment.
+ */
+.live-layer__seam {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--seam-ms, 280ms) var(--ease-out);
+}
+.live-layer:not([data-playing]) .live-layer__seam { display: none; }
+.live-layer__seam[data-on] { opacity: 1; transition: none; }
+
 @keyframes live-kenburns {
   from { transform: scale(1); }
   to { transform: scale(1.07) translate(-1.2%, -0.8%); }

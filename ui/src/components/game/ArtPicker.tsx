@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { motion } from 'motion/react';
-import { Check, CloudOff, ExternalLink, Images, RotateCcw, Search, Settings2, Sparkles } from 'lucide-react';
+import { Check, CloudOff, ExternalLink, Images, RotateCcw, Search, Settings2, Sparkles, Wand2 } from 'lucide-react';
 import { call, errorMessage, on, BridgeError } from '../../bridge/bridge';
 import type { ArtOption, ArtOptions, Game, PickerKind, UserArt } from '../../bridge/types';
 import { gridMove, PICKER_SLOTS, STYLE_LABEL } from '../../lib/dataSources';
+import { presetForStyle } from '../../lib/artPacks';
+import { ArtPacksDialog, type ArtPacksInitial } from '../artpacks/ArtPacksDialog';
 import { useReducedMotion, useStore } from '../../state/store';
 import { Button } from '../ui/primitives';
 import { Dialog } from '../ui/Dialog';
@@ -25,6 +27,7 @@ export function useUserArt(gameId: string): UserArt[] {
 /** "Browse SteamGridDB…" and "Reset to default" for one artwork slot, plus the credit line for picked art. */
 export function ArtSlotActions({ game, kind, userArt }: { game: Game; kind: PickerKind; userArt: UserArt[] }) {
   const [open, setOpen] = useState(false);
+  const [packs, setPacks] = useState<ArtPacksInitial | null>(null);
   const [resetting, setResetting] = useState(false);
   const toast = useStore((s) => s.toast);
   const refresh = useStore((s) => s.refreshLibrary);
@@ -53,10 +56,25 @@ export function ArtSlotActions({ game, kind, userArt }: { game: Game; kind: Pick
       </div>
       {mine && (
         <p className="art-slot__credit">
-          Your choice{mine.source === 'steamgriddb' ? <> · from SteamGridDB{mine.author ? <> by <span className="selectable">{mine.author}</span></> : null}</> : ' · from a file'}. Scans never replace it.
+          {mine.source === 'artpack' ? (
+            <>From the {mine.pack ?? 'art'} pack · SteamGridDB{mine.author ? <> art by <span className="selectable">{mine.author}</span></> : null}. Scans never replace it.</>
+          ) : (
+            <>Your choice{mine.source === 'steamgriddb' ? <> · from SteamGridDB{mine.author ? <> by <span className="selectable">{mine.author}</span></> : null}</> : ' · from a file'}. Scans never replace it.</>
+          )}
         </p>
       )}
-      <ArtPickerDialog game={game} kind={kind} open={open} onClose={close} />
+      <ArtPickerDialog
+        game={game}
+        kind={kind}
+        open={open}
+        onClose={close}
+        onApplyStyle={(preset) => {
+          setOpen(false);
+          // Track N: the picked style, for this slot, across the library.
+          setPacks({ preset, kinds: [kind === 'icon' ? 'cover' : kind], scope: 'all' });
+        }}
+      />
+      <ArtPacksDialog open={!!packs} onClose={() => setPacks(null)} initial={packs ?? undefined} />
     </>
   );
 }
@@ -69,7 +87,11 @@ const ratioPad = (ratio: string) => {
   return `${((h || 1) / (w || 1)) * 100}%`;
 };
 
-export function ArtPickerDialog({ game, kind, open, onClose }: { game: Game; kind: PickerKind; open: boolean; onClose: () => void }) {
+export function ArtPickerDialog({ game, kind, open, onClose, onApplyStyle }: {
+  game: Game; kind: PickerKind; open: boolean; onClose: () => void;
+  /** Track N: "Apply this style to…" opens Art packs with the matching style chosen. */
+  onApplyStyle?: (preset: NonNullable<ReturnType<typeof presetForStyle>>) => void;
+}) {
   const slot = PICKER_SLOTS.find((s) => s.kind === kind)!;
   const reduce = useReducedMotion();
   const toast = useStore((s) => s.toast);
@@ -134,6 +156,8 @@ export function ArtPickerDialog({ game, kind, open, onClose }: { game: Game; kin
 
   const items = data?.items ?? [];
   const chosen = items.find((i) => i.id === selected) ?? null;
+  // The style to spread: the selected image's, or the one style filter that's on.
+  const packPreset = presetForStyle(kind, chosen ? chosen.style : styles.length === 1 ? styles[0] : null);
 
   const apply = async () => {
     if (!chosen) return;
@@ -192,6 +216,9 @@ export function ArtPickerDialog({ game, kind, open, onClose }: { game: Game; kin
             Community artwork from SteamGridDB, credited to each artist.
             <button className="artpick__link" onClick={() => void call('dataSources.openLink', { provider: 'steamgriddb', link: 'home' })}>steamgriddb.com <ExternalLink size={11} aria-hidden /></button>
           </span>
+          {onApplyStyle && packPreset && kind !== 'icon' && data?.game && (
+            <Button variant="ghost" icon={<Wand2 size={15} />} onClick={() => onApplyStyle(packPreset)}>Apply this style to…</Button>
+          )}
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="primary" icon={<Check size={15} />} disabled={!chosen} loading={applying} onClick={() => void apply()}>Use this {slot.label.toLowerCase()}</Button>
         </>
