@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Vystral.Core.Contracts;
@@ -32,10 +31,11 @@ public sealed record PerfSummary(
     string? FpsSource = null);
 
 /// <summary>
-/// Read-only system sampling during a game session. Uses Windows performance counters
-/// (no admin) and, when an NVIDIA driver is installed, NVML's temperature, clock and
-/// throttle-reason queries. Nothing here changes clocks, fans, power limits or any other
-/// hardware setting.
+/// Read-only system sampling during a game session (no admin, no process opened): CPU from
+/// GetSystemTimes, RAM from GlobalMemoryStatusEx, GPU 3D load and dedicated memory from kernel
+/// graphics statistics (<see cref="GpuMeter"/>, with the PDH counters as fallback) and, when an
+/// NVIDIA driver is installed, NVML's temperature, clock and throttle-reason queries. Nothing here
+/// changes clocks, fans, power limits or any other hardware setting.
 /// </summary>
 public sealed class PerfSampler : IDisposable
 {
@@ -43,16 +43,23 @@ public sealed class PerfSampler : IDisposable
         "Frame-rate capture is off. It can be turned on in Settings › Launching & sessions (it uses Intel PresentMon). FPS is not recorded.";
 
     private readonly CpuMeter _cpu = new();
-    private readonly GpuCounters _gpu = new();
+    private readonly GpuMeter _gpu;
     private readonly Nvml? _nvml = Nvml.TryCreate();
+
+    public PerfSampler() : this(GpuMeter.CreateDefault()) { }
+
+    internal PerfSampler(GpuMeter gpu) => _gpu = gpu;
+
+    /// <summary>Which GPU method is in use ("D3DKMT", "PDH"), or null when GPU load can't be read.</summary>
+    public string? GpuSource => _gpu.Source;
 
     public PerfSampleDto Sample(int offsetMs)
     {
         double? cpu = _cpu.Read();
-        var (gpu, gpuMem) = _gpu.Read();
+        var gpu = _gpu.Read();
         double? ram = ReadUsedRamMb();
         double? temp = _nvml?.ReadTemperature();
-        return new PerfSampleDto(offsetMs, Round(cpu), Round(gpu), Round(gpuMem), Round(ram), Round(temp));
+        return new PerfSampleDto(offsetMs, Round(cpu), Round(gpu.Util), Round(gpu.DedicatedMb), Round(ram), Round(temp));
     }
 
     /// <summary>NVIDIA graphics clock and throttle flags (read-only NVML queries); nulls elsewhere.</summary>
@@ -171,70 +178,6 @@ public sealed class PerfSampler : IDisposable
             if (first) return null;
             var total = dk + du; // kernel time includes idle time
             return total == 0 ? null : Math.Clamp(100.0 * (total - di) / total, 0, 100);
-        }
-    }
-
-    /// <summary>
-    /// GPU utilisation and dedicated memory from the "GPU Engine" / "GPU Adapter Memory"
-    /// counters (the same source as Task Manager). Instances are refreshed periodically
-    /// because they come and go with processes.
-    /// </summary>
-    private sealed class GpuCounters : IDisposable
-    {
-        private List<PerformanceCounter> _engines = [];
-        private List<PerformanceCounter> _memory = [];
-        private DateTime _refreshed = DateTime.MinValue;
-        private bool _unavailable;
-
-        public (double? Util, double? MemMb) Read()
-        {
-            if (_unavailable) return (null, null);
-            try
-            {
-                if (DateTime.UtcNow - _refreshed > TimeSpan.FromSeconds(15)) Refresh();
-                double util = 0;
-                foreach (var c in _engines)
-                {
-                    try { util += c.NextValue(); } catch (InvalidOperationException) { }
-                }
-                double mem = 0;
-                foreach (var c in _memory)
-                {
-                    try { mem += c.NextValue(); } catch (InvalidOperationException) { }
-                }
-                return (Math.Clamp(util, 0, 100), _memory.Count == 0 ? null : mem / 1048576.0);
-            }
-            catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
-            {
-                _unavailable = true;
-                return (null, null);
-            }
-        }
-
-        private void Refresh()
-        {
-            Dispose();
-            var engine = new PerformanceCounterCategory("GPU Engine");
-            _engines = engine.GetInstanceNames()
-                .Where(n => n.EndsWith("engtype_3D", StringComparison.OrdinalIgnoreCase))
-                .Select(n => new PerformanceCounter("GPU Engine", "Utilization Percentage", n, readOnly: true))
-                .ToList();
-            var memory = new PerformanceCounterCategory("GPU Adapter Memory");
-            _memory = memory.GetInstanceNames()
-                .Select(n => new PerformanceCounter("GPU Adapter Memory", "Dedicated Usage", n, readOnly: true))
-                .ToList();
-            foreach (var c in _engines.Concat(_memory))
-            {
-                try { c.NextValue(); } catch (InvalidOperationException) { }
-            }
-            _refreshed = DateTime.UtcNow;
-        }
-
-        public void Dispose()
-        {
-            foreach (var c in _engines.Concat(_memory)) c.Dispose();
-            _engines = [];
-            _memory = [];
         }
     }
 
