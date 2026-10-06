@@ -46,6 +46,11 @@ Version 0.5 features that use only data already on your PC (no new hosts, nothin
 - **Estimated savings on your backlog** uses prices already cached when you opened game pages (CheapShark/IsThereAnyDeal); it never looks up prices on its own.
 - **Session replay cards** are drawn in the interface. *Save as image* writes a 1920×1080 PNG only where you choose in the Windows save dialog; *Copy image* puts it on the Windows clipboard. The image never leaves your PC unless you share it.
 
+Immersive Mode (0.6, all on your PC):
+
+- **Voice-over and captions** (off by default) speak through Windows' own speech engine via the WebView2 Web Speech API. Only voices installed on this PC (`localService`) are used; online "Natural" voices are never picked, so no text leaves the PC. If no local voice is installed it shows captions only. Nothing is recorded or stored except your settings (voice name, speed, volume).
+- **Button glyphs** "Automatic" reads the connected controller's name and USB vendor ID through the standard Gamepad API, in memory only, to choose Xbox, PlayStation or Nintendo glyphs.
+
 VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 
 ## When VYSTRAL uses the network

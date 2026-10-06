@@ -16,7 +16,7 @@ import { predictGames, predictWords, type WordPrediction } from '../../lib/predi
 import { sound } from '../../lib/sound';
 import { useReducedMotion } from '../../state/store';
 import { GameCover } from '../game/GameCover';
-import { PadGlyph } from '../ui/primitives';
+import { PadGlyph, PadHint } from '../ui/primitives';
 import './controller.css';
 
 const GAME_SLOTS = 7;
@@ -452,14 +452,14 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame, filters }: { game
         </div>
 
         <footer className="osk__hints" aria-hidden>
-          <span><PadGlyph button="A" /> Type</span>
-          <span><PadGlyph button="B" /> Delete</span>
-          <span><PadGlyph button="X" /> Space</span>
-          <span><PadGlyph button="LB" /><PadGlyph button="RB" /> Cursor</span>
-          <span><PadGlyph button="LT" /> Symbols</span>
-          <span><PadGlyph button="RT" /> Results</span>
-          {filters && filters.options.length > 1 && <span><PadGlyph button="View" /> Filter</span>}
-          <span><PadGlyph button="Y" /> Close</span>
+          <PadHint button="A">Type</PadHint>
+          <PadHint button="B">Delete</PadHint>
+          <PadHint button="X">Space</PadHint>
+          <PadHint button={['LB', 'RB']}>Cursor</PadHint>
+          <PadHint button="LT">Symbols</PadHint>
+          <PadHint button="RT">Results</PadHint>
+          {filters && filters.options.length > 1 && <PadHint button="View">Filter</PadHint>}
+          <PadHint button="Y">Close</PadHint>
         </footer>
       </motion.div>
     </motion.div>

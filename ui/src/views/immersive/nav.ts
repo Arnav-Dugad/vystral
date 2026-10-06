@@ -52,7 +52,8 @@ export function moveNav(state: NavState, rows: readonly Row[], dr: number, dc: n
     if (nextRow === row) return { state, effect: 'edge' };
     const cols = { ...state.cols };
     // The A–Z grid keeps the same column; shelves remember their own position.
-    if (state.tab === 'library') cols[rows[nextRow].id] = Math.min(col, rows[nextRow].tiles.length - 1);
+    // (The toolbar over the grid remembers its own chip.)
+    if (state.tab === 'library' && current.kind !== 'tools' && rows[nextRow].kind !== 'tools') cols[rows[nextRow].id] = Math.min(col, rows[nextRow].tiles.length - 1);
     return { state: { ...state, row: nextRow, rowId: rows[nextRow].id, cols }, effect: 'row' };
   }
   return { state, effect: null };
@@ -61,7 +62,8 @@ export function moveNav(state: NavState, rows: readonly Row[], dr: number, dc: n
 export function switchTab(state: NavState, tab?: ImmTab): NavState {
   const next = tab ?? (state.tab === 'home' ? 'library' : 'home');
   if (next === state.tab) return state;
-  return { ...state, tab: next, row: 0, rowId: null };
+  // The grid opens on its first row of games (the toolbar sits just above it).
+  return { ...state, tab: next, row: 0, rowId: next === 'library' ? 'lib-0' : null };
 }
 
 /** Browse tiles open the A–Z grid filtered to that store or genre. */
@@ -69,7 +71,7 @@ export function applyFilter(state: NavState, filter: LibraryFilter | null): NavS
   if (state.tab === 'library' && sameFilter(state.filter, filter)) return state;
   const cols = { ...state.cols };
   for (const id of Object.keys(cols)) if (id.startsWith('lib-')) delete cols[id];
-  return { ...state, tab: 'library', row: 0, rowId: null, cols, filter };
+  return { ...state, tab: 'library', row: 0, rowId: 'lib-0', cols, filter };
 }
 
 export function locate(rows: readonly Row[], gameId: string): { row: number; col: number } | null {

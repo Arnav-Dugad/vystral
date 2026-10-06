@@ -1,0 +1,46 @@
+/* ===== Voice-over captions (Track T) =====
+   A subtitle bar: centred, near the bottom, solid enough to read over any art without a blur.
+   Old and new captions share one grid cell and crossfade. */
+.captions {
+  position: fixed;
+  left: 50%;
+  bottom: var(--captions-bottom, 5.6rem);
+  z-index: 140;
+  translate: -50% 0;
+  display: grid;
+  justify-items: center;
+  width: min(62rem, 88vw);
+  pointer-events: none;
+}
+.captions__bar {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  max-width: 100%;
+  padding: 0.55em 1.15em 0.55em 0.9em;
+  border-radius: 0.9em;
+  background: oklch(0.08 0.01 282 / 0.9);
+  box-shadow: 0 10px 40px -12px oklch(0 0 0 / 0.8), inset 0 0 0 1px oklch(1 0 0 / 0.1);
+  color: oklch(0.98 0 0);
+  font-size: 1.1rem;
+  font-weight: var(--fw-medium, 500);
+  line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
+}
+.captions__text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.captions__wave { flex: none; display: inline-flex; align-items: center; gap: 0.16em; height: 1em; }
+.captions__wave i { display: block; width: 0.16em; height: 100%; border-radius: 1em; background: var(--accent-hi, oklch(0.8 0.12 292)); transform: scaleY(0.35); transform-origin: 50% 50%; }
+.captions__bar[data-speaking] .captions__wave i { animation: captions-wave 900ms ease-in-out infinite; }
+.captions__wave i:nth-child(2) { animation-delay: -300ms !important; }
+.captions__wave i:nth-child(3) { animation-delay: -600ms !important; }
+@keyframes captions-wave { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+:root:is([data-reduced-motion='true'], [data-performance='true'], [data-quality='low']) .captions__wave i { animation: none !important; transform: scaleY(0.6); }
+@media (prefers-reduced-motion: reduce) { .captions__wave i { animation: none !important; transform: scaleY(0.6); } }
+:root[data-theme='contrast'] .captions__bar { background: #000; color: #fff; box-shadow: 0 0 0 2px #fff; }
+:root[data-theme='contrast'] .captions__wave i { background: #fff; }
+@media (forced-colors: active) {
+  .captions__bar { background: Canvas; color: CanvasText; border: 2px solid CanvasText; }
+  .captions__wave i { background: CanvasText; }
+}

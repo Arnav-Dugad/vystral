@@ -44,7 +44,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(1, all["immersive.scale"]!.GetValue<double>());
         Assert.Equal(0, all["immersive.safeArea"]!.GetValue<double>());
         Assert.False(all["immersive.tourDone"]!.GetValue<bool>());
-        Assert.Equal(63, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7) + Track H (1) + Track M (2) + Track L (4)
+        Assert.Equal(70, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7) + Track H (1) + Track M (2) + Track L (4) + Track T (7)
     }
 
     [Fact]
@@ -128,6 +128,35 @@ public sealed class SettingsServiceTests : IDisposable
     {
         Assert.Equal(ok, _s.Set(key, J(json)) is null);
         if (ok) Assert.Equal(double.Parse(json, System.Globalization.CultureInfo.InvariantCulture), _s.GetNumber(key));
+    }
+
+    // Track T: voice-over (off by default; any voice name without control characters), glyph family, grid sort.
+    [Theory]
+    [InlineData("controller.glyphs", "playstation", true)]
+    [InlineData("controller.glyphs", "nintendo", true)]
+    [InlineData("controller.glyphs", "sega", false)]
+    [InlineData("immersive.librarySort", "played", true)]
+    [InlineData("immersive.librarySort", "random", false)]
+    public void Track_t_enums_are_validated(string key, string value, bool ok) => Enum_values_are_validated(key, value, ok);
+
+    [Theory]
+    [InlineData("voiceover.rate", "0.5", true)]
+    [InlineData("voiceover.rate", "2", true)]
+    [InlineData("voiceover.rate", "2.1", false)]
+    [InlineData("voiceover.volume", "0", true)]
+    [InlineData("voiceover.volume", "1.5", false)]
+    public void Track_t_numbers_are_validated(string key, string json, bool ok) => Number_ranges_are_validated(key, json, ok);
+
+    [Fact]
+    public void Voice_over_is_off_by_default_and_voice_names_are_checked()
+    {
+        Assert.False(_s.GetAll()["voiceover.enabled"]!.GetValue<bool>());
+        Assert.False(_s.GetAll()["voiceover.captionsOnly"]!.GetValue<bool>());
+        Assert.Null(_s.Set("voiceover.voice", JsonValue.Create("Microsoft Zira - English (United States)")));
+        Assert.NotNull(_s.Set("voiceover.voice", JsonValue.Create("bad\u0000voice")));
+        Assert.NotNull(_s.Set("voiceover.voice", JsonValue.Create("line\nbreak")));
+        Assert.NotNull(_s.Set("voiceover.voice", JsonValue.Create(new string('a', 201))));
+        Assert.Equal("Microsoft Zira - English (United States)", _s.GetString("voiceover.voice"));
     }
 
     [Theory]

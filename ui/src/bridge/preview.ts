@@ -20,7 +20,7 @@ import { TRACKING_DEFAULT_SETTINGS, decorateTrackingSessions, trackingPreviewHan
 import { artPackPreviewHandlers } from './preview.artPacks';
 import type { DataSourcesStatus, UserArt } from './types';
 import { RECAP_DEFAULT_SETTINGS, recapPreviewHandlers } from './preview.recap';
-import { TRACK_L_DEFAULT_SETTINGS, immersivePreviewHandlers } from './preview.immersive';
+import { TRACK_L_DEFAULT_SETTINGS, TRACK_T_DEFAULT_SETTINGS, immersivePreviewHandlers, previewNowPlaying } from './preview.immersive';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -67,6 +67,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACKING_DEFAULT_SETTINGS,
   ...RECAP_DEFAULT_SETTINGS,
   ...TRACK_L_DEFAULT_SETTINGS,
+  ...TRACK_T_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -237,7 +238,8 @@ export function createPreviewBackend() {
   if (params.has('vibration')) settings['controller.vibration'] = true;
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
-  let launch: LaunchState | null = null;
+  // Track T: `?nowPlaying` starts the preview with a game already running (Immersive's Now playing row).
+  let launch: LaunchState | null = previewNowPlaying(lib.games);
   let update: UpdateState = { phase: 'idle', currentVersion: '0.1.0-preview', newVersion: null, progress: 0, totalBytes: null, bytesPerSecond: null, notes: null, message: null, checkedAt: null };
   const timers: number[] = [];
 

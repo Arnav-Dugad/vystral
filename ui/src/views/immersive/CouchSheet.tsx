@@ -8,7 +8,7 @@ import { pushPadHandler } from '../../lib/input';
 import { ease, pick, spring } from '../../lib/motion';
 import { sound } from '../../lib/sound';
 import { useReducedMotion, useStore } from '../../state/store';
-import { PadGlyph } from '../../components/ui/primitives';
+import { PadHint } from '../../components/ui/primitives';
 
 type RowId = 'scale' | 'safe' | 'cinematic';
 const ROWS: RowId[] = ['scale', 'safe', 'cinematic'];
@@ -92,6 +92,7 @@ export function CouchSheet({ onClose }: { onClose: () => void }) {
   }, [present]);
 
   const onKeyDown = (e: ReactKeyboardEvent) => {
+    if (!present) return;
     if (e.key === 'Tab') {
       e.preventDefault();
       setRow((r) => (r + (e.shiftKey ? ROWS.length - 1 : 1)) % ROWS.length);
@@ -182,9 +183,9 @@ export function CouchSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <footer className="imm-couch__hints" aria-hidden>
-          <span><PadGlyph button="A" /> Done</span>
-          <span>◀ ▶ Adjust</span>
-          <span><PadGlyph button="B" /> Close</span>
+          <PadHint button="A">Done</PadHint>
+          <PadHint button="DpadH">Adjust</PadHint>
+          <PadHint button="B">Close</PadHint>
         </footer>
       </motion.div>
     </motion.div>

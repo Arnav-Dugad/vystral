@@ -224,8 +224,7 @@
   to { opacity: 0; transform: scale(1.6); }
 }
 .osk__glyph { display: inline-flex; opacity: 0.85; }
-.osk__glyph .pad-glyph { width: 1.35em; height: 1.35em; font-size: 0.62rem; }
-.osk__glyph .pad-glyph--bumper { width: auto; min-width: 2em; padding: 0 0.35em; border-radius: 0.4em; }
+.osk__glyph .pad-glyph { --pad-glyph-size: 1.3em; }
 .osk__key--done .osk__glyph, .osk__key--done svg { color: var(--text-on-accent); }
 
 /* The travelling ring, shared with Immersive's look. */
@@ -253,9 +252,7 @@
 .osk__panel[data-reduced='true'] .osk__ring::after { animation: none; opacity: 0; }
 
 .osk__hints { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem 1.4rem; padding-top: 0.2rem; font-size: 0.82rem; color: oklch(0.8 0.01 282); }
-.osk__hints > span { display: inline-flex; align-items: center; gap: 0.4rem; }
-.osk__hints .pad-glyph { width: 1.45em; height: 1.45em; font-size: 0.68rem; }
-.osk__hints .pad-glyph--bumper { width: auto; min-width: 2.1em; padding: 0 0.4em; border-radius: 0.42em; }
+.osk__hints .pad-glyph { --pad-glyph-size: 1.45em; }
 :root[data-input='mouse'] .osk__hints { opacity: 0.55; }
 
 @media (max-height: 760px) {

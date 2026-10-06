@@ -10,7 +10,7 @@ import { isInstalled, PLATFORM_NAMES } from '../../lib/format';
 import { sound } from '../../lib/sound';
 import { moodFor } from '../../lib/mood';
 import { useReducedMotion } from '../../state/store';
-import { PadGlyph } from '../../components/ui/primitives';
+import { PadHint } from '../../components/ui/primitives';
 import { radialHit, radialOffset, radialStep, type RadialDir } from './radial';
 
 export type QuickAction =
@@ -180,6 +180,8 @@ export function QuickMenu({ game, anchor, onAction, onClose }: { game: Game; anc
       transition={pick(reduce, spring.effect)}
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       onKeyDown={(e) => {
+        // While it animates out it lets keys through (focus may still sit on a petal for a moment).
+        if (!present) return;
         if (e.key === 'Tab') {
           e.preventDefault();
           setIndex((i) => (i + (e.shiftKey ? items.length - 1 : 1)) % items.length);
@@ -251,8 +253,8 @@ export function QuickMenu({ game, anchor, onAction, onClose }: { game: Game; anc
         })}
       </div>
       <footer className="imm-quick__hints" aria-hidden>
-        <span><PadGlyph button="A" /> Select</span>
-        <span><PadGlyph button="B" /> {ring === 'status' ? 'Back' : 'Close'}</span>
+        <PadHint button="A">Select</PadHint>
+        <PadHint button="B">{ring === 'status' ? 'Back' : 'Close'}</PadHint>
       </footer>
     </motion.div>
   );

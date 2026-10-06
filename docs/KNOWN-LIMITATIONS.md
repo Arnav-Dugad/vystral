@@ -79,6 +79,12 @@
 - The tracker never installs updates itself (the updater window would appear at sign-in); a downloaded update installs the next time VYSTRAL is opened or closed, as before. If the updater finds the tracker running, it stops it (gracefully when it can) and starts it again afterwards.
 - Verified with the real tracker process against a scratch data folder (detection, saved sessions, hand-over to a simulated app and back, stopping). The sign-in entry, the Velopack update/uninstall hooks and the toast from the tracker still need checking on an installed build.
 
+**Immersive Mode (0.6)**
+- Voice-over uses Windows' installed voices through WebView2's Web Speech API. Which voices appear depends on the language packs installed (Settings › Time & language › Speech); WebView2 has been checked in Chromium with a stand-in speech engine, not yet with every Windows voice. It stays silent while a game starts or runs, like the other interface sounds.
+- The on-screen keyboard's letters aren't read out key by key; voice-over reads the search results count and the games you open.
+- "Automatic" button glyphs need the controller to appear in the page's Gamepad list, which Chromium fills only after a button on that controller was pressed while VYSTRAL had focus. Nintendo glyphs follow position (the bottom button reads "B", as printed). Controllers Windows only exposes as a generic HID device show Xbox glyphs.
+- Close VYSTRAL (in the Immersive guide) closes the app only; it never shuts down, restarts or sleeps the PC.
+
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).
 - Display-scaling changes, monitor hot-plug, sleep/resume and controller hot-plug have not been tested yet.

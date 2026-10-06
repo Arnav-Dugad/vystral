@@ -118,6 +118,14 @@ public sealed class SettingsService
         new NumberDef("immersive.scale", 1, 1, 1.3),
         new NumberDef("immersive.safeArea", 0, 0, 0.06),
         new BoolDef("immersive.tourDone", false),
+        // Track T: voice-over and captions (Windows' local voices only; off by default), controller glyph family, the Immersive grid's sort.
+        new BoolDef("voiceover.enabled", false),
+        new BoolDef("voiceover.captionsOnly", false),
+        new StringDef("voiceover.voice", "", 200, @"^[^\x00-\x1F\x7F]*\z"),
+        new NumberDef("voiceover.rate", 1, 0.5, 2),
+        new NumberDef("voiceover.volume", 1, 0, 1),
+        new EnumDef("controller.glyphs", "auto", "auto", "xbox", "playstation", "nintendo"),
+        new EnumDef("immersive.librarySort", "az", "az", "recent", "played", "added"),
     ];
 
     private readonly LibraryRepository _repo;

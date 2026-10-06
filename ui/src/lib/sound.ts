@@ -13,12 +13,15 @@ import { spatialSound, type SpatialKind, type SpatialSound } from './spatialSoun
  */
 let ctx: AudioContext | null = null;
 let lastTick = 0;
+/** Track T: while voice-over speaks, interface and ambient sounds drop to this share. */
+export const DUCK_LEVEL = 0.3;
+let duck = 1;
 
 function play(freqs: number[], duration: number, gain: number, type: OscillatorType = 'sine') {
   const s = useStore.getState();
   if (!s.settings?.['sounds.enabled'] || s.launch?.phase === 'running') return;
   ctx ??= new AudioContext();
-  const volume = (s.settings['sounds.volume'] ?? 0.4) * gain;
+  const volume = (s.settings['sounds.volume'] ?? 0.4) * gain * duck;
   const t0 = ctx.currentTime;
   freqs.forEach((f, i) => {
     const osc = ctx!.createOscillator();
@@ -45,7 +48,7 @@ function playSpatial(s: SpatialSound) {
   if (typeof AudioContext === 'undefined') return;
   ctx ??= new AudioContext();
   if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
-  const volume = Math.max(0, Math.min(1, st.settings['sounds.volume'] ?? 0.4));
+  const volume = Math.max(0, Math.min(1, st.settings['sounds.volume'] ?? 0.4)) * duck;
   const t0 = ctx.currentTime + 0.004;
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
@@ -107,6 +110,7 @@ export function watchAmbient() {
       return;
     }
     engine ??= new AmbientEngine();
+    engine.setDuck(duck);
     engine.setVolume((s.settings?.['sound.ambientVolume'] ?? 0.35) * (s.settings?.['sounds.volume'] ?? 0.4) * 2.5);
     engine.setMood(moodFor(s.focusGameId ? s.gamesById.get(s.focusGameId) : null));
     engine.start();
@@ -121,6 +125,12 @@ export function watchAmbient() {
 }
 
 const ambientOn = () => !!engine?.running;
+
+/** Track T: duck (or restore) interface and ambient sounds while voice-over speaks. */
+export function setSoundDuck(on: boolean) {
+  duck = on ? DUCK_LEVEL : 1;
+  engine?.setDuck(duck);
+}
 
 export const sound = {
   focus() {
