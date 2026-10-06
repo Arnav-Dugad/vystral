@@ -3,14 +3,23 @@
    same height, and the travelling focus ring can be computed from layout positions. */
 .imm {
   --imm-gap: 1.15rem;
-  --imm-pw: clamp(8.6rem, 10.4vw, 13rem);           /* portrait card width */
+  /* Track T: the rows never take more than the height left after the header, the hints and a
+     minimum for the game info (7.4rem), so couch text sizes on 16:9 screens never push the layout
+     off screen; cards shrink to fit that height instead. */
+  --imm-avail: calc(100vh - var(--couch-safe, 0) * 200vh - 16rem);
+  --imm-card-hmax: calc(var(--imm-avail) - var(--imm-title-h) - var(--imm-label-h) - var(--imm-row-pad));
+  --imm-pw: min(clamp(8.6rem, 10.4vw, 13rem), calc(var(--imm-card-hmax) / 1.5));   /* portrait card width */
   --imm-ph: calc(var(--imm-pw) * 1.5);
-  --imm-ww: clamp(17.5rem, 22vw, 28rem);            /* wide card width */
+  --imm-ww: min(clamp(17.5rem, 22vw, 28rem), calc(var(--imm-card-hmax) / 0.5625)); /* wide card width */
   --imm-wh: calc(var(--imm-ww) * 0.5625);
   --imm-title-h: 2.7rem;                             /* row title block */
   --imm-label-h: 2.3rem;                             /* space under cards for the focused label */
   --imm-row-pad: 0.9rem;
   --imm-edge: var(--gutter);
+  --imm-chip-w: 9.4rem;                              /* All games toolbar chips (Track T) */
+  --imm-sort-w: 12.6rem;
+  --imm-chip-h: 2.9rem;
+  --imm-chip-gap: 0.6rem;
 
   position: fixed;
   inset: 0;
@@ -39,8 +48,11 @@
   background:
     radial-gradient(48% 42% at 72% 30%, oklch(from var(--stage, var(--accent)) l c h / 0.22), transparent 70%),
     radial-gradient(40% 40% at 18% 78%, oklch(from var(--stage-2, var(--accent)) l c h / 0.16), transparent 70%);
-  transition: background 900ms var(--ease-out);
+  /* Track T: --stage/--stage-2 are registered colours (below), so the glow crossfades between games. */
+  transition: --stage 1100ms var(--ease-out), --stage-2 1100ms var(--ease-out);
 }
+@property --stage { syntax: '<color>'; inherits: false; initial-value: oklch(0.7 0.17 292); }
+@property --stage-2 { syntax: '<color>'; inherits: false; initial-value: oklch(0.68 0.15 255); }
 .imm__vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(140% 110% at 60% 35%, transparent 55%, oklch(0 0 0 / 0.45) 100%); }
 :root[data-quality='low'] .imm__layer--glow { display: none; }
 .imm__backdrop-drift { position: absolute; inset: -3%; animation: imm-drift 28s ease-in-out infinite alternate; }
@@ -111,12 +123,21 @@
   .imm__info-item:has(.imm__pinned) .imm__logo { max-height: clamp(2rem, calc(100cqh - 5.4rem), 8.5rem); }
   .imm__title { font-size: clamp(2rem, 3.4vw, 3.4rem); }
 }
+/* Track T: very little room (couch text on a 16:9 screen): one line of facts, a smaller title. */
+@container (height < 10rem) {
+  .imm__meta { flex-wrap: nowrap; overflow: hidden; margin-top: 0.5rem; }
+  .imm__meta > span, .imm__store { flex: none; white-space: nowrap; }
+  .imm__genres, .imm-live__source { display: none; }
+  .imm__pinned { margin-bottom: 0.35rem; }
+  .imm__title { font-size: clamp(1.6rem, 2.8vw, 2.8rem); }
+  .imm__logo, .imm__info-item:has(.imm__pinned) .imm__logo { max-height: clamp(1.8rem, calc(100cqh - 4.6rem), 5rem); }
+}
 .imm__warn { color: var(--warn) !important; }
 
 /* ----- Rows ----- */
 .imm__rows {
   position: relative;
-  height: calc(var(--imm-title-h) + var(--imm-wh) + var(--imm-label-h) + var(--imm-row-pad) + var(--imm-title-h) + var(--imm-ph) * 0.42);
+  height: min(calc(var(--imm-title-h) + var(--imm-wh) + var(--imm-label-h) + var(--imm-row-pad) + var(--imm-title-h) + var(--imm-ph) * 0.42), var(--imm-avail));
   min-height: 0;
   mask-image: linear-gradient(180deg, #000 0, #000 78%, transparent 100%);
 }
@@ -132,6 +153,10 @@
 .imm__probe .imm__probe-title { height: var(--imm-title-h); }
 .imm__probe .imm__probe-row { height: calc(var(--imm-title-h) + var(--imm-ph) + var(--imm-label-h) + var(--imm-row-pad)); }
 .imm__probe .imm__probe-roww { height: calc(var(--imm-title-h) + var(--imm-wh) + var(--imm-label-h) + var(--imm-row-pad)); }
+.imm__probe .imm__probe-chip { width: var(--imm-chip-w); height: var(--imm-chip-h); }
+.imm__probe .imm__probe-sort { width: var(--imm-sort-w); }
+.imm__probe .imm__probe-chipgap { width: var(--imm-chip-gap); }
+.imm__probe .imm__probe-rowc { height: calc(var(--imm-title-h) + var(--imm-chip-h) + var(--imm-row-pad) * 1.6); }
 .imm__row {
   position: relative;
   height: calc(var(--imm-title-h) + var(--imm-ph) + var(--imm-label-h) + var(--imm-row-pad));
@@ -139,6 +164,7 @@
   transition: opacity 260ms var(--ease-out);
 }
 .imm__row--wide { height: calc(var(--imm-title-h) + var(--imm-wh) + var(--imm-label-h) + var(--imm-row-pad)); }
+.imm__row--tools { height: calc(var(--imm-title-h) + var(--imm-chip-h) + var(--imm-row-pad) * 1.6); }
 .imm__row[data-active='true'] { opacity: 1; }
 .imm__row-title { height: var(--imm-title-h); display: flex; align-items: center; gap: 0.75rem; font-size: 1.05rem; font-weight: var(--fw-semibold); color: oklch(0.94 0 0); }
 .imm__row-meta { font-size: 0.8rem; font-weight: var(--fw-regular); color: oklch(0.7 0 0); }
@@ -207,16 +233,20 @@
 .imm__empty { padding: 0 var(--imm-edge); color: oklch(0.85 0 0); font-size: 1.1rem; max-width: 44ch; }
 
 /* ----- Footer hints ----- */
-.imm__hints { display: flex; align-items: center; gap: 1.7rem; height: 4rem; padding: 0 var(--imm-edge); font-size: 0.88rem; color: oklch(0.84 0 0); }
-.imm__hints > span { display: inline-flex; align-items: center; gap: 0.5rem; }
-.imm__exit { margin-left: auto; display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.45rem 1rem 0.45rem 0.55rem; border-radius: var(--r-pill); background: oklch(1 0 0 / 0.08); font-size: 0.88rem; transition: background 160ms; }
+.imm__hints { display: flex; align-items: center; gap: 0.4rem; height: 4rem; padding: 0 calc(var(--imm-edge) - 0.7em); font-size: 0.88rem; color: oklch(0.84 0 0); }
+/* Every hint (plain or clickable) has the same box, so spacing and vertical centring are uniform:
+   no negative margins, nothing on the text baseline. */
+.imm__hint, .imm__exit { display: inline-flex; align-items: center; height: 2.3em; padding: 0 0.7em; border-radius: var(--r-pill); white-space: nowrap; }
+.imm__hint--btn { transition: background 160ms; }
+.imm__hint--btn:hover:not(:disabled) { background: oklch(1 0 0 / 0.1); }
+.imm__hint--btn:disabled { opacity: 0.45; }
+.imm__exit { margin-left: auto; padding: 0 1em 0 0.55em; background: oklch(1 0 0 / 0.08); transition: background 160ms; }
 .imm__exit:hover { background: oklch(1 0 0 / 0.15); }
-.imm__hint-btn { display: inline-flex; align-items: center; gap: 0.5rem; margin: -0.35rem -0.6rem; padding: 0.35rem 0.6rem; border-radius: var(--r-pill); transition: background 160ms; }
-.imm__hint-btn:hover { background: oklch(1 0 0 / 0.1); }
 
-/* Controller glyphs sized in em so they scale with the 10-foot type ramp. */
-.imm .pad-glyph { width: 1.45em; height: 1.45em; font-size: 0.72rem; line-height: 1; flex: none; box-shadow: inset 0 -1px 0 oklch(0 0 0 / 0.25); }
-.imm .pad-glyph--bumper { width: auto; min-width: 2.2em; padding: 0 0.45em; border-radius: 0.45em; font-size: 0.66rem; }
+/* Controller glyphs (drawn SVGs, components/ui/PadGlyph.tsx) sized in em with the 10-foot type ramp. */
+.imm { --pad-glyph-size: 1.5em; }
+.imm__tabs .pad-glyph { --pad-glyph-size: 1.3em; }
+.imm__filter-x .pad-glyph { --pad-glyph-size: 1.35em; }
 
 /* ----- Game panel ----- */
 .imm-panel { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 3rem; background: oklch(0.04 0.01 282 / 0.72); backdrop-filter: blur(18px) saturate(1.2); }
@@ -267,7 +297,7 @@
 .imm-btn--ghost { background: transparent; }
 
 @media (max-height: 760px) {
-  .imm { --imm-pw: clamp(7rem, 9vw, 11rem); --imm-ww: clamp(14rem, 19vw, 23rem); }
+  .imm { --imm-pw: min(clamp(7rem, 9vw, 11rem), calc(var(--imm-card-hmax) / 1.5)); --imm-ww: min(clamp(14rem, 19vw, 23rem), calc(var(--imm-card-hmax) / 0.5625)); }
   .imm__desc { display: none; }
 }
 

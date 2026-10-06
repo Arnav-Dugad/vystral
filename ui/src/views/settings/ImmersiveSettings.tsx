@@ -2,6 +2,7 @@ import { Sparkles } from 'lucide-react';
 import { COUCH_SAFE, COUCH_SCALE, couchSafe, couchScale, formatSafe, formatScale } from '../../lib/couch';
 import { Button, Slider, Toggle } from '../../components/ui/primitives';
 import { useStore } from '../../state/store';
+import { VoiceOverSettings } from './VoiceOverSettings';
 
 /**
  * Settings → Controller & sound → Immersive Mode (Track L): couch mode (text size, TV overscan
@@ -15,6 +16,7 @@ export function ImmersiveSettings() {
   const scale = couchScale(settings['immersive.scale']);
   const safe = couchSafe(settings['immersive.safeArea']);
   return (
+    <>
     <section className="sgroup">
       <h2 className="sgroup__title">Immersive Mode</h2>
       <p className="sgroup__desc">
@@ -62,5 +64,8 @@ export function ImmersiveSettings() {
         </div>
       </div>
     </section>
+    {/* Track T */}
+    <VoiceOverSettings />
+    </>
   );
 }

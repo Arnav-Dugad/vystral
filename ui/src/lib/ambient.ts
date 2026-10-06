@@ -179,6 +179,8 @@ export class AmbientEngine {
   private active = false;
   mood: Mood = 'drift';
   volume = 0.35;
+  /** Track T: 1 = normal; lower while voice-over speaks. */
+  private duckLevel = 1;
   private readonly seed = Math.floor(Math.random() * 1e9);
 
   static supported(): boolean {
@@ -215,7 +217,7 @@ export class AmbientEngine {
 
   /** Master level: the bed is deliberately quiet, a fraction of the UI sound level. */
   private level() {
-    return Math.max(0, Math.min(1, this.volume)) * 0.5;
+    return Math.max(0, Math.min(1, this.volume)) * 0.5 * this.duckLevel;
   }
 
   private applyMood(glide: number) {
@@ -243,6 +245,13 @@ export class AmbientEngine {
   setVolume(volume: number) {
     this.volume = volume;
     if (this.ctx && this.active) this.master.gain.setTargetAtTime(this.level(), this.ctx.currentTime, 0.2);
+  }
+
+  /** Ducks the bed under voice-over (glides over ~0.3 s). */
+  setDuck(level: number) {
+    if (level === this.duckLevel) return;
+    this.duckLevel = Math.max(0, Math.min(1, level));
+    if (this.ctx && this.active) this.master.gain.setTargetAtTime(this.level(), this.ctx.currentTime, 0.1);
   }
 
   start() {

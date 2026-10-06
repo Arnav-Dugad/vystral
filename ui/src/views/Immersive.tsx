@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { AnimatePresence, LayoutGroup, motion, useTransform } from 'motion/react';
-import { Clock3, CloudDownload, Monitor, Pin, Timer, X as XIcon } from 'lucide-react';
-import { call, on } from '../bridge/bridge';
-import type { Game, GamepadButton } from '../bridge/types';
+import { Clock3, CloudDownload, Pin, Timer, X as XIcon } from 'lucide-react';
+import { call, errorMessage, on } from '../bridge/bridge';
+import type { Game, GamepadButton, InstallProgress } from '../bridge/types';
 import { formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../lib/format';
 import { haptic } from '../lib/haptics';
 import { StoreLogo } from '../components/ui/StoreLogo';
@@ -14,13 +14,17 @@ import { moodFor } from '../lib/mood';
 import { couchVars } from '../lib/couch';
 import { takeEntryFocus } from '../lib/modeSwitch';
 import { isWaiting } from '../lib/neverPlayed';
+import { sentence, voiceOver } from '../lib/voiceover';
+import { useVoiceOverSurface } from '../lib/useVoiceOver';
 import { toggleFavorite } from '../state/actions';
 import { setGameStatus } from '../state/statusActions';
+import { ensureInstallsStarted, useInstalls } from '../state/installs';
 import { useReducedMotion, useStore } from '../state/store';
 import { OnScreenKeyboard, type OskFilters } from '../components/controller/OnScreenKeyboard';
 import { GameCover } from '../components/game/GameCover';
 import { openInStore } from '../components/game/InstallButton';
-import { PadGlyph } from '../components/ui/primitives';
+import { PadGlyph, PadHint } from '../components/ui/primitives';
+import { CaptionBar } from '../components/voiceover/CaptionBar';
 import { AttractMode } from './immersive/AttractMode';
 import { GameLogo } from '../components/game/GameLogo';
 import { HeroStage } from './immersive/HeroStage';
@@ -28,13 +32,21 @@ import { SystemBar } from './immersive/SystemBar';
 import { QuickMenu, type QuickAction } from './immersive/QuickMenu';
 import { GamePage, type PageTab } from './immersive/GamePage';
 import { CouchSheet } from './immersive/CouchSheet';
+import { Guide, type GuideAction } from './immersive/Guide';
+import { VoiceSheet } from './immersive/VoiceSheet';
 import { Tour, type TourStep } from './immersive/Tour';
+import { DownloadFace, DownloadInfo, JumpFlash, JumpRail, PlayingFace, PlayingInfo, ToolChip } from './immersive/LiveTiles';
+import { focusSpeech } from './immersive/speech';
 import { leanX, leanY, nudge } from './immersive/parallax';
-import { filterLabel, greeting, homeRows, libraryRows, tileGame, tileLabel, type LibraryFilter, type Row, type Tile } from './immersive/rows';
+import {
+  filterLabel, greeting, homeRows, jumpAt, LIBRARY_SORTS, libraryView, nextJump, normalizeSort, SORT_LABEL, tileGame, tileLabel,
+  type Jump, type LibraryFilter, type LibrarySort, type LiveState, type Row, type Tile,
+} from './immersive/rows';
 import {
   applyFilter, clampRow, colOf, focusGame, INITIAL_NAV, moveNav, pick as pickTile, switchTab as switchNavTab, type ImmTab, type NavState,
 } from './immersive/nav';
 import './immersive.css';
+import './immersive/immersive-t.css';
 
 /** Rows mounted around the focused one. Others are exact-height placeholders. */
 const WINDOW_BEFORE = 2;
@@ -43,6 +55,10 @@ const WINDOW_AFTER = 4;
 const FOCUS_SCALE = 1.06;
 /** Holding X this long opens the quick menu (a shorter press toggles Favorite). */
 const HOLD_X_MS = 420;
+/** Re-entering Immersive within this long returns to the same row and card (Track T). */
+const NAV_MEMORY_MS = 30 * 60_000;
+const ACTIVE_PHASES = ['starting', 'waiting', 'running'];
+const DOWNLOAD_PHASES: InstallProgress['phase'][] = ['queued', 'downloading', 'staging', 'paused'];
 
 type SearchFilter = 'all' | 'installed' | 'favorites' | 'unplayed';
 
@@ -53,31 +69,54 @@ interface RingRect {
   h: number;
 }
 
-/** The game Immersive opens on: the one the switch zoomed into (Home rows first, else the A–Z grid). */
-function entryNav(visible: Game[], collections: ReturnType<typeof useStore.getState>['library']['collections']): NavState {
+/** Where Immersive was when it last closed (Track T: focus memory across visits). */
+let memory: { nav: NavState; at: number; gameId: string | null } | null = null;
+
+/** The game Immersive opens on: the one the switch zoomed into (Home rows first, else the grid); else where you left it. */
+function entryNav(visible: Game[], collections: ReturnType<typeof useStore.getState>['library']['collections'], sort: ReturnType<typeof normalizeSort>): NavState {
   const id = takeEntryFocus();
+  // Back from the desktop on the game you left from (or with no particular game): exactly where you were.
+  const remembered = memory && Date.now() - memory.at < NAV_MEMORY_MS ? memory : null;
+  if (remembered && (!id || id === remembered.gameId)) return remembered.nav;
   if (!id) return INITIAL_NAV;
   const home = focusGame(INITIAL_NAV, homeRows(visible, collections, Date.now(), new Date().getHours()), id);
   if (home !== INITIAL_NAV) return home;
   const lib = { ...INITIAL_NAV, tab: 'library' as const };
-  const inLib = focusGame(lib, libraryRows(visible, null), id);
+  const inLib = focusGame(lib, libraryView(visible, null, sort, Date.now()).rows, id);
   return inLib !== lib ? inLib : INITIAL_NAV;
 }
 
+/** Brings the running game back to the front (never launches anything). */
+function returnToGame(game: Game) {
+  const toast = useStore.getState().toast;
+  if (useStore.getState().launch?.phase !== 'running') {
+    toast({ tone: 'info', title: `${game.title} is still starting`, body: 'It comes to the front by itself once its window opens.' });
+    return;
+  }
+  void call<boolean>('game.focus')
+    .then((ok) => {
+      if (ok === false) toast({ tone: 'info', title: `Couldn’t switch to ${game.title}`, body: 'Windows didn’t let VYSTRAL bring it forward. Use Alt+Tab to switch to it.' });
+    })
+    .catch((err) => toast({ tone: 'info', title: `Couldn’t switch to ${game.title}`, body: errorMessage(err) }));
+}
+
 /**
- * Immersive Mode: an independent, controller-first 10-foot layout (Track L overhaul).
+ * Immersive Mode: an independent, controller-first 10-foot layout (Track L overhaul, Track T).
  * - A hero stage: the focused game's art full-bleed with its live loop when allowed, leaning
- *   with each D-pad move (parallax).
+ *   with each D-pad move (parallax); its palette glow crossfades between games.
  * - Rows ordered by time of day (Continue always first, with a pinned "last played" slot), plus
- *   Never played, your collections, and browse rows by store logo and genre.
- * - One travelling focus ring tinted by the game's palette; spatial sounds follow it (pan by
- *   position, pitch by row depth, timbre by mood); haptic ticks on row change.
- * - Hold X / View for a radial quick menu; A opens a tabbed game page; Y searches with fast filters.
- * - Focus is anchored: the focused card sits at the left edge and rows slide beneath it; every row
- *   has a fixed height so mounting/unmounting rows never shifts the layout.
+ *   Now playing (return to the running game), Downloads, collections and browse rows.
+ * - All games: a toolbar of sort and filter chips (store logos) over the grid; LT/RT jump between
+ *   letters (or time bands) with a rail and a big letter flash.
+ * - One travelling focus ring tinted by the game's palette; spatial sounds follow it.
+ * - Hold X / View for a radial quick menu; A opens a tabbed game page; Y searches; Menu opens the
+ *   guide (desktop mode, display, voice-over, settings, close VYSTRAL).
+ * - Voice-over and captions (off by default) read the focused game, rows, menus and notices.
+ * - Leaving lands the desktop on the game you were on.
  */
 export function ImmersiveView() {
   const games = useStore((s) => s.library.games);
+  const gamesById = useStore((s) => s.gamesById);
   const collections = useStore((s) => s.library.collections);
   const settings = useStore((s) => s.settings);
   const setMode = useStore((s) => s.setMode);
@@ -85,9 +124,13 @@ export function ImmersiveView() {
   const setSetting = useStore((s) => s.setSetting);
   const launchGame = useStore((s) => s.launchGame);
   const reduce = useReducedMotion();
+  const sort = normalizeSort(settings?.['immersive.librarySort']);
+  const voiceOn = !!settings?.['voiceover.enabled'];
+
+  useVoiceOverSurface({ focusRoot: ':is(.imm-panel, .imm-quick, .imm-couch, .imm-guide, .osk)' });
 
   const visible = useMemo(() => games.filter((g) => !g.hidden), [games]);
-  const [nav, setNav] = useState<NavState>(() => entryNav(visible, collections));
+  const [nav, setNav] = useState<NavState>(() => entryNav(visible, collections, sort));
   const [hour, setHour] = useState(() => new Date().getHours());
   const [panel, setPanel] = useState<{ id: string; tab: PageTab } | null>(null);
   const [attract, setAttract] = useState(false);
@@ -95,10 +138,13 @@ export function ImmersiveView() {
   const [searchFilter, setSearchFilter] = useState<SearchFilter>('all');
   const [quick, setQuick] = useState<{ id: string; anchor: { x: number; y: number } } | null>(null);
   const [couch, setCouch] = useState(false);
+  const [guide, setGuide] = useState(false);
+  const [voiceSheet, setVoiceSheet] = useState(false);
   const [holdingX, setHoldingX] = useState(false);
   const [gliding, setGliding] = useState(false);
   const [tourDone, setTourDone] = useState<Set<TourStep>>(() => new Set());
   const [filterOrigin, setFilterOrigin] = useState<NavState | null>(null);
+  const [flash, setFlash] = useState<{ label: string; n: number } | null>(null);
 
   // Re-order rows when the part of the day changes (checked every few minutes).
   useEffect(() => {
@@ -106,16 +152,43 @@ export function ImmersiveView() {
     return () => window.clearInterval(t);
   }, []);
 
-  const rows = useMemo<Row[]>(
-    () => (nav.tab === 'home' ? homeRows(visible, collections, Date.now(), hour) : libraryRows(visible, nav.filter)),
-    [visible, collections, hour, nav.tab, nav.filter],
+  // ---------------------------------------------------------------- live rows (Track T)
+  const launch = useStore((s) => s.launch);
+  const playingGame = launch && ACTIVE_PHASES.includes(launch.phase) ? gamesById.get(launch.gameId) ?? null : null;
+  const playingPhase = playingGame ? launch!.phase : null;
+  const playingStart = playingGame ? launch!.startedAt : null;
+  useEffect(() => ensureInstallsStarted(), []);
+  // Only the set of downloads rebuilds the rows; their progress is read live by the tiles.
+  const downloadKey = useInstalls((s) =>
+    Object.values(s.byGame)
+      .filter((p) => p.watching && p.kind !== 'uninstall' && DOWNLOAD_PHASES.includes(p.phase))
+      .map((p) => p.gameId)
+      .sort()
+      .join('|'),
   );
+  const live = useMemo<LiveState>(() => {
+    const byGame = useInstalls.getState().byGame;
+    const downloads = downloadKey
+      ? downloadKey.split('|').flatMap((id) => {
+          const game = gamesById.get(id);
+          return game && !game.hidden && byGame[id] ? [{ game, progress: byGame[id] }] : [];
+        })
+      : [];
+    return { playing: playingGame && playingPhase ? { game: playingGame, phase: playingPhase, startedAt: playingStart } : null, downloads };
+  }, [downloadKey, gamesById, playingGame, playingPhase, playingStart]);
+
+  const view = useMemo<{ rows: Row[]; jumps: Jump[] }>(
+    () => (nav.tab === 'home' ? { rows: homeRows(visible, collections, Date.now(), hour, live), jumps: [] } : libraryView(visible, nav.filter, sort, Date.now())),
+    [visible, collections, hour, nav.tab, nav.filter, live, sort],
+  );
+  const rows = view.rows;
   const row = clampRow(nav, rows);
   const current = rows[row];
   const col = colOf(nav, rows, row);
   const tile: Tile | null = current?.tiles[col] ?? null;
   const focused = tileGame(tile);
-  const focusedGame = tile?.kind === 'game' ? tile.game : null;
+  const focusedGame = tile && (tile.kind === 'game' || tile.kind === 'playing' || tile.kind === 'download') ? tile.game : null;
+  const here = nav.tab === 'library' ? jumpAt(view.jumps, row, col) : null;
 
   useEffect(() => {
     if (focused) setFocusGame(focused.id);
@@ -179,6 +252,8 @@ export function ImmersiveView() {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const glideTimer = useRef<number | undefined>(undefined);
   const glidingRef = useRef(false);
+  /** The user moved or opened something here: leaving lands the desktop on that game. */
+  const engaged = useRef(false);
   const onRing = useCallback((r: RingRect) => {
     ringRef.current = r;
   }, []);
@@ -194,11 +269,64 @@ export function ImmersiveView() {
     });
   }, []);
 
-  // ---------------------------------------------------------------- actions
-  const latest = useRef({ nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, attract, tourActive, filterOrigin });
+  // ---------------------------------------------------------------- voice-over: the focused tile
+  const spoken = useRef<{ row: string | null; tab: ImmTab | null; prefix: string; key: string }>({ row: null, tab: null, prefix: '', key: '' });
+  const overlayOpen = !!(panel || quick || search || couch || guide || voiceSheet || attract);
+  const speakNow = useRef({ tile, current });
   useLayoutEffect(() => {
-    latest.current = { nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, attract, tourActive, filterOrigin };
+    speakNow.current = { tile, current };
   });
+  const tileKey = tile?.key ?? null;
+  const rowKey = current?.id ?? null;
+  useEffect(() => {
+    // Keyed on the tile and row ids: rows being rebuilt (a download ticking, the library refreshing) say nothing.
+    const { tile, current } = speakNow.current;
+    const s = spoken.current;
+    if (!voiceOn || gliding || !tile || !current) return;
+    if (overlayOpen) {
+      s.key = ''; // said again when the overlay closes, so you know where you landed
+      return;
+    }
+    // The same focus again (a re-render, React's development double effects) says nothing new.
+    const key = `${nav.tab}|${current.id}|${tile.key}`;
+    if (s.key === key) return;
+    s.key = key;
+    const tabChanged = s.tab !== nav.tab;
+    const rowChanged = s.row !== current.id;
+    const prefix = [tabChanged && s.tab !== null ? (nav.tab === 'home' ? 'Home' : 'All games') : '', s.prefix].filter(Boolean).join('. ');
+    s.tab = nav.tab;
+    s.row = current.id;
+    s.prefix = '';
+    voiceOver.say(sentence(prefix, focusSpeech(current, tile, { rowChanged })), 'focus');
+    // Re-said when an overlay closes, so you always know where you landed.
+  }, [voiceOn, gliding, overlayOpen, tileKey, rowKey, nav.tab]);
+
+  // ---------------------------------------------------------------- actions
+  const latest = useRef({ nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, guide, voiceSheet, attract, tourActive, filterOrigin, jumps: view.jumps });
+  useLayoutEffect(() => {
+    latest.current = { nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, guide, voiceSheet, attract, tourActive, filterOrigin, jumps: view.jumps };
+  });
+
+  // Remember where we were for the next visit.
+  useEffect(
+    () => () => {
+      memory = { nav: latest.current.nav, at: Date.now(), gameId: latest.current.focusedGame?.id ?? null };
+    },
+    [],
+  );
+
+  const startGlide = useCallback(() => {
+    const L = latest.current;
+    // The stage holds the game it showed when the glide began.
+    if (!glidingRef.current) setLagged(L.focused);
+    glidingRef.current = true;
+    setGliding(true);
+    window.clearTimeout(glideTimer.current);
+    glideTimer.current = window.setTimeout(() => {
+      glidingRef.current = false;
+      setGliding(false);
+    }, 200);
+  }, []);
 
   const move = useCallback(
     (dr: number, dc: number, repeat: boolean) => {
@@ -213,6 +341,7 @@ export function ImmersiveView() {
       // Several repeats can land before React re-renders: the next one must start from this state.
       L.nav = r.state;
       setNav(r.state);
+      engaged.current = true;
       markTour('move');
       const nextRow = clampRow(r.state, L.rows);
       const nextGame = tileGame(L.rows[nextRow]?.tiles[colOf(r.state, L.rows, nextRow)]);
@@ -222,20 +351,38 @@ export function ImmersiveView() {
       } else spatial('focus', nextRow, L.row, nextGame);
       if (!reduce) nudge(dc, dr);
       // Momentum: while a direction auto-repeats, the shelves glide and labels step aside.
-      if (repeat) {
-        // The stage holds the game it showed when the glide began.
-        if (!glidingRef.current) setLagged(L.focused);
-        glidingRef.current = true;
-        setGliding(true);
-        window.clearTimeout(glideTimer.current);
-        glideTimer.current = window.setTimeout(() => {
-          glidingRef.current = false;
-          setGliding(false);
-        }, 200);
-      }
+      if (repeat) startGlide();
     },
-    [markTour, reduce, spatial],
+    [markTour, reduce, spatial, startGlide],
   );
+
+  /** LT/RT in All games: to the previous/next letter (or band). */
+  const jump = useCallback(
+    (dir: 1 | -1, repeat: boolean, target?: Jump) => {
+      const L = latest.current;
+      const j = target ?? nextJump(L.jumps, L.row, L.nav.cols[L.rows[L.row]?.id ?? ''] ?? 0, dir);
+      if (!j) {
+        haptic('edge');
+        spatial('edge', L.row, L.row, L.focused);
+        return;
+      }
+      const next = pickTile(L.nav, L.rows, j.row, j.col);
+      L.nav = next;
+      setNav(next);
+      engaged.current = true;
+      setFlash((f) => ({ label: j.label, n: (f?.n ?? 0) + 1 }));
+      spoken.current.prefix = j.label.length === 1 ? `Letter ${j.label}` : j.label;
+      haptic('tick');
+      spatial('row', j.row, L.row, tileGame(L.rows[j.row]?.tiles[j.col]));
+      if (repeat) startGlide();
+    },
+    [spatial, startGlide],
+  );
+  useEffect(() => {
+    if (!flash) return;
+    const t = window.setTimeout(() => setFlash(null), 700);
+    return () => window.clearTimeout(t);
+  }, [flash]);
 
   const switchTab = useCallback(
     (t?: ImmTab) => {
@@ -251,6 +398,7 @@ export function ImmersiveView() {
   const openPage = useCallback(
     (g: Game, tab: PageTab = 'overview') => {
       setPanel({ id: g.id, tab });
+      engaged.current = true;
       sound.select();
       haptic('tick');
       markTour('search');
@@ -258,17 +406,49 @@ export function ImmersiveView() {
     [markTour],
   );
 
-  const openTile = useCallback(
-    (t: Tile | null) => {
-      if (!t) return;
-      if (t.kind === 'game') return openPage(t.game);
-      const filter: LibraryFilter = t.kind === 'store' ? { kind: 'store', platform: t.platform } : { kind: 'genre', genre: t.genre };
-      setFilterOrigin(latest.current.nav);
-      setNav((n) => applyFilter(n, filter));
+  const applyTool = useCallback(
+    (t: Extract<Tile, { kind: 'tool' }>) => {
+      const tool = t.tool;
+      if (tool.type === 'sort') {
+        const next = LIBRARY_SORTS[(LIBRARY_SORTS.indexOf(tool.sort) + 1) % LIBRARY_SORTS.length];
+        void setSetting('immersive.librarySort', next);
+        setNav((n) => {
+          const cols = { ...n.cols };
+          for (const id of Object.keys(cols)) if (id.startsWith('lib-')) delete cols[id];
+          return { ...n, cols, rowId: 'tools' };
+        });
+        voiceOver.say(`Sort: ${SORT_LABEL[next]}`, 'nav');
+      } else {
+        setFilterOrigin(null);
+        setNav((n) => ({ ...applyFilter(n, tool.filter), rowId: 'tools' }));
+        voiceOver.say(sentence(`Showing ${tool.filter ? filterLabel(tool.filter) : 'all games'}`, plural(tool.count, 'game')), 'nav');
+      }
       sound.select();
       haptic('tick');
     },
-    [openPage],
+    [setSetting],
+  );
+
+  const openTile = useCallback(
+    (t: Tile | null) => {
+      if (!t) return;
+      switch (t.kind) {
+        case 'game': case 'download': return openPage(t.game);
+        case 'playing':
+          haptic('confirm');
+          sound.select();
+          return returnToGame(t.game);
+        case 'tool': return applyTool(t);
+        case 'store': case 'genre': {
+          const filter: LibraryFilter = t.kind === 'store' ? { kind: 'store', platform: t.platform } : { kind: 'genre', genre: t.genre };
+          setFilterOrigin(latest.current.nav);
+          setNav((n) => applyFilter(n, filter));
+          sound.select();
+          haptic('tick');
+        }
+      }
+    },
+    [openPage, applyTool],
   );
 
   const clearFilter = useCallback(() => {
@@ -298,20 +478,33 @@ export function ImmersiveView() {
     markTour('search');
   }, [markTour]);
 
+  const openGuide = useCallback(() => {
+    setGuide(true);
+    sound.select();
+    haptic('tick');
+  }, []);
+
+  /** Leaves for the desktop. If you moved or opened something here, the desktop opens on that game. */
+  const exitToDesktop = useCallback(() => {
+    const g = latest.current.focusedGame;
+    if (engaged.current && g) useStore.getState().navigate({ name: 'game', id: g.id });
+    void setMode('desktop');
+  }, [setMode]);
+
   /** Opens a game picked from search, leaving focus on it when the page closes. */
   const openFromSearch = useCallback(
     (g: Game) => {
       setSearch(false);
       const L = latest.current;
-      const here = focusGame(L.nav, L.rows, g.id);
-      if (here !== L.nav) setNav(here);
+      const found = focusGame(L.nav, L.rows, g.id);
+      if (found !== L.nav) setNav(found);
       else {
         const lib = { ...L.nav, tab: 'library' as const, filter: null, row: 0, rowId: null };
-        setNav(focusGame(lib, libraryRows(visible, null), g.id));
+        setNav(focusGame(lib, libraryView(visible, null, sort, Date.now()).rows, g.id));
       }
       openPage(g);
     },
-    [visible, openPage],
+    [visible, sort, openPage],
   );
 
   const runQuick = useCallback(
@@ -349,6 +542,35 @@ export function ImmersiveView() {
     [quick, launchGame, openPage],
   );
 
+  const runGuide = useCallback(
+    (a: GuideAction) => {
+      setGuide(false);
+      switch (a) {
+        case 'resume': {
+          const l = useStore.getState().launch;
+          const g = l ? useStore.getState().gamesById.get(l.gameId) : null;
+          if (g) returnToGame(g);
+          return;
+        }
+        case 'desktop':
+          return exitToDesktop();
+        case 'display':
+          return setCouch(true);
+        case 'voice':
+          return setVoiceSheet(true);
+        case 'settings':
+          useStore.getState().navigate({ name: 'settings', section: 'controller' });
+          void setMode('desktop');
+          return;
+        case 'close':
+          haptic('confirm');
+          void call('window.close').catch(() => {});
+          return;
+      }
+    },
+    [exitToDesktop, setMode],
+  );
+
   // ---------------------------------------------------------------- input
   const xTimer = useRef<number | null>(null);
   const cancelHoldX = () => {
@@ -366,17 +588,22 @@ export function ImmersiveView() {
       sound.back();
       return true;
     }
-    // Anything modal (game page, quick menu, search, display, launch overlay, desktop dialogs) owns input.
-    if (L.panel || L.quick || L.couch || L.search) return false;
+    // Anything modal (game page, quick menu, search, display, guide, launch overlay, desktop dialogs) owns input.
+    if (L.panel || L.quick || L.couch || L.search || L.guide || L.voiceSheet) return false;
     if (document.querySelector('[data-dialog-open], [data-nav-scope="overlay"]')) return false;
     switch (button) {
       case 'Up': case 'ArrowUp': move(-1, 0, repeat); return true;
       case 'Down': case 'ArrowDown': move(1, 0, repeat); return true;
       case 'Left': case 'ArrowLeft': move(0, -1, repeat); return true;
       case 'Right': case 'ArrowRight': move(0, 1, repeat); return true;
-      case 'LT': case 'RT': {
-        // Page through rows quickly.
-        const target = Math.max(0, Math.min(L.rows.length - 1, L.row + (button === 'LT' ? -3 : 3)));
+      case 'LT': case 'RT': case 'PageUp': case 'PageDown': {
+        const back = button === 'LT' || button === 'PageUp';
+        // All games: jump by letter (or band). Home: page through rows quickly.
+        if (L.nav.tab === 'library' && L.jumps.length > 1) {
+          jump(back ? -1 : 1, repeat);
+          return true;
+        }
+        const target = Math.max(0, Math.min(L.rows.length - 1, L.row + (back ? -3 : 3)));
         if (target === L.row) haptic('edge');
         else move(target - L.row, 0, repeat);
         return true;
@@ -415,8 +642,11 @@ export function ImmersiveView() {
         if (L.nav.filter) clearFilter();
         else if (L.tourActive) finishTour();
         return true;
-      case 'Menu': case 'F11':
-        if (!repeat) void setMode('desktop');
+      case 'Menu': case 'g':
+        if (!repeat) openGuide();
+        return true;
+      case 'F11':
+        if (!repeat) exitToDesktop();
         return true;
       default:
         return false;
@@ -483,6 +713,8 @@ export function ImmersiveView() {
   const quickGame = useStore((s) => (quick ? s.gamesById.get(quick.id) ?? null : null));
   const lean = useTransform(leanX, (v) => v * -4);
   const leanInfoY = useTransform(leanY, (v) => v * -2);
+  const voiceState = !voiceOn ? 'Off' : settings?.['voiceover.captionsOnly'] ? 'Captions only' : 'On';
+  const primary = tile?.kind === 'playing' ? 'Return to game' : tile?.kind === 'tool' ? (tile.tool.type === 'sort' ? 'Change sort' : 'Show') : tile && tile.kind !== 'game' && tile.kind !== 'download' ? 'Browse' : 'Open';
 
   return (
     <LayoutGroup>
@@ -491,6 +723,7 @@ export function ImmersiveView() {
         data-reduced={reduce}
         data-gliding={gliding || undefined}
         data-quick-open={!!quick || undefined}
+        data-tab={nav.tab}
       >
         <HeroStage game={stageGame} tint={ringA} tint2={ringB} />
         <header className="imm__top">
@@ -533,14 +766,14 @@ export function ImmersiveView() {
           <AnimatePresence initial={false}>
             {tile && (
               <motion.div
-                key={tile.key}
+                key={tile.kind === 'tool' ? 'tools' : tile.key}
                 className="imm__info-item"
                 initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, filter: 'blur(6px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                 exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, filter: 'blur(4px)', transition: { duration: 0.18, ease: ease.in } }}
                 transition={pick(reduce, spring.panel)}
               >
-                <TileInfo tile={tile} />
+                <TileInfo tile={tile} row={current} sort={sort} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -548,7 +781,7 @@ export function ImmersiveView() {
 
         <section className="imm__rows" aria-label="Games">
           {rows.length === 0 ? (
-            <p className="imm__empty">No games yet. Press the Menu button for desktop mode, where you can scan your stores or add games.</p>
+            <p className="imm__empty">No games yet. Press the Menu button and choose Desktop mode, where you can scan your stores or add games.</p>
           ) : (
             <RowsTrack
               rows={rows}
@@ -556,7 +789,7 @@ export function ImmersiveView() {
               activeCol={col}
               cols={nav.cols}
               ringVars={ringVars}
-              ringHidden={!!panel || !!quick}
+              ringHidden={!!panel || !!quick || !!guide}
               holding={holdingX}
               viewportRef={viewportRef}
               onRing={onRing}
@@ -564,20 +797,25 @@ export function ImmersiveView() {
               onOpen={openTile}
             />
           )}
+          {nav.tab === 'library' && sort === 'az' && <JumpRail jumps={view.jumps} current={here} below={current?.kind === 'tools'} onJump={(j) => jump(1, false, j)} />}
+          <JumpFlash flash={flash} />
         </section>
 
         <footer className="imm__hints">
-          <span><PadGlyph button="A" /> Open</span>
-          <span><PadGlyph button="X" /> Favorite</span>
-          <button className="imm__hint-btn" onClick={openQuick}>
-            <PadGlyph button="View" /> Quick menu
+          <span className="imm__hint"><PadHint button="A">{primary}</PadHint></span>
+          {focusedGame && <span className="imm__hint"><PadHint button="X">Favorite</PadHint></span>}
+          <button type="button" className="imm__hint imm__hint--btn" onClick={openQuick} disabled={!focusedGame}>
+            <PadHint button="View">Quick menu</PadHint>
           </button>
-          <button className="imm__hint-btn" onClick={openSearch}>
-            <PadGlyph button="Y" /> Search
+          <button type="button" className="imm__hint imm__hint--btn" onClick={openSearch}>
+            <PadHint button="Y">Search</PadHint>
           </button>
-          <span><PadGlyph button="LB" /><PadGlyph button="RB" /> Sections</span>
-          <button className="imm__exit" onClick={() => void setMode('desktop')}>
-            <PadGlyph button="Menu" /> <Monitor size={16} /> Desktop mode
+          <span className="imm__hint"><PadHint button={['LB', 'RB']}>Sections</PadHint></span>
+          {nav.tab === 'library' && view.jumps.length > 1 && (
+            <span className="imm__hint"><PadHint button={['LT', 'RT']}>{sort === 'az' ? 'Jump to letter' : 'Jump'}</PadHint></span>
+          )}
+          <button type="button" className="imm__exit" onClick={openGuide} aria-label="Menu: desktop mode, display, voice-over, settings">
+            <PadHint button="Menu">Menu</PadHint>
           </button>
         </footer>
 
@@ -600,11 +838,14 @@ export function ImmersiveView() {
           {quick && quickGame && <QuickMenu key={quick.id} game={quickGame} anchor={quick.anchor} onAction={runQuick} onClose={() => setQuick(null)} />}
         </AnimatePresence>
         <AnimatePresence>{couch && <CouchSheet key="couch" onClose={() => setCouch(false)} />}</AnimatePresence>
+        <AnimatePresence>{voiceSheet && <VoiceSheet key="voice" onClose={() => setVoiceSheet(false)} />}</AnimatePresence>
+        <AnimatePresence>{guide && <Guide key="guide" voiceState={voiceState} onAction={runGuide} onClose={() => setGuide(false)} />}</AnimatePresence>
         <AnimatePresence>
           {search && <OnScreenKeyboard key="osk" games={searchGames} filters={oskFilters} onClose={() => setSearch(false)} onOpenGame={openFromSearch} />}
         </AnimatePresence>
         </div>
         <AttractMode games={visible} active={attract} onActiveChange={setAttract} />
+        <CaptionBar className="imm-captions" />
       </div>
     </LayoutGroup>
   );
@@ -612,39 +853,64 @@ export function ImmersiveView() {
 
 /* ------------------------------------------------------------------ info */
 
-function TileInfo({ tile }: { tile: Tile }) {
-  if (tile.kind === 'store') {
-    return (
-      <>
-        <div className="imm__browse-title">
-          <StoreLogo platform={tile.platform} size={56} decorative />
-          <h1 className="imm__title">{PLATFORM_NAMES[tile.platform]}</h1>
-        </div>
-        <div className="imm__meta"><span>{plural(tile.count, 'game')} from this store</span><span><PadGlyph button="A" /> Browse</span></div>
-      </>
-    );
+function TileInfo({ tile, row, sort }: { tile: Tile; row: Row | undefined; sort: LibrarySort }) {
+  switch (tile.kind) {
+    case 'playing': return <PlayingInfo tile={tile} />;
+    case 'download': return <DownloadInfo tile={tile} />;
+    case 'tool':
+      return (
+        <>
+          <h1 className="imm__title imm__title--section">{activeFilterTitle(row)}</h1>
+          <div className="imm__meta">
+            <span>{plural(activeCount(row), 'game')}</span>
+            <span>{sort === 'az' ? 'Sorted A to Z' : `Sorted by ${SORT_LABEL[sort].toLowerCase()}`}</span>
+          </div>
+        </>
+      );
+    case 'store':
+      return (
+        <>
+          <div className="imm__browse-title">
+            <StoreLogo platform={tile.platform} size={56} decorative />
+            <h1 className="imm__title">{PLATFORM_NAMES[tile.platform]}</h1>
+          </div>
+          <div className="imm__meta"><span>{plural(tile.count, 'game')} from this store</span><PadHint button="A">Browse</PadHint></div>
+        </>
+      );
+    case 'genre':
+      return (
+        <>
+          <h1 className="imm__title">{tile.genre}</h1>
+          <div className="imm__meta"><span>{plural(tile.count, 'game')}</span><PadHint button="A">Browse</PadHint></div>
+        </>
+      );
+    case 'game': {
+      const game = tile.game;
+      return (
+        <>
+          {tile.pinned && (
+            <span className="imm__pinned">
+              <Pin size="0.9em" aria-hidden /> Jump back in
+            </span>
+          )}
+          {game.art.logo ? <GameLogo className="imm__logo" src={game.art.logo} alt={game.title} /> : <h1 className="imm__title">{game.title}</h1>}
+          <GameMeta game={game} />
+          {game.description && <p className="imm__desc">{game.description}</p>}
+        </>
+      );
+    }
   }
-  if (tile.kind === 'genre') {
-    return (
-      <>
-        <h1 className="imm__title">{tile.genre}</h1>
-        <div className="imm__meta"><span>{plural(tile.count, 'game')}</span><span><PadGlyph button="A" /> Browse</span></div>
-      </>
-    );
-  }
-  const game = tile.game;
-  return (
-    <>
-      {tile.pinned && (
-        <span className="imm__pinned">
-          <Pin size="0.9em" aria-hidden /> Jump back in
-        </span>
-      )}
-      {game.art.logo ? <GameLogo className="imm__logo" src={game.art.logo} alt={game.title} /> : <h1 className="imm__title">{game.title}</h1>}
-      <GameMeta game={game} />
-      {game.description && <p className="imm__desc">{game.description}</p>}
-    </>
-  );
+}
+
+/** The toolbar's heading: what the grid shows now ("All games", "Steam", "Installed"…). */
+function activeFilterTitle(row: Row | undefined): string {
+  const active = row?.tiles.find((t) => t.kind === 'tool' && t.tool.type === 'filter' && t.tool.active);
+  return active?.kind === 'tool' && active.tool.type === 'filter' && active.tool.filter ? active.tool.label : 'All games';
+}
+
+function activeCount(row: Row | undefined): number {
+  const active = row?.tiles.find((t) => t.kind === 'tool' && t.tool.type === 'filter' && t.tool.active);
+  return active?.kind === 'tool' && active.tool.type === 'filter' ? active.tool.count : 0;
 }
 
 function GameMeta({ game }: { game: Game }) {
@@ -686,6 +952,11 @@ interface Metrics {
   titleH: number;
   rowH: number;
   rowWideH: number;
+  chipW: number;
+  sortW: number;
+  chipH: number;
+  chipGap: number;
+  rowChipH: number;
 }
 
 /** Card and row geometry, read from a hidden probe that uses the same CSS variables as the cards. */
@@ -704,10 +975,24 @@ function measureMetrics(viewport: HTMLElement, probe: HTMLElement): Metrics {
     titleH: q('.imm__probe-title').offsetHeight,
     rowH: q('.imm__probe-row').offsetHeight,
     rowWideH: q('.imm__probe-roww').offsetHeight,
+    chipW: q('.imm__probe-chip').offsetWidth,
+    sortW: q('.imm__probe-sort').offsetWidth,
+    chipH: q('.imm__probe-chip').offsetHeight,
+    chipGap: q('.imm__probe-chipgap').offsetWidth,
+    rowChipH: q('.imm__probe-rowc').offsetHeight,
   };
 }
 
 const sameMetrics = (a: Metrics | null, b: Metrics) => !!a && (Object.keys(b) as (keyof Metrics)[]).every((k) => Math.abs(a[k] - b[k]) < 0.5);
+
+function tileText(t: Tile): string {
+  switch (t.kind) {
+    case 'game': case 'playing': case 'download': return t.game.title;
+    case 'store': return PLATFORM_NAMES[t.platform];
+    case 'genre': return t.genre;
+    case 'tool': return '';
+  }
+}
 
 function RowsTrack({
   rows, activeRow, activeCol, cols, ringVars, ringHidden, holding, viewportRef, onRing, onPick, onOpen,
@@ -749,7 +1034,7 @@ function RowsTrack({
     let y = 0;
     return rows.map((r) => {
       const at = y;
-      y += r.wide ? m.rowWideH : m.rowH;
+      y += r.compact ? m.rowChipH : r.wide ? m.rowWideH : m.rowH;
       return at;
     });
   }, [rows, m]);
@@ -761,13 +1046,16 @@ function RowsTrack({
       const xs: number[] = [];
       const widths: number[] = [];
       let x = 0;
+      const gap = r.compact ? m.chipGap : m.gap;
       for (const t of r.tiles) {
-        const w = r.wide ? (t.kind === 'game' && t.pinned ? m.pinW : m.ww) : m.pw;
+        const w = r.compact
+          ? t.kind === 'tool' && t.tool.type === 'sort' ? m.sortW : m.chipW
+          : r.wide ? (t.kind === 'game' && t.pinned) || t.kind === 'playing' ? m.pinW : m.ww : m.pw;
         xs.push(x);
         widths.push(w);
-        x += w + m.gap;
+        x += w + gap;
       }
-      return { xs, widths, total: Math.max(0, x - m.gap) };
+      return { xs, widths, total: Math.max(0, x - gap) };
     },
     [m],
   );
@@ -777,6 +1065,13 @@ function RowsTrack({
       if (!m) return 0;
       const { xs, total } = layoutRow(r);
       const c = Math.max(0, Math.min(col, r.tiles.length - 1));
+      // The toolbar only slides once its focused chip would leave the screen.
+      if (r.compact) {
+        const room = m.vw - m.pad * 2;
+        const { widths } = layoutRow(r);
+        const need = (xs[c] ?? 0) + (widths[c] ?? 0) - room * 0.8;
+        return Math.max(0, Math.min(need, total - room));
+      }
       return Math.min(xs[c] ?? 0, Math.max(0, total - (m.vw - m.pad * 2)));
     },
     [m, layoutRow],
@@ -788,8 +1083,9 @@ function RowsTrack({
     if (!m || !r || r.tiles.length === 0) return null;
     const { xs, widths } = layoutRow(r);
     const c = Math.max(0, Math.min(activeCol, r.tiles.length - 1));
-    return { x: m.pad + xs[c] - shiftOf(r, c), y: m.titleH, w: widths[c], h: r.wide ? m.wh : m.ph };
+    return { x: m.pad + xs[c] - shiftOf(r, c), y: m.titleH, w: widths[c], h: r.compact ? m.chipH : r.wide ? m.wh : m.ph };
   }, [rows, activeRow, activeCol, m, layoutRow, shiftOf]);
+  const compactRing = !!rows[activeRow]?.compact;
 
   useEffect(() => {
     // Screen position (for spatial sound), from the cached viewport edge.
@@ -798,6 +1094,7 @@ function RowsTrack({
 
   const from = Math.max(0, activeRow - WINDOW_BEFORE);
   const to = Math.min(rows.length, activeRow + WINDOW_AFTER + 1);
+  const scale = compactRing ? 1.04 : FOCUS_SCALE;
 
   return (
     <div className="imm__viewport-y" ref={viewportRef}>
@@ -809,6 +1106,10 @@ function RowsTrack({
         <span className="imm__probe-title" />
         <span className="imm__probe-row" />
         <span className="imm__probe-roww" />
+        <span className="imm__probe-chip" />
+        <span className="imm__probe-sort" />
+        <span className="imm__probe-chipgap" />
+        <span className="imm__probe-rowc" />
       </div>
       <motion.div className="imm__track" animate={{ y: -(offsets[activeRow] ?? 0) }} transition={pick(reduce, spring.page)}>
         {rows.map((r, ri) => {
@@ -818,14 +1119,14 @@ function RowsTrack({
           return (
             <div
               key={r.id}
-              className={`imm__row ${r.wide ? 'imm__row--wide' : ''} ${r.browse ? 'imm__row--browse' : ''}`}
+              className={`imm__row ${r.wide ? 'imm__row--wide' : ''} ${r.browse ? 'imm__row--browse' : ''} ${r.compact ? 'imm__row--tools' : ''} imm__row--${r.kind}`}
               data-active={active}
               aria-hidden={!mounted || undefined}
             >
               <h2 className="imm__row-title" style={active ? ringVars : undefined}>
                 <span className="imm__row-name">{r.title}</span>
                 {r.meta && <span className="imm__row-meta">{r.meta}</span>}
-                {active && r.tiles.length > 1 && (
+                {active && r.tiles.length > 1 && !r.compact && (
                   <span className="imm__row-count num" aria-hidden>
                     {activeCol + 1} / {r.tiles.length}
                   </span>
@@ -835,22 +1136,40 @@ function RowsTrack({
                 <motion.div className="imm__shelf" animate={{ x: -shiftOf(r, active ? activeCol : cols[r.id] ?? 0) }} transition={pick(reduce, spring.focus)}>
                   {r.tiles.map((t, i) => {
                     const isFocused = i === focusCol;
+                    const common = {
+                      tabIndex: -1,
+                      'aria-label': tileLabel(t),
+                      'aria-current': isFocused ? ('true' as const) : undefined,
+                      'data-focused': isFocused,
+                      onPointerMove: (e: React.PointerEvent) => {
+                        // Only real pointer movement moves focus (content sliding under a still cursor must not).
+                        if ((e.movementX !== 0 || e.movementY !== 0) && !isFocused) onPick(ri, i);
+                      },
+                      onClick: () => {
+                        onPick(ri, i);
+                        onOpen(t);
+                      },
+                    };
+                    if (t.kind === 'tool') {
+                      return (
+                        <button
+                          key={t.key}
+                          type="button"
+                          className={`imm__chip ${t.tool.type === 'sort' ? 'imm__chip--sort' : ''}`}
+                          aria-pressed={t.tool.type === 'filter' ? t.tool.active : undefined}
+                          {...common}
+                        >
+                          <ToolChip tile={t} />
+                        </button>
+                      );
+                    }
+                    const pinned = (t.kind === 'game' && t.pinned) || t.kind === 'playing';
                     return (
                       <button
                         key={t.key}
-                        className={`imm__card ${r.wide ? 'imm__card--wide' : ''} ${t.kind === 'game' && t.pinned ? 'imm__card--pinned' : ''} ${t.kind !== 'game' ? 'imm__card--browse' : ''}`}
-                        data-focused={isFocused}
-                        tabIndex={-1}
-                        aria-label={tileLabel(t)}
-                        aria-current={isFocused ? 'true' : undefined}
-                        onPointerMove={(e) => {
-                          // Only real pointer movement moves focus (content sliding under a still cursor must not).
-                          if ((e.movementX !== 0 || e.movementY !== 0) && !isFocused) onPick(ri, i);
-                        }}
-                        onClick={() => {
-                          onPick(ri, i);
-                          onOpen(t);
-                        }}
+                        type="button"
+                        className={`imm__card ${r.wide ? 'imm__card--wide' : ''} ${pinned ? 'imm__card--pinned' : ''} ${t.kind === 'store' || t.kind === 'genre' ? 'imm__card--browse' : ''} imm__card--${t.kind}`}
+                        {...common}
                       >
                         <motion.div layoutId={isFocused && t.kind === 'game' ? `imm-cover-${t.game.id}` : undefined} className="imm__card-frame">
                           {t.kind === 'game' ? (
@@ -869,11 +1188,15 @@ function RowsTrack({
                                 </span>
                               )}
                             </>
+                          ) : t.kind === 'playing' ? (
+                            <PlayingFace tile={t} />
+                          ) : t.kind === 'download' ? (
+                            <DownloadFace tile={t} />
                           ) : (
                             <BrowseFace tile={t} />
                           )}
                         </motion.div>
-                        <div className="imm__card-label">{t.kind === 'game' ? t.game.title : t.kind === 'store' ? PLATFORM_NAMES[t.platform] : t.genre}</div>
+                        <div className="imm__card-label">{tileText(t)}</div>
                       </button>
                     );
                   })}
@@ -890,14 +1213,15 @@ function RowsTrack({
           className="imm__ring"
           aria-hidden
           data-holding={holding || undefined}
+          data-compact={compactRing || undefined}
           initial={false}
           animate={{
             // The active row is always translated to the top of the viewport, so the ring's
             // target is the card's layout rect, enlarged by the focus scale around its centre.
-            x: ring.x - (ring.w * (FOCUS_SCALE - 1)) / 2,
-            y: ring.y - (ring.h * (FOCUS_SCALE - 1)) / 2,
-            width: ring.w * FOCUS_SCALE,
-            height: ring.h * FOCUS_SCALE,
+            x: ring.x - (ring.w * (scale - 1)) / 2,
+            y: ring.y - (ring.h * (scale - 1)) / 2,
+            width: ring.w * scale,
+            height: ring.h * scale,
             opacity: ringHidden ? 0 : 1,
           }}
           style={{ ...ringVars, top: 0, left: 0 }}
@@ -911,7 +1235,7 @@ function RowsTrack({
   );
 }
 
-function BrowseFace({ tile }: { tile: Exclude<Tile, { kind: 'game' }> }) {
+function BrowseFace({ tile }: { tile: Extract<Tile, { kind: 'store' | 'genre' }> }) {
   return (
     <div className="imm__browse" data-kind={tile.kind}>
       {tile.sample && (

@@ -305,12 +305,54 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
 
 /* ===== Kbd ===== */
 .kbd { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 5px; font-family: var(--font-mono); font-size: 11px; color: var(--text-2); background: var(--bg-3); box-shadow: inset 0 -1px 0 var(--line-strong), 0 0 0 1px var(--line); }
-.pad-glyph { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; font-weight: var(--fw-bold); color: oklch(0.15 0 0); }
-.pad-glyph--A { background: oklch(0.78 0.17 145); }
-.pad-glyph--B { background: oklch(0.7 0.19 25); }
-.pad-glyph--X { background: oklch(0.7 0.14 250); }
-.pad-glyph--Y { background: oklch(0.85 0.15 90); }
-.pad-glyph--bumper { width: auto; padding: 0 7px; border-radius: 6px; background: var(--bg-3); color: var(--text-1); box-shadow: 0 0 0 1px var(--line-strong); }
+/* ===== Controller glyphs (Track T): drawn SVGs, sized in em, centred on the cap height in text ===== */
+.pad-glyph {
+  --pg-h: var(--pad-glyph-size, 1.5em);
+  --pg-edge: oklch(0 0 0 / 0.2);
+  display: inline-block;
+  flex: none;
+  width: calc(var(--pg-h) * var(--pg-w, 1));
+  height: var(--pg-h);
+  /* In running text the glyph's centre sits on the cap-height centre (~0.35em above the baseline). */
+  vertical-align: calc(0.35em - var(--pg-h) / 2);
+  line-height: 0;
+}
+.pad-glyph svg { display: block; width: 100%; height: 100%; overflow: visible; shape-rendering: geometricPrecision; }
+.pg__body { fill: var(--pg-fill); stroke: var(--pg-edge); stroke-width: 1; }
+.pg__body--round { stroke: var(--pg-fill); stroke-width: 2.2; stroke-linejoin: round; }
+.pg__ink { fill: none; stroke: var(--pg-ink); stroke-linecap: round; stroke-linejoin: round; }
+.pg__ink--cover { fill: var(--pg-fill); }
+.pg__ink-fill { fill: var(--pg-ink); }
+.pg__ink-fill[data-dim] { opacity: 0.3; }
+.pg__ring { fill: none; stroke: var(--pg-ink); stroke-width: 1.3; opacity: 0.35; }
+/* Xbox: coloured face buttons with dark letters. */
+.pad-glyph[data-tone='a'] { --pg-fill: oklch(0.78 0.17 145); --pg-ink: oklch(0.2 0.03 145); }
+.pad-glyph[data-tone='b'] { --pg-fill: oklch(0.7 0.19 25); --pg-ink: oklch(0.18 0.03 25); }
+.pad-glyph[data-tone='x'] { --pg-fill: oklch(0.7 0.14 250); --pg-ink: oklch(0.17 0.03 250); }
+.pad-glyph[data-tone='y'] { --pg-fill: oklch(0.86 0.15 90); --pg-ink: oklch(0.22 0.03 90); }
+/* Neutral keys (bumpers, triggers, Menu/View, D-pad, sticks): light keycaps, dark ink. */
+.pad-glyph[data-tone='neutral'] { --pg-fill: oklch(0.9 0.006 282); --pg-ink: oklch(0.2 0.012 282); }
+/* PlayStation: dark buttons with the coloured symbols; Nintendo: dark buttons, light letters. */
+.pad-glyph:is([data-tone^='ps-'], [data-tone='dark']) { --pg-fill: oklch(0.25 0.012 282); --pg-edge: oklch(1 0 0 / 0.28); }
+.pad-glyph[data-tone='ps-cross'] { --pg-ink: oklch(0.76 0.11 250); }
+.pad-glyph[data-tone='ps-circle'] { --pg-ink: oklch(0.72 0.17 22); }
+.pad-glyph[data-tone='ps-square'] { --pg-ink: oklch(0.78 0.12 340); }
+.pad-glyph[data-tone='ps-triangle'] { --pg-ink: oklch(0.8 0.12 170); }
+.pad-glyph[data-tone='dark'] { --pg-ink: oklch(0.97 0 0); }
+:root[data-theme='contrast'] .pad-glyph { --pg-fill: #000; --pg-ink: #fff; --pg-edge: #fff; }
+@media (forced-colors: active) {
+  .pg__body { fill: Canvas; stroke: CanvasText; }
+  .pg__ink { stroke: CanvasText; }
+  .pg__ink-fill { fill: CanvasText; }
+  .pg__ink--cover { fill: Canvas; }
+}
+
+/* A hint row item: glyph(s) + label on one line. The label box is trimmed to the cap height, so
+   flex centring puts the glyph centre exactly on the text's optical centre. */
+.pad-hint { display: inline-flex; align-items: center; gap: 0.45em; white-space: nowrap; }
+.pad-hint__glyphs { display: inline-flex; align-items: center; gap: 0.2em; }
+.pad-hint__label { display: inline-block; line-height: 1; text-box: trim-both cap alphabetic; }
+.glyph-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; --pad-glyph-size: 24px; }
 
 /* ===== Section headers ===== */
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); margin-bottom: var(--s-3); }

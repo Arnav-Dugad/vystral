@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Sparkles } from 'lucide-react';
 import { pick, spring } from '../../lib/motion';
 import { useReducedMotion } from '../../state/store';
-import { PadGlyph } from '../../components/ui/primitives';
+import { PadGlyph, PadHint } from '../../components/ui/primitives';
 
 export type TourStep = 'move' | 'sections' | 'quick' | 'search';
 export const TOUR_STEPS: readonly TourStep[] = ['move', 'sections', 'quick', 'search'];
@@ -14,7 +14,7 @@ export function nextTourStep(done: ReadonlySet<TourStep>): TourStep | null {
 }
 
 const COPY: Record<TourStep, { title: string; body: React.ReactNode }> = {
-  move: { title: 'Look around', body: <>Move with the D-pad, the left stick or the arrow keys.</> },
+  move: { title: 'Look around', body: <>Move with the <PadGlyph button="Dpad" /> D-pad, the <PadGlyph button="LS" /> left stick or the arrow keys.</> },
   sections: { title: 'Switch sections', body: <>Press <PadGlyph button="LB" /> <PadGlyph button="RB" /> (or Q / E) for Home and All games.</> },
   quick: { title: 'Quick actions', body: <>Hold <PadGlyph button="X" /> or press <PadGlyph button="View" /> (or M) on a game: play, favourite, status, store page.</> },
   search: { title: 'Find anything', body: <>Press <PadGlyph button="Y" /> to search, <PadGlyph button="A" /> to open a game.</> },
@@ -51,7 +51,7 @@ export function Tour({ done, onFinish }: { done: ReadonlySet<TourStep>; onFinish
           <Sparkles className="imm-tour__icon" size="1.2em" aria-hidden />
           <div className="imm-tour__text">
             <strong>{step ? COPY[step].title : 'You’re all set'}</strong>
-            <span>{step ? COPY[step].body : 'Enjoy the couch. F11 or Menu returns to desktop mode.'}</span>
+            <span>{step ? COPY[step].body : 'Enjoy the couch. Menu opens the guide (desktop mode, display, voice-over); F11 goes straight to desktop.'}</span>
           </div>
           <ol className="imm-tour__dots" aria-label={`Step ${Math.min(index + 1, TOUR_STEPS.length)} of ${TOUR_STEPS.length}`}>
             {TOUR_STEPS.map((s, i) => (
@@ -60,7 +60,7 @@ export function Tour({ done, onFinish }: { done: ReadonlySet<TourStep>; onFinish
           </ol>
           {!closing && (
             <button type="button" className="imm-tour__skip" onClick={onFinish}>
-              <PadGlyph button="B" /> Skip tour
+              <PadHint button="B">Skip tour</PadHint>
             </button>
           )}
         </motion.div>

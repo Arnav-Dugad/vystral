@@ -278,14 +278,8 @@ export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="kbd">{children}</kbd>;
 }
 
-export function PadGlyph({ button }: { button: 'A' | 'B' | 'X' | 'Y' | 'LB' | 'RB' | 'LT' | 'RT' | 'Menu' | 'View' }) {
-  const bumper = button.length > 1;
-  return (
-    <span className={`pad-glyph ${bumper ? 'pad-glyph--bumper' : `pad-glyph--${button}`}`} aria-label={`${button} button`}>
-      {button === 'Menu' ? '≡' : button === 'View' ? '⧉' : button}
-    </span>
-  );
-}
+export { PadGlyph, PadHint } from './PadGlyph';
+export type { PadButton } from './PadGlyph';
 
 export function SectionHead({ title, meta, action }: { title: ReactNode; meta?: ReactNode; action?: ReactNode }) {
   return (

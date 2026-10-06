@@ -61,6 +61,11 @@ Version 0.6 (Track Q), also local only:
 - To notice those sessions VYSTRAL reads the same handle-free process list as game detection (process names only) and which program owns the foreground window, only while a cloud session it started is open. It never reads the Xbox or GeForce NOW apps' files, caches, cookies or windows, and never sees your account, membership or balance: the hours meter uses the membership and reset day you pick and is labelled as an estimate.
 - Your region comes from Windows (Settings → Time & language → Region) unless you choose one.
 
+Immersive Mode (0.6, all on your PC):
+
+- **Voice-over and captions** (off by default) speak through Windows' own speech engine via the WebView2 Web Speech API. Only voices installed on this PC (`localService`) are used; online "Natural" voices are never picked, so no text leaves the PC. If no local voice is installed it shows captions only. Nothing is recorded or stored except your settings (voice name, speed, volume).
+- **Button glyphs** "Automatic" reads the connected controller's name and USB vendor ID through the standard Gamepad API, in memory only, to choose Xbox, PlayStation or Nintendo glyphs.
+
 VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 
 ## When VYSTRAL uses the network

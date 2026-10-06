@@ -23,7 +23,7 @@ import { GameLogo } from '../../components/game/GameLogo';
 import { LastSessionGhost } from '../../components/game/LastSessionGhost';
 import { SessionOriginChip } from '../../components/game/SessionOriginChip';
 import { openInStore } from '../../components/game/InstallButton';
-import { PadGlyph } from '../../components/ui/primitives';
+import { PadGlyph, PadHint } from '../../components/ui/primitives';
 import { StoreLogo } from '../../components/ui/StoreLogo';
 import '../../components/ui/shimmer.css';
 import { playBurst } from './PlayBurst';
@@ -195,7 +195,7 @@ export function GamePage({ gameId, tab, onTab, onClose }: { gameId: string; tab:
                 exit={reduce ? { opacity: 0 } : { opacity: 0, x: -30 * dir, transition: { duration: 0.14, ease: ease.in } }}
                 transition={pick(reduce, spring.panel)}
               >
-                {tab === 'overview' && <Overview game={game} onClose={onClose} />}
+                {tab === 'overview' && <Overview game={game} onClose={onClose} onAchievements={() => switchTab('achievements')} />}
                 {tab === 'achievements' && <Achievements game={game} />}
                 {tab === 'sessions' && <Sessions game={game} />}
                 {tab === 'media' && <Media game={game} />}
@@ -203,9 +203,9 @@ export function GamePage({ gameId, tab, onTab, onClose }: { gameId: string; tab:
             </AnimatePresence>
           </div>
           <footer className="imm-page__hints" aria-hidden>
-            <span><PadGlyph button="A" /> Select</span>
-            <span><PadGlyph button="LB" /><PadGlyph button="RB" /> Sections</span>
-            <span><PadGlyph button="B" /> Back</span>
+            <PadHint button="A">Select</PadHint>
+            <PadHint button={['LB', 'RB']}>Sections</PadHint>
+            <PadHint button="B">Back</PadHint>
           </footer>
         </div>
       </motion.div>
@@ -215,8 +215,10 @@ export function GamePage({ gameId, tab, onTab, onClose }: { gameId: string; tab:
 
 /* ------------------------------------------------------------------ overview */
 
-function Overview({ game, onClose }: { game: Game; onClose: () => void }) {
+function Overview({ game, onClose, onAchievements }: { game: Game; onClose: () => void; onAchievements: () => void }) {
   const launchGame = useStore((s) => s.launchGame);
+  // Track T: while this game runs, Play becomes Return to game (nothing new is launched).
+  const running = useStore((s) => (s.launch && s.launch.gameId === game.id && ['starting', 'waiting', 'running'].includes(s.launch.phase) ? s.launch.phase : null));
   const reduce = useReducedMotion();
   const installed = game.installations.filter((i) => i.state === 'installed');
   const lp = lastPlayed(game);
@@ -264,8 +266,26 @@ function Overview({ game, onClose }: { game: Game; onClose: () => void }) {
         ))}
       </div>
       <div className="imm-panel__actions">
+        {running && (
+          <button
+            data-autofocus
+            className="imm-btn imm-btn--primary"
+            onClick={() => {
+              haptic('confirm');
+              if (running !== 'running') {
+                useStore.getState().toast({ tone: 'info', title: `${game.title} is still starting`, body: 'It comes to the front by itself once its window opens.' });
+                return;
+              }
+              void call<boolean>('game.focus').then((ok) => {
+                if (ok === false) useStore.getState().toast({ tone: 'info', title: `Couldn’t switch to ${game.title}`, body: 'Windows didn’t let VYSTRAL bring it forward. Use Alt+Tab to switch to it.' });
+              }).catch(() => {});
+            }}
+          >
+            <Gamepad2 size="1.1em" /> {running === 'running' ? 'Return to game' : 'Starting…'}
+          </button>
+        )}
         {installed.length === 0 && <p className="imm__warn">This game isn’t installed on this PC.</p>}
-        {installed.map((i, idx) => (
+        {!running && installed.map((i, idx) => (
           <button
             key={i.id}
             data-autofocus={idx === 0 || undefined}
@@ -311,10 +331,91 @@ function Overview({ game, onClose }: { game: Game; onClose: () => void }) {
           <Heart size="1em" fill={game.favorite ? 'currentColor' : 'none'} /> {game.favorite ? 'Favorite' : 'Add to favorites'}
         </button>
         <button className="imm-btn imm-btn--ghost" onClick={onClose}>
-          <PadGlyph button="B" /> Back
+          <PadHint button="B">Back</PadHint>
         </button>
       </div>
+      <AchievementShowcase game={game} onOpen={onAchievements} />
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ achievement showcase (Track T) */
+
+const achCache = new Map<string, { at: number; p: Promise<AchievementsResult> }>();
+/** One request per game per minute, shared by the showcase and the Achievements tab. */
+function achievementsFor(gameId: string): Promise<AchievementsResult> {
+  const hit = achCache.get(gameId);
+  if (hit && Date.now() - hit.at < 60_000) return hit.p;
+  const p = call<AchievementsResult>('steam.achievements', { gameId }, 120_000);
+  achCache.set(gameId, { at: Date.now(), p });
+  p.catch(() => achCache.delete(gameId));
+  return p;
+}
+
+/** Progress ring + your three rarest unlocks, for Steam games with achievements. Nothing otherwise. */
+function AchievementShowcase({ game, onOpen }: { game: Game; onOpen: () => void }) {
+  const steam = game.installations.some((i) => i.platform === 'steam');
+  const reduce = useReducedMotion();
+  const [data, setData] = useState<AchievementsResult | null>(null);
+  useEffect(() => {
+    if (!steam) return;
+    let alive = true;
+    achievementsFor(game.id)
+      .then((d) => alive && setData(d))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [game.id, steam]);
+  const rarest = useMemo(
+    () => (data?.achievements ?? []).filter((a) => a.achieved).sort((a, b) => (a.globalPercent ?? 101) - (b.globalPercent ?? 101)).slice(0, 3),
+    [data],
+  );
+  if (!data || data.status !== 'ok' || data.total === 0) return null;
+  const fraction = data.unlocked / data.total;
+  const C = 2 * Math.PI * 16;
+  return (
+    <motion.div
+      className="imm-show"
+      initial={reduce ? false : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...spring.panel, delay: 0.2 }}
+    >
+      <span className="imm-show__ring" role="img" aria-label={`${data.unlocked} of ${data.total} achievements unlocked`}>
+        <svg viewBox="0 0 40 40" aria-hidden>
+          <circle className="imm-show__track" cx="20" cy="20" r="16" />
+          <motion.circle
+            className="imm-show__arc"
+            cx="20"
+            cy="20"
+            r="16"
+            strokeDasharray={C}
+            initial={{ strokeDashoffset: reduce ? C * (1 - fraction) : C }}
+            animate={{ strokeDashoffset: C * (1 - fraction) }}
+            transition={reduce ? { duration: 0 } : { duration: 1.1, ease: ease.out, delay: 0.3 }}
+          />
+        </svg>
+        <span className="imm-show__pct num" aria-hidden>{Math.round(fraction * 100)}%</span>
+      </span>
+      <span className="imm-show__text">
+        <span className="imm-show__title num">{data.unlocked} of {data.total} achievements</span>
+        <span className="imm-show__sub">
+          {rarest[0] ? `Rarest: ${rarest[0].name}${rarest[0].globalPercent != null ? ` (${formatPercent(rarest[0].globalPercent)} of players)` : ''}` : 'None unlocked yet — plenty to find.'}
+        </span>
+      </span>
+      {rarest.length > 0 && (
+        <span className="imm-show__list" aria-hidden>
+          {rarest.map((a) => (
+            <span key={a.apiName} className="imm-show__item" data-tier={shimmerTier(a.globalPercent) ?? undefined}>
+              {a.icon ? <img src={a.icon} alt="" loading="lazy" /> : <Trophy size="1.2em" />}
+            </span>
+          ))}
+        </span>
+      )}
+      <button type="button" className="imm-show__more" onClick={onOpen}>
+        <Trophy size="1em" aria-hidden /> See all
+      </button>
+    </motion.div>
   );
 }
 
@@ -341,7 +442,7 @@ function Achievements({ game }: { game: Game }) {
       setState({ kind: 'done', data: { status: 'notSteam', message: null, fetchedAt: null, achievements: [], unlocked: 0, total: 0 } });
       return;
     }
-    call<AchievementsResult>('steam.achievements', { gameId: game.id }, 120_000)
+    achievementsFor(game.id)
       .then((data) => alive && setState({ kind: 'done', data }))
       .catch(() => alive && setState({ kind: 'error' }));
     return () => {

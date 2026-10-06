@@ -96,7 +96,12 @@
 - The GeForce NOW `--url-route` argument is undocumented (it's what the app's own shortcuts use); if NVIDIA changes it, the app may open without starting the game. The Xbox app opens the game's page; there's no documented way to start the stream directly.
 - Session times are estimates. The GeForce NOW streamer process and the Xbox app's foreground time haven't been checked against real streams on this PC yet, and Edge's process model with `--user-data-dir` is assumed. A second launch while VYSTRAL's Edge window is still open from a previous VYSTRAL run can't be followed and waits for *I'm done*. Sessions are capped at the membership's session length (8 hours otherwise). The meter can't see play on other devices, rolled-over hours, top-ups or Founders' unlimited time.
 - The first Xbox catalogue download fetches about 35 MB of Microsoft Store product details (only package names and titles are kept), spread over about a minute; later refreshes fetch only new products.
-- Service marks are a generic cloud glyph for now.
+
+**Immersive Mode (0.6)**
+- Voice-over uses Windows' installed voices through WebView2's Web Speech API. Which voices appear depends on the language packs installed (Settings › Time & language › Speech); WebView2 has been checked in Chromium with a stand-in speech engine, not yet with every Windows voice. It stays silent while a game starts or runs, like the other interface sounds.
+- The on-screen keyboard's letters aren't read out key by key; voice-over reads the search results count and the games you open.
+- "Automatic" button glyphs need the controller to appear in the page's Gamepad list, which Chromium fills only after a button on that controller was pressed while VYSTRAL had focus. Nintendo glyphs follow position (the bottom button reads "B", as printed). Controllers Windows only exposes as a generic HID device show Xbox glyphs.
+- Close VYSTRAL (in the Immersive guide) closes the app only; it never shuts down, restarts or sleeps the PC.
 
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).

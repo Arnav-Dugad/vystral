@@ -139,6 +139,9 @@ test.describe('mode switch', () => {
     await pad(page, 'Menu');
     await expect(page.locator('.imm')).toBeVisible();
     await settled(page);
+    // Track T: in Immersive, Menu opens the guide; Menu again goes to the desktop.
+    await pad(page, 'Menu');
+    await expect(page.locator('.imm-guide')).toBeVisible();
     await pad(page, 'Menu');
     await expect(page.locator('.shell')).toBeVisible();
     await settled(page);

@@ -854,6 +854,25 @@ export interface Settings {
   'immersive.tourDone': boolean;
 }
 
+// ---------- Track T: voice-over and captions, controller glyphs, the Immersive grid's sort ----------
+
+export interface Settings {
+  /** Speak focused games, rows, menus and notices in Immersive (Windows' local voices only). Off by default. */
+  'voiceover.enabled': boolean;
+  /** Show captions without speaking. */
+  'voiceover.captionsOnly': boolean;
+  /** voiceURI of the chosen local voice; '' = the best one for the interface language. */
+  'voiceover.voice': string;
+  /** Speaking rate, 0.5–2. */
+  'voiceover.rate': number;
+  /** Voice volume, 0–1. */
+  'voiceover.volume': number;
+  /** Which controller's button glyphs to draw; 'auto' follows the connected pad. */
+  'controller.glyphs': 'auto' | 'xbox' | 'playstation' | 'nintendo';
+  /** How Immersive's All games grid is ordered. */
+  'immersive.librarySort': 'az' | 'recent' | 'played' | 'added';
+}
+
 /** call('system.status'): what the Immersive system bar shows. Read-only Windows APIs; null = not present / unknown. */
 export interface SystemStatus {
   /** Null on PCs without a battery. */

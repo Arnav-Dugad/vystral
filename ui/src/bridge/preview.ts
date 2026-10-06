@@ -20,7 +20,7 @@ import { TRACKING_DEFAULT_SETTINGS, decorateTrackingSessions, trackingPreviewHan
 import { artPackPreviewHandlers } from './preview.artPacks';
 import type { DataSourcesStatus, UserArt } from './types';
 import { RECAP_DEFAULT_SETTINGS, recapPreviewHandlers } from './preview.recap';
-import { TRACK_L_DEFAULT_SETTINGS, immersivePreviewHandlers } from './preview.immersive';
+import { TRACK_L_DEFAULT_SETTINGS, TRACK_T_DEFAULT_SETTINGS, immersivePreviewHandlers, previewNowPlaying } from './preview.immersive';
 import { TRACK_P_DEFAULT_SETTINGS, previewFriendsOn, trackPPreviewHandlers } from './preview.trackP';
 import type { SteamApiStatus } from './types';
 import { healthPreviewHandlers } from './preview.health';
@@ -74,6 +74,7 @@ const DEFAULT_SETTINGS: Settings = {
   'controller.onScreenKeyboard': true, // Track S
   ...TRACK_P_DEFAULT_SETTINGS,
   ...CLOUD_DEFAULT_SETTINGS,
+  ...TRACK_T_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -245,7 +246,8 @@ export function createPreviewBackend() {
   if (previewFriendsOn(params)) settings['home.friendsActivity'] = true; // Track P: ?friends, ?friendsPrivate
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
-  let launch: LaunchState | null = null;
+  // Track T: `?nowPlaying` starts the preview with a game already running (Immersive's Now playing row).
+  let launch: LaunchState | null = previewNowPlaying(lib.games);
   let update: UpdateState = { phase: 'idle', currentVersion: '0.1.0-preview', newVersion: null, progress: 0, totalBytes: null, bytesPerSecond: null, notes: null, message: null, checkedAt: null };
   const timers: number[] = [];
 

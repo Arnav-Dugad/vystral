@@ -131,6 +131,14 @@ public sealed class SettingsService
         new EnumDef("cloud.gfnPlan", "none", "none", "free", "performance", "ultimate", "daypass"),
         new NumberDef("cloud.resetDay", 1, 1, 31),
         new EnumDef("cloud.browser", "edge", "edge", "default"),
+        // Track T: voice-over and captions (Windows' local voices only; off by default), controller glyph family, the Immersive grid's sort.
+        new BoolDef("voiceover.enabled", false),
+        new BoolDef("voiceover.captionsOnly", false),
+        new StringDef("voiceover.voice", "", 200, @"^[^\x00-\x1F\x7F]*\z"),
+        new NumberDef("voiceover.rate", 1, 0.5, 2),
+        new NumberDef("voiceover.volume", 1, 0, 1),
+        new EnumDef("controller.glyphs", "auto", "auto", "xbox", "playstation", "nintendo"),
+        new EnumDef("immersive.librarySort", "az", "az", "recent", "played", "added"),
     ];
 
     private readonly LibraryRepository _repo;

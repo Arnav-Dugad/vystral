@@ -2,17 +2,31 @@
  * Immersive rows (Track L). Pure, so which rows appear, what they hold and the time-of-day order
  * are unit-tested. Everything comes from the user's own library; nothing needs the network.
  */
-import type { CollectionInfo, Game, PlatformKey } from '../../bridge/types';
-import { isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../../lib/format';
+import type { CollectionInfo, Game, InstallProgress, LaunchPhase, PlatformKey } from '../../bridge/types';
+import { importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../../lib/format';
 import { isWaiting } from '../../lib/neverPlayed';
 import { suggestGames } from '../../lib/recommend';
 
 export type Tile =
   | { kind: 'game'; key: string; game: Game; /** The "Last played" slot: wider, labelled, always first. */ pinned?: boolean }
   | { kind: 'store'; key: string; platform: PlatformKey; count: number; sample: Game | null }
-  | { kind: 'genre'; key: string; genre: string; count: number; sample: Game | null };
+  | { kind: 'genre'; key: string; genre: string; count: number; sample: Game | null }
+  /** Track T: the game that's running (or starting) — A returns to it. */
+  | { kind: 'playing'; key: string; game: Game; phase: LaunchPhase; startedAt: string | null }
+  /** Track T: a Steam install or update in progress. */
+  | { kind: 'download'; key: string; game: Game; progress: InstallProgress }
+  /** Track T: a sort or filter chip on the All games toolbar. */
+  | { kind: 'tool'; key: string; tool: LibraryTool };
 
-export type RowKind = 'continue' | 'picked' | 'favorites' | 'installed' | 'new' | 'unplayed' | 'collection' | 'stores' | 'genres' | 'library';
+export type LibrarySort = 'az' | 'recent' | 'played' | 'added';
+export const LIBRARY_SORTS: readonly LibrarySort[] = ['az', 'recent', 'played', 'added'];
+export const SORT_LABEL: Record<LibrarySort, string> = { az: 'A–Z', recent: 'Recently played', played: 'Most played', added: 'Recently added' };
+
+export type LibraryTool =
+  | { type: 'sort'; sort: LibrarySort }
+  | { type: 'filter'; filter: LibraryFilter | null; label: string; count: number; active: boolean };
+
+export type RowKind = 'continue' | 'picked' | 'favorites' | 'installed' | 'new' | 'unplayed' | 'collection' | 'stores' | 'genres' | 'library' | 'playing' | 'downloads' | 'tools';
 
 export interface Row {
   id: string;
@@ -24,6 +38,14 @@ export interface Row {
   wide?: boolean;
   /** Browse tiles (stores, genres) rather than games. */
   browse?: boolean;
+  /** Track T: a short row of chips (the All games toolbar). */
+  compact?: boolean;
+}
+
+/** Track T: what's live right now (a running game, Steam downloads) for the Home rows. */
+export interface LiveState {
+  playing?: { game: Game; phase: LaunchPhase; startedAt: string | null } | null;
+  downloads?: { game: Game; progress: InstallProgress }[];
 }
 
 export type LibraryFilter =
@@ -107,7 +129,7 @@ function pickSample(games: readonly Game[]): Game | null {
   return played[0] ?? games.find((g) => g.art.hero) ?? games[0] ?? null;
 }
 
-export function homeRows(visible: readonly Game[], collections: readonly CollectionInfo[], now: number, hour: number): Row[] {
+export function homeRows(visible: readonly Game[], collections: readonly CollectionInfo[], now: number, hour: number, live: LiveState = {}): Row[] {
   const recent = visible
     .filter((g) => isInstalled(g) && lastPlayed(g).at)
     .sort((a, b) => lastPlayed(b).at!.localeCompare(lastPlayed(a).at!))
@@ -137,10 +159,42 @@ export function homeRows(visible: readonly Game[], collections: readonly Collect
     { id: 'genres', kind: 'genres', title: 'Genres', meta: 'Browse by genre', browse: true, tiles: genreTiles(visible) },
   ];
   // Rows with nothing in them never show (no empty first row when nothing was played yet).
-  return orderRows(
+  const ordered = orderRows(
     rows.filter((r) => r.tiles.length > 0 && !(r.browse && r.tiles.length < 2)),
     hour,
   );
+  return withLiveRows(ordered, live);
+}
+
+/**
+ * Track T: "Now playing" leads while a game starts or runs (one wide tile: A returns to it), and
+ * "Downloads" (Steam installs and updates in progress) follows Continue.
+ */
+export function withLiveRows(rows: Row[], live: LiveState): Row[] {
+  const out = [...rows];
+  const downloads = (live.downloads ?? []).slice(0, ROW_CAP);
+  if (downloads.length) {
+    const row: Row = {
+      id: 'downloads',
+      kind: 'downloads',
+      title: 'Downloads',
+      meta: downloads.some((d) => d.progress.kind === 'update') ? 'Installs and updates in Steam' : 'Installing in Steam',
+      tiles: downloads.map((d) => ({ kind: 'download' as const, key: `downloads:${d.game.id}`, game: d.game, progress: d.progress })),
+    };
+    const at = out.findIndex((r) => r.kind === 'continue');
+    out.splice(at >= 0 ? at + 1 : 0, 0, row);
+  }
+  const p = live.playing;
+  if (p) {
+    out.unshift({
+      id: 'playing',
+      kind: 'playing',
+      title: 'Now playing',
+      wide: true,
+      tiles: [{ kind: 'playing', key: `playing:${p.game.id}`, game: p.game, phase: p.phase, startedAt: p.startedAt }],
+    });
+  }
+  return out;
 }
 
 export function filterGames(visible: readonly Game[], filter: LibraryFilter | null): Game[] {
@@ -188,12 +242,157 @@ export function libraryRows(visible: readonly Game[], filter: LibraryFilter | nu
 }
 
 /** The game a tile shows (browse tiles show a representative game's art). */
-export const tileGame = (t: Tile | null | undefined): Game | null => (!t ? null : t.kind === 'game' ? t.game : t.sample);
+export const tileGame = (t: Tile | null | undefined): Game | null =>
+  !t ? null : t.kind === 'game' || t.kind === 'playing' || t.kind === 'download' ? t.game : t.kind === 'tool' ? null : t.sample;
 
 export function tileLabel(t: Tile): string {
   switch (t.kind) {
     case 'game': return `${t.game.title}${isInstalled(t.game) ? '' : ', not installed'}`;
     case 'store': return `${PLATFORM_NAMES[t.platform]}, ${plural(t.count, 'game')}`;
     case 'genre': return `${t.genre}, ${plural(t.count, 'game')}`;
+    case 'playing': return `${t.phase === 'running' ? 'Now playing' : 'Starting'}: ${t.game.title}. Return to game`;
+    case 'download': return `${t.game.title}, ${t.progress.kind === 'update' ? 'updating' : 'installing'}`;
+    case 'tool': return toolLabel(t.tool);
   }
+}
+
+export function toolLabel(tool: LibraryTool): string {
+  if (tool.type === 'sort') return `Sort: ${SORT_LABEL[tool.sort]}`;
+  return `${tool.label}, ${plural(tool.count, 'game')}${tool.active ? ', selected' : ''}`;
+}
+
+/* ------------------------------------------------------------------ Track T: sorted grid, toolbar, quick jump */
+
+export const playedSeconds = (g: Game) => g.trackedSeconds + (importedMinutes(g) ?? 0) * 60;
+
+function ageBucket(iso: string | null | undefined, now: number): number {
+  if (!iso) return 5;
+  const days = (now - Date.parse(iso)) / 86_400_000;
+  if (!Number.isFinite(days)) return 5;
+  if (days < 1) return 0;
+  if (days < 7) return 1;
+  if (days < 31) return 2;
+  if (days < 365) return 3;
+  return 4;
+}
+const RECENT_LABELS = ['Played today', 'This week', 'This month', 'This year', 'Longer ago', 'Never played'];
+const ADDED_LABELS = ['Added today', 'Added this week', 'Added this month', 'Added this year', 'Added earlier', 'Added earlier'];
+
+function hoursLabel(seconds: number): string {
+  if (seconds <= 0) return 'Not played yet';
+  if (seconds < 3600) return 'Under an hour';
+  const h = Math.floor(seconds / 3600);
+  if (h >= 100) return '100+ hours';
+  if (h >= 50) return '50–100 hours';
+  if (h >= 20) return '20–50 hours';
+  if (h >= 10) return '10–20 hours';
+  if (h >= 5) return '5–10 hours';
+  return '1–5 hours';
+}
+
+/** The section a game falls in under a sort: its letter (A–Z) or a time/playtime band. */
+export function sectionOf(g: Game, sort: LibrarySort, now: number): string {
+  switch (sort) {
+    case 'az': {
+      const c = g.sortTitle.charAt(0).toUpperCase();
+      return /[A-Z]/.test(c) ? c : '#';
+    }
+    case 'recent': return RECENT_LABELS[ageBucket(lastPlayed(g).at, now)];
+    case 'added': return ADDED_LABELS[ageBucket(g.added, now)];
+    case 'played': return hoursLabel(playedSeconds(g));
+  }
+}
+
+export function sortGames(games: readonly Game[], sort: LibrarySort): Game[] {
+  const list = [...games];
+  switch (sort) {
+    case 'az': return list.sort(byTitle);
+    case 'recent':
+      return list.sort((a, b) => (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? '') || byTitle(a, b));
+    case 'played': return list.sort((a, b) => playedSeconds(b) - playedSeconds(a) || byTitle(a, b));
+    case 'added': return list.sort((a, b) => b.added.localeCompare(a.added) || byTitle(a, b));
+  }
+}
+
+export function normalizeSort(v: unknown): LibrarySort {
+  return LIBRARY_SORTS.includes(v as LibrarySort) ? (v as LibrarySort) : 'az';
+}
+
+export interface Jump {
+  label: string;
+  row: number;
+  col: number;
+}
+
+/** The toolbar over the grid: the sort, then filters (all, installed, favourites, never played, each store). */
+export function toolsRow(visible: readonly Game[], filter: LibraryFilter | null, sort: LibrarySort): Row {
+  const chip = (f: LibraryFilter | null, label: string): Tile => ({
+    kind: 'tool',
+    key: `tools:${f ? JSON.stringify(f) : 'all'}`,
+    tool: { type: 'filter', filter: f, label, count: filterGames(visible, f).length, active: sameFilter(filter, f) },
+  });
+  const quick = (['installed', 'favorites', 'unplayed'] as const)
+    .map((kind) => chip({ kind }, filterLabel({ kind })))
+    .filter((t) => t.kind === 'tool' && t.tool.type === 'filter' && (t.tool.count > 0 || t.tool.active));
+  const stores = storeTiles(visible).flatMap((t) => (t.kind === 'store' ? [chip({ kind: 'store', platform: t.platform }, PLATFORM_NAMES[t.platform])] : []));
+  const tiles: Tile[] = [{ kind: 'tool', key: 'tools:sort', tool: { type: 'sort', sort } }, chip(null, 'All'), ...quick, ...stores];
+  // A filter that came from a genre tile shows as its own chip, so the toolbar always says what's on.
+  if (filter?.kind === 'genre') tiles.splice(2, 0, chip(filter, filter.genre));
+  return {
+    id: 'tools',
+    kind: 'tools',
+    title: 'Sort and filter',
+    meta: `${filter ? filterLabel(filter) : 'All games'} · ${plural(filterGames(visible, filter).length, 'game')}`,
+    compact: true,
+    tiles,
+  };
+}
+
+/**
+ * Track T: the All games view — a toolbar row, then the grid sorted by `sort` with section titles
+ * (letters for A–Z, time or playtime bands otherwise), and the quick-jump targets LT/RT step through.
+ */
+export function libraryView(
+  visible: readonly Game[],
+  filter: LibraryFilter | null,
+  sort: LibrarySort,
+  now: number,
+  columns = GRID_COLUMNS,
+): { rows: Row[]; jumps: Jump[] } {
+  const sorted = sortGames(filterGames(visible, filter), sort);
+  const sections = sorted.map((g) => sectionOf(g, sort, now));
+  const rows: Row[] = [toolsRow(visible, filter, sort)];
+  for (let i = 0, n = 0; i < sorted.length; i += columns, n++) {
+    const a = sections[i];
+    const b = sections[Math.min(sorted.length, i + columns) - 1];
+    rows.push({
+      id: `lib-${n}`,
+      kind: 'library',
+      title: a === b ? a : sort === 'az' ? `${a} – ${b}` : `${a} · ${b}`,
+      tiles: sorted.slice(i, i + columns).map((g) => gameTile(g, `lib-${n}`)),
+    });
+  }
+  const jumps: Jump[] = [];
+  sections.forEach((s, i) => {
+    if (i === 0 || s !== sections[i - 1]) jumps.push({ label: s, row: 1 + Math.floor(i / columns), col: i % columns });
+  });
+  return { rows, jumps };
+}
+
+const posOf = (j: { row: number; col: number }) => j.row * 10_000 + j.col;
+
+/** The next quick-jump target after a position (dir 1) or the one before it (dir −1); null at the ends. */
+export function nextJump(jumps: readonly Jump[], row: number, col: number, dir: 1 | -1): Jump | null {
+  const here = posOf({ row, col });
+  if (dir > 0) return jumps.find((j) => posOf(j) > here) ?? null;
+  for (let i = jumps.length - 1; i >= 0; i--) if (posOf(jumps[i]) < here) return jumps[i];
+  return null;
+}
+
+/** The section a position is in (for the rail's highlight). */
+export function jumpAt(jumps: readonly Jump[], row: number, col: number): Jump | null {
+  const here = posOf({ row, col });
+  let cur: Jump | null = null;
+  for (const j of jumps) if (posOf(j) <= here) cur = j;
+  return cur;
 }
