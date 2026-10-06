@@ -10,6 +10,7 @@ import { useReducedMotion, useStore } from '../../state/store';
 import { Button, Skeleton } from '../ui/primitives';
 import { Dialog } from '../ui/Dialog';
 import { drawReplay, type ReplayImages, type ReplayTheme } from './drawReplay';
+import { logoTone } from '../../lib/logoTone';
 import './replay.css';
 
 /** Loads an image as a bitmap through fetch (art host or data: URL), so the canvas never becomes tainted. */
@@ -82,7 +83,8 @@ function ReplayDialog({ sessionId, onClose }: { sessionId: string | null; onClos
         if (!alive) return;
         const m = buildReplayModel(data, Array.isArray(samples) ? samples : [], Array.isArray(insight) ? insight : []);
         const g = useStore.getState().gamesById.get(m.gameId);
-        const [backdrop, logo, ...icons] = await Promise.all([
+        const [logoTone_, backdrop, logo, ...icons] = await Promise.all([
+          g?.art.logo ? logoTone(g.art.logo) : Promise.resolve(null),
           bitmap(g?.art.hero ?? g?.art.header ?? g?.art.cover),
           bitmap(g?.art.logo),
           ...m.achievements.map((a) => bitmap(a.icon)),
@@ -90,8 +92,8 @@ function ReplayDialog({ sessionId, onClose }: { sessionId: string | null; onClos
         await document.fonts?.ready;
         if (!alive) return;
         const map = new Map<string, ImageBitmap>();
-        m.achievements.forEach((a, i) => icons[i] && map.set(a.key, icons[i]!));
-        setImages({ backdrop, logo, icons: map });
+        m.achievements.forEach((a, i) => icons[i] && map.set(a.key, icons[i] as ImageBitmap));
+        setImages({ backdrop: backdrop as ImageBitmap | null, logo: logo as ImageBitmap | null, logoDark: logoTone_ === 'dark', icons: map });
         setModel(m);
       } catch (err) {
         if (alive) setError(errorMessage(err));

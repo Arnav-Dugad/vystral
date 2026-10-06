@@ -96,6 +96,7 @@
   text-shadow: 0 6px 40px oklch(0 0 0 / 0.6);
 }
 .imm__logo { display: block; max-width: min(36vw, 600px); max-height: clamp(2.6rem, calc(100cqh - 6.6rem), 8.5rem); object-fit: contain; object-position: left bottom; filter: drop-shadow(0 6px 30px oklch(0 0 0 / 0.6)); }
+.imm__info-item:has(.imm__pinned) .imm__logo { max-height: clamp(2rem, calc(100cqh - 9.2rem), 8.5rem); }
 .imm__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 1.15rem; margin-top: 0.85rem; font-size: 0.95rem; color: oklch(0.86 0.01 282); text-shadow: 0 1px 8px oklch(0 0 0 / 0.6); }
 .imm__meta > span { display: inline-flex; align-items: center; gap: 0.4rem; }
 .imm__meta-stores { gap: 0.9rem !important; }
@@ -106,6 +107,8 @@
 @container (height < 15rem) {
   .imm__desc { display: none; }
   .imm__logo { max-height: clamp(2.6rem, calc(100cqh - 2.8rem), 8.5rem); }
+  /* The "Jump back in" label takes a line too: the logo gives up that space instead of the block spilling into the top bar. */
+  .imm__info-item:has(.imm__pinned) .imm__logo { max-height: clamp(2rem, calc(100cqh - 5.4rem), 8.5rem); }
   .imm__title { font-size: clamp(2rem, 3.4vw, 3.4rem); }
 }
 .imm__warn { color: var(--warn) !important; }
@@ -156,7 +159,10 @@
 .imm__card--wide .imm__card-frame { height: var(--imm-wh); }
 .imm__card[data-focused='true'] .imm__card-frame { --s: 1.06; box-shadow: 0 26px 60px -18px oklch(0 0 0 / 0.85); }
 .imm__row[data-active='false'] .imm__card-frame { filter: saturate(0.85) brightness(0.85); }
-.imm__card-flag { position: absolute; top: 0.6rem; left: 0.6rem; padding: 0.2rem 0.55rem; border-radius: var(--r-pill); font-size: 0.7rem; font-weight: var(--fw-semibold); background: oklch(0.1 0.01 282 / 0.7); backdrop-filter: blur(8px); }
+.imm__card-flag { position: absolute; top: 0.6rem; left: 0.6rem; display: inline-flex; align-items: center; height: 1.6rem; padding: 0 0.42rem; border-radius: var(--r-pill); font-size: 0.7rem; font-weight: var(--fw-semibold); color: oklch(0.95 0 0); background: oklch(0.1 0.01 282 / 0.7); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.1); backdrop-filter: blur(8px); }
+.imm__card-flag-label { display: inline-block; max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0; transition: max-width var(--dur-slow) var(--ease-emph), opacity var(--dur-base) var(--ease-out), margin var(--dur-slow) var(--ease-emph); }
+.imm__card[data-focused='true'] .imm__card-flag-label { max-width: 8rem; opacity: 1; margin-left: 0.35rem; }
+.imm[data-reduced='true'] .imm__card-flag-label { transition: opacity var(--dur-fast) linear; }
 .imm__card-label {
   height: var(--imm-label-h);
   display: flex;

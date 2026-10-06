@@ -12,6 +12,8 @@ import {
 export interface ReplayImages {
   backdrop: ImageBitmap | null;
   logo: ImageBitmap | null;
+  /** Mostly-black logos are drawn in their light version (same rule as img[data-logo-tone='dark']). */
+  logoDark?: boolean;
   icons: Map<string, ImageBitmap>;
 }
 
@@ -106,7 +108,9 @@ export function drawReplay(ctx: CanvasRenderingContext2D, model: ReplayModel, im
     const r = Math.min(maxW / images.logo.width, maxH / images.logo.height);
     ctx.shadowColor = 'rgba(0,0,0,0.6)';
     ctx.shadowBlur = 24;
+    if (images.logoDark) ctx.filter = 'invert(1) hue-rotate(180deg)';
     ctx.drawImage(images.logo, 120, 160, images.logo.width * r, images.logo.height * r);
+    ctx.filter = 'none';
     ctx.shadowBlur = 0;
   } else {
     ctx.fillStyle = '#fff';

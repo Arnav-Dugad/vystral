@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { AnimatePresence, LayoutGroup, motion, useTransform } from 'motion/react';
-import { Clock3, Monitor, Pin, Timer, X as XIcon } from 'lucide-react';
+import { Clock3, CloudDownload, Monitor, Pin, Timer, X as XIcon } from 'lucide-react';
 import { call, on } from '../bridge/bridge';
 import type { Game, GamepadButton } from '../bridge/types';
 import { formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../lib/format';
@@ -856,7 +856,13 @@ function RowsTrack({
                           {t.kind === 'game' ? (
                             <>
                               <GameCover game={t.game} kind={r.wide ? 'hero' : 'cover'} />
-                              {!isInstalled(t.game) && <span className="imm__card-flag">Not installed</span>}
+                              {!isInstalled(t.game) && (
+                                // Like desktop cards: a quiet icon that names itself only on the focused card.
+                                <span className="imm__card-flag" aria-hidden>
+                                  <CloudDownload size="1em" strokeWidth={2.2} />
+                                  <span className="imm__card-flag-label">Not installed</span>
+                                </span>
+                              )}
                               {t.pinned && (
                                 <span className="imm__card-pin">
                                   <Pin size="0.85em" aria-hidden /> {lastPlayed(t.game).at ? formatRelative(lastPlayed(t.game).at) : 'Last played'}
