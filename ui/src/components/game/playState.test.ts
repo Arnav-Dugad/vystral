@@ -134,7 +134,7 @@ describe('timers', () => {
   it('formats the session timer compactly', () => {
     expect(formatSessionTimer(0)).toBe('0:00');
     expect(formatSessionTimer(59 * 60 + 59)).toBe('59:59');
-    expect(formatSessionTimer(3600 + 12 * 60 + 30)).toBe('1h 12m');
+    expect(formatSessionTimer(3600 + 12 * 60 + 30)).toBe('1:12:30');
   });
 
   it('speaks durations at minute granularity', () => {

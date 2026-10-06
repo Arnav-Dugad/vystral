@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, Check, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import type { Settings } from '../bridge/types';
@@ -19,12 +19,44 @@ export function OnboardingView() {
   const index = STEPS.indexOf(step);
   const next = () => (index < STEPS.length - 1 ? setStep(STEPS[index + 1]) : finish());
   const finish = () => void setSetting('onboarding.completed', true);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // A real modal: focus starts on the main button, Tab stays inside, and the app behind is inert.
+  useEffect(() => {
+    const root = ref.current;
+    const t = window.setTimeout(() => root?.querySelector<HTMLElement>('[data-autofocus]')?.focus(), 30);
+    const behind = [...document.querySelectorAll<HTMLElement>('.shell')];
+    for (const el of behind) el.inert = true;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !root) return;
+      const items = [...root.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])')];
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (!root.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+      else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener('keydown', onKey, true);
+      for (const el of behind) el.inert = false;
+    };
+  }, []);
 
   return (
-    <div className="onb" role="dialog" aria-modal="true" aria-label="Welcome to VYSTRAL" data-nav-scope="overlay">
+    <div className="onb" role="dialog" aria-modal="true" aria-label="Welcome to VYSTRAL" data-nav-scope="overlay" ref={ref}>
       <div className="onb__panel">
-        <div className="onb__progress" aria-label={`Step ${index + 1} of ${STEPS.length}`}>
-          {STEPS.map((s, i) => <span key={s} data-state={i < index ? 'done' : i === index ? 'active' : 'todo'} />)}
+        <div
+          className="onb__progress"
+          role="progressbar"
+          aria-label="Setup progress"
+          aria-valuemin={1}
+          aria-valuemax={STEPS.length}
+          aria-valuenow={index + 1}
+          aria-valuetext={`Step ${index + 1} of ${STEPS.length}`}
+        >
+          {STEPS.map((s, i) => <span key={s} data-state={i < index ? 'done' : i === index ? 'active' : 'todo'} aria-hidden />)}
         </div>
         <AnimatePresence mode="wait">
           <motion.div

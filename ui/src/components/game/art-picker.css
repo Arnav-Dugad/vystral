@@ -62,7 +62,7 @@
   transition: box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-base) var(--ease-out);
 }
 .artpick__cell:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px var(--line-strong), var(--shadow-1); }
-.artpick__cell:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring, var(--accent)); }
+.artpick__cell:focus-visible { outline-offset: 3px; }
 .artpick__cell[aria-selected='true'] { box-shadow: 0 0 0 2px var(--accent), 0 0 24px oklch(from var(--accent) l c h / 0.35); }
 .artpick__cell .skeleton { position: absolute; inset: 0; border-radius: 0; }
 .artpick__cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-base) var(--ease-out); }

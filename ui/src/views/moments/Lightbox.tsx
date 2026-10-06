@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useIsPresent } from 'motion/react';
 import { CalendarDays, ChevronLeft, ChevronRight, Film, FolderOpen, Gamepad2, HardDrive, Image as ImageIcon, Link2, X } from 'lucide-react';
 import type { MediaFolder, MediaItem } from '../../bridge/types';
 import { Button, IconButton } from '../../components/ui/primitives';
@@ -57,8 +57,11 @@ function Viewer({
   const [direction, setDirection] = useState(0);
   const hasPrev = index > 0;
   const hasNext = index < items.length - 1;
+  // While the viewer fades out it is still mounted; stepping then would reopen it.
+  const isPresent = useIsPresent();
 
   const go = (delta: number) => {
+    if (!isPresent) return;
     const next = index + delta;
     if (next < 0 || next >= items.length) return;
     setDirection(delta);

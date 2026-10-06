@@ -129,6 +129,9 @@
   --sidebar-w: 236px;
   --sidebar-w-collapsed: 72px;
   --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent-hi);
+  /* Keyboard focus is drawn as an outline (base.css) so component box-shadows can't hide it. */
+  --focus-outline: var(--accent-hi);
+  --focus-outline-width: 2px;
   --hit: 36px;
 
   color-scheme: dark;
@@ -160,8 +163,16 @@
   --text-1: oklch(0.2 0.018 282);
   --text-2: oklch(0.36 0.02 282);
   --text-3: oklch(0.47 0.02 282);
-  --text-on-accent: oklch(0.99 0 0);
+  /* Dark text on accent fills: game accents are clamped light enough for it (≥4.5:1 on both
+     gradient stops of a primary button; checked in tokens.test.ts). */
+  --text-on-accent: oklch(0.16 0.02 282);
+  --accent: oklch(from var(--game) clamp(0.7, l, 0.86) c h);
   --accent-text: oklch(from var(--accent) min(l, 0.48) c h);
+  /* Status colours are also used as text: darker variants that read on white (≥4.5:1). */
+  --ok: oklch(0.5 0.13 158);
+  --warn: oklch(0.52 0.12 65);
+  --danger: oklch(0.52 0.19 25);
+  --info: oklch(0.5 0.13 245);
   --accent-hi: oklch(from var(--accent) calc(l - 0.08) c h);
   --shadow-2: 0 8px 22px -10px oklch(0.2 0.03 282 / 0.3);
   --shadow-3: 0 26px 60px -24px oklch(0.2 0.03 282 / 0.4);
@@ -185,6 +196,8 @@
   --accent-2: oklch(0.88 0.16 100);
   --accent-text: oklch(0.9 0.16 100);
   --focus-ring: 0 0 0 3px oklch(0 0 0), 0 0 0 6px oklch(0.9 0.18 100);
+  --focus-outline: oklch(0.9 0.18 100);
+  --focus-outline-width: 3px;
 }
 
 /* Immersive (10-foot) mode scales the whole system up. */

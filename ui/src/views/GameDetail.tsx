@@ -7,7 +7,7 @@ import {
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game, InstallProgress, Installation, PerfSummary, Session } from '../bridge/types';
 import {
-  formatBytes, formatDate, formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural, primaryInstallation, sizeOf,
+  formatBytes, formatDate, formatDuration, formatRelative, importedPlaytime, isInstalled, lastPlayed, PLATFORM_NAMES, plural, primaryInstallation, sizeOf,
 } from '../lib/format';
 import { ease, spring } from '../lib/motion';
 import { paletteFor } from '../lib/palette';
@@ -137,7 +137,7 @@ function DetailHero({ game }: { game: Game }) {
     })),
     { kind: 'separator' },
     ...(collections.length
-      ? collections.slice(0, 10).map<MenuEntry>((c) => ({
+      ? collections.map<MenuEntry>((c) => ({
           label: c.name,
           icon: game.collections.includes(c.id) ? <Check size={16} /> : <FolderPlus size={16} />,
           onSelect: () => void setCollection(game, c.id, !game.collections.includes(c.id)),
@@ -279,8 +279,9 @@ function StatsRow({ game }: { game: Game }) {
   const install = useInstallFor(game.id);
   const size = sizeStat(game, install);
   const lp = lastPlayed(game);
-  const imported = importedMinutes(game);
-  const importedFrom = game.installations.find((i) => i.importedPlaytimeMinutes != null)?.platform;
+  const importedStore = importedPlaytime(game);
+  const imported = importedStore?.minutes ?? null;
+  const importedFrom = importedStore?.platform;
   const stats = [
     { label: 'Last played', value: lp.at ? formatRelative(lp.at) : 'Never', hint: lp.source === 'imported' ? 'from the store' : lp.source === 'tracked' ? 'tracked by VYSTRAL' : undefined },
     { label: 'Tracked by VYSTRAL', value: game.trackedSeconds ? formatDuration(game.trackedSeconds) : '—', hint: game.sessionCount ? plural(game.sessionCount, 'session') : 'No sessions yet' },
@@ -300,22 +301,59 @@ function StatsRow({ game }: { game: Game }) {
   );
 }
 
+/**
+ * Debounced notes autosave: one request at a time, newer text queued while a save is in flight,
+ * "Saved" only once the latest text reached the backend, pending text flushed on unmount or game
+ * switch, and no automatic retry loop when a save fails (the next edit tries again).
+ */
+function useNotesAutosave(game: Game) {
+  const [status, setStatus] = useState<'saved' | 'pending' | 'saving' | 'failed'>('saved');
+  const pending = useRef<{ game: Game; text: string } | null>(null);
+  const inFlight = useRef(false);
+  const timer = useRef(0);
+  const alive = useRef(true);
+
+  const [flush] = useState(() => {
+    const run = async (): Promise<void> => {
+      window.clearTimeout(timer.current);
+      const p = pending.current;
+      if (!p || inFlight.current) return;
+      pending.current = null;
+      inFlight.current = true;
+      if (alive.current) setStatus('saving');
+      const ok = await setNotes(p.game, p.text);
+      inFlight.current = false;
+      if (pending.current) void run();
+      else if (alive.current) setStatus(ok ? 'saved' : 'failed');
+    };
+    return run;
+  });
+
+  // Switching games or leaving the page saves whatever is still waiting for the debounce.
+  useEffect(() => {
+    alive.current = true;
+    setStatus('saved');
+    return () => {
+      alive.current = false;
+      void flush();
+    };
+  }, [game.id, flush]);
+
+  const edit = (text: string) => {
+    pending.current = { game, text };
+    setStatus('pending');
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => void flush(), 700);
+  };
+  return { status, edit };
+}
+
 function Overview({ game }: { game: Game }) {
   const [notes, setNotesText] = useState(game.notes ?? '');
-  const [saved, setSaved] = useState(true);
+  const notesSave = useNotesAutosave(game);
   useEffect(() => {
     setNotesText(game.notes ?? '');
-    setSaved(true);
   }, [game.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Autosave notes shortly after typing stops.
-  useEffect(() => {
-    if (saved) return;
-    const t = window.setTimeout(async () => {
-      if (await setNotes(game, notes)) setSaved(true);
-    }, 700);
-    return () => window.clearTimeout(t);
-  }, [notes, saved, game]);
 
   const facts = [
     ['Developer', game.developer],
@@ -331,8 +369,8 @@ function Overview({ game }: { game: Game }) {
         {/* Track I: compatibility badges, IGDB/RAWG facts and deals, each with its source. */}
         <GameExtras game={game} />
         <div style={{ marginTop: 'var(--s-6)' }}>
-          <Field label="Your notes" hint={saved ? 'Saved on this PC' : 'Saving…'} htmlFor="notes">
-            <textarea id="notes" className="input selectable" value={notes} maxLength={20000} placeholder="Where you left off, tips, codes, mods…" onChange={(e) => { setNotesText(e.target.value); setSaved(false); }} />
+          <Field label="Your notes" hint={notesSave.status === 'saved' ? 'Saved on this PC' : notesSave.status === 'failed' ? 'Not saved. Keep typing to try again.' : 'Saving…'} htmlFor="notes">
+            <textarea id="notes" className="input selectable" value={notes} maxLength={20000} placeholder="Where you left off, tips, codes, mods…" onChange={(e) => { setNotesText(e.target.value); notesSave.edit(e.target.value); }} />
           </Field>
         </div>
       </div>
@@ -436,9 +474,17 @@ function VersionCard({ game, inst, onUnmerge }: { game: Game; inst: Installation
   const supportsArgs = inst.launchKind !== 'Uri' || inst.platform === 'steam';
   const preferred = game.preferredInstallationId === inst.id;
   const saveArgs = async () => {
+    const value = args.trim() || null;
     try {
-      await call('game.setLaunchArgs', { installationId: inst.id, args: args.trim() || null });
-      toast({ tone: 'success', title: args.trim() ? 'Launch options saved' : 'Launch options cleared' });
+      const ok = await call<boolean>('game.setLaunchArgs', { installationId: inst.id, args: value });
+      if (!ok) {
+        toast({ tone: 'danger', title: 'Couldn’t save launch options', body: 'This version is no longer in your library. Rescan and try again.' });
+        return;
+      }
+      // Keep the store in step so the next launch (and this card after a re-render) use the new value.
+      useStore.getState().patchGame(game.id, { installations: game.installations.map((i) => (i.id === inst.id ? { ...i, userLaunchArgs: value } : i)) });
+      void useStore.getState().refreshLibrary();
+      toast({ tone: 'success', title: value ? 'Launch options saved' : 'Launch options cleared' });
     } catch (err) {
       toast({ tone: 'danger', title: 'Couldn’t save launch options', body: errorMessage(err) });
     }

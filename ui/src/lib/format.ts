@@ -11,14 +11,32 @@ export const PLATFORM_NAMES: Record<PlatformKey, string> = {
   manual: 'Added by you',
 };
 
-export function formatDuration(seconds: number, opts: { short?: boolean } = {}): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return '0m';
+/**
+ * Amounts of time, one style everywhere: "1h 5m", "45m", "<1m", "250h". With `seconds`, spans under
+ * an hour keep their seconds ("4m 12s", "45s") for short measurements. Running timers and chart
+ * offsets use the clock style instead ({@link formatClock}).
+ */
+export function formatDuration(seconds: number, opts: { short?: boolean; seconds?: boolean } = {}): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return opts.seconds ? '0s' : '0m';
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   if (h >= 100 || (opts.short && h >= 10)) return `${h.toLocaleString()}h`;
   if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  if (opts.seconds) {
+    const s = Math.floor(seconds % 60);
+    return m > 0 ? (s > 0 ? `${m}m ${s}s` : `${m}m`) : `${s}s`;
+  }
   if (m > 0) return `${m}m`;
   return '<1m';
+}
+
+/** Clock-style running time: "0:07", "59:59", "1:12:05" (session timers, chart offsets). */
+export function formatClock(seconds: number): string {
+  const total = Math.max(0, Math.floor(Number.isFinite(seconds) ? seconds : 0));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const ss = String(total % 60).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
 }
 
 export function formatBytes(bytes: number | null | undefined): string {
@@ -73,6 +91,28 @@ export function lastPlayed(game: Game): { at: string | null; source: 'tracked' |
 export function importedMinutes(game: Game): number | null {
   const values = game.installations.map((i) => i.importedPlaytimeMinutes).filter((v): v is number => v != null);
   return values.length ? Math.max(...values) : null;
+}
+
+/** The store whose reported playtime {@link importedMinutes} uses (the largest value), with that value. */
+export function importedPlaytime(game: Game): { minutes: number; platform: PlatformKey } | null {
+  let best: { minutes: number; platform: PlatformKey } | null = null;
+  for (const i of game.installations) {
+    if (i.importedPlaytimeMinutes != null && (!best || i.importedPlaytimeMinutes > best.minutes)) best = { minutes: i.importedPlaytimeMinutes, platform: i.platform };
+  }
+  return best;
+}
+
+/**
+ * Total playtime in seconds. Store playtime (Steam's in particular) already includes time VYSTRAL
+ * tracked, so the two are never added: the larger one wins.
+ */
+export function playSeconds(game: Game): number {
+  return Math.max(game.trackedSeconds, (importedMinutes(game) ?? 0) * 60);
+}
+
+/** Games whose files went missing: a known install that is gone, and no install left. */
+export function isMissing(game: Game): boolean {
+  return !isInstalled(game) && game.installations.some((i) => i.state === 'missing');
 }
 
 export function installedOf(game: Game): Installation[] {

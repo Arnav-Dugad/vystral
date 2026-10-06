@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import {
   AlertTriangle, BadgeCheck, CircleDashed, Clock, ExternalLink, Fingerprint, Gamepad, Info, RefreshCw, ShieldAlert, Sparkles, Tag, TrendingDown, XCircle,
@@ -11,21 +11,36 @@ import { useReducedMotion, useStore } from '../../state/store';
 import { Badge, Button, PlatformBadge, Skeleton } from '../ui/primitives';
 import './game-data.css';
 
-function useBridge<T>(method: string, gameId: string, deps: unknown[] = []): { data: T | null; error: string | null; reload: (params?: Record<string, unknown>) => Promise<void> } {
+/**
+ * Loads per-game data. Only the newest request may update the state (switching games quickly never
+ * shows another game's answer), and a failed refresh keeps the data already shown.
+ * `reload` resolves to whether it succeeded.
+ */
+function useBridge<T>(method: string, gameId: string, deps: unknown[] = []): { data: T | null; error: string | null; reload: (params?: Record<string, unknown>) => Promise<boolean> } {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const seq = useRef(0);
   const load = async (params: Record<string, unknown> = {}) => {
+    const mine = ++seq.current;
     try {
-      setData(await call<T>(method, { gameId, ...params }, 60_000));
-      setError(null);
+      const result = await call<T>(method, { gameId, ...params }, 60_000);
+      if (mine === seq.current) {
+        setData(result);
+        setError(null);
+      }
+      return true;
     } catch (err) {
-      setError(errorMessage(err));
+      if (mine === seq.current) setError(errorMessage(err));
+      return false;
     }
   };
   useEffect(() => {
     setData(null);
     setError(null);
     void load();
+    return () => {
+      seq.current++;
+    };
   }, [gameId, ...deps]); // eslint-disable-line react-hooks/exhaustive-deps
   return { data, error, reload: load };
 }
@@ -167,7 +182,7 @@ function SourceFacts({ s }: { s: EnrichmentSource }) {
   if (f.gameModes?.length) rows.push(['Modes', f.gameModes.join(', ')]);
   if (f.perspectives?.length) rows.push(['Perspective', f.perspectives.join(', ')]);
   if (f.series?.length || f.franchises?.length) rows.push(['Series', [...new Set([...(f.series ?? []), ...(f.franchises ?? [])])].join(', ')]);
-  if (f.averagePlaytimeHours) rows.push(['Average playtime', `${f.averagePlaytimeHours} h (RAWG users)`]);
+  if (f.averagePlaytimeHours) rows.push(['Average playtime', `${formatHours(f.averagePlaytimeHours * 3600)} (RAWG users)`]);
   if (f.esrb) rows.push(['ESRB', f.esrb]);
   return (
     <div className="gx-facts">
@@ -210,13 +225,14 @@ function DealsCard({ game }: { game: Game }) {
   const settingsKey = useStore((s) => `${s.settings?.['dataSources.cheapshark']}${s.settings?.['privacy.localOnly']}${s.settings?.['dataSources.priceCountry']}`);
   const { data, error, reload } = useBridge<Deals>('deals.get', game.id, [settingsKey]);
   const [refreshing, setRefreshing] = useState(false);
-  if (error) return null;
-  if (!data) return <div className="gx-card surface"><Skeleton height={18} width="30%" /><Skeleton height={44} /></div>;
+  // Nothing to show only when the first load failed; a failed refresh keeps the prices on screen.
+  if (!data) return error ? null : <div className="gx-card surface"><Skeleton height={18} width="30%" /><Skeleton height={44} /></div>;
   if (data.reason === 'noSteamId' || data.reason === 'disabled' || !data.quotes.length) return null;
   const refresh = async () => {
     setRefreshing(true);
-    await reload({ refresh: true });
+    const ok = await reload({ refresh: true });
     setRefreshing(false);
+    if (!ok) useStore.getState().toast({ tone: 'warning', title: 'Couldn’t refresh prices', body: 'Showing the last prices VYSTRAL found.' });
   };
   return (
     <section className="gx-card surface gx-deals" aria-labelledby="gx-deals-title">
@@ -278,8 +294,15 @@ const KNOWN_PLATFORMS: PlatformKey[] = ['steam', 'xbox', 'epic', 'gog', 'ea', 'u
 
 export function IdentityPanel({ game }: { game: Game }) {
   const wikidata = useStore((s) => s.settings?.['dataSources.wikidata'] ?? true);
-  const { data, reload } = useBridge<Identity>('identity.get', game.id, [wikidata]);
+  const { data, error, reload } = useBridge<Identity>('identity.get', game.id, [wikidata]);
   const [busy, setBusy] = useState(false);
+  if (!data && error)
+    return (
+      <section className="gx-card surface gx-identity" aria-label="Same game elsewhere">
+        <p className="gx-pop__muted"><AlertTriangle size={12} aria-hidden /> Couldn’t look up this game’s other store IDs: {error}</p>
+        <Button size="sm" variant="ghost" loading={busy} icon={<RefreshCw size={13} />} onClick={async () => { setBusy(true); await reload(); setBusy(false); }}>Try again</Button>
+      </section>
+    );
   if (!data) return <div className="gx-card surface gx-identity"><Skeleton height={18} width="40%" /><Skeleton height={32} /></div>;
   if (data.reason === 'noStoreId') return null;
   const stores = data.ids.filter((i) => i.platform && KNOWN_PLATFORMS.includes(i.platform));

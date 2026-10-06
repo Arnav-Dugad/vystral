@@ -203,7 +203,7 @@
   font-size: var(--fs-md);
 }
 .as-composer__input::placeholder { color: var(--text-3); }
-.as-composer__input:focus-visible { box-shadow: none; }
+.as-composer__input:focus-visible { outline: none; box-shadow: none; }
 .as-composer__btn { flex: none; border-radius: var(--r-md); color: var(--text-on-accent); background: linear-gradient(180deg, var(--accent-hi), var(--accent)); }
 .as-composer__btn:hover:not(:disabled) { color: var(--text-on-accent); background: linear-gradient(180deg, var(--accent-hi), var(--accent)); filter: brightness(1.08); }
 .as-composer__btn:disabled { background: var(--bg-3); color: var(--text-3); }

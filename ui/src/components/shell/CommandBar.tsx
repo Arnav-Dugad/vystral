@@ -77,11 +77,38 @@ function CommandBody({ onClose }: { onClose: () => void }) {
   const scanLibrary = useStore((s) => s.scanLibrary);
   const toast = useStore((s) => s.toast);
   const genres = useMemo(() => [...new Set(games.flatMap((g) => g.genres))], [games]);
+  // Bumped whenever the text changes or the bar closes, so a late ai.parseQuery answer is dropped.
+  const aiSeq = useRef(0);
+  // Guards against Enter/click running the same command twice before the bar has closed.
+  const running = useRef(false);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
 
-  useEffect(() => inputRef.current?.focus(), []);
   useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    inputRef.current?.focus();
+    // Escape anywhere (including controller B, which dispatches Escape on window) closes the bar.
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      // Something layered over the bar (the on-screen keyboard) closes first.
+      if (document.querySelector('[data-dialog-open]:not(.cmd-backdrop):not(.launch-pill)')) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      onCloseRef.current();
+    };
+    window.addEventListener('keydown', onEscape, true);
+    return () => {
+      window.removeEventListener('keydown', onEscape, true);
+      aiSeq.current++;
+      // Give focus back to where it was, unless the command moved it somewhere on purpose.
+      if (previous?.isConnected && (document.activeElement === document.body || document.activeElement == null || inputRef.current === document.activeElement)) previous.focus?.();
+    };
+  }, []);
+  useEffect(() => {
+    aiSeq.current++;
     setSel(0);
     setAiQuery(null);
+    setAiBusy(false);
   }, [text]);
 
   const parsed = useMemo(() => aiQuery ?? parseQuery(text, { genres, drives }), [aiQuery, text, genres, drives]);
@@ -143,15 +170,20 @@ function CommandBody({ onClose }: { onClose: () => void }) {
           id: 'ai', group: 'Local AI' as const, label: aiBusy ? 'Asking your local model…' : `Interpret “${text.trim()}” with local AI`,
           icon: <Wand2 size={16} />,
           run: async () => {
+            if (aiBusy) return;
+            const seq = ++aiSeq.current;
             setAiBusy(true);
             try {
               const r = await call<AiQuery | null>('ai.parseQuery', { query: text.trim() }, 30_000);
-              if (r) setAiQuery(fromAiQuery(r));
-              else toast({ tone: 'info', title: 'The local model couldn’t interpret that', body: 'Showing regular search results instead.' });
+              if (seq !== aiSeq.current) return; // the text changed or the bar closed meanwhile
+              if (r) {
+                setAiQuery(fromAiQuery(r));
+                setSel(0);
+              } else toast({ tone: 'info', title: 'The local model couldn’t interpret that', body: 'Showing regular search results instead.' });
             } catch (err) {
-              toast({ tone: 'warning', title: 'Local AI unavailable', body: errorMessage(err) });
+              if (seq === aiSeq.current) toast({ tone: 'warning', title: 'Local AI unavailable', body: errorMessage(err) });
             } finally {
-              setAiBusy(false);
+              if (seq === aiSeq.current) setAiBusy(false);
             }
           },
         }]
@@ -160,10 +192,18 @@ function CommandBody({ onClose }: { onClose: () => void }) {
     ...pages.filter((p) => matchText(String(p.label))),
   ];
 
+  const runItem = (item: Item | undefined) => {
+    if (!item || running.current) return;
+    running.current = true;
+    item.run();
+    // Commands that keep the bar open (theme, local AI) can run again after a beat.
+    window.setTimeout(() => { running.current = false; }, 400);
+  };
+
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setSel((s) => Math.min(items.length - 1, s + 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setSel((s) => Math.max(0, s - 1)); }
-    else if (e.key === 'Enter') { e.preventDefault(); items[sel]?.run(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (!e.repeat) runItem(items[Math.min(sel, items.length - 1)]); }
     else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
   };
 
@@ -214,7 +254,7 @@ function CommandBody({ onClose }: { onClose: () => void }) {
                 aria-selected={i === sel}
                 className="cmd__item"
                 onMouseEnter={() => setSel(i)}
-                onClick={() => item.run()}
+                onClick={() => runItem(item)}
               >
                 {item.icon}
                 <div style={{ minWidth: 0 }}>
@@ -251,7 +291,7 @@ function gameItem(g: Game, launch: boolean, run: () => void): Item {
       <>
         <StoreLogos platforms={g.installations.map((i) => i.platform)} size={14} decorative />{' '}
         {[...new Set(g.installations.map((i) => PLATFORM_NAMES[i.platform]))].join(' · ')}
-        {lp.at ? ` · played ${formatRelative(lp.at)}` : ''}
+        {lp.at ? ` · played ${formatRelative(lp.at).toLowerCase()}` : ''}
         {!installed ? ' · not installed' : ''}
       </>
     ),

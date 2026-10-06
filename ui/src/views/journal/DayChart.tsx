@@ -81,6 +81,8 @@ export const DayChart = memo(function DayChart({ buckets, unit, ariaLabel, anima
     <div
       ref={ref}
       className="vx-chart"
+      role="group"
+      aria-roledescription="chart"
       tabIndex={0}
       aria-label={`${ariaLabel} Use the left and right arrow keys to read each ${unit}.`}
       onKeyDown={onKeyDown}

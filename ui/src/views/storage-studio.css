@@ -77,11 +77,12 @@
 }
 .tile-t__label, .tile-t__mini { z-index: 1; }
 .tile-t:hover .tile-t__art, .tile-t:focus-visible .tile-t__art { opacity: 0.9; mix-blend-mode: normal; transform: scale(1.06); }
-:root[data-theme='light'] .tile-t__label { color: oklch(0.98 0 0); }
+/* White labels only over artwork; plain tiles keep the theme's text colour. */
+:root[data-theme='light'] .tile-t:has(.tile-t__art) .tile-t__label { color: oklch(0.98 0 0); }
 @media (prefers-reduced-motion: reduce) { .tile-t__art { transition: opacity var(--dur-fast) linear; transform: none !important; } }
 .tile-t:hover { filter: brightness(1.14); }
 .tile-t:hover::after, .tile-t:focus-visible::after { opacity: 1; }
-.tile-t:focus-visible { box-shadow: inset 0 0 0 1px oklch(from var(--pc) l c h / 0.35); z-index: 1; }
+.tile-t:focus-visible { outline-offset: -3px; box-shadow: inset 0 0 0 1px oklch(from var(--pc) l c h / 0.35); z-index: 1; }
 .tile-t[data-tiny] { border-radius: 3px; }
 .tile-t__label { position: absolute; left: 10px; right: 10px; bottom: 8px; display: grid; gap: 1px; }
 .tile-t__title { font-weight: var(--fw-semibold); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 6px oklch(0 0 0 / 0.45); }

@@ -94,11 +94,12 @@ export function deckTone(c: DeckCategory): 'ok' | 'warn' | 'danger' | undefined 
 export function formatHours(seconds: number | null | undefined): string | null {
   if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) return null;
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 60) return `${minutes}m`;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  if (h >= 10 || m === 0) return `${Math.round(minutes / 60)} h`;
-  return `${h} h ${m} min`;
+  // Estimates of 10 hours or more read best rounded to the hour.
+  if (h >= 10 || m === 0) return `${Math.round(minutes / 60)}h`;
+  return `${h}h ${m}m`;
 }
 
 export function matchLabel(s: Pick<EnrichmentSource, 'matchMethod' | 'confidence'>): string {

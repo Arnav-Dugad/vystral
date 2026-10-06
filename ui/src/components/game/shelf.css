@@ -1,3 +1,5 @@
+.shelf .icon-btn[aria-disabled='true'],
+.shelf .icon-btn[aria-disabled='true']:hover { opacity: 0.4; cursor: default; background: none; color: inherit; }
 .shelf { margin-top: var(--s-10); }
 .shelf__track {
   display: grid;

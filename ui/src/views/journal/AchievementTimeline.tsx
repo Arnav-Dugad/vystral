@@ -16,6 +16,8 @@ import '../../components/ui/shimmer.css';
 import './achievement-timeline.css';
 
 const PAGE = 40;
+/** Largest page the backend serves in one `achievements.feed` call. */
+const MAX_PAGE = 100;
 
 type Load =
   | { kind: 'loading' }
@@ -27,20 +29,25 @@ function useAchievementData() {
   const [items, setItems] = useState<AchievementFeedItem[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const loaded = useRef(0);
+  const seq = useRef(0);
 
   const load = useCallback(async (quiet = false) => {
+    const mine = ++seq.current;
     if (!quiet) setState({ kind: 'loading' });
     try {
-      const limit = Math.min(100, Math.max(PAGE, loaded.current));
-      const [overview, feed] = await Promise.all([
-        call<AchievementOverview>('achievements.overview'),
-        call<AchievementFeed>('achievements.feed', { offset: 0, limit }),
-      ]);
-      loaded.current = feed.items.length;
-      setItems(feed.items);
+      // Reload everything already on screen (including pages from "Show more"), a page at a time.
+      const want = Math.max(PAGE, loaded.current);
+      const pages: Promise<AchievementFeed>[] = [];
+      for (let offset = 0; offset < want; offset += MAX_PAGE) pages.push(call<AchievementFeed>('achievements.feed', { offset, limit: Math.min(MAX_PAGE, want - offset) }));
+      const [overview, ...feeds] = await Promise.all([call<AchievementOverview>('achievements.overview'), ...pages]);
+      if (mine !== seq.current) return; // a newer reload is on its way
+      const all = feeds.reduce<AchievementFeedItem[]>((acc, f) => mergeFeed(acc, f.items), []);
+      const feed: AchievementFeed = { ...feeds[0], items: all, hasMore: feeds[feeds.length - 1].hasMore };
+      loaded.current = all.length;
+      setItems(all);
       setState({ kind: 'ready', overview, feed });
     } catch (err) {
-      if (!quiet) setState({ kind: 'error', message: errorMessage(err) });
+      if (!quiet && mine === seq.current) setState({ kind: 'error', message: errorMessage(err) });
     }
   }, []);
 

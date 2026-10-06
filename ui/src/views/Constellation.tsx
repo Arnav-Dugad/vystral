@@ -86,6 +86,7 @@ export function ConstellationView() {
   const [groupBy, setGroupBy] = useState<GroupBy>('genre');
   const [mode, setMode] = useState<ViewMode>('map');
   const [webglFailed, setWebglFailed] = useState(false);
+  const onWebglFail = useCallback(() => setWebglFailed(true), []);
 
   const visible = useMemo(() => games.filter((g) => !g.hidden), [games]);
   const collectionName = useMemo(() => {
@@ -153,7 +154,7 @@ export function ConstellationView() {
           }
         />
       ) : effectiveMode === 'map' ? (
-        <MapStage model={model} groupBy={groupBy} onFail={() => setWebglFailed(true)} />
+        <MapStage model={model} groupBy={groupBy} onFail={onWebglFail} />
       ) : (
         <ClusterList model={model} />
       )}
@@ -174,7 +175,13 @@ function MapStage({ model, groupBy, onFail }: { model: Model; groupBy: GroupBy; 
   const labelRefs = useRef<(HTMLDivElement | null)[]>([]);
   const hoverRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
+  // Bumped each time a renderer is created, so data/overlay effects re-apply to the new scene.
+  const [sceneGen, setSceneGen] = useState(0);
+  const ready = sceneGen > 0;
+  const onFailRef = useRef(onFail);
+  useLayoutEffect(() => {
+    onFailRef.current = onFail;
+  });
   const [hover, setHover] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focusCluster, setFocusCluster] = useState<number | null>(null);
@@ -212,10 +219,10 @@ function MapStage({ model, groupBy, onFail }: { model: Model; groupBy: GroupBy; 
           },
         });
         sceneRef.current = scene;
-        setReady(true);
+        setSceneGen((g) => g + 1);
       } catch (err) {
         console.warn('[constellation] WebGL unavailable', err);
-        if (!cancelled) onFail();
+        if (!cancelled) onFailRef.current();
       }
     })();
     return () => {
@@ -223,7 +230,7 @@ function MapStage({ model, groupBy, onFail }: { model: Model; groupBy: GroupBy; 
       scene?.dispose();
       sceneRef.current = null;
     };
-  }, [onFail]);
+  }, []);
 
   // ---- Data ----
   useEffect(() => {
@@ -235,12 +242,12 @@ function MapStage({ model, groupBy, onFail }: { model: Model; groupBy: GroupBy; 
     setFocusCluster(null);
     const sel = latest.current.selectedId;
     if (sel != null && !indexOf.has(sel)) setSelectedId(null);
-  }, [ready, layout, attrs, clusters.length, indexOf]);
+  }, [sceneGen, layout, attrs, clusters.length, indexOf]);
 
-  useEffect(() => sceneRef.current?.setHover(hover), [hover, ready]);
-  useEffect(() => sceneRef.current?.setSelected(selectedIndex), [selectedIndex, ready]);
-  useEffect(() => sceneRef.current?.focusCluster(focusCluster), [focusCluster, ready]);
-  useEffect(() => sceneRef.current?.setReducedMotion(reduce), [reduce, ready]);
+  useEffect(() => sceneRef.current?.setHover(hover), [hover, sceneGen]);
+  useEffect(() => sceneRef.current?.setSelected(selectedIndex), [selectedIndex, sceneGen]);
+  useEffect(() => sceneRef.current?.focusCluster(focusCluster), [focusCluster, sceneGen]);
+  useEffect(() => sceneRef.current?.setReducedMotion(reduce), [reduce, sceneGen]);
 
   // ---- Pause: hidden window or running game → no GPU work; unfocused/offscreen → no loop ----
   useEffect(() => {
@@ -260,7 +267,7 @@ function MapStage({ model, groupBy, onFail }: { model: Model; groupBy: GroupBy; 
     };
   }, []);
   const pauseLevel: PauseLevel = hidden || running || !inView ? 'hard' : !windowFocused ? 'soft' : 'none';
-  useEffect(() => sceneRef.current?.setPaused(pauseLevel), [pauseLevel, ready]);
+  useEffect(() => sceneRef.current?.setPaused(pauseLevel), [pauseLevel, sceneGen]);
 
   // ---- Keyboard / controller navigation ----
   const cursor = useMemo(() => {

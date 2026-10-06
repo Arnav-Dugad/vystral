@@ -12,7 +12,7 @@ import { spring } from '../../lib/motion';
 import { useReducedMotion, useStore } from '../../state/store';
 import { StatTile } from './kit';
 import { LineChart } from './LineChart';
-import { downsampleSegments, formatOffset, niceTicks, seriesStats, splitSegments, type ChartMetric, type Pt } from './series';
+import { downsampleSegments, niceTicks, seriesStats, splitSegments, type ChartMetric, type Pt } from './series';
 import {
   formatFps, formatMs, formatSpan, fpsSeries, hasFps, hasThrottleData, histogramBuckets, thermalAlert, type Band,
 } from './insight';
@@ -164,7 +164,7 @@ export function FrameRatePanel({
             onHover={onHover}
             animateKey={animateKey}
             bands={bands}
-            ariaLabel={`Frame rate over ${formatOffset(durationMs)}: average ${formatFps(series.stats.avg)} fps, lowest two-second average ${formatFps(series.stats.min)} fps.`}
+            ariaLabel={`Frame rate over ${formatSpan(durationMs / 1000)}: average ${formatFps(series.stats.avg)} fps, lowest two-second average ${formatFps(series.stats.min)} fps.`}
           />
         </div>
       ) : (

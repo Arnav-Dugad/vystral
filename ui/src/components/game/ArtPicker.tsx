@@ -88,6 +88,9 @@ export function ArtPickerDialog({ game, kind, open, onClose }: { game: Game; kin
   const [applying, setApplying] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const generation = useRef(0);
+  // Latest previews, so "Load previews anyway" only fetches the ones still missing.
+  const thumbsRef = useRef(thumbs);
+  thumbsRef.current = thumbs;
 
   // Load the list whenever the dialog opens or a filter changes.
   useEffect(() => {
@@ -115,7 +118,8 @@ export function ArtPickerDialog({ game, kind, open, onClose }: { game: Game; kin
   useEffect(() => {
     if (!open || !data || (data.previewsPaused && !forcePreviews)) return;
     const gen = generation.current;
-    const queue = data.items.filter((i) => !i.thumb).map((i) => i.id);
+    const have = thumbsRef.current;
+    const queue = data.items.filter((i) => !i.thumb && (!have[i.id] || have[i.id] === 'failed')).map((i) => i.id);
     let cancelled = false;
     const worker = async () => {
       while (!cancelled && queue.length) {
@@ -135,8 +139,9 @@ export function ArtPickerDialog({ game, kind, open, onClose }: { game: Game; kin
   const items = data?.items ?? [];
   const chosen = items.find((i) => i.id === selected) ?? null;
 
-  const apply = async () => {
-    if (!chosen) return;
+  const apply = async (option: ArtOption | null = chosen) => {
+    if (!option || applying) return;
+    const chosen = option;
     setApplying(true);
     try {
       await call('art.apply', { gameId: game.id, kind, optionId: chosen.id }, 120_000);
@@ -190,7 +195,7 @@ export function ArtPickerDialog({ game, kind, open, onClose }: { game: Game; kin
         <>
           <span className="artpick__attrib">
             Community artwork from SteamGridDB, credited to each artist.
-            <button className="artpick__link" onClick={() => void call('dataSources.openLink', { provider: 'steamgriddb', link: 'home' })}>steamgriddb.com <ExternalLink size={11} aria-hidden /></button>
+            <button className="artpick__link" onClick={() => void call('dataSources.openLink', { provider: 'steamgriddb', link: 'home' }).catch((err) => toast({ tone: 'info', title: errorMessage(err) }))}>steamgriddb.com <ExternalLink size={11} aria-hidden /></button>
           </span>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="primary" icon={<Check size={15} />} disabled={!chosen} loading={applying} onClick={() => void apply()}>Use this {slot.label.toLowerCase()}</Button>
@@ -256,7 +261,7 @@ export function ArtPickerDialog({ game, kind, open, onClose }: { game: Game; kin
                 reduce={reduce}
                 onFocus={() => setFocusIndex(i)}
                 onSelect={() => { setSelected(it.id); setFocusIndex(i); }}
-                onApply={() => { setSelected(it.id); }}
+                onApply={() => { setSelected(it.id); void apply(it); }}
               />
             ))}
             {!loading && data?.game && !items.length && <p className="artpick__empty">No {slot.label.toLowerCase()}s match these filters.</p>}

@@ -68,7 +68,7 @@
   transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
 }
 .mv-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-2), inset 0 0 0 1px var(--line-strong); }
-.mv-tile:focus-visible { border-radius: var(--r-lg); box-shadow: var(--focus-ring), var(--shadow-2); transform: translateY(-2px); }
+.mv-tile:focus-visible { outline: none; border-radius: var(--r-lg); box-shadow: var(--focus-ring), var(--shadow-2); transform: translateY(-2px); }
 .mv-tile__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out); }
 .mv-tile[data-state='loaded'] .mv-tile__img { opacity: 1; }
 .mv-tile:hover .mv-tile__img { transform: scale(1.03); }

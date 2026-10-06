@@ -31,7 +31,7 @@ function VolumeRow({ k, label, disabled }: { k: 'sounds.volume' | 'sound.ambient
         <span className="srow__label">{label}</span>
       </div>
       <div className="srow__control" style={{ width: 200 }}>
-        <Slider label={label} value={value} min={0} max={1} step={0.05} onChange={(v) => void set(k, v)} />
+        <Slider label={label} value={value} min={0} max={1} step={0.05} disabled={disabled} onChange={(v) => void set(k, v)} />
       </div>
     </div>
   );

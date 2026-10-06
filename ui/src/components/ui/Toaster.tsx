@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
 import { useReducedMotion, useStore } from '../../state/store';
@@ -12,9 +13,24 @@ const ICONS = { success: CheckCircle2, warning: AlertTriangle, danger: XCircle, 
 export function Toaster() {
   const toasts = useStore((s) => s.toasts);
   const dismiss = useStore((s) => s.dismissToast);
+  const setPaused = useStore((s) => s.setToastsPaused);
   const reduce = useReducedMotion();
+  // Reading or reaching for a toast holds the auto-dismiss timers.
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const paused = (hovered || focused) && toasts.length > 0;
+  useEffect(() => setPaused(paused), [paused, setPaused]);
   return (
-    <div className="toaster" role="region" aria-label="Notifications" aria-live="polite">
+    <div
+      className="toaster"
+      role="region"
+      aria-label="Notifications"
+      aria-live="polite"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false); }}
+    >
       <AnimatePresence initial={false}>
         {toasts.map((t) => {
           const Icon = ICONS[t.tone];

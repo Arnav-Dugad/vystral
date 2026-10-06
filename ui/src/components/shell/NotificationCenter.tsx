@@ -47,9 +47,13 @@ function NotificationDrawer({ open, onClose }: { open: boolean; onClose: () => v
   const clearAll = useStore((s) => s.clearNotifications);
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
+  // onClose is passed inline; keep it in a ref so the effect (mark read + focus) runs only on open.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
 
   useEffect(() => {
     if (!open) return;
+    const onClose = () => onCloseRef.current();
     markRead();
     requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>('button')?.focus());
     const onKey = (e: KeyboardEvent) => {
@@ -67,7 +71,7 @@ function NotificationDrawer({ open, onClose }: { open: boolean; onClose: () => v
       window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('mousedown', onDown, true);
     };
-  }, [open, markRead, onClose]);
+  }, [open, markRead]);
 
   const groups = useMemo(() => {
     const today = new Date().toDateString();

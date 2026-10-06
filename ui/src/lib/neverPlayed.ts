@@ -14,12 +14,21 @@ import { hashString } from './color';
 /** Statuses that mean "I've dealt with this one" — never offered as unplayed picks. */
 const DONE = new Set(['beaten', 'completed', 'abandoned']);
 
-export function isNeverPlayed(g: Game): boolean {
-  if (g.hidden) return false;
+/**
+ * The one definition of "never played", used by Home, the Library filter, search and suggestions:
+ * no session VYSTRAL recorded, no tracked time, no store last-played date and no store playtime.
+ * Ignores whether the game is hidden (callers decide that).
+ */
+export function hasNeverBeenPlayed(g: Game): boolean {
   if (g.trackedSeconds > 0 || g.sessionCount > 0) return false;
   if (lastPlayed(g).at) return false;
   const minutes = importedMinutes(g);
   return minutes == null || minutes <= 0;
+}
+
+/** Never played and visible in the library. */
+export function isNeverPlayed(g: Game): boolean {
+  return !g.hidden && hasNeverBeenPlayed(g);
 }
 
 /** Never played and not marked as finished or abandoned. */

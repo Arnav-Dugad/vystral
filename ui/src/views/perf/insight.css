@@ -28,7 +28,7 @@
 
 .pf-fps .vx-btn, .pf-fps button { margin-left: auto; flex: none; }
 
-.pf-framerate { display: grid; gap: var(--s-5); }
+.pf-framerate { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-5); }
 .pf-fps-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 @media (max-width: 1180px) { .pf-fps-tiles { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
 .pf-fps-tiles .vx-tile { padding: var(--s-4); }

@@ -251,6 +251,8 @@ function useGlobalKeys() {
       const s = useStore.getState();
       const typing = (e.target as HTMLElement)?.closest?.('input, textarea, [contenteditable]');
       if ((e.ctrlKey && e.key.toLowerCase() === 'k') || (e.key === '/' && !typing)) {
+        // Another dialog (or first-run onboarding) owns the keyboard; don't stack the command bar on it.
+        if (document.querySelector('[data-dialog-open]:not(.cmd-backdrop):not(.launch-pill), .onb')) return;
         e.preventDefault();
         s.setCommandOpen(!s.commandOpen);
       } else if (e.ctrlKey && e.key === ',') {

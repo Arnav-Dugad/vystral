@@ -5,7 +5,7 @@ import { formatDuration, formatRelative, lastPlayed } from '../../lib/format';
 import { StoreLogos } from '../ui/StoreLogo';
 import { LiveLayer } from './LiveTile';
 import { peekPalette, titleHue } from '../../lib/palette';
-import { useStore } from '../../state/store';
+import { useReducedMotion, useStore } from '../../state/store';
 import { IconButton, SectionHead } from '../ui/primitives';
 import { GameCard } from './GameCard';
 import { GameCover } from './GameCover';
@@ -24,6 +24,7 @@ export function Shelf({ title, meta, games, variant = 'portrait', caption, actio
   live?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
   const [edge, setEdge] = useState({ start: true, end: true });
   const onScroll = () => {
     const el = ref.current;
@@ -43,7 +44,10 @@ export function Shelf({ title, meta, games, variant = 'portrait', caption, actio
   }, [games.length]);
   if (games.length === 0) return null;
 
-  const scroll = (dir: 1 | -1) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: 'smooth' });
+  const scroll = (dir: 1 | -1) => {
+    if (dir === -1 ? edge.start : edge.end) return;
+    ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: reduce ? 'auto' : 'smooth' });
+  };
   const overflows = !(edge.start && edge.end);
 
   return (
@@ -56,10 +60,11 @@ export function Shelf({ title, meta, games, variant = 'portrait', caption, actio
             {action}
             {overflows && (
               <>
-                <IconButton label="Scroll left" size="sm" disabled={edge.start} onClick={() => scroll(-1)}>
+                {/* aria-disabled (not disabled) so focus isn't dropped when the row reaches its end. */}
+                <IconButton label="Scroll left" size="sm" aria-disabled={edge.start || undefined} onClick={() => scroll(-1)}>
                   <ChevronLeft size={16} />
                 </IconButton>
-                <IconButton label="Scroll right" size="sm" disabled={edge.end} onClick={() => scroll(1)}>
+                <IconButton label="Scroll right" size="sm" aria-disabled={edge.end || undefined} onClick={() => scroll(1)}>
                   <ChevronRight size={16} />
                 </IconButton>
               </>
@@ -106,7 +111,7 @@ export function LandscapeTile({ game, caption, live }: { game: Game; caption?: R
             open({ x: r.left + 40, y: r.top + 40 });
           }
         }}
-        aria-label={`${game.title}${lp.at ? `, last played ${formatRelative(lp.at)}` : ''}`}
+        aria-label={`${game.title}${lp.at ? `, last played ${formatRelative(lp.at).toLowerCase()}` : ''}`}
       >
         <div className="card__frame" data-live={live || undefined}>
           <GameCover game={game} kind="hero" />

@@ -24,11 +24,17 @@ export class TrailerError extends Error {}
 
 const sleep = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
-    const t = window.setTimeout(resolve, ms);
-    signal.addEventListener('abort', () => {
+    if (signal.aborted) return reject(new DOMException('Aborted', 'AbortError'));
+    const onAbort = () => {
       window.clearTimeout(t);
       reject(new DOMException('Aborted', 'AbortError'));
-    }, { once: true });
+    };
+    // Remove the abort listener when the timer wins: a paused trailer sleeps in a loop.
+    const t = window.setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal.addEventListener('abort', onAbort, { once: true });
   });
 
 async function getText(url: string, signal: AbortSignal): Promise<string> {
@@ -97,9 +103,12 @@ export async function attachHlsTrailer(video: HTMLVideoElement, masterUrl: strin
           return;
         } catch (err) {
           if (!(err instanceof DOMException) || err.name !== 'QuotaExceededError' || attempt > 0) throw err;
-          // Out of room: drop what has already been watched and try once more.
+          // Out of room: drop what has already been watched and try once more. Before 4 s there is
+          // nothing behind the playhead to drop (and remove(0, 0) would throw), so give up instead.
+          const watched = video.currentTime - 4;
+          if (!(watched > 0)) throw err;
           evicted = true;
-          sb.remove(0, Math.max(0, video.currentTime - 4));
+          sb.remove(0, watched);
           await waitEvent(sb, 'updateend', signal);
         }
       }

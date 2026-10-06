@@ -77,6 +77,7 @@
 .hm-grid div.hm-cell { cursor: pointer; }
 .hm-grid div.hm-cell:hover { transform: scale(1.22); position: relative; z-index: 1; }
 .hm-grid div.hm-cell:focus-visible {
+  outline: none;
   position: relative;
   z-index: 2;
   transform: scale(1.22);

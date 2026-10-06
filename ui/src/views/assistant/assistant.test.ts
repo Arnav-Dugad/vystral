@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseBlocks, parseInline } from './markdown';
-import { IDLE_PULL, describePull, formatModelBytes, reducePull, toWireMessages, type ChatMessage } from './chat';
+import { IDLE_PULL, describePull, formatModelBytes, newId, reducePull, toWireMessages, type ChatMessage } from './chat';
 
 describe('parseInline', () => {
   it('splits bold runs', () => {
@@ -69,6 +69,21 @@ describe('toWireMessages', () => {
     const wire = toWireMessages([m('user', 'x'.repeat(50)), m('assistant', 'y'.repeat(50), 'stopped'), m('user', 'last')], 60);
     expect(wire).toEqual([{ role: 'user', content: 'last' }]);
   });
+
+  it('respects the backend limits: at most 40 messages of at most 4000 characters', () => {
+    const many = Array.from({ length: 60 }, (_, i) => m(i % 2 ? 'assistant' : 'user', `msg ${i}`));
+    const wire = toWireMessages(many);
+    expect(wire.length).toBeLessThanOrEqual(40);
+    expect(wire[0].role).toBe('user');
+    expect(wire[wire.length - 1].content).toBe('msg 59');
+    const long = toWireMessages([m('user', 'z'.repeat(9000))]);
+    expect(long[0].content.length).toBe(4000);
+  });
+
+  it('makes request ids that fit the backend 40-character limit', () => {
+    for (let i = 0; i < 50; i++) expect(newId('chat').length).toBeLessThanOrEqual(40);
+    expect(newId('chat')).not.toBe(newId('chat'));
+  });
 });
 
 describe('reducePull', () => {
@@ -83,6 +98,12 @@ describe('reducePull', () => {
     expect(reducePull(s, { model: 'm', status: 'x', done: true }).phase).toBe('done');
     expect(reducePull(s, { model: 'm', status: 'cancelled' }).phase).toBe('cancelled');
     expect(reducePull(s, { model: 'm', status: 'x', error: 'disk full' })).toMatchObject({ phase: 'error', error: 'disk full' });
+  });
+
+  it('keeps an error when the closing done event follows it', () => {
+    const failed = reducePull(IDLE_PULL, { model: 'm', status: 'error', error: 'disk full' });
+    expect(reducePull(failed, { model: 'm', status: 'done' })).toMatchObject({ phase: 'error', error: 'disk full' });
+    expect(reducePull(failed, { model: 'm', status: 'pulling manifest' }).phase).toBe('pulling');
   });
 
   it('formats model sizes in decimal units like Ollama', () => {

@@ -75,11 +75,19 @@ a {
   outline: none;
 }
 
-/* One focus language everywhere: visible ring only for keyboard/controller focus. */
+/* One focus language everywhere: visible ring only for keyboard/controller focus. Drawn as an
+   outline rather than a box-shadow, so components with their own shadows (switches, buttons,
+   theme cards, accent dots, nav items) can't override it. Components that show focus their own
+   way opt out with `outline: none`. */
 :focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+/* Immersive Mode draws its own travelling focus ring and keeps the original treatment. */
+:where(.imm) :focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
-  border-radius: var(--r-sm);
 }
 
 ::selection {

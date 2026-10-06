@@ -19,11 +19,11 @@ export function formatEta(seconds: number | null): string | null {
   if (seconds == null || !Number.isFinite(seconds)) return null;
   if (seconds < 60) return 'less than a minute left';
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `about ${minutes} min left`;
+  if (minutes < 60) return `about ${minutes}m left`;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h >= 48) return `about ${Math.round(h / 24)} days left`;
-  return m >= 5 ? `about ${h} h ${m} min left` : `about ${h} h left`;
+  return m >= 5 ? `about ${h}h ${m}m left` : `about ${h}h left`;
 }
 
 export function formatRate(bytesPerSecond: number | null): string | null {

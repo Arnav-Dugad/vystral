@@ -4,6 +4,7 @@
  */
 import type { InsightSample, PerfSummary } from '../../bridge/types';
 import type { MaybePt } from './series';
+import { formatDuration } from '../../lib/format';
 
 /** Upper bucket edges (ms) of PerfSummary.frameTimeHistogram; the last bucket is "above 100 ms". Mirrors FrameStats.HistogramEdgesMs. */
 export const FRAME_TIME_EDGES_MS = [4, 6, 8, 10, 12, 14, 17, 20, 25, 33, 50, 100] as const;
@@ -75,11 +76,9 @@ export function histogramBuckets(hist: readonly number[] | null | undefined): Hi
 }
 
 /** "4m 12s", "1h 03m", "45s". */
+/** Short measured spans ("45s", "4m 12s", "1h 3m"): the shared duration style, with seconds. */
 export function formatSpan(seconds: number): string {
-  const s = Math.max(0, Math.round(seconds));
-  if (s >= 3600) return `${Math.floor(s / 3600)}h ${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}m`;
-  if (s >= 60) return `${Math.floor(s / 60)}m ${s % 60}s`;
-  return `${s}s`;
+  return formatDuration(Math.max(0, Math.round(seconds)), { seconds: true });
 }
 
 export const THERMAL_ALERT_SECONDS = 30;

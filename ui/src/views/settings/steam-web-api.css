@@ -47,4 +47,4 @@
 .steamapi__keyfield:focus-within { box-shadow: inset 0 0 0 1px var(--accent-line), 0 0 0 3px var(--accent-ghost); }
 .steamapi__keyfield[data-invalid] { box-shadow: inset 0 0 0 1px oklch(from var(--warn) l c h / 0.6); }
 .steamapi__keyfield input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--text-1); letter-spacing: 0.04em; }
-.steamapi__keyfield input:focus-visible { box-shadow: none; }
+.steamapi__keyfield input:focus-visible { outline: none; box-shadow: none; }

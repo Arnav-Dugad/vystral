@@ -62,7 +62,7 @@ public sealed partial class AppBackend
             {
                 exportedAt = DateTimeOffset.Now,
                 app = $"VYSTRAL {Version}",
-                note = "Sessions with source 'tracked' were observed by VYSTRAL. Store playtime is shown separately as imported.",
+                note = "Sessions VYSTRAL recorded (launched or detected): source 'tracked' = launched from VYSTRAL, 'detected' = started outside VYSTRAL while it was open, 'background' = noticed by the background tracker while VYSTRAL was closed. Store playtime is shown separately as imported.",
                 games = snapshot.Games.Select(g => new
                 {
                     g.Title, g.Genres, g.Favorite, g.UserRating, g.Notes, trackedSeconds = g.TrackedSeconds, g.SessionCount,

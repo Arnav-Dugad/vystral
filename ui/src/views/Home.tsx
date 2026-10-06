@@ -4,7 +4,7 @@ import { Clock3, FilePlus2, Heart, Info, Layers, Play, RefreshCw, Sparkles } fro
 import type { Game, PlatformKey } from '../bridge/types';
 import { StoreLogo } from '../components/ui/StoreLogo';
 import { NeverPlayedSection } from './home/NeverPlayed';
-import { formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../lib/format';
+import { formatDuration, formatRelative, importedPlaytime, isInstalled, isMissing, lastPlayed, PLATFORM_NAMES, plural } from '../lib/format';
 import { ease, spring } from '../lib/motion';
 import { featuredGame, suggestGames } from '../lib/recommend';
 import { addManualGame, toggleFavorite } from '../state/actions';
@@ -26,7 +26,8 @@ export function HomeView() {
 
   const visible = useMemo(() => games.filter((g) => !g.hidden), [games]);
   const featured = useMemo(() => featuredGame(visible), [visible]);
-  const now = Date.now();
+  // One timestamp per library change, so the rows below don't re-sort on every render.
+  const now = useMemo(() => Date.now(), [visible]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const continuePlaying = useMemo(
     () =>
@@ -101,7 +102,7 @@ function Hero({ game }: { game: Game }) {
   const launchGame = useStore((s) => s.launchGame);
   const reduce = useReducedMotion();
   const lp = lastPlayed(game);
-  const imported = importedMinutes(game);
+  const imported = importedPlaytime(game);
   const installed = isInstalled(game);
   const platforms = [...new Set(game.installations.map((i) => i.platform))];
 
@@ -126,9 +127,9 @@ function Hero({ game }: { game: Game }) {
         {game.art.logo ? <HeroLogo src={game.art.logo} alt={game.title} /> : <h1 className="hero__title">{game.title}</h1>}
         <div className="hero__meta">
           {platforms.map((p) => <PlatformBadge key={p} platform={p} />)}
-          {lp.at && <span><Clock3 size={13} aria-hidden /> Played {formatRelative(lp.at)}</span>}
+          {lp.at && <span><Clock3 size={13} aria-hidden /> Played {formatRelative(lp.at).toLowerCase()}</span>}
           {game.trackedSeconds > 0 && <span>{formatDuration(game.trackedSeconds)} tracked</span>}
-          {imported != null && imported > 0 && <span title="Reported by the store">{formatDuration(imported * 60)} in {PLATFORM_NAMES[game.installations.find((i) => i.importedPlaytimeMinutes != null)?.platform ?? 'steam']}</span>}
+          {imported != null && imported.minutes > 0 && <span title="Reported by the store">{formatDuration(imported.minutes * 60)} in {PLATFORM_NAMES[imported.platform]}</span>}
         </div>
         {game.description && <p className="hero__desc selectable">{game.description}</p>}
         <div className="hero__actions">
@@ -152,15 +153,15 @@ function LibraryPulse({ games }: { games: Game[] }) {
   const navigate = useStore((s) => s.navigate);
   const setCommandOpen = useStore((s) => s.setCommandOpen);
   const installed = games.filter(isInstalled);
-  const missing = games.filter((g) => g.installations.some((i) => i.state === 'missing') && !isInstalled(g));
+  const missing = games.filter(isMissing);
   const needsClient = installed.filter((g) => g.installations.every((i) => i.state !== 'installed' || i.clientRequired));
   const byPlatform = new Map<string, number>();
   for (const g of installed) for (const p of new Set(g.installations.map((i) => i.platform))) byPlatform.set(p, (byPlatform.get(p) ?? 0) + 1);
 
   const tiles = [
-    { label: 'Installed', value: installed.length, go: () => navigate({ name: 'library' }) },
-    { label: 'Need their store app', value: needsClient.length },
-    { label: 'Missing from disk', value: missing.length, tone: missing.length ? 'warn' : undefined },
+    { label: 'Installed', value: installed.length, go: () => navigate({ name: 'library', quick: 'installed' }) },
+    { label: 'Need their store app', value: needsClient.length, go: () => navigate({ name: 'library', quick: 'client' }) },
+    { label: 'Missing from disk', value: missing.length, tone: missing.length ? 'warn' : undefined, go: () => navigate({ name: 'library', quick: 'missing' }) },
     { label: 'Stores', value: byPlatform.size },
   ];
   return (

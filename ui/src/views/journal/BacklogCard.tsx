@@ -158,7 +158,7 @@ export function BacklogCard({ sessions, now, gamesById, reveal }: { sessions: re
                     {ttb.avgTrackedSeconds != null
                       ? `Across ${plural(ttb.trackedGames, 'game')} with VYSTRAL sessions between “Playing” and “Beaten”.`
                       : 'None of your finished games have VYSTRAL sessions between “Playing” and “Beaten”.'}
-                    {' '}About {Math.max(1, Math.round(ttb.avgDays ?? 0))} {Math.round(ttb.avgDays ?? 0) === 1 ? 'day' : 'days'} from start to finish on average ({plural(ttb.games, 'game')}).
+                    {' '}About {plural(Math.max(1, Math.round(ttb.avgDays ?? 0)), 'day')} from start to finish on average ({plural(ttb.games, 'game')}).
                   </p>
                 </>
               ) : (

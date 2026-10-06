@@ -55,7 +55,7 @@
 .vlist { margin-top: var(--s-6); }
 .vlist__head, .vlist__row { display: grid; grid-template-columns: minmax(240px, 2.4fr) minmax(140px, 1.3fr) 1fr 0.8fr 0.8fr 0.8fr; gap: var(--s-4); align-items: center; padding: 0 var(--s-3); }
 .vlist__head { height: 36px; font-size: var(--fs-xs); color: var(--text-3); text-transform: uppercase; letter-spacing: var(--tracking-caps); font-weight: var(--fw-semibold); border-bottom: 1px solid var(--line); }
-.vlist__row { position: absolute; left: 0; right: 0; top: 0; height: 64px; text-align: left; border-radius: var(--r-md); color: var(--text-2); font-size: var(--fs-sm); }
+.vlist__row { position: absolute; left: 0; right: 0; top: 0; height: 64px; text-align: left; cursor: pointer; border-radius: var(--r-md); color: var(--text-2); font-size: var(--fs-sm); }
 .vlist__row:hover, .vlist__row:focus-visible { background: var(--accent-ghost); color: var(--text-1); }
 .vlist__row[data-dim='true'] { opacity: 0.6; }
 .vlist__title { display: flex; align-items: center; gap: 12px; color: var(--text-1); font-weight: var(--fw-medium); min-width: 0; }

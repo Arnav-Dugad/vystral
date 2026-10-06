@@ -116,8 +116,10 @@ export function LivingCanvas() {
   const quality = settings?.['appearance.quality'] ?? 'auto';
   const fixedAccent = settings?.['appearance.accent'] && settings['appearance.accent'] !== 'auto' ? settings['appearance.accent'] : null;
   const followTrailer = settings?.['canvas.followTrailer'] !== false;
-  const live = useRef({ fixedAccent, focusId, follow: followTrailer });
-  live.current = { fixedAccent, focusId, follow: followTrailer };
+  const live = useRef({ fixedAccent, focusId, follow: followTrailer, intensity });
+  live.current = { fixedAccent, focusId, follow: followTrailer, intensity };
+  // Intensity is a uniform: a slider drag only redraws, it never rebuilds the GL program.
+  useEffect(() => requestFrame.current(), [intensity]);
 
   // Palette + mood follow the focused game, debounced so fast browsing doesn't thrash.
   useEffect(() => {
@@ -233,7 +235,7 @@ export function LivingCanvas() {
       gl.uniform1f(uMix, eased);
       gl.uniform1f(uMA, MOOD_INDEX[s.moodA]);
       gl.uniform1f(uMB, MOOD_INDEX[s.moodB]);
-      gl.uniform1f(uI, intensity);
+      gl.uniform1f(uI, live.current.intensity);
       gl.uniform1f(uS, moodSpeed(eased > 0.5 ? s.moodB : s.moodA));
       gl.uniform3fv(uA, s.a.flat());
       gl.uniform3fv(uB, s.b.flat());
@@ -289,7 +291,7 @@ export function LivingCanvas() {
       gl.deleteProgram(program);
       gl.deleteBuffer(buf);
     };
-  }, [enabled, reduce, running, intensity, quality]);
+  }, [enabled, reduce, running, quality]);
 
   return (
     <div className="living-canvas" aria-hidden data-enabled={enabled}>
@@ -306,18 +308,31 @@ function link(gl: WebGL2RenderingContext): WebGLProgram | null {
     gl.compileShader(s);
     if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
       console.warn('[LivingCanvas] shader error', gl.getShaderInfoLog(s));
+      gl.deleteShader(s);
       return null;
     }
     return s;
   };
   const v = compile(gl.VERTEX_SHADER, VERT);
   const f = compile(gl.FRAGMENT_SHADER, FRAG);
-  if (!v || !f) return null;
+  if (!v || !f) {
+    if (v) gl.deleteShader(v);
+    if (f) gl.deleteShader(f);
+    return null;
+  }
   const p = gl.createProgram()!;
   gl.attachShader(p, v);
   gl.attachShader(p, f);
   gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) return null;
+  // The linked program keeps what it needs; the shader objects can go.
+  gl.detachShader(p, v);
+  gl.detachShader(p, f);
+  gl.deleteShader(v);
+  gl.deleteShader(f);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+    gl.deleteProgram(p);
+    return null;
+  }
   gl.useProgram(p);
   return p;
 }

@@ -20,7 +20,7 @@ export const openUpdateCenter = () => window.dispatchEvent(new CustomEvent(OPEN_
 export function UpdatePill() {
   const update = useStore((s) => s.update);
   if (!update || !['checking', 'error', 'available', 'downloading', 'ready', 'applying'].includes(update.phase)) return null;
-  const checked = update.checkedAt ? `Last checked ${formatRelative(update.checkedAt)}.` : '';
+  const checked = update.checkedAt ? `Last checked ${formatRelative(update.checkedAt).toLowerCase()}.` : '';
   if (update.phase === 'checking' || update.phase === 'error') {
     const checking = update.phase === 'checking';
     const label = checking ? 'Checking…' : 'Update check failed';
@@ -126,7 +126,7 @@ export function UpdatePanel() {
           <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 620, letterSpacing: '-0.01em' }}>{headline}</div>
           <div style={{ color: 'var(--text-3)', fontSize: 'var(--fs-sm)' }}>
             Installed version <span className="num">{update.currentVersion}</span>
-            {update.checkedAt && <> · Last checked {formatRelative(update.checkedAt)}</>}
+            {update.checkedAt && <> · Last checked {formatRelative(update.checkedAt).toLowerCase()}</>}
           </div>
         </div>
       </div>
@@ -149,7 +149,7 @@ export function UpdatePanel() {
             <span className="num">{update.progress}%</span>
             {update.totalBytes != null && <span>{formatBytes((update.totalBytes * update.progress) / 100)} of {formatBytes(update.totalBytes)}</span>}
             {update.bytesPerSecond != null && update.phase === 'downloading' && <span>{formatBytes(update.bytesPerSecond)}/s</span>}
-            {eta != null && <span>About {eta < 60 ? `${eta}s` : `${Math.ceil(eta / 60)} min`} left</span>}
+            {eta != null && <span>About {eta < 60 ? `${eta}s` : `${Math.ceil(eta / 60)}m`} left</span>}
           </div>
         </div>
       )}

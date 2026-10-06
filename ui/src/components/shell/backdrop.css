@@ -30,6 +30,7 @@
 /* Focus rings on translucent chrome: the inner ring uses the layer colour so the accent ring is
    separated from whatever the wallpaper tints Mica to. */
 :root[data-backdrop='mica'] :is(.titlebar, .sidebar) :focus-visible {
+  outline: none;
   box-shadow: 0 0 0 2px oklch(from var(--bg-0) l c h / 0.9), 0 0 0 4px var(--accent-hi);
 }
 

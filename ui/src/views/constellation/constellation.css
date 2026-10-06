@@ -26,7 +26,7 @@
   transition: box-shadow var(--dur-fast) var(--ease-out);
 }
 .cst-stage[data-dragging='true'] { cursor: grabbing; }
-.cst-stage:focus-visible { box-shadow: inset 0 0 0 1px var(--line), 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent-hi); border-radius: var(--r-2xl); }
+.cst-stage:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--line), 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent-hi); border-radius: var(--r-2xl); }
 .cst-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .cst-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); }
 

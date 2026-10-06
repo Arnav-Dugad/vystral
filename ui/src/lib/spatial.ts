@@ -16,7 +16,7 @@ let stickyX: number | null = null;
 export function activeScope(): HTMLElement {
   return (
     document.querySelector<HTMLElement>('[data-menu-open]') ??
-    document.querySelector<HTMLElement>('[data-dialog-open] [role=dialog]') ??
+    document.querySelector<HTMLElement>('[data-dialog-open][role=dialog], [data-dialog-open] [role=dialog]') ??
     document.querySelector<HTMLElement>('[data-nav-scope="overlay"]') ??
     document.body
   );
