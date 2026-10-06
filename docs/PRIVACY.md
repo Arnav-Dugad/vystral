@@ -15,6 +15,7 @@ VYSTRAL is local-first software. There is no VYSTRAL account, no server, no tele
 - `artpacks\`: the undo record of your last ten art packs — for each slot a pack changed, the game ID, the cache file it put there and the file it replaced. Files a record can put back are kept when you clear the artwork cache. Which stretch of each cached live-tile clip to loop is stored in `vystral.db`, keyed by a hash of the clip.
 - `logs\`: diagnostic logs, 7 days (`vystral-tracker-*.log` for the background tracker). They include file paths, never passwords or tokens.
 - `webview\`: the interface's browser profile.
+- `cloud-edge\`: only if you use cloud play with the default *Separate Edge window*: the Microsoft Edge profile those cloud windows use (your xbox.com / play.geforcenow.com sign-in lives there, kept by Edge). VYSTRAL creates the folder and passes it to Edge, but never reads it, never backs it up and never includes it in diagnostics. Delete it to sign out of those windows.
 - `backups\`: database backups.
 
 Export your journal from Settings → Data. Delete tracked history there too (this also deletes the recorded background-app names, the list of apps you hid, and the driver versions stored with sessions), or delete the whole folder to remove everything.
@@ -46,6 +47,13 @@ Version 0.5 features that use only data already on your PC (no new hosts, nothin
 - **Estimated savings on your backlog** uses prices already cached when you opened game pages (CheapShark/IsThereAnyDeal); it never looks up prices on its own.
 - **Session replay cards** are drawn in the interface. *Save as image* writes a 1920×1080 PNG only where you choose in the Windows save dialog; *Copy image* puts it on the Windows clipboard. The image never leaves your PC unless you share it.
 
+**Cloud play** (Settings → Cloud play; off by default, Track O):
+
+- `vystral.db` keeps the last downloaded copy of each cloud catalogue for your region (`cloud_catalog`: a game's GeForce NOW ID or Microsoft Store product ID, title, store IDs, Ready/Install-to-Play and whether a paid membership is the minimum) and a Microsoft Store product → package family name map (`cloud_products`). They're replaced on each refresh, never shared, and never shipped with VYSTRAL.
+- Cloud sessions you start from VYSTRAL are saved like other sessions, with the source `cloud-gfn` or `cloud-xbox` and no installation or performance data. Their length is an estimate: from the GeForce NOW stream process, the Edge window VYSTRAL opened, or the Xbox app being in the foreground; sessions in your normal browser end when you press *I'm done*. Sessions under a minute aren't kept. *Delete tracked history* deletes them too.
+- To notice those sessions VYSTRAL reads the same handle-free process list as game detection (process names only) and which program owns the foreground window, only while a cloud session it started is open. It never reads the Xbox or GeForce NOW apps' files, caches, cookies or windows, and never sees your account, membership or balance: the hours meter uses the membership and reset day you pick and is labelled as an estimate.
+- Your region comes from Windows (Settings → Time & language → Region) unless you choose one.
+
 VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 
 ## When VYSTRAL uses the network
@@ -71,6 +79,10 @@ VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 | Steam Deck compatibility | `store.steampowered.com` | The Steam app ID of the game whose page you opened | On while “Fetch game details” is on; switch in Settings |
 | Anti-cheat list (AreWeAntiCheatYet) | `raw.githubusercontent.com` | Nothing about you or your games: the public list is downloaded whole, at most weekly | On; switch in Settings |
 | Library value prices | `store.steampowered.com` | Steam app IDs of games in your library (100 per request) and your price country | On; only when you open Journal → Library value; switch in Settings |
+| Cloud play: GeForce NOW games list | `api-prod.nvidia.com` (the public list behind nvidia.com's games page) | Your two-letter region; nothing about you or your library. About 10 requests of ~250 KB, 3 s apart | Off; with cloud play on, at most once a day per region (back-off of 1–24 h after errors, a pause when asked to slow down); never with Offline mode, in safe mode or while you play; Data saver stops the background refresh |
+| Cloud play: Xbox Cloud Gaming list | `catalog.gamepass.com` (the public “all cloud games” list behind xbox.com) and `displaycatalog.mp.microsoft.com` (Microsoft Store product details) | Your region; then Microsoft Store product IDs from those lists (never your library), up to 20 per request. The first time about 30 product requests (~1.3 MB each, ~35 MB total); after that only new products, each re-checked every 60 days | Same as above |
+| Cloud play: GeForce NOW status | `status.geforcenow.com` (Atlassian Statuspage public API) | Nothing (one request, cached 5 minutes) | Only with cloud play on, when you open a game's cloud options or Settings → Cloud play |
+| Cloud play: starting a game | The GeForce NOW or Xbox app, or `play.geforcenow.com` / `www.xbox.com` in a separate Edge window or your browser | What the vendor's app or site does when you play; VYSTRAL only opens it with the game's ID (`utm_source=vystral` on NVIDIA's documented link) | Only when you press *Play in the cloud* |
 | Opening a deal or “Open on …” link | Your default browser | The browser opens the shop or site page; affiliate links from CheapShark/IsThereAnyDeal are left as those services send them | Only when you click |
 
 **Offline mode** (Settings → Privacy) turns off every optional network feature. Your games and store apps keep using their own services as usual; VYSTRAL doesn't see or change that traffic.

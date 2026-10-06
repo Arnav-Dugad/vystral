@@ -118,6 +118,14 @@ public sealed class SettingsService
         new NumberDef("immersive.scale", 1, 1, 1.3),
         new NumberDef("immersive.safeArea", 0, 0, 0.06),
         new BoolDef("immersive.tourDone", false),
+        // Track O: cloud play (opt-in, off by default) — services, market override, GeForce NOW membership, meter reset day, browser.
+        new BoolDef("cloud.enabled", false),
+        new BoolDef("cloud.gfn", true),
+        new BoolDef("cloud.xbox", true),
+        new StringDef("cloud.market", "", 2, "^([A-Z]{2})?$"),
+        new EnumDef("cloud.gfnPlan", "none", "none", "free", "performance", "ultimate", "daypass"),
+        new NumberDef("cloud.resetDay", 1, 1, 31),
+        new EnumDef("cloud.browser", "edge", "edge", "default"),
     ];
 
     private readonly LibraryRepository _repo;

@@ -301,5 +301,30 @@ internal static class Migrations
                 PRIMARY KEY (store, store_id)
             ) WITHOUT ROWID;
             """),
+        (7, "cloud play: cached cloud catalogues and Store product identities", """
+            -- Track O (opt-in): the last good copy of each cloud catalogue for the user's market, trimmed to what
+            -- matching and launching need. Replaced as a whole on each refresh (at most daily); never shipped.
+            -- service 'gfn' | 'xbox'; entry_id = GeForce NOW game UUID | Store product ID; launch_key = cmsId | product ID.
+            CREATE TABLE cloud_catalog (
+                service    TEXT NOT NULL,
+                market     TEXT NOT NULL,
+                entry_id   TEXT NOT NULL,
+                launch_key TEXT,
+                title      TEXT NOT NULL,
+                play_type  TEXT,
+                premium    INTEGER NOT NULL DEFAULT 0,
+                links_json TEXT NOT NULL DEFAULT '[]',
+                PRIMARY KEY (service, market, entry_id)
+            ) WITHOUT ROWID;
+
+            -- Store product ID -> package family name and title (Microsoft's display catalogue), so Xbox copies can be
+            -- matched exactly. pfn NULL records a console-only product. Refreshed after 60 days.
+            CREATE TABLE cloud_products (
+                product_id TEXT PRIMARY KEY,
+                pfn        TEXT,
+                title      TEXT,
+                fetched    TEXT NOT NULL
+            ) WITHOUT ROWID;
+            """),
     ];
 }

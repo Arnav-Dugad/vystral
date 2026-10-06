@@ -27,6 +27,7 @@ import { PadGlyph } from '../../components/ui/primitives';
 import { StoreLogo } from '../../components/ui/StoreLogo';
 import '../../components/ui/shimmer.css';
 import { playBurst } from './PlayBurst';
+import { ImmersiveCloudActions } from '../../components/cloud/CloudPlayButton';
 
 export type PageTab = 'overview' | 'achievements' | 'sessions' | 'media';
 const TABS: { id: PageTab; label: string; icon: typeof Info }[] = [
@@ -300,6 +301,7 @@ function Overview({ game, onClose }: { game: Game; onClose: () => void }) {
             <Store size="1.1em" /> Get it in {PLATFORM_NAMES[storeInst.platform]}
           </button>
         )}
+        <ImmersiveCloudActions game={game} onClose={onClose} />
         <button
           className="imm-btn"
           data-autofocus={(installed.length === 0 && !steamInstall && !storeInst) || undefined}

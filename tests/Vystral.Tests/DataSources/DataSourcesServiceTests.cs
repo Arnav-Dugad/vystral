@@ -398,7 +398,7 @@ public sealed class Migration6Tests : IDisposable
         Assert.Equal(5, db.Migrate());
         using (var conn = db.Open())
         {
-            Assert.Equal(6L, conn.ExecuteScalar<long>("SELECT MAX(version) FROM schema_version"));
+            Assert.Equal((long)Database.LatestVersion, conn.ExecuteScalar<long>("SELECT MAX(version) FROM schema_version")); // later migrations (Track O: 7) run too
             Assert.Equal("Keep me", conn.ExecuteScalar<string>("SELECT description FROM games WHERE id='g1'"));
             Assert.Equal(1L, conn.ExecuteScalar<long>("SELECT is_user FROM artwork WHERE game_id='g1'"));
             var tables = conn.Query<string>("SELECT name FROM sqlite_master WHERE type='table'").ToHashSet();

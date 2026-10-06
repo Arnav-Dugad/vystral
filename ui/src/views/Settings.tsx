@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  Bot, Monitor, Database, Gamepad2, Info, LibraryBig, Palette, Rocket, Search, ShieldCheck, Sparkles, Download, AlertTriangle, CheckCircle2, XCircle,
+  Bot, Cloud, Monitor, Database, Gamepad2, Info, LibraryBig, Palette, Rocket, Search, ShieldCheck, Sparkles, Download, AlertTriangle, CheckCircle2, XCircle,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { AdapterInfo, DiagnosticsInfo, SettingKey, Settings } from '../bridge/types';
@@ -26,6 +26,7 @@ import { AntiCheatNotesSettings, TimeToBeatSettings } from './settings/RecapSett
 import { BackgroundTrackingSettings } from './settings/BackgroundTrackingSettings';
 import { ArtPacksSettings } from './settings/ArtPacksSettings';
 import { ImmersiveSettings } from './settings/ImmersiveSettings';
+import { CloudSettings } from './settings/CloudSettings';
 import './settings.css';
 
 interface Section {
@@ -38,6 +39,7 @@ interface Section {
 const SECTIONS: Section[] = [
   { id: 'appearance', label: 'Appearance', icon: <Palette size={17} />, keywords: 'theme dark light oled contrast accent colour color living canvas background motion animation reduced intro quality grid home live tiles trailer' },
   { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download data sources steamgriddb igdb twitch rawg isthereanydeal cheapshark prices deals wikidata steam deck anti-cheat api key art packs style covers logos backgrounds blurred material' },
+  { id: 'cloud', label: 'Cloud play', icon: <Cloud size={17} />, keywords: 'cloud streaming stream geforce now gfn nvidia xbox cloud gaming game pass xcloud hours meter membership performance ultimate edge browser region' },
   { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu background apps processes driver tracker outside closed startup detected' },
   { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble sound audio ambient volume mood immersive fullscreen' },
   { id: 'windows', label: 'Windows integration', icon: <Monitor size={17} />, keywords: 'hotkey shortcut summon notifications toast windows tray achievements' },
@@ -97,6 +99,7 @@ export function SettingsView({ section }: { section?: string }) {
         <div className="settings__content">
           {active === 'appearance' && <><Appearance s={settings} /><LiveTilesSettings /></>}
           {active === 'library' && <><LibrarySection s={settings} /><SteamWebApiSettings /><DataSourcesSettings /><TimeToBeatSettings /><ArtPacksSettings /></>}
+          {active === 'cloud' && <CloudSettings />}
           {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /><AntiCheatNotesSettings /></>}
           {active === 'controller' && <><Controller s={settings} /><ImmersiveSettings /><SoundSettings /></>}
           {active === 'ai' && <AiSection s={settings} />}
