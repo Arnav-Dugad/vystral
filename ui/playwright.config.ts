@@ -4,6 +4,7 @@ import { defineConfig, devices } from '@playwright/test';
 // engine WebView2 uses. Native integration is covered by the .NET test suite.
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   timeout: 45_000,
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.02, animations: 'disabled' } },
   fullyParallel: true,

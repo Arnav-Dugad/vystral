@@ -210,6 +210,13 @@ export function LiveLayer({ game }: { game: Game }) {
     };
   }, [enabled, key, game.id]);
 
+  // A 'playing' event already queued when the slot goes away must not mark the tile as playing again.
+  const slotRef = useRef(slot);
+  slotRef.current = slot;
+  useEffect(() => {
+    if (!mounted) setShown(false);
+  }, [mounted]);
+
   // Mount the video when the tile gets a slot; fade out and release the decoder when it loses it.
   useEffect(() => {
     if (slot && src) {
@@ -335,7 +342,10 @@ export function LiveLayer({ game }: { game: Game }) {
           disablePictureInPicture
           disableRemotePlayback
           tabIndex={-1}
-          onPlaying={() => setShown(true)}
+          onPlaying={(e) => {
+            if (slotRef.current) setShown(true);
+            else e.currentTarget.pause(); // a late start after the slot went to another tile
+          }}
           onError={() => {
             setShown(false);
             setSrc(null);
