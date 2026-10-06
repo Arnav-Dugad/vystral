@@ -38,6 +38,11 @@ export const NEW_FEATURES: NewFeature[] = [
   { key: 'settings.appearance.live-tiles', since: '0.4.0' },
   { key: 'settings.controller.ambient-sound', since: '0.4.0' },
   { key: 'journal.value', since: '0.4.0', seenOn: { name: 'journal', tab: 'value' } },
+  // 0.5.0
+  { key: 'settings.controller.immersive', since: '0.5.0' },
+  { key: 'settings.library.art-packs', since: '0.5.0' },
+  { key: 'settings.library.time-to-beat', since: '0.5.0' },
+  { key: 'settings.launching.anti-cheat-notes', since: '0.5.0' },
 ];
 
 const BY_KEY = new Map(NEW_FEATURES.map((f) => [f.key, f]));

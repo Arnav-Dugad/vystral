@@ -2,6 +2,51 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
+## [0.5.0] — 2026-10-06
+
+Your library, settings and history carry over.
+
+### Immersive Mode, rebuilt
+- **A new way in.** Press F11 or the Menu button: the interface folds away, the game you're looking at fills the screen with a flare of light, and Immersive Mode rises in around it. The way back out is the reverse. Any button skips it; with reduced motion it's a quick fade.
+- **Hero stage:** the focused game's short trailer loop plays behind everything, with gentle depth as you move.
+- **Smarter rows** that change with the time of day, a wider "Jump back in" slot, Never played, your collections, your stores and genres.
+- **Quick menu:** hold X (or press View) for Play, Favorite, Status, Store page, Achievements and Display settings on a radial menu.
+- **Game page** with Overview, Achievements, Sessions and Media tabs, all controller-friendly.
+- **System bar:** what's playing, notifications, controller and PC battery, Wi-Fi and the time.
+- **Couch mode:** bigger text and a TV safe area for sofa distance.
+- **Spatial sounds** (with interface sounds on): focus sounds follow the ring across the screen and take on the game's mood. Plus haptic ticks between rows, a focus ring in the game's colours, a burst of light on Play and a richer screensaver.
+- **A short first-time tour** that never gets in the way.
+
+### Home, Journal and game pages
+- **While you were away:** games you played without opening VYSTRAL get a summary card on Home.
+- **Session replay:** a short animated card of any session (time, CPU/GPU or FPS line, achievements) that you can save or copy as a 1920×1080 image.
+- **Time to beat:** with your IGDB key, cards and game pages show how far you are through a game, and the Library can sort by "Closest to finishing".
+- **Anti-cheat notes:** before launching a game with kernel-level anti-cheat, the pre-flight card says so, plainly and without alarm. You can turn these notes off.
+- **Sales forecast:** Library value shows the next Steam sale Valve has announced and an estimate of what your backlog would cost at past lows.
+
+### Look and feel
+- **Art packs:** give the whole library one SteamGridDB style in one step, previewed first, never replacing art you picked by hand, and fully undoable.
+- **Store logos draw themselves** in their brand colour when you hover or select them.
+- **Live tiles pick their best moment:** each clip loops its most lively couple of seconds, with a seamless crossfade.
+
+### Faster and lighter
+- **Recording performance during a game now costs about 0.06% of one CPU core** (it was several percent). GPU load is now the game's GPU rather than all GPUs added together.
+
+### Fixed (from a full audit of the app)
+- Launching twice quickly could start a game twice; a replaced launch could confuse the next one.
+- Time your PC spent asleep counted as playtime.
+- Restoring VYSTRAL during a game showed a blank window.
+- "Clear art cache" lost covers for good; merging duplicates lost the Steam link, per-game data and art you'd picked; separating them suggested them again straight away.
+- Startup scans could wipe Steam playtime for games played on another PC.
+- A crash with performance recording off recorded the session as 0 seconds.
+- Notes typed just before leaving a game page were lost; typing a new collection name lost characters; Library filters were lost on Back.
+- Keyboard focus was invisible on many controls; light-theme text on the accent colour was hard to read.
+- Playtime could be counted twice in sorting and suggestions; "Never played" meant different things in different places.
+- One unusual answer from the Steam store could stop details being filled in for good.
+- The Local AI chat could reject every message or hang.
+- Updates no longer download on metered connections with Data saver, and Offline mode now really stops update checks.
+- Many smaller fixes to the Constellation view, toasts, trailers, the command bar and Immersive Mode controls.
+
 ## [0.4.0] — 2026-10-05
 
 Your library, settings and history carry over.

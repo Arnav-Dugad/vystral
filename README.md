@@ -36,7 +36,7 @@
 | **Living Canvas** | A calm animated background that takes on each game’s colours and mood (light trails for racing, stars for space, fog for horror…). It pauses whenever you’re playing. |
 | **Live Home** | Steam games’ tiles come alive with their short, silent store loops while on screen (two at a time, never on Data saver); an *Owned, never played* gallery with gentle picks for tonight; optional ambient sound that follows each game’s mood. |
 | **Command bar** (`Ctrl+K`) | “installed racing games under 20 GB”, “launch forza”, “not played in 3 months”, “everything on my second SSD” — understood instantly, on your PC, without AI. |
-| **Immersive Mode** (`F11` / Menu button) | A separate full-screen, controller-first layout for TVs and couch gaming, with one gliding focus ring and an attract-mode slideshow when idle. |
+| **Immersive Mode** (`F11` / Menu button) | A console-grade full-screen layout with a cinematic way in, trailer backdrops, a radial quick menu, a game page with tabs, a live system bar, couch text sizes and spatial sounds. |
 | **Performance Mode** | When a game starts, VYSTRAL minimizes and suspends its interface: **0% CPU** while minimized in our measurements. |
 | **Journal & Performance** | Private play history, playtime charts, milestones, game status (Backlog → Completed) and per-session CPU/GPU/temperature graphs. Optional real FPS, 1% lows and stutters via Intel PresentMon. Nothing is estimated or faked. |
 | **Launches that explain themselves** | A pre-flight card (disk space, pending updates, controller battery, HDR), a progress arc that learns how long each game takes, one-click fixes when something fails, and GPU heat alerts afterwards. |

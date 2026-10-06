@@ -1,6 +1,6 @@
 # Progress
 
-Status as of **v0.4.0 (2026-10-05)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
+Status as of **v0.5.0 (2026-10-06)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
 
 ## Phase 1 — Foundation ✅
 - ✅ Repository, solution, CI and release workflows
@@ -70,6 +70,18 @@ Status as of **v0.4.0 (2026-10-05)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Velopack per-user installer, portable zip, delta updates, in-app update viewer
 - ✅ GitHub Releases with a stable "latest" download link
 - See "Verification record" below for the release check.
+
+## Verification record (v0.5.0)
+
+| Check | Result |
+|---|---|
+| Audits | Three read-only audits (native backend, UI, data integrity) found ~100 issues; the confirmed ones were fixed with regression tests (launch races, stale launch states, malformed store JSON, sleep counted as play, merge/unmerge data loss, art cache, playtime wipes, focus, contrast, races) |
+| .NET tests | **1414 passed, 0 failed** |
+| UI unit tests | **482 passed, 0 failed** |
+| Playwright e2e + axe + visual regression | **116 passed** (one heavy test occasionally needs its retry on a loaded machine) |
+| Real app (dev build, owner's library) | Cinematic Immersive enter/exit filmed at ~60 fps on the real window; system bar with real battery (80%) and Wi-Fi; radial quick menu; Immersive game page tabs; session replay drawn from a real FC 27 session; FC 26 Deck badge; time-to-beat bars; no page errors |
+| GPU sampling | ~1.1 ms per sample (was 131–161 ms), handles and memory flat over 50,000 samples |
+| Not verified | Art packs and time-to-beat against real provider keys at scale; spatial sound and haptics on real speakers/controller; PresentMon during a live game |
 
 ## Verification record (v0.4.0)
 

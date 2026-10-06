@@ -107,24 +107,8 @@
               "resolvedVersion": "2.1.12"
             },
             {
-              "id": "System.Configuration.ConfigurationManager",
-              "resolvedVersion": "10.0.12"
-            },
-            {
-              "id": "System.Diagnostics.EventLog",
-              "resolvedVersion": "10.0.12"
-            },
-            {
-              "id": "System.Diagnostics.PerformanceCounter",
-              "resolvedVersion": "10.0.12"
-            },
-            {
               "id": "System.Numerics.Tensors",
               "resolvedVersion": "9.0.0"
-            },
-            {
-              "id": "System.Security.Cryptography.ProtectedData",
-              "resolvedVersion": "10.0.12"
             }
           ]
         }
