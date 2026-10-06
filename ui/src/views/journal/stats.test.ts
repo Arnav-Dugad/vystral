@@ -198,6 +198,28 @@ describe('yearInReview', () => {
     expect(r.activeDays).toBe(3);
     expect(r.longestStreakDays).toBe(2);
   });
+  it('splits a New Year session at midnight so the months add up to the total', () => {
+    const list = [s('a', at(2025, 12, 31, 23, 0), 2 * H), s('a', at(2026, 2, 1), H)];
+    const r2026 = yearInReview(list, 2026, genres)!;
+    expect(r2026.seconds).toBe(2 * H); // 1h after midnight + the February hour
+    expect(r2026.months.reduce((a, b) => a + b, 0)).toBe(r2026.seconds);
+    expect(r2026.months[0]).toBe(H);
+    const r2025 = yearInReview(list, 2025, genres)!;
+    expect(r2025.seconds).toBe(H);
+    expect(r2025.months.reduce((a, b) => a + b, 0)).toBe(r2025.seconds);
+  });
+});
+
+describe('zero-second sessions', () => {
+  const now = at(2026, 5, 20, 20);
+  const list = [s('a', at(2026, 5, 20), 0), s('a', at(2026, 5, 19), H), s('a', at(2026, 5, 18), 0), s('a', at(2026, 5, 17), H)];
+  it('do not count as active days', () => {
+    expect(computeTotals(list).activeDays).toBe(2);
+  });
+  it('do not extend or bridge streaks', () => {
+    expect(currentStreak(list, now)).toBe(1);
+    expect(longestStreak(list).days).toBe(1);
+  });
 });
 
 describe('dailyTotals', () => {

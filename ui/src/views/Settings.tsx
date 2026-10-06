@@ -7,7 +7,7 @@ import type { AdapterInfo, DiagnosticsInfo, SettingKey, Settings } from '../brid
 import { formatBytes, formatDate, formatRelative } from '../lib/format';
 import { MOOD_LABEL } from '../lib/mood';
 import { useStore } from '../state/store';
-import { Badge, Button, Segmented, Slider, Toggle, PlatformBadge } from '../components/ui/primitives';
+import { Badge, Button, rovingKey, Segmented, Slider, Toggle, PlatformBadge } from '../components/ui/primitives';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
 import { UpdatePanel } from '../components/shell/UpdateCenter';
@@ -44,7 +44,7 @@ const SECTIONS: Section[] = [
   { id: 'updates', label: 'Updates', icon: <Download size={17} />, keywords: 'update version release automatic download' },
   { id: 'privacy', label: 'Privacy', icon: <ShieldCheck size={17} />, keywords: 'privacy telemetry network offline local data' },
   { id: 'data', label: 'Data & recovery', icon: <Database size={17} />, keywords: 'backup export delete history cache logs reset database safe mode recovery' },
-  { id: 'about', label: 'About', icon: <Info size={17} />, keywords: 'version license github credits' },
+  { id: 'about', label: 'About', icon: <Info size={17} />, keywords: 'version licence license github credits' },
 ];
 
 export function SettingsView({ section }: { section?: string }) {
@@ -76,7 +76,16 @@ export function SettingsView({ section }: { section?: string }) {
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search settings" aria-label="Search settings" />
           </label>
           {shown.map((s) => (
-            <button key={s.id} className="settings__navitem" aria-current={active === s.id ? 'true' : undefined} onClick={() => setActive(s.id)}>
+            <button
+              key={s.id}
+              className="settings__navitem"
+              aria-current={active === s.id ? 'true' : undefined}
+              onClick={() => {
+                setActive(s.id);
+                // Keep the route in step, so a later deep link to a section always lands.
+                useStore.getState().navigate({ name: 'settings', section: s.id }, { replace: true });
+              }}
+            >
               {s.icon}
               {s.label}
               <NewBadgeGroup prefix={`settings.${s.id}.`} />
@@ -151,7 +160,15 @@ function Appearance({ s }: { s: Settings }) {
       <Group title="Theme">
         <div className="theme-picker" role="radiogroup" aria-label="Theme">
           {themes.map((t) => (
-            <button key={t.value} role="radio" aria-checked={s['appearance.theme'] === t.value} className="theme-card" onClick={() => void set('appearance.theme', t.value)}>
+            <button
+              key={t.value}
+              role="radio"
+              aria-checked={s['appearance.theme'] === t.value}
+              tabIndex={s['appearance.theme'] === t.value ? 0 : -1}
+              className="theme-card"
+              onClick={() => void set('appearance.theme', t.value)}
+              onKeyDown={(e) => rovingKey(e, themes, s['appearance.theme'], (v) => void set('appearance.theme', v), true)}
+            >
               <span className="theme-card__swatch" style={{ background: t.swatch }} />
               <span>{t.label}</span>
             </button>
@@ -163,7 +180,7 @@ function Appearance({ s }: { s: Settings }) {
           control={
             <div className="accent-picker" role="radiogroup" aria-label="Accent colour">
               {accents.map((a) => (
-                <button key={a} role="radio" aria-checked={s['appearance.accent'] === a} aria-label={accentLabel(a)} title={accentLabel(a)} className={a === 'system' ? 'accent-dot accent-dot--system' : 'accent-dot'} style={{ background: a === 'auto' ? 'conic-gradient(oklch(0.7 0.17 292), oklch(0.78 0.12 210), oklch(0.82 0.15 75), oklch(0.74 0.16 5), oklch(0.7 0.17 292))' : a === 'system' ? systemSwatch : accentColor[a] }} onClick={() => void set('appearance.accent', a)} />
+                <button key={a} role="radio" aria-checked={s['appearance.accent'] === a} tabIndex={s['appearance.accent'] === a ? 0 : -1} onKeyDown={(e) => rovingKey(e, accents.map((value) => ({ value })), s['appearance.accent'], (v) => void set('appearance.accent', v), true)} aria-label={accentLabel(a)} title={accentLabel(a)} className={a === 'system' ? 'accent-dot accent-dot--system' : 'accent-dot'} style={{ background: a === 'auto' ? 'conic-gradient(oklch(0.7 0.17 292), oklch(0.78 0.12 210), oklch(0.82 0.15 75), oklch(0.74 0.16 5), oklch(0.7 0.17 292))' : a === 'system' ? systemSwatch : accentColor[a] }} onClick={() => void set('appearance.accent', a)} />
               ))}
             </div>
           }
@@ -212,7 +229,7 @@ function LibrarySection({ s }: { s: Settings }) {
         description="VYSTRAL reads what your store apps already keep on this PC. It never asks for your passwords, never signs in on your behalf, and never changes store files."
       >
         <div className="srow" style={{ justifyContent: 'space-between' }}>
-          <span className="srow__hint">{lastScan ? `Last scanned ${formatRelative(lastScan)}` : 'Not scanned yet'}</span>
+          <span className="srow__hint">{lastScan ? `Last scanned ${formatRelative(lastScan).toLowerCase()}` : 'Not scanned yet'}</span>
           <Button size="sm" variant="primary" loading={scan.running} onClick={() => void scanLibrary()}>Rescan now</Button>
         </div>
         {adapters.map((a) => (

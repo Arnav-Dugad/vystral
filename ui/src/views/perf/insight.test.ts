@@ -105,7 +105,7 @@ describe('formatting', () => {
   it('formats spans, fps and ms', () => {
     expect(formatSpan(45)).toBe('45s');
     expect(formatSpan(252)).toBe('4m 12s');
-    expect(formatSpan(3780)).toBe('1h 03m');
+    expect(formatSpan(3780)).toBe('1h 3m');
     expect(formatFps(117.6)).toBe('118');
     expect(formatFps(null)).toBe('—');
     expect(formatMs(8.34)).toBe('8.3 ms');

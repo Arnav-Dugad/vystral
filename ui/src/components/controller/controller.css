@@ -112,7 +112,7 @@
   letter-spacing: -0.01em;
   caret-color: var(--accent-hi);
 }
-.osk__input:focus-visible { box-shadow: none; } /* the field shows focus as a whole */
+.osk__input:focus-visible { outline: none; box-shadow: none; } /* the field shows focus as a whole */
 .osk__input::placeholder { color: oklch(0.72 0.01 282); font-weight: var(--fw-regular); }
 .osk__count { flex: none; min-width: 6.5rem; text-align: right; font-size: 0.9rem; color: oklch(0.78 0.01 282); }
 .osk__close {
@@ -126,7 +126,7 @@
   transition: background 160ms;
 }
 .osk__close:hover { background: oklch(1 0 0 / 0.1); }
-.osk__close:focus-visible { box-shadow: var(--focus-ring); }
+.osk__close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
 /* Everything the ring can travel over shares one positioned stage. */
 .osk__stage { position: relative; display: grid; gap: 0.8rem; }
@@ -151,6 +151,7 @@
 .osk__game-title { align-self: end; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 0.78rem; color: oklch(0.82 0.01 282); }
 .osk__game-title mark { background: none; color: oklch(0.99 0 0); font-weight: var(--fw-semibold); }
 .osk__game[data-focused='true'] .osk__game-title { color: oklch(0.98 0 0); }
+.osk__game:focus-visible { outline: none; }
 .osk__game:focus-visible .osk__game-cover { box-shadow: var(--focus-ring); }
 .osk__empty { align-self: center; max-width: 46ch; font-size: 0.98rem; color: oklch(0.78 0.01 282); }
 
@@ -169,7 +170,7 @@
   transition: background 160ms, transform 220ms var(--ease-emph);
 }
 .osk__word[data-focused='true'] { background: oklch(1 0 0 / 0.14); transform: scale(1.04); }
-.osk__word:focus-visible { box-shadow: var(--focus-ring); }
+.osk__word:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .osk__word-typed { color: oklch(0.72 0.01 282); font-weight: var(--fw-regular); }
 
 .osk__keys { display: grid; grid-template-columns: repeat(var(--osk-cols), minmax(0, 1fr)); gap: 0.5rem; }

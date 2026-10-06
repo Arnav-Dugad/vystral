@@ -1,4 +1,4 @@
-import { forwardRef, useId, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { Star } from 'lucide-react';
 import { spring } from '../../lib/motion';
@@ -101,12 +101,9 @@ export function Segmented<T extends string>({
           role="radio"
           aria-checked={o.value === value}
           className="segmented__item"
+          tabIndex={o.value === value ? 0 : -1}
           onClick={() => onChange(o.value)}
-          onKeyDown={(e) => {
-            const i = options.findIndex((x) => x.value === value);
-            if (e.key === 'ArrowRight') onChange(options[(i + 1) % options.length].value);
-            if (e.key === 'ArrowLeft') onChange(options[(i - 1 + options.length) % options.length].value);
-          }}
+          onKeyDown={(e) => rovingKey(e, options, value, onChange, true)}
         >
           {o.value === value && <motion.span layoutId={`seg-${id}`} className="segmented__pill" transition={reduce ? { duration: 0 } : spring.focus} />}
           {o.icon}
@@ -117,8 +114,38 @@ export function Segmented<T extends string>({
   );
 }
 
-export function Slider({ value, min, max, step, onChange, label }: { value: number; min: number; max: number; step: number; onChange: (v: number) => void; label: string }) {
-  const fill = `${((value - min) / (max - min)) * 100}%`;
+/**
+ * Range input that follows the pointer instantly but commits sparingly: `onChange` runs at most every
+ * 150 ms while dragging (enough for live previews) and once more with the final value on release.
+ */
+export function Slider({ value, min, max, step, onChange, label, disabled }: { value: number; min: number; max: number; step: number; onChange: (v: number) => void; label: string; disabled?: boolean }) {
+  const [draft, setDraft] = useState<number | null>(null);
+  const shown = draft ?? value;
+  const fill = `${((shown - min) / (max - min)) * 100}%`;
+  const pending = useRef<number | null>(null);
+  const timer = useRef(0);
+  const lastCommit = useRef(0);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+  const commit = () => {
+    window.clearTimeout(timer.current);
+    const v = pending.current;
+    if (v == null) return;
+    pending.current = null;
+    lastCommit.current = Date.now();
+    onChangeRef.current(v);
+  };
+  const finish = () => {
+    commit();
+    setDraft(null);
+  };
+  // Never lose the last value if the slider goes away mid-drag.
+  useEffect(() => () => {
+    window.clearTimeout(timer.current);
+    if (pending.current != null) onChangeRef.current(pending.current);
+  }, []);
   return (
     <input
       className="slider"
@@ -127,14 +154,48 @@ export function Slider({ value, min, max, step, onChange, label }: { value: numb
       min={min}
       max={max}
       step={step}
-      value={value}
+      value={shown}
+      disabled={disabled}
       style={{ ['--fill' as string]: fill }}
-      onChange={(e) => onChange(Number(e.target.value))}
+      onChange={(e) => {
+        const v = Number(e.target.value);
+        setDraft(v);
+        pending.current = v;
+        const wait = 150 - (Date.now() - lastCommit.current);
+        window.clearTimeout(timer.current);
+        if (wait <= 0) commit();
+        else timer.current = window.setTimeout(commit, wait);
+      }}
+      onPointerUp={finish}
+      onKeyUp={finish}
+      onBlur={finish}
     />
   );
 }
 
-export function Tabs<T extends string>({ value, tabs, onChange, label }: { value: T; tabs: { value: T; label: ReactNode }[]; onChange: (v: T) => void; label: string }) {
+/**
+ * Arrow keys (and Home/End) for a roving group of buttons: selects the next option and moves focus
+ * with it, so keyboard users never end up on a button that is no longer the selected one.
+ */
+export function rovingKey<T extends string>(e: ReactKeyboardEvent<HTMLElement>, items: { value: T }[], value: T, onChange: (v: T) => void, vertical: boolean) {
+  const i = items.findIndex((x) => x.value === value);
+  const n = items.length;
+  let next = -1;
+  if (e.key === 'ArrowRight' || (vertical && e.key === 'ArrowDown')) next = (i + 1) % n;
+  else if (e.key === 'ArrowLeft' || (vertical && e.key === 'ArrowUp')) next = (i - 1 + n) % n;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = n - 1;
+  if (next < 0) return;
+  e.preventDefault();
+  onChange(items[next].value);
+  const buttons = e.currentTarget.parentElement?.querySelectorAll<HTMLElement>(':scope > [role=radio], :scope > [role=tab]');
+  buttons?.[next]?.focus();
+}
+
+/** Ids that tie a tab to its panel: `<div role="tabpanel" {...tabPanelProps(base, value)}>`. */
+export const tabPanelProps = (base: string, value: string) => ({ id: `${base}-panel-${value}`, 'aria-labelledby': `${base}-tab-${value}` });
+
+export function Tabs<T extends string>({ value, tabs, onChange, label, idBase }: { value: T; tabs: { value: T; label: ReactNode }[]; onChange: (v: T) => void; label: string; /** Enables tab/panel ids (see {@link tabPanelProps}). */ idBase?: string }) {
   const id = useId();
   const reduce = useReducedMotion();
   return (
@@ -143,15 +204,13 @@ export function Tabs<T extends string>({ value, tabs, onChange, label }: { value
         <button
           key={t.value}
           role="tab"
+          id={idBase ? `${idBase}-tab-${t.value}` : undefined}
+          aria-controls={idBase && t.value === value ? `${idBase}-panel-${t.value}` : undefined}
           aria-selected={t.value === value}
           tabIndex={t.value === value ? 0 : -1}
           className="tab"
           onClick={() => onChange(t.value)}
-          onKeyDown={(e) => {
-            const i = tabs.findIndex((x) => x.value === value);
-            if (e.key === 'ArrowRight') onChange(tabs[(i + 1) % tabs.length].value);
-            if (e.key === 'ArrowLeft') onChange(tabs[(i - 1 + tabs.length) % tabs.length].value);
-          }}
+          onKeyDown={(e) => rovingKey(e, tabs, value, onChange, false)}
         >
           {t.label}
           {t.value === value && <motion.span layoutId={`tab-${id}`} className="tab__indicator" transition={reduce ? { duration: 0 } : spring.focus} />}

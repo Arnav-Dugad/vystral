@@ -21,7 +21,7 @@ export function useGameMenu(game: Game) {
     { label: game.favorite ? 'Remove from favorites' : 'Add to favorites', icon: <Heart size={16} />, onSelect: () => void toggleFavorite(game) },
     ...(collections.length
       ? ([{ kind: 'label', label: 'Collections' }] as MenuEntry[]).concat(
-          collections.slice(0, 8).map((c) => {
+          collections.map((c) => {
             const member = game.collections.includes(c.id);
             return { label: c.name, icon: member ? <Check size={16} /> : <FolderPlus size={16} />, onSelect: () => void setCollection(game, c.id, !member) };
           }),

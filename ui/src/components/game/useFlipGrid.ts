@@ -41,6 +41,18 @@ export function useFlipGrid({
   const ghostTimer = useRef<number | undefined>(undefined);
   useLayoutEffect(() => () => window.clearTimeout(ghostTimer.current), []);
 
+  // Keep the remembered visible band current while scrolling, so a re-sort after a scroll plans
+  // from what is actually on screen (otherwise cards from the old band flash past as ghosts).
+  useLayoutEffect(() => {
+    if (!scrollEl) return;
+    const onScroll = () => {
+      const p = prev.current;
+      if (p) p.band = { top: scrollEl.scrollTop - offset, bottom: scrollEl.scrollTop - offset + scrollEl.clientHeight };
+    };
+    scrollEl.addEventListener('scroll', onScroll, { passive: true });
+    return () => scrollEl.removeEventListener('scroll', onScroll);
+  }, [scrollEl, offset]);
+
   useLayoutEffect(() => {
     const root = container.current;
     const ids = games.map((g) => g.id);

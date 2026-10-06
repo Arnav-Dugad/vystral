@@ -111,6 +111,8 @@ export const LineChart = memo(function LineChart({
     <div
       ref={ref}
       className="vx-chart"
+      role="group"
+      aria-roledescription="chart"
       tabIndex={0}
       aria-label={`${metric.label} chart. Use the left and right arrow keys to inspect values.`}
       onKeyDown={onKeyDown}

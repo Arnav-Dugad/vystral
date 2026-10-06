@@ -116,7 +116,7 @@
 .card:hover::after,
 .card:focus-visible::after,
 .card[data-focused='true']::after { opacity: 1; }
-.card:focus-visible { box-shadow: none; }
+.card:focus-visible { outline: none; box-shadow: none; } /* the ::before glow is the focus ring */
 .card:active { --s: 0.98; transition-duration: 90ms; }
 /* Not-installed games recede a little, but stay recognisable now that owned libraries can be mostly uninstalled. */
 .card[data-dim='true'] .cover { filter: saturate(0.55) brightness(0.8); transition: filter var(--dur-base) var(--ease-out); }
@@ -177,7 +177,7 @@
 .tile:hover, .tile:focus-visible, .tile[data-focused='true'] { --s: 1.035; z-index: 2; }
 .tile::before { content: ''; position: absolute; inset: -2px; border-radius: calc(var(--r-lg) + 2px); box-shadow: 0 0 0 2px oklch(from var(--card-accent, var(--accent)) 0.86 c h), 0 16px 44px -12px oklch(from var(--card-accent, var(--accent)) l c h / 0.7); opacity: 0; transition: opacity 180ms; pointer-events: none; }
 .tile:hover::before, .tile:focus-visible::before, .tile[data-focused='true']::before { opacity: 1; }
-.tile:focus-visible { box-shadow: none; }
+.tile:focus-visible { outline: none; box-shadow: none; }
 .tile__overlay { position: absolute; inset: 0; border-radius: var(--r-lg); background: linear-gradient(180deg, transparent 45%, oklch(0.08 0.01 282 / 0.85)); display: flex; flex-direction: column; justify-content: flex-end; padding: 14px 16px; }
 .tile__title { font-weight: var(--fw-semibold); color: oklch(0.98 0 0); text-shadow: 0 1px 8px oklch(0 0 0 / 0.6); }
 .tile__sub { font-size: var(--fs-xs); color: oklch(0.88 0 0); display: flex; gap: 10px; align-items: center; }

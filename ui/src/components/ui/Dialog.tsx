@@ -29,6 +29,10 @@ export function Dialog({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
+  // Parents usually pass an inline onClose; keep the latest in a ref so the open effect (and its
+  // focus-restoring cleanup) runs only when `open` changes, not on every parent render.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
 
   useEffect(() => {
     if (!open) return;
@@ -40,7 +44,7 @@ export function Dialog({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
       }
       if (e.key === 'Tab' && ref.current) {
         const items = [...ref.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
@@ -56,7 +60,7 @@ export function Dialog({
       window.removeEventListener('keydown', onKey, true);
       previous?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return createPortal(
     <AnimatePresence>

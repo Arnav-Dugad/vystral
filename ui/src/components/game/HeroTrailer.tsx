@@ -54,6 +54,8 @@ export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
 
   const attached = useRef<AttachedTrailer | null>(null);
   const ctrl = useRef<AbortController | null>(null);
+  /** Releases an ended trailer's stream after its fade-out (see `finish`). */
+  const finishTimer = useRef(0);
   const plays = useRef(0);
   const pausedBy = useRef<'pointer' | 'hidden' | 'user' | null>(null);
   const pointerInside = useRef(false);
@@ -79,6 +81,7 @@ export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
   /* ------------------------------------------------------------ lifecycle */
 
   const teardown = useCallback(() => {
+    window.clearTimeout(finishTimer.current);
     ctrl.current?.abort();
     ctrl.current = null;
     attached.current?.destroy();
@@ -237,12 +240,19 @@ export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
   const finish = useCallback(() => {
     setShown(false);
     setPhase('ended');
-    // Release the stream after the fade so the art is never left blank.
-    window.setTimeout(() => {
-      if (!shownRef.current) {
-        ctrl.current?.abort();
+    // Release the stream after the fade so the art is never left blank. Only the stream that just
+    // ended: "Play again" within the fade attaches a new one, which must survive this timer.
+    const endedCtrl = ctrl.current;
+    const endedAttachment = attached.current;
+    window.clearTimeout(finishTimer.current);
+    finishTimer.current = window.setTimeout(() => {
+      if (shownRef.current) return;
+      if (ctrl.current === endedCtrl) {
+        endedCtrl?.abort();
         ctrl.current = null;
-        attached.current?.destroy();
+      }
+      if (attached.current === endedAttachment) {
+        endedAttachment?.destroy();
         attached.current = null;
       }
     }, 1000);

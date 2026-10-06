@@ -19,16 +19,23 @@ export interface WireMessage {
   content: string;
 }
 
+/** Backend limits for `ai.chat` (AppBackend.Handlers.cs): at most 40 messages of at most 4000 characters. */
+export const MAX_WIRE_MESSAGES = 40;
+export const MAX_WIRE_MESSAGE_CHARS = 4000;
+/** Backend limit for the chat request id. */
+export const MAX_REQUEST_ID_CHARS = 40;
+
 /** History sent to the model: completed turns only, failed/empty replies dropped, trimmed to a budget. */
 export function toWireMessages(messages: readonly ChatMessage[], maxChars = 24_000): WireMessage[] {
   const usable = messages.filter((m) => m.content.trim() && m.status !== 'error' && m.status !== 'streaming');
   const out: WireMessage[] = [];
   let used = 0;
-  for (let i = usable.length - 1; i >= 0; i--) {
+  for (let i = usable.length - 1; i >= 0 && out.length < MAX_WIRE_MESSAGES; i--) {
     const m = usable[i];
-    used += m.content.length;
+    const content = m.content.length > MAX_WIRE_MESSAGE_CHARS ? m.content.slice(0, MAX_WIRE_MESSAGE_CHARS) : m.content;
+    used += content.length;
     if (used > maxChars && out.length > 0) break;
-    out.unshift({ role: m.role, content: m.content });
+    out.unshift({ role: m.role, content });
   }
   // A conversation sent to the model should start with the user.
   while (out.length && out[0].role !== 'user') out.shift();
@@ -36,9 +43,12 @@ export function toWireMessages(messages: readonly ChatMessage[], maxChars = 24_0
 }
 
 let seq = 0;
+/** Short unique id; always fits the backend's 40-character request id limit. */
 export function newId(prefix: string): string {
-  const rand = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
-  return `${prefix}-${++seq}-${rand}`;
+  const rand = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+    : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix.slice(0, 8)}-${(++seq).toString(36)}-${rand}`.slice(0, MAX_REQUEST_ID_CHARS);
 }
 
 /** The pull event as documented, tolerating `done`/`cancelled` flags as well as status strings. */
@@ -60,6 +70,8 @@ export const IDLE_PULL: PullState = { phase: 'idle', model: null, status: '', pe
 export function reducePull(prev: PullState, e: PullEvent): PullState {
   const status = (e.status ?? '').toLowerCase();
   if (e.error) return { ...prev, phase: 'error', model: e.model, status: e.status, error: e.error };
+  // The backend always sends a closing `done` after the stream ends, even when Ollama reported an error.
+  if (prev.phase === 'error' && prev.model === e.model && (e.done || status === 'success' || status === 'done')) return prev;
   if (e.cancelled || status === 'cancelled' || status === 'canceled') return { ...prev, phase: 'cancelled', model: e.model, status: e.status };
   if (e.done || status === 'success' || status === 'done') return { ...prev, phase: 'done', model: e.model, status: e.status, percent: 100 };
   const total = e.total && e.total > 0 ? e.total : null;

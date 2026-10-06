@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { AlertTriangle, ArrowDown, ArrowUp, Cpu, Equal, Eye, EyeOff, GitCompareArrows, Info, Layers, MemoryStick, Settings2 } from 'lucide-react';
 import { call, errorMessage, on } from '../../bridge/bridge';
@@ -19,22 +19,39 @@ const fmtDate = (iso: string) => {
 
 function useBridge<T>(method: string, params: unknown, deps: unknown[]) {
   const [state, setState] = useState<{ data: T | null; error: string | null; loading: boolean }>({ data: null, error: null, loading: true });
+  // Only the newest request may answer: a slow reply for a previous game/filter is dropped.
+  const seq = useRef(0);
   const load = useCallback(async () => {
+    const mine = ++seq.current;
+    setState((s) => (s.loading ? s : { ...s, loading: true }));
     try {
       const data = await call<T>(method, params);
-      setState({ data, error: null, loading: false });
+      if (mine === seq.current) setState({ data, error: null, loading: false });
     } catch (err) {
-      setState((s) => ({ ...s, error: errorMessage(err), loading: false }));
+      if (mine === seq.current) setState((s) => ({ ...s, error: errorMessage(err), loading: false }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
   useEffect(() => {
+    // New parameters: don't keep showing the previous answer while the new one loads.
+    setState({ data: null, error: null, loading: true });
     void load();
-    return on('launch.state', (l) => {
+    const off = on('launch.state', (l) => {
       if (l.phase === 'ended' && l.sessionId) void load();
     });
+    return () => {
+      seq.current++;
+      off();
+    };
   }, [load]);
-  return { ...state, reload: load, set: (data: T) => setState({ data, error: null, loading: false }) };
+  return {
+    ...state,
+    reload: load,
+    set: (data: T) => {
+      seq.current++;
+      setState({ data, error: null, loading: false });
+    },
+  };
 }
 
 /* ------------------------------------------------------------------ driver comparison */

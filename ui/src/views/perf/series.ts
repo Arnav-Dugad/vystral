@@ -4,6 +4,7 @@
  * Nothing here invents data: missing values stay missing (null) all the way to the UI.
  */
 import type { PerfSample, PerfSummary } from '../../bridge/types';
+import { formatClock } from '../../lib/format';
 
 export type MetricKey = 'cpu' | 'gpu' | 'gpuTempC' | 'gpuMemMb' | 'ramMb';
 type SummaryNumberKey =
@@ -284,12 +285,7 @@ export function timeTicks(durationMs: number, maxTicks = 6): number[] {
 
 /** Elapsed time as m:ss or h:mm:ss. */
 export function formatOffset(ms: number): string {
-  const total = Math.max(0, Math.round(ms / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  const ss = String(s).padStart(2, '0');
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+  return formatClock(Math.round(ms / 1000));
 }
 
 /** Units a chart can show: the system metrics plus frames per second (PresentMon, opt-in). */

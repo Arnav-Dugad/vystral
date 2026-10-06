@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { EyeOff, Moon, Radar } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { TrackingStatus } from '../../bridge/types';
-import { formatDuration, formatRelative } from '../../lib/format';
+import { formatDuration, formatRelative, plural } from '../../lib/format';
 import { useStore } from '../../state/store';
 import { Badge, Button, Skeleton, Toggle } from '../../components/ui/primitives';
 import './insights-settings.css';
@@ -175,7 +175,7 @@ export function BackgroundTrackingSettings() {
             <dd>
               The same session records as games you start from VYSTRAL — when you played, for how long and, if turned on above, performance
               readings — in your library on this PC, marked “Background” or “Detected” in your journal. Sessions shorter than
-              {' '}{s ? Math.round(s.minSessionSeconds / 60) : 1} minute aren’t kept, and hidden games aren’t noticed. Nothing leaves this PC.
+              {' '}{plural(s ? Math.round(s.minSessionSeconds / 60) : 1, 'minute')} aren’t kept, and hidden games aren’t noticed. Nothing leaves this PC.
             </dd>
             <dt>Turning it off</dt>
             <dd>

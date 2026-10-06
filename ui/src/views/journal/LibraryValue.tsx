@@ -196,7 +196,9 @@ function ValueChart({ points, currency, titleOf }: { points: ValuePoint[]; curre
 
   const years = yearMarkers(points);
   const fmt = (v: number) => (byValue ? formatCents(v, currency) : `${v}`);
-  const tickLabel = (v: number) => (byValue ? (v >= 100000 ? `${Math.round(v / 100000)}k` : `${Math.round(v / 100)}`) : `${v}`);
+  // Thousands get one decimal when whole thousands would repeat a label ("1.5k, 2k, 2.5k", never "2k, 2k").
+  const kDecimals = byValue && new Set(ticks.map((v) => Math.round(v / 100000))).size < ticks.length ? 1 : 0;
+  const tickLabel = (v: number) => (byValue ? (v >= 100000 ? `${Number((v / 100000).toFixed(kDecimals))}k` : `${Math.round(v / 100)}`) : `${v}`);
   const hp = hover != null ? points[hover] : null;
 
   const fromPointer = (e: PointerEvent<SVGRectElement>) => {
@@ -223,7 +225,7 @@ function ValueChart({ points, currency, titleOf }: { points: ValuePoint[]; curre
   const summary = `Library ${byValue ? 'value' : 'size'} over time: from ${fmt(value(points[0]))} on ${new Date(t0).toLocaleDateString()} to ${fmt(value(points[points.length - 1]))} today, across ${points.length} games.`;
 
   return (
-    <div ref={ref} className="vx-chart lv-chart" tabIndex={0} onKeyDown={onKey} onBlur={() => setHover(null)}
+    <div ref={ref} className="vx-chart lv-chart" role="group" aria-roledescription="chart" tabIndex={0} onKeyDown={onKey} onBlur={() => setHover(null)}
       aria-label={`${summary} Use the left and right arrow keys to step through games.`}>
       <svg width={width} height={height} role="img" aria-label={summary}>
         <defs>

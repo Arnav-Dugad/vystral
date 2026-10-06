@@ -117,7 +117,7 @@ export function FpsCaptureSettings() {
                 <>
                   About {formatBytes(s.sizeBytes)} from the official GitHub release (MIT licence), saved to VYSTRAL’s data folder. VYSTRAL checks the
                   file’s SHA-256 fingerprint before every use and refuses to run anything else.
-                  {s.localOnly && <strong className="fpsx__warn"> Local-only mode is on, so downloads are blocked.</strong>}
+                  {s.localOnly && <strong className="fpsx__warn"> Offline mode is on, so downloads are blocked.</strong>}
                 </>
               }
               action={

@@ -5,7 +5,7 @@
  */
 import type { Game, InstallProgress, Installation, LaunchState, PlatformKey } from '../../bridge/types';
 import { phaseLabel, progressFraction } from '../../lib/installProgress';
-import { PLATFORM_NAMES, primaryInstallation } from '../../lib/format';
+import { formatClock, PLATFORM_NAMES, primaryInstallation } from '../../lib/format';
 
 export type PlayKind =
   | 'play' // installed and ready
@@ -58,13 +58,9 @@ export interface PlayInput {
 
 const LAUNCHING = new Set(['validating', 'starting', 'waiting', 'notDetected']);
 
-/** Session timer: 4:07 / 59:59 under an hour, then 1h 12m. */
+/** Session timer, clock style like the title bar's Now Playing chip: 4:07, 59:59, 1:12:30. */
 export function formatSessionTimer(seconds: number): string {
-  const s = Math.max(0, Math.floor(seconds));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
-  return `${m}:${String(s % 60).padStart(2, '0')}`;
+  return formatClock(seconds);
 }
 
 /** Spoken duration at minute granularity ("12 minutes", "1 hour 5 minutes"). */

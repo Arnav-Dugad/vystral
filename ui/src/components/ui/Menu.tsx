@@ -14,16 +14,19 @@ export function Menu({ at, entries, onClose, label }: { at: { x: number; y: numb
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   const [pos, setPos] = useState(at);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
 
   useLayoutEffect(() => {
     if (!at || !ref.current) return setPos(at);
     const r = ref.current.getBoundingClientRect();
-    setPos({ x: Math.min(at.x, innerWidth - r.width - 8), y: Math.min(at.y, innerHeight - r.height - 8) });
+    setPos({ x: Math.max(8, Math.min(at.x, innerWidth - r.width - 8)), y: Math.max(8, Math.min(at.y, innerHeight - r.height - 8)) });
   }, [at]);
 
   useEffect(() => {
     if (!at) return;
     const previous = document.activeElement as HTMLElement | null;
+    const onClose = () => onCloseRef.current();
     requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>('[role=menuitem]:not([disabled])')?.focus());
     const onDown = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) onClose();
@@ -45,7 +48,7 @@ export function Menu({ at, entries, onClose, label }: { at: { x: number; y: numb
       window.removeEventListener('blur', onClose);
       previous?.focus?.();
     };
-  }, [at, onClose]);
+  }, [at]);
 
   return createPortal(
     <AnimatePresence>

@@ -24,9 +24,9 @@ describe('install progress', () => {
   it('formats time left in plain language', () => {
     expect(formatEta(null)).toBeNull();
     expect(formatEta(20)).toBe('less than a minute left');
-    expect(formatEta(12 * 60)).toBe('about 12 min left');
-    expect(formatEta(2 * 3600 + 30 * 60)).toBe('about 2 h 30 min left');
-    expect(formatEta(3600 + 2 * 60)).toBe('about 1 h left');
+    expect(formatEta(12 * 60)).toBe('about 12m left');
+    expect(formatEta(2 * 3600 + 30 * 60)).toBe('about 2h 30m left');
+    expect(formatEta(3600 + 2 * 60)).toBe('about 1h left');
     expect(formatEta(5 * 86400)).toBe('about 5 days left');
   });
 
@@ -47,7 +47,7 @@ describe('install progress', () => {
 
   it('builds a compact detail line', () => {
     const d = progressDetail(p({ bytesDone: 1024 ** 3, bytesTotal: 4 * 1024 ** 3, rate: 1024 ** 2 * 10 }));
-    expect(d).toBe('1.0 GB of 4.0 GB · 10.0 MB/s · about 5 min left');
+    expect(d).toBe('1.0 GB of 4.0 GB · 10.0 MB/s · about 5m left');
     expect(progressDetail(p({ phase: 'queued' }))).toBe('');
   });
 });

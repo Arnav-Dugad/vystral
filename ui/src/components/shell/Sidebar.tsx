@@ -49,7 +49,7 @@ export function Sidebar() {
       <div className="sidebar__group">
         <div className="caps">Collections</div>
         {collections.map((c) => item({ name: 'library', collectionId: c.id }, c.name, <Folder size={17} />, <span className="nav-item__count">{c.count}</span>, c.id))}
-        <button className="nav-item" onClick={() => window.dispatchEvent(new CustomEvent('vystral:new-collection'))}>
+        <button className="nav-item" aria-label="New collection" title="New collection" onClick={() => window.dispatchEvent(new CustomEvent('vystral:new-collection'))}>
           <Plus size={17} />
           <span>New collection</span>
         </button>

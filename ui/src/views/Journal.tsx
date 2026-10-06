@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game } from '../bridge/types';
-import { Button, EmptyState, IconButton, SectionHead, Segmented, Skeleton, Tabs } from '../components/ui/primitives';
+import { Button, EmptyState, IconButton, SectionHead, Segmented, Skeleton, Tabs, tabPanelProps } from '../components/ui/primitives';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { SessionOriginChip } from '../components/game/SessionOriginChip';
 import { Dialog } from '../components/ui/Dialog';
@@ -169,7 +169,7 @@ export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab
           <span className="caps">Journal</span>
           <h1 className="jr-title">Your gaming journal</h1>
           <p className="jr-lede">
-            Private to this PC. Built only from sessions you started from VYSTRAL
+            Private to this PC. Built only from sessions VYSTRAL recorded (launched or detected)
             <span className="vx-source vx-source--tracked" style={{ marginLeft: 8 }}>
               <Activity size={11} aria-hidden /> Tracked by VYSTRAL
             </span>
@@ -189,6 +189,7 @@ export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab
 
       <Tabs
         label="Journal sections"
+        idBase="journal"
         value={tab}
         onChange={switchTab}
         tabs={[
@@ -199,19 +200,19 @@ export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab
       />
 
       {tab === 'achievements' && (
-        <div role="tabpanel" aria-label="Achievements" className="jr-panel">
+        <div role="tabpanel" {...tabPanelProps('journal', 'achievements')} className="jr-panel">
           <AchievementTimeline />
         </div>
       )}
 
       {/* Track I: when games arrived and what they cost today. */}
       {tab === 'value' && (
-        <div role="tabpanel" aria-label="Library value" className="jr-panel">
+        <div role="tabpanel" {...tabPanelProps('journal', 'value')} className="jr-panel">
           <LibraryValue />
         </div>
       )}
 
-      {tab === 'sessions' && <>
+      {tab === 'sessions' && <div role="tabpanel" {...tabPanelProps('journal', 'sessions')} className="jr-panel" style={{ display: 'grid', gap: 'var(--s-5)', alignContent: 'start', minWidth: 0 }}>
       {status === 'loading' && <JournalSkeleton />}
 
       {status === 'error' && !hasHistory && (
@@ -382,7 +383,7 @@ export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab
         </>
       )}
 
-      </>}
+      </div>}
 
       <Dialog
         open={confirmDelete}
@@ -679,7 +680,7 @@ function JournalEmpty({ storeGames }: { storeGames: number }) {
       title="Your journal starts with your next session"
       body={
         <>
-          VYSTRAL records a session each time you start a game from VYSTRAL — when it began, how long you played, and, if enabled, how your PC performed.
+          VYSTRAL records a session each time you play a game it launched or noticed running — when it began, how long you played, and, if enabled, how your PC performed.
           Everything stays on this PC.
           {' '}Playtime that Steam and other stores report{storeGames > 0 ? ` (${plural(storeGames, 'game')} so far)` : ''} appears on each game’s page, labelled “from Steam/store” — it isn’t part of this journal.
         </>

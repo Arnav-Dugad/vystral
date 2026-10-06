@@ -109,22 +109,29 @@ function Vault() {
   const [foldersOpen, setFoldersOpen] = useState(false);
   const [viewing, setViewing] = useState<number | null>(null);
 
+  // Only the newest scan answers (a folder change can start a new one while the last is running).
+  const loadSeq = useRef(0);
   const load = useCallback(async () => {
+    const mine = ++loadSeq.current;
     setRefreshing(true);
     setError(null);
     try {
       const [f, list] = await Promise.all([call<MediaFolder[]>('media.folders'), call<MediaItem[]>('media.list', undefined, 180_000)]);
+      if (mine !== loadSeq.current) return;
       setFolders(f ?? []);
       setItems(list ?? []);
     } catch (err) {
-      setError(errorMessage(err));
+      if (mine === loadSeq.current) setError(errorMessage(err));
     } finally {
-      setRefreshing(false);
+      if (mine === loadSeq.current) setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
     void load();
+    return () => {
+      loadSeq.current++;
+    };
   }, [load]);
 
   const facets = useMemo(() => gameFacets(items ?? []), [items]);

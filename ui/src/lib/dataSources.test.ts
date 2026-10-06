@@ -51,9 +51,9 @@ describe('formatting', () => {
   });
 
   it('formats time to beat from seconds', () => {
-    expect(formatHours(45 * 60)).toBe('45 min');
-    expect(formatHours(90 * 60)).toBe('1 h 30 min');
-    expect(formatHours(12 * 3600 + 20 * 60)).toBe('12 h');
+    expect(formatHours(45 * 60)).toBe('45m');
+    expect(formatHours(90 * 60)).toBe('1h 30m');
+    expect(formatHours(12 * 3600 + 20 * 60)).toBe('12h');
     expect(formatHours(null)).toBeNull();
     expect(formatHours(-5)).toBeNull();
   });

@@ -20,6 +20,13 @@ export const GameCover = memo(function GameCover({
   const src = kind === 'cover' ? game.art.cover : kind === 'hero' ? game.art.hero ?? game.art.header : game.art.header ?? game.art.hero;
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  // New artwork (picked by the user, or fetched after a failure) gets a fresh chance to load.
+  const [shownSrc, setShownSrc] = useState(src);
+  if (shownSrc !== src) {
+    setShownSrc(src);
+    setFailed(false);
+    setLoaded(false);
+  }
   const showArt = src && !failed;
 
   return (

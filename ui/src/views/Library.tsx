@@ -5,7 +5,7 @@ import { call, errorMessage } from '../bridge/bridge';
 import type { Game, GameStatus, PlatformKey } from '../bridge/types';
 import { ArtPacksDialog } from '../components/artpacks/ArtPacksDialog';
 import {
-  formatBytes, formatDuration, formatRelative, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural, sizeOf,
+  formatBytes, formatDuration, formatRelative, importedMinutes, isInstalled, isMissing, lastPlayed, playSeconds, PLATFORM_NAMES, plural, sizeOf,
 } from '../lib/format';
 import { parseQuery, searchGames, type ParsedQuery } from '../lib/search';
 import { addManualGame } from '../state/actions';
@@ -27,7 +27,7 @@ import { useTimeToBeatMap } from '../state/recap';
 import './library.css';
 
 type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status' | 'waiting' | 'finishing';
-type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'missing' | 'hidden' | `status:${GameStatus}`;
+type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'notinstalled' | 'missing' | 'hidden' | `status:${GameStatus}`;
 
 const QUICK: { value: Quick; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -36,12 +36,18 @@ const QUICK: { value: Quick; label: string }[] = [
   { value: 'unplayed', label: 'Never played' },
   { value: 'new', label: 'New this month' },
   { value: 'client', label: 'Needs store app' },
+  { value: 'notinstalled', label: 'Not installed' },
   { value: 'missing', label: 'Missing' },
   { value: 'hidden', label: 'Hidden' },
 ];
 
+const isQuick = (v: string | undefined): v is Quick => !!v && (QUICK.some((q) => q.value === v) || STATUSES.some((st) => `status:${st.value}` === v));
+
 const VIEW_KEY = 'vystral.library.view';
 const STORE_ORDER: PlatformKey[] = ['steam', 'xbox', 'epic', 'gog', 'ea', 'ubisoft', 'battlenet', 'manual'];
+
+/** Filter text, quick filter and sort per library route, restored on Back/Forward (like scroll in App.tsx). */
+const libraryMemory = new Map<string, { text: string; quick: Quick; sort: Sort }>();
 
 export function LibraryView({ collectionId, quick: initialQuick }: { collectionId?: string; quick?: string }) {
   const games = useStore((s) => s.library.games);
@@ -52,10 +58,15 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
   const setSetting = useStore((s) => s.setSetting);
   const collection = collections.find((c) => c.id === collectionId);
 
-  const [text, setText] = useState('');
+  const memoryKey = `library-${collectionId ?? ''}`;
+  const [remembered] = useState(() => (useStore.getState().navKind !== 'push' ? libraryMemory.get(memoryKey) : undefined));
+  const [text, setText] = useState(remembered?.text ?? '');
   const query = useDeferredValue(text);
-  const [quick, setQuick] = useState<Quick>(() => (QUICK.some((q) => q.value === initialQuick) ? (initialQuick as Quick) : 'all'));
-  const [sort, setSort] = useState<Sort>(() => (initialQuick === 'unplayed' ? 'waiting' : 'recent'));
+  const [quick, setQuick] = useState<Quick>(() => remembered?.quick ?? (isQuick(initialQuick) ? initialQuick : 'all'));
+  const [sort, setSort] = useState<Sort>(() => remembered?.sort ?? (initialQuick === 'unplayed' ? 'waiting' : 'recent'));
+  useEffect(() => {
+    libraryMemory.set(memoryKey, { text, quick, sort });
+  }, [memoryKey, text, quick, sort]);
   const [view, setView] = useState<'grid' | 'list'>(() => (localStorage.getItem(VIEW_KEY) as 'grid' | 'list') ?? 'grid');
   const [dupOpen, setDupOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -91,7 +102,8 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
         case 'unplayed': return isNeverPlayed(g);
         case 'new': return !g.hidden && now - Date.parse(g.added) < 30 * 86400000;
         case 'client': return !g.hidden && isInstalled(g) && g.installations.every((i) => i.state !== 'installed' || i.clientRequired);
-        case 'missing': return !g.hidden && !isInstalled(g);
+        case 'notinstalled': return !g.hidden && !isInstalled(g);
+        case 'missing': return !g.hidden && isMissing(g);
         default: return quick.startsWith('status:') ? !g.hidden && g.status === quick.slice(7) : true;
       }
     });
@@ -101,11 +113,10 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
       found = searchGames(base, { intent: 'search', text: query, filters: { hidden: quick === 'hidden' }, chips: [], structured: false }, now);
     }
     if (!parsed.text) {
-      const playtime = (g: Game) => g.trackedSeconds + (importedMinutes(g) ?? 0) * 60;
       const cmp: Record<Sort, (a: Game, b: Game) => number> = {
         recent: (a, b) => (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? '') || a.sortTitle.localeCompare(b.sortTitle),
         title: (a, b) => a.sortTitle.localeCompare(b.sortTitle),
-        playtime: (a, b) => playtime(b) - playtime(a),
+        playtime: (a, b) => playSeconds(b) - playSeconds(a),
         size: (a, b) => (sizeOf(b) ?? -1) - (sizeOf(a) ?? -1),
         added: (a, b) => b.added.localeCompare(a.added),
         waiting: (a, b) => a.added.localeCompare(b.added) || a.sortTitle.localeCompare(b.sortTitle),
@@ -248,11 +259,11 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
         <EmptyState
           art={games.length === 0 ? 'constellation' : 'shelf'}
           icon={<Search size={32} />}
-          title={games.length === 0 ? 'No games yet' : collection && !text ? 'This collection is empty' : 'Nothing matches'}
+          title={games.length === 0 ? 'No games yet' : collection && !text && quick === 'all' ? 'This collection is empty' : 'Nothing matches'}
           body={
             games.length === 0
               ? 'Rescan your stores or add a game yourself.'
-              : collection && !text
+              : collection && !text && quick === 'all'
                 ? 'Add games from their right-click menu, or from the Collections section of a game’s page.'
                 : 'Try fewer words, a different quick filter, or clear the filter.'
           }
@@ -283,7 +294,13 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
                 <HoldToConfirm
                   icon={<Trash2 size={14} />}
                   onConfirm={async () => {
-                    await call('collections.delete', { collectionId: collection.id }).catch(() => {});
+                    try {
+                      await call('collections.delete', { collectionId: collection.id });
+                    } catch (err) {
+                      // Stay on the collection so nothing looks deleted when it isn't.
+                      useStore.getState().toast({ tone: 'danger', title: 'Couldn’t delete the collection', body: errorMessage(err) });
+                      return;
+                    }
                     setDeleteOpen(false);
                     await useStore.getState().refreshLibrary();
                     useStore.getState().navigate({ name: 'library' }, { replace: true });
@@ -378,8 +395,8 @@ function VirtualList({ games }: { games: Game[] }) {
   useFlipGrid({ games, geometry, container: ref, scrollEl, offset: virtual.options.scrollMargin ?? 0, reduce });
 
   return (
-    <div className="vlist" role="table" aria-label="Games" aria-rowcount={games.length}>
-      <div className="vlist__head" role="row">
+    <div className="vlist" role="table" aria-label="Games" aria-rowcount={games.length + 1}>
+      <div className="vlist__head" role="row" aria-rowindex={1}>
         <span role="columnheader">Title</span>
         <span role="columnheader">Store</span>
         <span role="columnheader">Last played</span>
@@ -387,22 +404,32 @@ function VirtualList({ games }: { games: Game[] }) {
         <span role="columnheader">Size</span>
         <span role="columnheader">Drive</span>
       </div>
-      <div ref={ref} style={{ height: virtual.getTotalSize(), position: 'relative' }}>
+      <div ref={ref} role="rowgroup" style={{ height: virtual.getTotalSize(), position: 'relative' }}>
         {virtual.getVirtualItems().map((item) => {
           const g = games[item.index];
           const lp = lastPlayed(g);
           const imported = importedMinutes(g);
+          // Store playtime already includes VYSTRAL-tracked time; show whichever is larger.
+          const storeMinutes = imported != null && imported * 60 > g.trackedSeconds ? imported : null;
           const inst = g.installations.find((i) => i.state === 'installed');
           return (
-            <button
+            <div
               key={g.id}
               role="row"
+              tabIndex={0}
+              aria-rowindex={item.index + 2}
               className="vlist__row"
               data-game-id={g.id}
               data-flip-id={g.id}
               data-dim={!isInstalled(g) || undefined}
               style={{ transform: `translateY(${item.start - (virtual.options.scrollMargin ?? 0)}px)` }}
               onClick={() => navigate({ name: 'game', id: g.id })}
+              onKeyDown={(e) => {
+                if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  navigate({ name: 'game', id: g.id });
+                }
+              }}
               onFocus={() => useStore.getState().setFocusGame(g.id)}
             >
               <span role="cell" className="vlist__title">
@@ -415,12 +442,12 @@ function VirtualList({ games }: { games: Game[] }) {
               </span>
               <span role="cell">{lp.at ? formatRelative(lp.at) : '—'}</span>
               <span role="cell" className="num">
-                {g.trackedSeconds > 0 ? formatDuration(g.trackedSeconds) : imported ? <span title="Reported by the store">{formatDuration(imported * 60)}*</span> : '—'}
+                {storeMinutes != null ? <span title="Reported by the store">{formatDuration(storeMinutes * 60)}*</span> : g.trackedSeconds > 0 ? formatDuration(g.trackedSeconds) : '—'}
                 <TimeToBeatBar game={g} variant="row" />
               </span>
               <span role="cell" className="num">{formatBytes(sizeOf(g))}</span>
               <span role="cell">{inst?.drive ?? (isInstalled(g) ? '—' : 'Not installed')}</span>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -443,7 +470,7 @@ function RenameDialog({ open, onClose, id, name }: { open: boolean; onClose: () 
   };
   return (
     <Dialog open={open} onClose={onClose} title="Rename collection" actions={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!value.trim()} onClick={save}>Save</Button></>}>
-      <input className="input" data-autofocus value={value} maxLength={60} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void save()} aria-label="Collection name" />
+      <input className="input" data-autofocus value={value} maxLength={60} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && value.trim() && void save()} aria-label="Collection name" />
     </Dialog>
   );
 }

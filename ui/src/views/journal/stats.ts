@@ -84,6 +84,16 @@ export function dailyTotals(sessions: readonly JSession[]): Map<number, number> 
   return map;
 }
 
+/**
+ * Local days with actual play. A 0-second session (a game that closed straight away, or a crash at
+ * start) is still listed in the timeline, but it doesn't make a day "active" or keep a streak going.
+ */
+export function playedDays(sessions: readonly JSession[]): number[] {
+  const out: number[] = [];
+  for (const [day, secs] of dailyTotals(sessions)) if (secs > 0) out.push(day);
+  return out;
+}
+
 /* ---------------------------------------------------------------- ranges & totals */
 
 export function rangeStart(range: Range, now: number): number {
@@ -115,7 +125,7 @@ export function computeTotals(sessions: readonly JSession[]): Totals {
     games.add(s.gameId);
     if (!longest || s.seconds > longest.seconds) longest = s;
   }
-  return { seconds, sessions: sessions.length, games: games.size, activeDays: dailyTotals(sessions).size, longest };
+  return { seconds, sessions: sessions.length, games: games.size, activeDays: playedDays(sessions).length, longest };
 }
 
 /**
@@ -123,7 +133,7 @@ export function computeTotals(sessions: readonly JSession[]): Totals {
  * streak isn't shown as broken before today's session has happened.
  */
 export function currentStreak(sessions: readonly JSession[], now: number): number {
-  const days = new Set(dailyTotals(sessions).keys());
+  const days = new Set(playedDays(sessions));
   let cursor = startOfDay(now);
   if (!days.has(cursor)) cursor = addDays(cursor, -1);
   let n = 0;
@@ -135,7 +145,7 @@ export function currentStreak(sessions: readonly JSession[], now: number): numbe
 }
 
 export function longestStreak(sessions: readonly JSession[]): { days: number; endDay: number | null } {
-  const days = [...dailyTotals(sessions).keys()].sort((a, b) => a - b);
+  const days = playedDays(sessions).sort((a, b) => a - b);
   let best = 0;
   let bestEnd: number | null = null;
   let run = 0;
@@ -385,14 +395,20 @@ export interface YearReview {
 export function yearInReview(sessions: readonly JSession[], year: number, genresOf: (gameId: string) => readonly string[] | undefined): YearReview | null {
   const yearSessions = sessions.filter((s) => new Date(s.startMs).getFullYear() === year);
   if (!yearSessions.length) return null;
+  // Time figures count the part of each session that falls inside the year (a New Year's Eve session
+  // is split at midnight), so the months always add up to the year's total.
+  const yearStart = new Date(year, 0, 1).getTime();
+  const yearEnd = new Date(year + 1, 0, 1).getTime();
+  const overlapping = sessions.filter((s) => s.startMs < yearEnd && s.startMs + s.seconds * 1000 > yearStart);
   const months = Array.from({ length: 12 }, () => 0);
   let activeDays = 0;
-  for (const [day, secs] of dailyTotals(yearSessions)) {
+  for (const [day, secs] of dailyTotals(overlapping)) {
     const d = new Date(day);
     if (d.getFullYear() !== year) continue;
     months[d.getMonth()] += secs;
-    activeDays++;
+    if (secs > 0) activeDays++;
   }
+  const yearSeconds = months.reduce((a, b) => a + b, 0);
   let busiestMonth = 0;
   months.forEach((v, i) => {
     if (v > months[busiestMonth]) busiestMonth = i;
@@ -400,7 +416,7 @@ export function yearInReview(sessions: readonly JSession[], year: number, genres
   const t = computeTotals(yearSessions);
   return {
     year,
-    seconds: t.seconds,
+    seconds: yearSeconds,
     sessions: t.sessions,
     games: t.games,
     activeDays,

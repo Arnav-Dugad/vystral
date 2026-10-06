@@ -49,7 +49,7 @@
 
 /* ===== Charts ===== */
 .vx-chart { position: relative; width: 100%; border-radius: var(--r-md); }
-.vx-chart:focus-visible { box-shadow: var(--focus-ring); }
+.vx-chart:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .vx-chart svg { display: block; overflow: visible; }
 .vx-chart__grid { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
 .vx-chart__baseline { stroke: var(--line-strong); stroke-width: 1; shape-rendering: crispEdges; }

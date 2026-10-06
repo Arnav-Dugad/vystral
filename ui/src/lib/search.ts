@@ -1,5 +1,6 @@
-import type { AiQuery, DriveInfo, Game, PlatformKey } from '../bridge/types';
-import { isInstalled, lastPlayed, sizeOf, PLATFORM_NAMES } from './format';
+import type { AiQuery, DriveInfo, Game, GameStatus, PlatformKey } from '../bridge/types';
+import { isInstalled, isMissing, lastPlayed, sizeOf, PLATFORM_NAMES } from './format';
+import { hasNeverBeenPlayed } from './neverPlayed';
 
 /**
  * Deterministic library query engine. Understands everyday phrasing without any AI:
@@ -19,6 +20,9 @@ export interface QueryFilters {
   notPlayedDays?: number;
   playedWithinDays?: number;
   neverPlayed?: boolean;
+  /** Files gone from disk (a known install is missing), see {@link isMissing}. */
+  missing?: boolean;
+  status?: GameStatus;
   drives?: string[];
 }
 
@@ -90,9 +94,14 @@ export function parseQuery(input: string, ctx: QueryContext): ParsedQuery {
   take(/^\s*(launch|play|start|run|open)\s+/, () => (intent = 'launch'));
 
   // Recency (must run before "played"/"installed" words are consumed elsewhere).
-  take(/\b(never played|unplayed|not played yet|haven't played yet|backlog)\b/, () => {
+  take(/\b(never played|unplayed|not played yet|haven't played yet)\b/, () => {
     filters.neverPlayed = true;
     chips.push('Never played');
+  });
+  // "backlog" is a play status the user sets, not the same thing as never played.
+  take(/\b(on my backlog|backlogged|backlog)\b/, () => {
+    filters.status = 'backlog';
+    chips.push('Backlog');
   });
   take(/\b(haven't|have not|not|didn't|did not)\s+played?\s+(in|for)\s+(\d+|a|one|two|three|six)\s+(day|week|month|year)s?\b/, (m) => {
     const n = wordNumber(m[3]);
@@ -110,7 +119,11 @@ export function parseQuery(input: string, ctx: QueryContext): ParsedQuery {
   });
 
   // Installation state.
-  take(/\b(not installed|uninstalled|missing)\b/, () => {
+  take(/\b(missing from disk|missing)\b/, () => {
+    filters.missing = true;
+    chips.push('Missing');
+  });
+  take(/\b(not installed|uninstalled)\b/, () => {
     filters.installed = false;
     chips.push('Not installed');
   });
@@ -224,7 +237,9 @@ export function matchesFilters(game: Game, f: QueryFilters, now = Date.now()): b
   }
   if (f.drives?.length && !game.installations.some((i) => i.state === 'installed' && i.drive && f.drives!.includes(i.drive.toUpperCase()))) return false;
   const lp = lastPlayed(game).at;
-  if (f.neverPlayed && (lp || game.trackedSeconds > 0)) return false;
+  if (f.neverPlayed && !hasNeverBeenPlayed(game)) return false;
+  if (f.missing && !isMissing(game)) return false;
+  if (f.status && game.status !== f.status) return false;
   if (f.notPlayedDays != null && lp && now - Date.parse(lp) < f.notPlayedDays * 86400000) return false;
   if (f.playedWithinDays != null && (!lp || now - Date.parse(lp) > f.playedWithinDays * 86400000)) return false;
   return true;

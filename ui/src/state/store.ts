@@ -76,6 +76,8 @@ interface State {
   patchGame(id: string, patch: Partial<Game>): void;
   toast(t: Omit<Toast, 'id'>): number;
   dismissToast(id: number): void;
+  /** Hovering or focusing the toasts holds their auto-dismiss timers. */
+  setToastsPaused(paused: boolean): void;
   markNotificationsRead(): void;
   clearNotification(id: number): void;
   clearNotifications(): void;
@@ -85,6 +87,25 @@ interface State {
 const EMPTY_LIBRARY: LibrarySnapshot = { games: [], collections: [], duplicateSuggestions: [], lastScan: null };
 let toastSeq = 0;
 let refreshTimer: number | undefined;
+/** Bridge event subscriptions are set up once, even if init() runs twice (React StrictMode). */
+let eventsSubscribed = false;
+
+/** Auto-dismiss timers per toast; remaining time is kept while the toaster is hovered/focused. */
+const toastTimers = new Map<number, { handle: number | undefined; remaining: number; started: number }>();
+let toastsPaused = false;
+function startToastTimer(id: number, dismiss: (id: number) => void) {
+  const t = toastTimers.get(id);
+  if (!t || toastsPaused) return;
+  t.started = Date.now();
+  t.handle = window.setTimeout(() => dismiss(id), t.remaining);
+}
+
+/**
+ * setSetting bookkeeping: a sequence number per key (only the newest change of a key may revert it)
+ * and the number of requests in flight per key (their optimistic values survive other keys' replies).
+ */
+const settingSeq = new Map<string, number>();
+const settingsInFlight = new Map<string, number>();
 
 const indexGames = (lib: LibrarySnapshot) => new Map(lib.games.map((g) => [g.id, g]));
 const sameRoute = (a: Route, b: Route) => JSON.stringify(a) === JSON.stringify(b);
@@ -200,14 +221,32 @@ export const useStore = create<State>((set, get) => ({
   },
 
   async setSetting(key, value) {
+    const seq = (settingSeq.get(key) ?? 0) + 1;
+    settingSeq.set(key, seq);
     const prev = get().settings;
+    const previousValue = prev?.[key];
     if (prev) set({ settings: { ...prev, [key]: value } });
+    settingsInFlight.set(key, (settingsInFlight.get(key) ?? 0) + 1);
     try {
-      const settings = await call<Settings>('settings.set', { key, value });
-      set({ settings });
+      const server = await call<Settings>('settings.set', { key, value });
+      const current = get().settings;
+      const merged: Settings = { ...server };
+      // Keep what the user sees for keys that still have a save in flight (a newer value of this key too).
+      if (current) {
+        for (const [k, n] of settingsInFlight) {
+          if (n > (k === key ? 1 : 0)) (merged as unknown as Record<string, unknown>)[k] = (current as unknown as Record<string, unknown>)[k];
+        }
+      }
+      set({ settings: merged });
     } catch (err) {
-      if (prev) set({ settings: prev });
+      // Revert only this key, and only if no newer change of it was made meanwhile.
+      const current = get().settings;
+      if (current && settingSeq.get(key) === seq) set({ settings: { ...current, [key]: previousValue as Settings[typeof key] } });
       get().toast({ tone: 'danger', title: 'Setting not saved', body: errorMessage(err) });
+    } finally {
+      const n = (settingsInFlight.get(key) ?? 1) - 1;
+      if (n > 0) settingsInFlight.set(key, n);
+      else settingsInFlight.delete(key);
     }
   },
 
@@ -243,16 +282,43 @@ export const useStore = create<State>((set, get) => ({
   toast(t) {
     const id = ++toastSeq;
     const at = Date.now();
+    // At most four on screen: make room by dropping the oldest auto-dismissing toast first.
+    let toasts = get().toasts;
+    while (toasts.length >= 4) {
+      const victim = toasts.find((x) => !x.sticky) ?? toasts[0];
+      const timer = toastTimers.get(victim.id);
+      if (timer) window.clearTimeout(timer.handle);
+      toastTimers.delete(victim.id);
+      toasts = toasts.filter((x) => x !== victim);
+    }
     set({
-      toasts: [...get().toasts.slice(-3), { ...t, id, at }],
+      toasts: [...toasts, { ...t, id, at }],
       notifications: [{ ...t, id, at, read: false }, ...get().notifications].slice(0, 80),
     });
-    if (!t.sticky) window.setTimeout(() => get().dismissToast(id), t.tone === 'danger' ? 9000 : 5200);
+    if (!t.sticky) {
+      toastTimers.set(id, { handle: undefined, remaining: t.tone === 'danger' ? 9000 : 5200, started: Date.now() });
+      startToastTimer(id, get().dismissToast);
+    }
     return id;
   },
 
   dismissToast(id) {
+    const timer = toastTimers.get(id);
+    if (timer) window.clearTimeout(timer.handle);
+    toastTimers.delete(id);
     set({ toasts: get().toasts.filter((t) => t.id !== id) });
+  },
+
+  setToastsPaused(paused) {
+    if (paused === toastsPaused) return;
+    toastsPaused = paused;
+    for (const [id, t] of toastTimers) {
+      if (paused) {
+        window.clearTimeout(t.handle);
+        t.handle = undefined;
+        t.remaining = Math.max(1200, t.remaining - (Date.now() - t.started));
+      } else startToastTimer(id, get().dismissToast);
+    }
   },
 
   markNotificationsRead() {
@@ -279,6 +345,8 @@ export const useStore = create<State>((set, get) => ({
 }));
 
 function subscribeEvents(set: (p: Partial<State>) => void, get: () => State) {
+  if (eventsSubscribed) return;
+  eventsSubscribed = true;
   on('library.changed', () => {
     // Coalesce bursts (metadata enrichment emits per batch).
     window.clearTimeout(refreshTimer);

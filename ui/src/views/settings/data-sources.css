@@ -127,5 +127,5 @@
 }
 .dsrc-connect__field:focus-within { box-shadow: inset 0 0 0 1px var(--accent-line), 0 0 0 3px var(--accent-ghost); }
 .dsrc-connect__field input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--text-1); letter-spacing: 0.03em; }
-.dsrc-connect__field input:focus-visible { box-shadow: none; }
+.dsrc-connect__field input:focus-visible { outline: none; box-shadow: none; }
 .dsrc-connect__submit { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }

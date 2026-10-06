@@ -4,6 +4,8 @@ import { STATUS_META } from '../lib/status';
 import { useStore } from './store';
 
 let lastToast: number | null = null;
+/** Per-game request counter: only the newest status change of a game may apply or revert. */
+const statusSeq = new Map<string, number>();
 
 /**
  * Sets a game's play status optimistically, with an Undo toast. Only one status toast is shown
@@ -13,12 +15,16 @@ export async function setGameStatus(game: Game, status: GameStatus | null, opts:
   const store = useStore.getState();
   const before = { status: game.status ?? null, statusChangedAt: game.statusChangedAt ?? null };
   if (before.status === status) return true;
+  const seq = (statusSeq.get(game.id) ?? 0) + 1;
+  statusSeq.set(game.id, seq);
   store.patchGame(game.id, { status, statusChangedAt: status ? new Date().toISOString() : null });
   try {
     const res = await call<StatusResult>('game.setStatus', { gameId: game.id, status });
+    // A newer change of this game's status is in flight; its answer decides what's shown.
+    if (statusSeq.get(game.id) !== seq) return true;
     useStore.getState().patchGame(game.id, { status: res.status, statusChangedAt: res.statusChangedAt });
   } catch (err) {
-    useStore.getState().patchGame(game.id, before);
+    if (statusSeq.get(game.id) === seq) useStore.getState().patchGame(game.id, before);
     useStore.getState().toast({ tone: 'danger', title: 'Status not saved', body: errorMessage(err) });
     return false;
   }

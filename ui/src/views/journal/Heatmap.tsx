@@ -286,7 +286,7 @@ export const Heatmap = memo(function Heatmap({
       <div className="hm-foot">
         <p id={`${id}-caption`} className="hm-caption">
           <Info size={13} aria-hidden />
-          <span>Only sessions you started from VYSTRAL have dates, so only they appear here. Playtime reported by Steam and other stores has no day-by-day history.</span>
+          <span>Only sessions VYSTRAL recorded (launched or detected) have dates, so only they appear here. Playtime reported by Steam and other stores has no day-by-day history.</span>
         </p>
         <div className="hm-legend" aria-label="Colour scale">
           <span>Less</span>

@@ -245,7 +245,7 @@ function ModelSetup({ status, onRefresh }: { status: AiStatus; onRefresh: () => 
             <dd className="num">{rec.downloadGb.toLocaleString(undefined, { maximumFractionDigits: 1 })} GB</dd>
           </div>
           <div>
-            <dt className="caps">License</dt>
+            <dt className="caps">Licence</dt>
             <dd>{rec.license}</dd>
           </div>
           <div>
@@ -338,7 +338,7 @@ function ModelSetup({ status, onRefresh }: { status: AiStatus; onRefresh: () => 
             <span className="num">{rec.downloadGb.toLocaleString(undefined, { maximumFractionDigits: 1 })} GB</span>
           </li>
           <li>
-            <span>License</span>
+            <span>Licence</span>
             <span>{rec.license}</span>
           </li>
           <li>

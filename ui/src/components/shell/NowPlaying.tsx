@@ -7,16 +7,12 @@ import { useReducedMotion, useStore } from '../../state/store';
 import { GameCover } from '../game/GameCover';
 import { HoldToConfirm } from '../controller/HoldToConfirm';
 import { StoreLogo } from '../ui/StoreLogo';
-import { PLATFORM_NAMES } from '../../lib/format';
+import { formatClock, PLATFORM_NAMES } from '../../lib/format';
 import type { PlatformKey } from '../../bridge/types';
 
 function elapsed(fromIso: string | null): string {
   if (!fromIso) return '';
-  const s = Math.max(0, Math.floor((Date.now() - Date.parse(fromIso)) / 1000));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+  return formatClock((Date.now() - Date.parse(fromIso)) / 1000);
 }
 
 /**
@@ -70,7 +66,8 @@ export function NowPlaying() {
               </span>
             )}
             <span className="now-playing__title truncate">{game.title}</span>
-            {running && <span className="now-playing__time num">{elapsed(launch.startedAt)}</span>}
+            {/* Hidden from the live region: it would otherwise be announced every second. */}
+            {running && <span className="now-playing__time num" aria-hidden>{elapsed(launch.startedAt)}</span>}
           </button>
           <HoldToConfirm
             bare

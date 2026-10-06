@@ -1,5 +1,6 @@
 import type { Game } from '../bridge/types';
-import { importedMinutes, isInstalled, lastPlayed } from './format';
+import { isInstalled, lastPlayed, playSeconds } from './format';
+import { hasNeverBeenPlayed } from './neverPlayed';
 
 export interface Suggestion {
   game: Game;
@@ -12,8 +13,6 @@ export interface Suggestion {
  * carries the plain-language reason it was chosen; nothing here needs AI or the network.
  */
 export function suggestGames(games: Game[], now = Date.now(), limit = 10): Suggestion[] {
-  const playSeconds = (g: Game) => g.trackedSeconds + (importedMinutes(g) ?? 0) * 60;
-
   // Genre affinity: how much time the user spends in each genre.
   const affinity = new Map<string, number>();
   let total = 0;
@@ -42,9 +41,13 @@ export function suggestGames(games: Game[], now = Date.now(), limit = 10): Sugge
     }
     let score = genreScore * 4;
     let reason: string;
-    if (!lp && g.trackedSeconds === 0) {
+    if (hasNeverBeenPlayed(g)) {
       score += 1.2;
       reason = topGenre && genreScore > 0.15 ? `Unplayed · you like ${topGenre}` : 'Installed, never played';
+    } else if (!lp) {
+      // Store playtime but no date: played at some point, not recently as far as anyone knows.
+      score += 0.8 + (playSeconds(g) > 5 * 3600 ? 0.5 : 0);
+      reason = topGenre ? `You play a lot of ${topGenre}` : 'Played before';
     } else if (daysSince > 21) {
       score += Math.min(2, daysSince / 60) + (playSeconds(g) > 5 * 3600 ? 1 : 0);
       const weeks = Math.round(daysSince / 7);
