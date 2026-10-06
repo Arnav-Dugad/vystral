@@ -7,7 +7,7 @@ import type { AdapterInfo, DiagnosticsInfo, SettingKey, Settings } from '../brid
 import { formatBytes, formatDate, formatRelative } from '../lib/format';
 import { MOOD_LABEL } from '../lib/mood';
 import { useStore } from '../state/store';
-import { Badge, Button, rovingKey, Segmented, Slider, Toggle, PlatformBadge } from '../components/ui/primitives';
+import { Badge, Button, rovingKey, Segmented, Slider, Toggle, PlatformBadge, PadHint, type PadButton } from '../components/ui/primitives';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
 import { UpdatePanel } from '../components/shell/UpdateCenter';
@@ -315,8 +315,8 @@ function Controller({ s }: { s: Settings }) {
         <Row label="Try Immersive Mode" control={<Button size="sm" icon={<Gamepad2 size={14} />} onClick={() => void setMode('immersive')}>Open</Button>} />
       </Group>
       <div className="pad-legend surface">
-        {[['A', 'Select'], ['B', 'Back'], ['X', 'Options'], ['A on a text box', 'On-screen keyboard'], ['Y', 'Search'], ['LB / RB', 'Back / forward'], ['Menu', 'Immersive Mode'], ['Right stick', 'Scroll']].map(([b, d]) => (
-          <div key={b}><span className="kbd">{b}</span> {d}</div>
+        {([[['A'], 'Select'], [['B'], 'Back'], [['X'], 'Options'], [['A'], 'Type in a text box'], [['Y'], 'Search'], [['LB', 'RB'], 'Back / forward'], [['Menu'], 'Immersive Mode'], [['RS'], 'Scroll']] as [PadButton[], string][]).map(([b, d]) => (
+          <PadHint key={d} button={b.length === 1 ? b[0] : b}>{d}</PadHint>
         ))}
       </div>
     </>
