@@ -29,7 +29,12 @@ public sealed partial class AppBackend
         });
 
         Dispatcher.Register<FlagParams>("game.setFavorite", (p, _) => Ok(Repository.UpdateGameFlags(RequireId(p.GameId), favorite: p.Value)));
-        Dispatcher.Register<FlagParams>("game.setHidden", (p, _) => Ok(Repository.UpdateGameFlags(RequireId(p.GameId), hidden: p.Value)));
+        Dispatcher.Register<FlagParams>("game.setHidden", (p, _) =>
+        {
+            var ok = Repository.UpdateGameFlags(RequireId(p.GameId), hidden: p.Value);
+            OnLibraryIdentityChanged(); // hidden games are never watched for detection
+            return Ok(ok);
+        });
         Dispatcher.Register<RatingParams>("game.setRating", (p, _) =>
         {
             if (p.Rating is < 1 or > 5) throw new BridgeException("invalid", "Ratings are 1 to 5 stars.");
@@ -48,11 +53,23 @@ public sealed partial class AppBackend
             return Ok(ok);
         });
         Dispatcher.Register<MergeParams>("game.merge", (p, _) =>
-            Ok(Repository.MergeGames(RequireId(p.TargetGameId), RequireId(p.SourceGameId))));
+        {
+            var (target, source) = (RequireId(p.TargetGameId), RequireId(p.SourceGameId));
+            var ok = Repository.MergeGames(target, source);
+            if (ok)
+            {
+                OnGamesMerged(target, source);
+                _events.Emit("library.changed", new { reason = "merge" });
+            }
+            return Ok(ok);
+        });
         Dispatcher.Register<InstallationIdParams>("game.unmerge", (p, _) =>
         {
-            var newId = Repository.UnmergeInstallation(RequireId(p.InstallationId, "installation"))
+            var installationId = RequireId(p.InstallationId, "installation");
+            var originalGameId = Repository.GetInstallation(installationId)?.GameId;
+            var newId = Repository.UnmergeInstallation(installationId)
                         ?? throw new BridgeException("invalid", "That version can't be separated (it's the only one).");
+            if (originalGameId is not null) OnGameSplit(originalGameId, newId);
             _events.Emit("library.changed", null);
             return Task.FromResult<object?>(newId);
         });

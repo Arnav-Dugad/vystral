@@ -76,7 +76,8 @@ public sealed class DataInsightsRepositoryTests : IDisposable
 
         _t.Repo.DeleteTrackedHistory();
         Assert.Empty(_t.Repo.GetBackgroundApps(s));
-        Assert.Empty(_t.Repo.GetHiddenBackgroundApps());
+        // Hidden apps are a preference, not history, so they survive.
+        Assert.Equal(["discord.exe"], _t.Repo.GetHiddenBackgroundApps().Select(n => n.ToLowerInvariant()));
         using var conn = _t.Db.Open();
         Assert.Equal(0L, conn.ExecuteScalar<long>("SELECT COUNT(*) FROM session_background_apps"));
     }

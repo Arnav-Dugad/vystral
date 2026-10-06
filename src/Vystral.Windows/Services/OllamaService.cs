@@ -78,18 +78,20 @@ public sealed partial class OllamaService
             using var req = new HttpRequestMessage(HttpMethod.Post, "api/pull") { Content = JsonContent.Create(new { model, stream = true }) };
             using var res = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
             res.EnsureSuccessStatusCode();
+            var failed = false;
             await foreach (var obj in ReadNdjson(res, cts.Token))
             {
+                failed |= obj["error"] is not null;
                 _events.Emit("ai.pull", new
                 {
                     model,
-                    status = obj["status"]?.GetValue<string>(),
+                    status = obj["status"]?.GetValue<string>() ?? (obj["error"] is null ? "working" : "error"),
                     total = obj["total"]?.GetValue<long>(),
                     completed = obj["completed"]?.GetValue<long>(),
                     error = obj["error"]?.GetValue<string>(),
                 });
             }
-            _events.Emit("ai.pull", new { model, status = "done" });
+            if (!failed) _events.Emit("ai.pull", new { model, status = "done" });
         }
         catch (OperationCanceledException)
         {

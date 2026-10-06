@@ -36,4 +36,22 @@ public sealed partial class LibraryRepository
         return conn.Execute("DELETE FROM artwork WHERE game_id=@gameId AND kind=@kind AND is_user=0",
             new { gameId, kind = kind.ToString().ToLowerInvariant() }) > 0;
     }
+
+    /// <summary>Kind → (source, is_user) of a game's artwork rows.</summary>
+    public IReadOnlyDictionary<string, (string Source, bool IsUser)> GetArtworkSources(string gameId)
+    {
+        using var conn = db.Open();
+        return conn.Query<(string Kind, string Source, bool IsUser)>("SELECT kind, source, is_user FROM artwork WHERE game_id=@gameId", new { gameId })
+            .ToDictionary(a => a.Kind, a => (a.Source, a.IsUser));
+    }
+
+    /// <summary>Forgets every downloaded (non-user) artwork row, e.g. after their files were cleared from the cache.</summary>
+    public int ForgetAllDownloadedArtwork()
+    {
+        using var conn = db.Open();
+        var forgotten = conn.Execute("DELETE FROM artwork WHERE is_user=0");
+        // Heroes and logos for Steam games come with the store details pass, so let it run again.
+        conn.Execute("UPDATE games SET metadata_fetched=NULL WHERE steam_app_id IS NOT NULL");
+        return forgotten;
+    }
 }

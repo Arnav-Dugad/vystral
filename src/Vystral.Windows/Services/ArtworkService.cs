@@ -49,6 +49,25 @@ public sealed partial class ArtworkService(AppPaths paths, LibraryRepository rep
         }
     }
 
+    /// <summary>
+    /// Imports the art a store scan found on disk, never replacing art the user picked or a better
+    /// downloaded image, and never importing Steam's flat grey placeholder.
+    /// </summary>
+    public void ImportScanned(string gameId, IReadOnlyDictionary<ArtworkKind, string> found, string source)
+    {
+        if (found.Count == 0) return;
+        var existing = repo.GetArtworkSources(gameId);
+        foreach (var (kind, path) in found)
+        {
+            if (existing.TryGetValue(kind.ToString().ToLowerInvariant(), out var e) && (e.IsUser || !e.Source.EndsWith("-local", StringComparison.Ordinal))) continue;
+            long length;
+            try { length = new FileInfo(path).Length; }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) { continue; }
+            if (IsPlaceholder(kind, length)) continue;
+            ImportLocal(gameId, kind, path, source);
+        }
+    }
+
     /// <summary>When it returns true (Data saver), artwork downloads are skipped; local imports still work.</summary>
     public Func<bool>? SkipDownloads { get; set; }
 
@@ -193,7 +212,7 @@ public sealed partial class ArtworkService(AppPaths paths, LibraryRepository rep
     {
         var forgotten = 0;
         foreach (var kind in (ArtworkKind[])[ArtworkKind.Cover, ArtworkKind.Hero])
-            foreach (var (gameId, file) in repo.DownloadedArtwork(kind, "steam-cdn"))
+            foreach (var (gameId, file) in repo.DownloadedArtwork(kind, "steam-cdn").Concat(repo.DownloadedArtwork(kind, "steam-local")))
             {
                 try
                 {

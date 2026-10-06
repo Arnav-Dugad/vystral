@@ -329,7 +329,7 @@ public sealed partial class LibraryRepository
         var platforms = conn.Query<(string GameId, string Platform)>("SELECT DISTINCT game_id, platform FROM installations").ToLookup(r => r.GameId, r => r.Platform);
         var lastPlayed = conn.Query<(string GameId, string Last)>("SELECT game_id, imported_last_played FROM installations WHERE imported_last_played IS NOT NULL")
             .ToLookup(r => r.GameId, r => r.Last);
-        var sessions = conn.Query<(string GameId, string Start)>("SELECT game_id, MIN(start) FROM sessions WHERE source='tracked' GROUP BY game_id")
+        var sessions = conn.Query<(string GameId, string Start)>("SELECT game_id, MIN(start) FROM sessions WHERE source IN ('tracked','detected','background') GROUP BY game_id")
             .ToDictionary(r => r.GameId, r => r.Start);
         var achievements = conn.Query<(string AppId, string Unlock)>(
             "SELECT app_id, unlock_time FROM steam_achievements WHERE achieved=1 AND unlock_time IS NOT NULL").ToLookup(r => r.AppId, r => r.Unlock);

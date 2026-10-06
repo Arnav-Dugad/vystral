@@ -49,7 +49,7 @@ public sealed partial class AppBackend
             {
                 await Task.Delay(TimeSpan.FromSeconds(60), _life.Token);
                 // The startup scan marks uninstalled games "missing"; owned ones are really "not installed".
-                if (Repository.RestoreOwnedSteamMissing() > 0) _events.Emit("library.changed", new { reason = "steamOwned" });
+                if (Repository.RestoreOwnedSteamMissing(Vystral.Core.Data.LibraryRepository.DriveConnected) > 0) _events.Emit("library.changed", new { reason = "steamOwned" });
                 var last = Repository.GetInternalValue("steam.webApi.lastSync");
                 var due = last is null || !DateTimeOffset.TryParse(last, out var at) || DateTimeOffset.UtcNow - at > TimeSpan.FromHours(12);
                 if (due && keys.IsConfigured && !Settings.GetBool("privacy.localOnly") && !SafeMode && !IsGameActive)
@@ -65,7 +65,7 @@ public sealed partial class AppBackend
         {
             var report = await Library.ScanAsync(ct);
             if (report is null) return new { alreadyRunning = true };
-            if (Repository.RestoreOwnedSteamMissing() > 0) _events.Emit("library.changed", new { reason = "steamOwned" });
+            if (Repository.RestoreOwnedSteamMissing(Vystral.Core.Data.LibraryRepository.DriveConnected) > 0) _events.Emit("library.changed", new { reason = "steamOwned" });
             _installs.InvalidateGames();
             return report;
         });
@@ -172,6 +172,8 @@ public sealed partial class AppBackend
     /// </summary>
     private async Task<object?> ScanPlatformAsync(PlatformId platform, CancellationToken ct)
     {
+        // A full scan is running: wait for it (briefly) rather than dropping this rescan, e.g. after a Steam install.
+        for (var waited = 0; Library.IsScanning && waited < 120; waited++) await Task.Delay(1000, ct);
         if (Library.IsScanning) return new { alreadyRunning = true };
         if (!Settings.IsPlatformEnabled(platform.Key())) return new { disabled = true };
         var adapter = _adapters.FirstOrDefault(a => a.Platform == platform) ?? throw new BridgeException("invalid", "Unknown platform.");
@@ -197,14 +199,9 @@ public sealed partial class AppBackend
         {
             var inst = Repository.GetInstallationsByPlatformId(found.Platform, found.PlatformGameId);
             if (inst is null) continue;
-            var existing = Repository.GetArtwork(inst.GameId);
-            foreach (var (kind, path) in found.LocalArtwork)
-            {
-                if (existing.TryGetValue(kind.ToString().ToLowerInvariant(), out var e) && e.IsUser) continue;
-                Artwork.ImportLocal(inst.GameId, kind, path, $"{platform.Key()}-local");
-            }
+            Artwork.ImportScanned(inst.GameId, found.LocalArtwork, $"{platform.Key()}-local");
         }
-        var restored = platform == PlatformId.Steam ? Repository.RestoreOwnedSteamMissing() : 0;
+        var restored = platform == PlatformId.Steam ? Repository.RestoreOwnedSteamMissing(Vystral.Core.Data.LibraryRepository.DriveConnected) : 0;
         _installs.InvalidateGames();
         Log.Info("library", "Platform rescan applied", new { platform = platform.Key(), report, restored });
         _events.Emit("library.changed", new { reason = "platformScan" });

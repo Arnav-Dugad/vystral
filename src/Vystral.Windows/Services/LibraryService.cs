@@ -121,13 +121,7 @@ public sealed class LibraryService
         {
             var inst = _repo.GetInstallationsByPlatformId(found.Platform, found.PlatformGameId);
             if (inst is null) continue;
-            var existing = _repo.GetArtwork(inst.GameId);
-            foreach (var (kind, path) in found.LocalArtwork)
-            {
-                var key = kind.ToString().ToLowerInvariant();
-                if (existing.TryGetValue(key, out var e) && e.IsUser) continue;
-                _artwork.ImportLocal(inst.GameId, kind, path, $"{found.Platform.Key()}-local");
-            }
+            _artwork.ImportScanned(inst.GameId, found.LocalArtwork, $"{found.Platform.Key()}-local");
         }
     }
 

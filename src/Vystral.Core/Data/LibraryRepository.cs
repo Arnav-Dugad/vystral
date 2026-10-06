@@ -60,8 +60,13 @@ public sealed partial class LibraryRepository(Database db)
                     conn.Execute("""
                         UPDATE installations SET title=@Title, install_path=@InstallPath, size_bytes=@SizeBytes,
                             state=@State, launch_kind=@Kind, launch_value=@Value, launch_args=@Args, launch_workdir=@Work,
-                            client_required=@ClientRequired, imported_last_played=@LastPlayed,
-                            imported_playtime_minutes=@Playtime, steam_app_id=@SteamAppId,
+                            client_required=@ClientRequired,
+                            -- Local store files can lack playtime (played on another PC/account): never wipe or lower a known value.
+                            imported_last_played=CASE WHEN @LastPlayed IS NULL THEN imported_last_played
+                                WHEN imported_last_played IS NULL OR @LastPlayed > imported_last_played THEN @LastPlayed ELSE imported_last_played END,
+                            imported_playtime_minutes=CASE WHEN @Playtime IS NULL THEN imported_playtime_minutes
+                                WHEN imported_playtime_minutes IS NULL OR @Playtime > imported_playtime_minutes THEN @Playtime ELSE imported_playtime_minutes END,
+                            steam_app_id=@SteamAppId,
                             process_hints_json=@Hints, last_seen=@Now
                         WHERE id=@Id
                         """, InstallationParams(found, existingId, null, now), tx);
@@ -159,7 +164,7 @@ public sealed partial class LibraryRepository(Database db)
         var statuses = LoadStatuses(conn);
         var stats = conn.Query<(string GameId, long Secs, int Count, string? Last)>("""
             SELECT game_id, SUM(duration_seconds), COUNT(*), MAX(start) FROM sessions
-            WHERE source IN ('tracked','detected','background') GROUP BY game_id
+            WHERE source IN ('tracked','detected','background') AND end IS NOT NULL GROUP BY game_id
             """).ToDictionary(s => s.GameId);
 
         var dtos = games.Select(g =>
@@ -317,8 +322,22 @@ public sealed partial class LibraryRepository(Database db)
         conn.Execute("UPDATE sessions SET game_id=@targetGameId WHERE game_id=@sourceGameId", p, tx);
         conn.Execute("INSERT OR IGNORE INTO collection_games(collection_id, game_id) SELECT collection_id, @targetGameId FROM collection_games WHERE game_id=@sourceGameId", p, tx);
         conn.Execute("DELETE FROM collection_games WHERE game_id=@sourceGameId", p, tx);
-        conn.Execute("INSERT OR IGNORE INTO artwork SELECT @targetGameId, kind, file, source, is_user, updated FROM artwork WHERE game_id=@sourceGameId", p, tx);
+        // Art follows the same rule as SetArtwork: art the user chose wins over downloaded art.
+        conn.Execute("""
+            INSERT INTO artwork(game_id, kind, file, source, is_user, updated)
+            SELECT @targetGameId, kind, file, source, is_user, updated FROM artwork WHERE game_id=@sourceGameId
+            ON CONFLICT(game_id, kind) DO UPDATE SET file=excluded.file, source=excluded.source, is_user=excluded.is_user, updated=excluded.updated
+            WHERE artwork.is_user = 0 AND excluded.is_user = 1
+            """, p, tx);
         conn.Execute("DELETE FROM artwork WHERE game_id=@sourceGameId", p, tx);
+        // Per-game data keyed by game id moves too (the target's own rows win), so nothing is orphaned.
+        foreach (var table in (string[])["game_media", "game_enrichment", "game_field_sources"])
+        {
+            conn.Execute($"UPDATE OR IGNORE {table} SET game_id=@targetGameId WHERE game_id=@sourceGameId", p, tx);
+            conn.Execute($"DELETE FROM {table} WHERE game_id=@sourceGameId", p, tx);
+        }
+        // Everything keyed on the Steam app id (trailers, prices, Wikidata, anti-cheat, covers) keeps working.
+        conn.Execute("UPDATE games SET steam_app_id = COALESCE(steam_app_id, (SELECT steam_app_id FROM games WHERE id=@sourceGameId)) WHERE id=@targetGameId", p, tx);
         conn.Execute("""
             UPDATE games SET
               favorite = MAX(favorite, (SELECT favorite FROM games WHERE id=@sourceGameId)),
@@ -355,6 +374,14 @@ public sealed partial class LibraryRepository(Database db)
         conn.Execute("UPDATE installations SET game_id=@newId, manual_link=1 WHERE id=@installationId", new { newId, installationId }, tx);
         conn.Execute("UPDATE sessions SET game_id=@newId WHERE installation_id=@installationId", new { newId, installationId }, tx);
         conn.Execute("UPDATE games SET preferred_installation_id=NULL WHERE preferred_installation_id=@installationId", new { installationId }, tx);
+        // The original keeps a Steam app id only if one of its remaining installations still has it.
+        conn.Execute("""
+            UPDATE games SET steam_app_id = (SELECT i.steam_app_id FROM installations i WHERE i.game_id=@orig AND i.steam_app_id IS NOT NULL ORDER BY i.first_seen LIMIT 1)
+            WHERE id=@orig
+            """, new { orig = inst.game_id }, tx);
+        // The user just separated these two; don't suggest them as duplicates again.
+        var (a, b) = string.CompareOrdinal(inst.game_id, newId) < 0 ? (inst.game_id, newId) : (newId, inst.game_id);
+        conn.Execute("INSERT OR IGNORE INTO dismissed_duplicates(game_a, game_b) VALUES (@a, @b)", new { a, b }, tx);
         Audit(conn, tx, "library.unmerge", $"{installationId} -> {newId}");
         tx.Commit();
         return newId;
@@ -401,6 +428,8 @@ public sealed partial class LibraryRepository(Database db)
                      "DELETE FROM perf_samples WHERE session_id IN (SELECT id FROM sessions WHERE game_id=@gameId)",
                      "DELETE FROM sessions WHERE game_id=@gameId", "DELETE FROM collection_games WHERE game_id=@gameId",
                      "DELETE FROM artwork WHERE game_id=@gameId", "DELETE FROM installations WHERE game_id=@gameId",
+                     "DELETE FROM status_history WHERE game_id=@gameId", "DELETE FROM game_enrichment WHERE game_id=@gameId",
+                     "DELETE FROM game_field_sources WHERE game_id=@gameId", "DELETE FROM game_media WHERE game_id=@gameId",
                      "DELETE FROM games WHERE id=@gameId",
                  })
             conn.Execute(sql, new { gameId }, tx);
@@ -434,9 +463,13 @@ public sealed partial class LibraryRepository(Database db)
         using var conn = db.Open();
         conn.Execute("""
             UPDATE games SET metadata_source=@source, metadata_fetched=@now,
-              description=COALESCE(@description, description), developer=COALESCE(@developer, developer),
-              publisher=COALESCE(@publisher, publisher), release_date=COALESCE(@releaseDate, release_date),
-              genres_json=CASE WHEN @genres='[]' THEN genres_json ELSE @genres END, updated=@now
+              -- A field another source (IGDB, RAWG, the user) already filled keeps its value, so provenance stays true.
+              description=CASE WHEN EXISTS (SELECT 1 FROM game_field_sources f WHERE f.game_id=@gameId AND f.field='description') THEN description ELSE COALESCE(@description, description) END,
+              developer=CASE WHEN EXISTS (SELECT 1 FROM game_field_sources f WHERE f.game_id=@gameId AND f.field='developer') THEN developer ELSE COALESCE(@developer, developer) END,
+              publisher=CASE WHEN EXISTS (SELECT 1 FROM game_field_sources f WHERE f.game_id=@gameId AND f.field='publisher') THEN publisher ELSE COALESCE(@publisher, publisher) END,
+              release_date=CASE WHEN EXISTS (SELECT 1 FROM game_field_sources f WHERE f.game_id=@gameId AND f.field='release_date') THEN release_date ELSE COALESCE(@releaseDate, release_date) END,
+              genres_json=CASE WHEN EXISTS (SELECT 1 FROM game_field_sources f WHERE f.game_id=@gameId AND f.field='genres') OR @genres='[]' THEN genres_json ELSE @genres END,
+              updated=@now
             WHERE id=@gameId
             """, new { gameId, source, description, developer, publisher, releaseDate, genres = JsonSerializer.Serialize(genres), now = Now() });
     }
@@ -516,14 +549,14 @@ public sealed partial class LibraryRepository(Database db)
     {
         using var conn = db.Open();
         using var tx = conn.BeginTransaction();
-        var open = conn.Query<(string Id, string Start, long? LastMs)>("""
-            SELECT s.id, s.start, (SELECT MAX(t_offset_ms) FROM perf_samples p WHERE p.session_id = s.id)
+        var open = conn.Query<(string Id, string Start, long? LastMs, int Known)>("""
+            SELECT s.id, s.start, (SELECT MAX(t_offset_ms) FROM perf_samples p WHERE p.session_id = s.id), COALESCE(s.duration_seconds, 0)
             FROM sessions s WHERE s.end IS NULL
             """, transaction: tx).ToList();
-        foreach (var (id, start, lastMs) in open)
+        foreach (var (id, start, lastMs, known) in open)
         {
-            // The last performance sample is the best evidence of how long the game ran.
-            var duration = (int)((lastMs ?? 0) / 1000);
+            // Best evidence of how long the game ran: the last performance sample or the last recorded heartbeat.
+            var duration = Math.Max((int)((lastMs ?? 0) / 1000), known);
             var end = DateTimeOffset.TryParse(start, out var s) ? s.AddSeconds(duration).ToString("O") : start;
             conn.Execute("UPDATE sessions SET duration_seconds=@duration, end=@end WHERE id=@id", new { id, duration, end }, tx);
         }
@@ -572,7 +605,8 @@ public sealed partial class LibraryRepository(Database db)
         using var tx = conn.BeginTransaction();
         conn.Execute("DELETE FROM perf_samples", transaction: tx);
         // Track F: background-app names recorded during sessions, and the names the user hid.
-        conn.Execute("DELETE FROM session_background_apps; DELETE FROM hidden_background_apps;", transaction: tx);
+        // Hidden background apps are a preference, not history: they stay.
+        conn.Execute("DELETE FROM session_background_apps;", transaction: tx);
         var n = conn.Execute("DELETE FROM sessions", transaction: tx);
         Audit(conn, tx, "journal.deleteAll", $"{n} sessions");
         tx.Commit();

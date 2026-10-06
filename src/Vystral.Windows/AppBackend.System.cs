@@ -50,7 +50,17 @@ public sealed partial class AppBackend
             // Keep user-chosen artwork; everything else can be re-imported or re-downloaded.
             var keep = snapshot.Games.SelectMany(g => Repository.GetArtwork(g.Id).Where(a => a.Value.IsUser).Select(a => a.Value.File));
             var freed = Artwork.ClearUnreferenced(keep) + (_liveTiles?.ClearCache() ?? 0); // live-tile loops are cached artwork too
-            Repository.Audit("data.clearArtCache", $"{freed} bytes");
+            // The files are gone, so forget their rows too: otherwise nothing would ever fetch them again.
+            var forgotten = Repository.ForgetAllDownloadedArtwork();
+            Repository.Audit("data.clearArtCache", $"{freed} bytes, {forgotten} artwork entries");
+            _events.Emit("library.changed", new { reason = "artwork" });
+            // A rescan re-imports store art from disk; enrichment then re-downloads the rest, covers first.
+            Task.Run(async () =>
+            {
+                try { await Library.ScanAsync(_life.Token); }
+                catch (OperationCanceledException) { }
+                catch (Exception ex) { Log.Warn("art", "Re-import after clearing the art cache failed", ex: ex); }
+            });
             return Task.FromResult<object?>(new { freedBytes = freed });
         });
         Dispatcher.Register("data.exportJournal", async _ =>

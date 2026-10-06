@@ -248,4 +248,29 @@ public sealed partial class AppBackend
             return null; // not installed by Velopack (development build)
         }
     }
+
+    /// <summary>Detection targets depend on which games exist, are hidden or ignored: refresh them now.</summary>
+    private void OnLibraryIdentityChanged()
+    {
+        try { _externalTracker?.InvalidateTargets(); }
+        catch (Exception ex) { Log.Warn("tracking", "Couldn't refresh detection targets", ex: ex); }
+    }
+
+    /// <summary>"Don't track this game" follows a merge into the surviving game.</summary>
+    private void OnGamesMerged(string targetGameId, string sourceGameId)
+    {
+        if (_trackerFiles.ReadIgnored().Contains(sourceGameId))
+        {
+            _trackerFiles.SetIgnored(sourceGameId, false);
+            _trackerFiles.SetIgnored(targetGameId, true);
+        }
+        OnLibraryIdentityChanged();
+    }
+
+    /// <summary>A version split off an ignored game stays ignored.</summary>
+    private void OnGameSplit(string originalGameId, string newGameId)
+    {
+        if (_trackerFiles.ReadIgnored().Contains(originalGameId)) _trackerFiles.SetIgnored(newGameId, true);
+        OnLibraryIdentityChanged();
+    }
 }

@@ -75,13 +75,14 @@ public sealed partial class LibraryRepository
     {
         using var conn = db.Open();
         using var tx = conn.BeginTransaction();
-        var open = conn.Query<(string Id, string Start, long? LastMs)>("""
-            SELECT s.id, s.start, (SELECT MAX(t_offset_ms) FROM perf_samples p WHERE p.session_id = s.id)
+        var open = conn.Query<(string Id, string Start, long? LastMs, int Known)>("""
+            SELECT s.id, s.start, (SELECT MAX(t_offset_ms) FROM perf_samples p WHERE p.session_id = s.id), COALESCE(s.duration_seconds, 0)
             FROM sessions s WHERE s.end IS NULL
             """, transaction: tx).Where(o => !except.Contains(o.Id)).ToList();
-        foreach (var (id, start, lastMs) in open)
+        foreach (var (id, start, lastMs, known) in open)
         {
-            var duration = (int)((lastMs ?? 0) / 1000);
+            // Best evidence of how long it ran: the last performance sample or the last recorded heartbeat.
+            var duration = Math.Max((int)((lastMs ?? 0) / 1000), known);
             var parsed = DateTimeOffset.TryParse(start, out var s);
             if (parsed && lastSeen is not null && lastSeen.TryGetValue(id, out var seen) && seen > s)
                 duration = Math.Max(duration, (int)Math.Min(int.MaxValue, (seen - s).TotalSeconds));
@@ -105,5 +106,12 @@ public sealed partial class LibraryRepository
         if (rows is not [var row] || !DateTimeOffset.TryParse(row.Start, out var start)) return null;
         DateTimeOffset? end = DateTimeOffset.TryParse(row.End, out var e) ? e : null;
         return new ObservedSessionRow(row.Id, row.GameId, row.Title, row.Source, start, end, row.Duration);
+    }
+
+    /// <summary>Records how long an open session has run so far (its end stays empty until it really ends).</summary>
+    public void TouchOpenSession(string sessionId, int seconds)
+    {
+        using var conn = db.Open();
+        conn.Execute("UPDATE sessions SET duration_seconds=MAX(COALESCE(duration_seconds,0), @seconds) WHERE id=@sessionId AND end IS NULL", new { sessionId, seconds });
     }
 }

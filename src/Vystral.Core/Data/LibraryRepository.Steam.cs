@@ -141,13 +141,30 @@ public sealed partial class LibraryRepository
     }
 
     /// <summary>After a local scan, owned Steam games the scan marked missing become notinstalled.</summary>
-    public int RestoreOwnedSteamMissing()
+    /// <summary>
+    /// Owned Steam games the scan no longer finds become "not installed" — unless their drive isn't
+    /// connected (an unplugged external drive): those stay "missing" so the user sees why.
+    /// </summary>
+    public int RestoreOwnedSteamMissing(Func<string, bool>? driveConnected = null)
     {
         using var conn = db.Open();
-        return conn.Execute("""
-            UPDATE installations SET state='notinstalled'
+        var candidates = conn.Query<(string Id, string? Path)>("""
+            SELECT id, install_path FROM installations
             WHERE platform='steam' AND state='missing' AND platform_game_id IN (SELECT app_id FROM steam_owned)
-            """);
+            """).ToList();
+        var restore = candidates.Where(c => driveConnected is null || string.IsNullOrEmpty(c.Path) || driveConnected(c.Path!)).Select(c => c.Id).ToList();
+        return restore.Count == 0 ? 0 : conn.Execute("UPDATE installations SET state='notinstalled' WHERE id IN @restore", new { restore });
+    }
+
+    /// <summary>True when the drive (or share) an install path lives on is present right now.</summary>
+    public static bool DriveConnected(string installPath)
+    {
+        try
+        {
+            var root = System.IO.Path.GetPathRoot(installPath);
+            return !string.IsNullOrEmpty(root) && System.IO.Directory.Exists(root);
+        }
+        catch (Exception ex) when (ex is ArgumentException or System.IO.IOException or UnauthorizedAccessException) { return false; }
     }
 
     public int OwnedSteamCount()

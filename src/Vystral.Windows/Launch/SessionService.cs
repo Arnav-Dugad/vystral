@@ -576,8 +576,19 @@ public sealed class SessionService : IDisposable
         }
     }
 
+    private long _lastPersistedBeat;
+
     private void Beat(ActiveSessionInfo info)
     {
+        // Persist the running length every ~30 s, so a crash with performance recording off doesn't
+        // recover the session as 0 s (recovery otherwise only has the last performance sample).
+        var nowTicks = Environment.TickCount64;
+        if (nowTicks - Interlocked.Read(ref _lastPersistedBeat) >= 30_000)
+        {
+            Interlocked.Exchange(ref _lastPersistedBeat, nowTicks);
+            try { _repo.TouchOpenSession(info.SessionId, (int)Math.Clamp((info.LastSeen - info.Start).TotalSeconds, 0, int.MaxValue)); }
+            catch (Exception ex) { Log.Warn("session", "Couldn't record session progress", ex: ex); }
+        }
         try { Heartbeat?.Invoke(info); }
         catch (Exception ex) { Log.Warn("session", "Heartbeat handler failed", ex: ex); }
     }
