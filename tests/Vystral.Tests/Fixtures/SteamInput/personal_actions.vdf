@@ -1,0 +1,297 @@
+"controller_mappings"
+{
+	"version"		"3"
+	"revision"		"14"
+	"title"		"My layout"
+	"description"		"#SettingsController_AutosaveDescription"
+	"creator"		"76561190000000000"
+	"progenitor"		""
+	"url"		"autosave://C:\\Program Files (x86)\\Steam\\steamapps\\common\\Steam Controller Configs\\0000000\\config\\4000000\\controller_xboxone.vdf"
+	"export_type"		"personal_local"
+	"controller_type"		"controller_xboxone"
+	"actions"
+	{
+		"InGame"
+		{
+			"title"		"#Set_InGame"
+			"legacy_set"		"0"
+			"StickPadGyro"
+			{
+				"Move"
+				{
+					"title"		"#Action_Move"
+					"input_mode"		"joystick_move"
+				}
+				"Camera"
+				{
+					"title"		"#Action_Camera"
+					"input_mode"		"absolute_mouse"
+				}
+			}
+			"AnalogTrigger"
+			{
+				"Throttle"		"#Action_Throttle"
+			}
+			"Button"
+			{
+				"jump"		"#Action_Jump"
+				"interact"		"#Action_Interact"
+				"open_map"		"#Action_OpenMap"
+				"pause_menu"		"#Action_Pause"
+			}
+		}
+		"Menu"
+		{
+			"title"		"#Set_Menu"
+			"legacy_set"		"0"
+			"Button"
+			{
+				"menu_select"		"#Action_MenuSelect"
+				"menu_back"		"#Action_MenuBack"
+			}
+		}
+	}
+	"action_layers"
+	{
+		"Driving"
+		{
+			"title"		"#Layer_Driving"
+			"legacy_set"		"0"
+			"set_layer"		"1"
+			"parent_set_name"		"InGame"
+		}
+	}
+	"localization"
+	{
+		"english"
+		{
+			"Set_InGame"		"On foot"
+			"Set_Menu"		"Menus"
+			"Layer_Driving"		"Driving"
+			"Action_Move"		"Move"
+			"Action_Camera"		"Look around"
+			"Action_Throttle"		"Accelerate"
+			"Action_Jump"		"Jump"
+			"Action_Interact"		"Interact"
+			"Action_OpenMap"		"Open map"
+			"Action_Pause"		"Pause"
+			"Action_MenuSelect"		"Select"
+			"Action_MenuBack"		"Back"
+		}
+	}
+	"group"
+	{
+		"id"		"0"
+		"mode"		"four_buttons"
+		"name"		""
+		"description"		""
+		"inputs"
+		{
+			"button_a"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame jump, , "
+						}
+					}
+				}
+			}
+			"button_x"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame interact, , "
+						}
+					}
+					"Double_Press"
+					{
+						"bindings"
+						{
+							"binding"		"controller_action CHANGE_PRESET 2 1 1, Menus, "
+						}
+					}
+				}
+			}
+			"button_y"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"controller_action hold_layer 3 0 0, , "
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"1"
+		"mode"		"joystick_move"
+		"inputs"
+		{
+		}
+		"gameactions"
+		{
+			"InGame"		"Move"
+		}
+	}
+	"group"
+	{
+		"id"		"2"
+		"mode"		"absolute_mouse"
+		"inputs"
+		{
+		}
+		"gameactions"
+		{
+			"InGame"		"Camera"
+		}
+	}
+	"group"
+	{
+		"id"		"3"
+		"mode"		"switches"
+		"inputs"
+		{
+			"button_escape"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame pause_menu, , "
+						}
+					}
+				}
+			}
+			"button_menu"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action InGame open_map, , "
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"4"
+		"mode"		"four_buttons"
+		"inputs"
+		{
+			"button_a"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menu menu_select, , "
+						}
+					}
+				}
+			}
+			"button_b"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"game_action Menu menu_back, , "
+						}
+					}
+				}
+			}
+		}
+	}
+	"group"
+	{
+		"id"		"5"
+		"mode"		"trigger"
+		"inputs"
+		{
+		}
+		"gameactions"
+		{
+			"InGame"		"Throttle"
+		}
+	}
+	"group"
+	{
+		"id"		"6"
+		"mode"		"four_buttons"
+		"inputs"
+		{
+			"button_a"
+			{
+				"activators"
+				{
+					"Full_Press"
+					{
+						"bindings"
+						{
+							"binding"		"xinput_button A, Handbrake, "
+						}
+					}
+				}
+			}
+		}
+	}
+	"preset"
+	{
+		"id"		"0"
+		"name"		"InGame"
+		"group_source_bindings"
+		{
+			"0"		"button_diamond active"
+			"1"		"joystick active"
+			"2"		"right_joystick active"
+			"3"		"switch active"
+		}
+	}
+	"preset"
+	{
+		"id"		"1"
+		"name"		"Menu"
+		"group_source_bindings"
+		{
+			"4"		"button_diamond active"
+		}
+	}
+	"preset"
+	{
+		"id"		"2"
+		"name"		"Driving"
+		"group_source_bindings"
+		{
+			"6"		"button_diamond active"
+			"5"		"right_trigger active"
+		}
+	}
+	"settings"
+	{
+	}
+}

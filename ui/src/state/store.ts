@@ -15,6 +15,8 @@ export type Route =
   | { name: 'constellation' }
   | { name: 'assistant' }
   | { name: 'storage' }
+  /** Track Q: the library health check. */
+  | { name: 'health' }
   | { name: 'settings'; section?: string };
 
 export interface Toast {

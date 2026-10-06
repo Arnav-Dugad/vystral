@@ -23,6 +23,7 @@ import { RECAP_DEFAULT_SETTINGS, recapPreviewHandlers } from './preview.recap';
 import { TRACK_L_DEFAULT_SETTINGS, immersivePreviewHandlers } from './preview.immersive';
 import { TRACK_P_DEFAULT_SETTINGS, previewFriendsOn, trackPPreviewHandlers } from './preview.trackP';
 import type { SteamApiStatus } from './types';
+import { healthPreviewHandlers } from './preview.health';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -470,6 +471,8 @@ export function createPreviewBackend() {
     ...immersivePreviewHandlers(),
     // Track P: friends playing now (?friends, ?friendsPrivate), update-space forecast (?diskTight; also overrides system.drives then).
     ...trackPPreviewHandlers({ lib, settings: () => settings, steamStatus: () => handlers['steam.status']({}) as SteamApiStatus }),
+    // Track Q: library health check (?health = many issues; healthy by default), Steam Input layouts (?controls).
+    ...healthPreviewHandlers({ lib, emit: () => emit, timers }),
   };
 
   return {

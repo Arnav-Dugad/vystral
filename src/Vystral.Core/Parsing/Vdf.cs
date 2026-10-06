@@ -50,19 +50,22 @@ public static class Vdf
 {
     public const int MaxDepth = 64;
 
-    public static VdfNode Parse(string text)
+    public static VdfNode Parse(string text) => Parse(text, MaxDepth);
+
+    /// <summary>Parses with a tighter nesting limit (Track Q: untrusted Steam Input configs use 24).</summary>
+    public static VdfNode Parse(string text, int maxDepth)
     {
         var root = new VdfNode(null);
         var reader = new Tokenizer(text);
-        ParseObject(reader, root, depth: 0, topLevel: true);
+        ParseObject(reader, root, depth: 0, topLevel: true, Math.Clamp(maxDepth, 1, MaxDepth));
         return root;
     }
 
     public static VdfNode ParseFile(string path) => Parse(File.ReadAllText(path, Encoding.UTF8));
 
-    private static void ParseObject(Tokenizer reader, VdfNode target, int depth, bool topLevel)
+    private static void ParseObject(Tokenizer reader, VdfNode target, int depth, bool topLevel, int maxDepth)
     {
-        if (depth > MaxDepth) throw new FormatException("VDF nesting too deep.");
+        if (depth > maxDepth) throw new FormatException("VDF nesting too deep.");
         while (true)
         {
             var token = reader.Next();
@@ -84,7 +87,7 @@ public static class Vdf
             if (next.Kind == TokenKind.OpenBrace)
             {
                 var child = new VdfNode(null);
-                ParseObject(reader, child, depth + 1, topLevel: false);
+                ParseObject(reader, child, depth + 1, topLevel: false, maxDepth);
                 target.Add(key, child);
             }
             else if (next.Kind == TokenKind.String)

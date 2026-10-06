@@ -111,6 +111,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterRecapHandlers();          // AppBackend.Recap.cs: away card, time to beat, anti-cheat notes, value forecast, session replay
         RegisterImmersiveHandlers();      // AppBackend.Immersive.cs: Immersive system bar (battery, network, controller batteries)
         RegisterTrackPHandlers();         // AppBackend.TrackP.cs: friends playing now (opt-in), update-space forecast
+        RegisterHealthHandlers();         // AppBackend.Health.cs: library health check, per-game Steam Input layouts (Track Q)
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

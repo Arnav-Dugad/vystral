@@ -885,3 +885,13 @@ export interface BridgeEvents {
 }
 
 export type * from './types.trackP';
+
+// ---------- Track Q: library health check, per-game Steam Input layouts (types in ./types.health, ./types.controls) ----------
+
+export interface BridgeEvents {
+  /** "Fix all safe issues" progress. */
+  'health.progress': import('./types.health').HealthProgress;
+}
+
+export type * from './types.health';
+export type * from './types.controls';
