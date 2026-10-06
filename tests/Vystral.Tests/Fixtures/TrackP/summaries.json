@@ -1,0 +1,9 @@
+{"response":{"players":[
+ {"steamid":"76561197960287931","communityvisibilitystate":3,"personaname":"Nova‮\u0007 Star","avatarmedium":"https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg","personastate":1,"gameid":"620","gameextrainfo":"Portal 2","lastlogoff":1700000000},
+ {"steamid":"76561197960287932","communityvisibilitystate":3,"personaname":"Quill","avatarmedium":"https://evil.example/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg","personastate":3},
+ {"steamid":"76561197960287934","communityvisibilitystate":1,"personaname":"","avatarmedium":"http://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg","personastate":0,"lastlogoff":1699990000},
+ {"steamid":"76561197960287935","personaname":"Modder","personastate":6,"gameid":"12345678901234567890","gameextrainfo":"Custom Mod"},
+ {"steamid":"76561197960287936","personaname":"Shortcut","personastate":2,"gameid":"9876543210123"},
+ {"steamid":"bad","personaname":"x","personastate":1},
+ {"steamid":"76561197960287937","personaname":"Odd","personastate":42}
+]}}

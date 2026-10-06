@@ -23,13 +23,15 @@ public sealed partial class AppBackend
     private SteamAccountService _steamAccount = null!;
     private InstallWatcher _installs = null!;
     private int _steamScanQueued;
+    private SteamApiKeyStore _steamKeys = null!;
+    private SteamWebApiClient _steamApi = null!;
 
     public SteamAccountService SteamAccount => _steamAccount;
 
     private void RegisterSteamAccountHandlers()
     {
-        var keys = new SteamApiKeyStore(new WindowsCredentialStore());
-        var api = new SteamWebApiClient(_http, keys.Get);
+        var keys = _steamKeys = new SteamApiKeyStore(new WindowsCredentialStore());
+        var api = _steamApi = new SteamWebApiClient(_http, keys.Get); // shared with Track P's friends card (one rate-limited lane)
         _steamAccount = new SteamAccountService(keys, api, Repository, Settings, Artwork, _steam.FindSteamPath, _events)
         {
             IsGameActive = () => IsGameActive,

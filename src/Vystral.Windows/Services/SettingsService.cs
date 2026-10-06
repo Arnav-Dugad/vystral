@@ -120,6 +120,9 @@ public sealed class SettingsService
         new BoolDef("immersive.tourDone", false),
         // Track S: the docked on-screen keyboard for text fields when desktop mode is driven by a controller.
         new BoolDef("controller.onScreenKeyboard", true),
+        // Track P: friends playing now on Home (opt-in, reads friends' public Steam status), low-disk-space-for-updates notifications.
+        new BoolDef("home.friendsActivity", false),
+        new BoolDef("notifications.diskSpace", true),
     ];
 
     private readonly LibraryRepository _repo;

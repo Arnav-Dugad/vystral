@@ -17,6 +17,7 @@ const KEY_RE = /^[0-9a-fA-F]{32}$/;
 export function SteamWebApiSettings() {
   const localOnly = useStore((s) => s.settings?.['privacy.localOnly'] ?? false);
   const background = useStore((s) => s.settings?.['steam.webApi.backgroundAchievements'] ?? true);
+  const friends = useStore((s) => s.settings?.['home.friendsActivity'] ?? false); // Track P
   const setSetting = useStore((s) => s.setSetting);
   const toast = useStore((s) => s.toast);
   const [status, setStatus] = useState<SteamApiStatus | null>(null);
@@ -140,6 +141,12 @@ export function SteamWebApiSettings() {
               label="Refresh achievements in the background"
               hint="After a sync, slowly refreshes achievements for games you’ve played (at most once every six hours each, paused while you play)."
               control={<Toggle id="steamapi-bg" label="Refresh achievements in the background" checked={background} disabled={localOnly} onChange={(v) => void setSetting('steam.webApi.backgroundAchievements', v)} />}
+            />
+            <Row
+              id="steamapi-friends"
+              label="Friends playing now on Home"
+              hint="Shows which of your Steam friends are online and what they’re playing. VYSTRAL reads your friends list and their public profile status from Steam every few minutes while Home is open — only what anyone can see on their Steam profiles. Your friends list must be public in Steam’s privacy settings. Nothing is stored or shared."
+              control={<Toggle id="steamapi-friends" label="Friends playing now on Home" checked={friends} disabled={localOnly} onChange={(v) => void setSetting('home.friendsActivity', v)} />}
             />
           </>
         )}

@@ -869,3 +869,19 @@ export interface Settings {
   /** A controller user activating a text field in desktop mode gets the docked on-screen keyboard. */
   'controller.onScreenKeyboard': boolean;
 }
+
+// ---------- Track P: friends playing now (opt-in), update-space forecast (types in types.trackP.ts) ----------
+
+export interface Settings {
+  /** "Friends playing now" on Home: reads your friends' public Steam status with your own key. Off by default. */
+  'home.friendsActivity': boolean;
+  /** Windows notification when a pending Steam update won't fit (or leaves a drive nearly full). */
+  'notifications.diskSpace': boolean;
+}
+
+export interface BridgeEvents {
+  /** The update-space forecast changed (pushed by the native manifest watcher). */
+  'disk.forecast': import('./types.trackP').DiskForecast;
+}
+
+export type * from './types.trackP';

@@ -25,7 +25,7 @@ public sealed partial class NotificationPolicy(Func<string, bool> setting, Func<
 
     public IReadOnlyList<NotificationRequest> Evaluate(string eventName, JsonElement payload, bool foreground)
     {
-        if (eventName is not ("launch.state" or "update.state" or "install.progress" or "achievements.unlocked")) return [];
+        if (eventName is not ("launch.state" or "update.state" or "install.progress" or "achievements.unlocked" or "disk.forecast")) return [];
         if (payload.ValueKind != JsonValueKind.Object || !setting(Enabled)) return [];
         if (foreground && setting(OnlyInBackground)) return [];
 
@@ -38,6 +38,7 @@ public sealed partial class NotificationPolicy(Func<string, bool> setting, Func<
                 case "update.state": FromUpdate(payload, list); break;
                 case "install.progress": FromInstall(payload, list); break;
                 case "achievements.unlocked": FromAchievements(payload, list); break;
+                case "disk.forecast": FromDiskForecast(payload, list); break; // Track P
             }
         }
         catch (Exception ex) when (ex is InvalidOperationException or JsonException or FormatException)

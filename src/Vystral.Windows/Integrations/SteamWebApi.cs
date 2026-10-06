@@ -39,7 +39,7 @@ public sealed record PlayerAchievement(string ApiName, bool Achieved, DateTimeOf
 /// all requests for the Retry-After period (or one minute). The key is supplied per call by
 /// a delegate so it's read from Credential Manager only when needed.
 /// </summary>
-public sealed class SteamWebApiClient(HttpClient http, Func<string?> apiKey)
+public sealed partial class SteamWebApiClient(HttpClient http, Func<string?> apiKey)
 {
     public const string Host = "api.steampowered.com";
     public static readonly TimeSpan MinSpacing = TimeSpan.FromMilliseconds(1100);
