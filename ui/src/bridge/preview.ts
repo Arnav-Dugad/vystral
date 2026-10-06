@@ -20,6 +20,7 @@ import { TRACKING_DEFAULT_SETTINGS, decorateTrackingSessions, trackingPreviewHan
 import { artPackPreviewHandlers } from './preview.artPacks';
 import type { DataSourcesStatus, UserArt } from './types';
 import { RECAP_DEFAULT_SETTINGS, recapPreviewHandlers } from './preview.recap';
+import { TRACK_L_DEFAULT_SETTINGS, immersivePreviewHandlers } from './preview.immersive';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -65,6 +66,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...DATA_SOURCE_DEFAULT_SETTINGS,
   ...TRACKING_DEFAULT_SETTINGS,
   ...RECAP_DEFAULT_SETTINGS,
+  ...TRACK_L_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -459,6 +461,8 @@ export function createPreviewBackend() {
     // Track M: away card (?away), time to beat (?ttb), anti-cheat notes (?antiCheat), forecast (?saleOn), session replay.
     ...recap,
     'launch.preflightResult': (p: { ticket: string }) => recap.__decoratePreflight(insight['launch.preflightResult'](p)),
+    // Track L: Immersive system bar (a fictional laptop on Wi-Fi with one wireless controller).
+    ...immersivePreviewHandlers(),
   };
 
   return {

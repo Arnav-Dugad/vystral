@@ -113,6 +113,11 @@ public sealed class SettingsService
         // Track M: anti-cheat notes before launch and on game pages; IGDB time-to-beat bars on library cards.
         new BoolDef("launch.antiCheatNotes", true),
         new BoolDef("library.timeToBeat", true),
+        // Track L: Immersive Mode — the cinematic mode switch, couch text scale and TV safe area, the one-time tour.
+        new BoolDef("immersive.cinematicSwitch", true),
+        new NumberDef("immersive.scale", 1, 1, 1.3),
+        new NumberDef("immersive.safeArea", 0, 0, 0.06),
+        new BoolDef("immersive.tourDone", false),
     ];
 
     private readonly LibraryRepository _repo;

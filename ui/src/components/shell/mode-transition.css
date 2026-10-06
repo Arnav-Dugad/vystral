@@ -1,0 +1,116 @@
+/* ===== Desktop ↔ Immersive switch (Track L) =====
+   The overlay (components/shell/ModeTransition.tsx) covers the window while the native presenter
+   changes. The layouts themselves fold away / rise in from root attributes:
+   data-mode-switch = out | hold | in, data-mode-switch-to = desktop | immersive,
+   data-mode-switch-kind = cinematic | fade. Only transform and opacity animate. */
+
+:root {
+  /* Spring-like easings as CSS linear() curves (soft ≈2% overshoot, pop ≈4.5%). */
+  --mt-spring: linear(0, 0.087 5%, 0.269 10%, 0.47 15%, 0.647 20%, 0.787 25%, 0.887 30%, 0.952 35%, 0.991 40%, 1.011 45%, 1.019 50%, 1.02 55%, 1.017 60%, 1.013 65%, 1.009 70%, 1.006 75%, 1.003 80%, 1.002 85%, 1.001 90%, 1 95%, 1);
+  --mt-pop: linear(0, 0.134 5%, 0.396 10%, 0.652 15%, 0.844 20%, 0.964 25%, 1.025 30%, 1.045 35%, 1.043 40%, 1.032 45%, 1.02 50%, 1.01 55%, 1.003 60%, 1 65%, 0.998 70%, 0.998 75%, 0.998 80%, 0.999 85%, 0.999 90%, 1 95%, 1);
+  --mt-in: cubic-bezier(0.55, 0, 0.75, 0.3);
+}
+
+.mt { position: fixed; inset: 0; z-index: 150; pointer-events: none; overflow: hidden; contain: strict; }
+.mt--fade { background: #07070b; }
+.mt__veil { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 45%, #0d0c16 0%, #07070b 70%); }
+.mt__art { position: absolute; inset: 0; overflow: hidden; transform-origin: 50% 50%; will-change: transform, opacity; }
+.mt__art .cover { height: 100%; }
+.mt__art .cover__img, .mt__art .cover > * { width: 100%; height: 100%; object-fit: cover; }
+.mt__art-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(70% 60% at 50% 50%, transparent 0%, oklch(0.06 0.01 282 / 0.35) 70%, oklch(0.05 0.01 282 / 0.75) 100%),
+    linear-gradient(180deg, oklch(0.06 0.01 282 / 0.15), oklch(0.06 0.01 282 / 0.45));
+}
+.mt[data-target='immersive'][data-phase='in'] .mt__art-scrim {
+  /* Fades into Immersive's own scrim, so the handover to its backdrop is seamless. */
+  background:
+    linear-gradient(90deg, oklch(0.07 0.012 282 / 0.9) 0%, oklch(0.07 0.012 282 / 0.55) 42%, oklch(0.07 0.012 282 / 0.15) 78%),
+    linear-gradient(0deg, oklch(0.06 0.01 282 / 0.95) 30%, oklch(0.06 0.01 282 / 0.3) 62%, oklch(0.06 0.01 282 / 0.5) 100%);
+  transition: background 300ms var(--ease-out);
+}
+.mt__vignette { position: absolute; inset: 0; background: radial-gradient(130% 100% at 50% 50%, transparent 55%, oklch(0 0 0 / 0.55) 100%); }
+
+/* The light sweep: a soft diagonal band crossing the art once. */
+.mt__sweep {
+  position: absolute;
+  inset: -20% -60%;
+  background: linear-gradient(105deg, transparent 38%, oklch(0.98 0.03 290 / 0.08) 45%, oklch(1 0.02 285 / 0.32) 50%, oklch(0.98 0.03 260 / 0.08) 55%, transparent 62%);
+  mix-blend-mode: plus-lighter;
+  transform: translate3d(-60%, 0, 0);
+  animation: mt-sweep 620ms 90ms cubic-bezier(0.45, 0, 0.2, 1) both;
+}
+@keyframes mt-sweep {
+  0% { transform: translate3d(-60%, 0, 0); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate3d(60%, 0, 0); opacity: 0.2; }
+}
+
+/* The VYSTRAL star, a ring burst behind it, then a flight into the new layout's mark. */
+.mt__star { position: absolute; left: 50%; top: 50%; will-change: transform, opacity; }
+.mt__star-svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 18px oklch(0.8 0.14 292 / 0.75)); }
+/* While Windows finishes resizing, the star breathes so a slow resize never looks frozen. */
+.mt[data-phase='commit'] .mt__star-svg { animation: mt-breathe 900ms ease-in-out infinite alternate; }
+@keyframes mt-breathe { to { transform: scale(1.1); filter: drop-shadow(0 0 30px oklch(0.85 0.14 292 / 0.9)); } }
+.mt__burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 180px;
+  height: 180px;
+  margin: -90px 0 0 -90px;
+  border-radius: 50%;
+  border: 2px solid oklch(0.88 0.08 292 / 0.9);
+  box-shadow: 0 0 40px oklch(0.75 0.16 292 / 0.6), inset 0 0 30px oklch(0.8 0.12 270 / 0.45);
+  opacity: 0;
+  animation: mt-burst 560ms 200ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes mt-burst {
+  0% { transform: scale(0.2); opacity: 0; }
+  25% { opacity: 0.95; }
+  100% { transform: scale(3.4); opacity: 0; }
+}
+
+/* ----- The leaving layout folds away (cinematic only). ----- */
+:root[data-mode-switch='out'][data-mode-switch-kind='cinematic'] .titlebar { animation: mt-fold-up 300ms var(--mt-in) both; }
+:root[data-mode-switch='out'][data-mode-switch-kind='cinematic'] .sidebar { animation: mt-fold-left 340ms var(--mt-in) both; }
+:root[data-mode-switch='out'][data-mode-switch-kind='cinematic'] .main { animation: mt-recede 380ms var(--mt-in) both; transform-origin: 50% 45%; }
+:root[data-mode-switch='out'][data-mode-switch-kind='cinematic'] .imm__top { animation: mt-fold-up 300ms var(--mt-in) both; }
+:root[data-mode-switch='out'][data-mode-switch-kind='cinematic'] .imm__info { animation: mt-fold-left 320ms var(--mt-in) both; }
+:root[data-mode-switch='out'][data-mode-switch-kind='cinematic'] .imm__rows { animation: mt-sink 360ms var(--mt-in) both; }
+:root[data-mode-switch='out'][data-mode-switch-kind='cinematic'] .imm__hints { animation: mt-fold-down 300ms var(--mt-in) both; }
+
+@keyframes mt-fold-up { to { transform: translate3d(0, -110%, 0); opacity: 0; } }
+@keyframes mt-fold-down { to { transform: translate3d(0, 110%, 0); opacity: 0; } }
+@keyframes mt-fold-left { to { transform: translate3d(-48px, 0, 0); opacity: 0; } }
+@keyframes mt-recede { to { transform: scale(0.94); opacity: 0; } }
+@keyframes mt-sink { to { transform: translate3d(0, 3.5rem, 0); opacity: 0; } }
+
+/* ----- The arriving layout: held on its first frame while Windows resizes, then rises in. ----- */
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .imm__top { animation: mt-from-above 520ms 40ms var(--mt-spring) both; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .imm__info { animation: mt-from-left 560ms 90ms var(--mt-spring) both; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .imm__row { animation: mt-rise 600ms var(--mt-pop) both; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .imm__row:nth-child(1) { animation-delay: 130ms; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .imm__row:nth-child(2) { animation-delay: 190ms; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .imm__row:nth-child(3) { animation-delay: 250ms; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .imm__row:nth-child(n + 4) { animation-delay: 300ms; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .imm__hints { animation: mt-from-below 480ms 220ms var(--mt-spring) both; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .imm__ring { animation: mt-fade-in 260ms 380ms var(--ease-out) both; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .titlebar { animation: mt-from-above 480ms 60ms var(--mt-spring) both; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .sidebar { animation: mt-from-left 520ms 110ms var(--mt-spring) both; }
+:root:is([data-mode-switch='hold'], [data-mode-switch='in'])[data-mode-switch-kind='cinematic'] .main { animation: mt-come-forward 560ms 20ms var(--mt-spring) both; transform-origin: 50% 45%; }
+/* While Windows finishes resizing, the new layout waits on its first frame under the overlay. */
+:root[data-mode-switch='hold'] :is(.imm__top, .imm__info, .imm__row, .imm__hints, .imm__ring, .titlebar, .sidebar, .main) { animation-play-state: paused !important; }
+
+@keyframes mt-from-above { from { transform: translate3d(0, -100%, 0); opacity: 0; } }
+@keyframes mt-from-below { from { transform: translate3d(0, 100%, 0); opacity: 0; } }
+@keyframes mt-from-left { from { transform: translate3d(-2.6rem, 0, 0); opacity: 0; } }
+@keyframes mt-rise { from { transform: translate3d(0, 4.5rem, 0) scale(0.97); opacity: 0; } }
+@keyframes mt-come-forward { from { transform: scale(0.955); opacity: 0; } }
+@keyframes mt-fade-in { from { opacity: 0; } }
+
+/* Low quality: no light sweep or burst (the zoom, star and fold still play). */
+:root[data-quality='low'] .mt__sweep, :root[data-quality='low'] .mt__burst { display: none; }
+:root[data-theme='contrast'] .mt__sweep, :root[data-theme='contrast'] .mt__burst { display: none; }

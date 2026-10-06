@@ -113,9 +113,12 @@ export function useHoldToConfirm({ onConfirm, holdFor = 'all', durationMs = HOLD
     const offRelease = on('gamepad.button', ({ button, pressed }) => {
       if (button === 'A' && !pressed) release();
     });
+    // A controller disconnecting mid-hold never sends the release: treat it as one.
+    const offConnection = on('gamepad.connection', () => release());
     return () => {
       offPress();
       offRelease();
+      offConnection();
     };
   }, [focused, disabled, start, release]);
 

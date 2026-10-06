@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { call, on } from '../../bridge/bridge';
-import type { Game, MediaItem } from '../../bridge/types';
+import type { AchievementFeed, AchievementFeedItem, Game, LiveTileInfo, MediaItem } from '../../bridge/types';
+import { useLiveBlock } from '../../components/game/LiveTile';
+import { formatPercent } from '../../lib/achievements';
+import { shimmerTier } from '../../lib/shimmer';
+import '../../components/ui/shimmer.css';
+import { highlightAchievements } from './attractSlides';
 import { formatRelative, isInstalled, lastPlayed } from '../../lib/format';
 import { pushPadHandler } from '../../lib/input';
 import { ease } from '../../lib/motion';
@@ -15,7 +20,10 @@ interface Slide {
   imageUrl: string | null;
   caption: string;
   sub: string;
+  /** Track L: an achievement highlight (a rare unlock of yours) instead of plain art. */
+  achievement?: AchievementFeedItem;
 }
+
 
 const SLIDE_MS = 9000;
 
@@ -33,6 +41,8 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
   const idleMinutes = import.meta.env.DEV && location.search.includes('attractTest') ? 0.05 : settings?.['immersive.attractMinutes'] ?? 3;
   const [index, setIndex] = useState(0);
   const [shots, setShots] = useState<MediaItem[]>([]);
+  const [highlights, setHighlights] = useState<AchievementFeedItem[]>([]);
+  const liveBlock = useLiveBlock();
   const lastInput = useRef(Date.now());
 
   // Idle detection: any input resets the timer; a slow poll decides when to start.
@@ -94,6 +104,26 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
     };
   }, [active, onActiveChange]);
 
+  // Switching to desktop mode (from anywhere: hotkey, native) ends it too.
+  useEffect(() => {
+    if (!active) return;
+    const end = () => onActiveChange(false);
+    addEventListener('vystral:mode-switch', end);
+    return () => removeEventListener('vystral:mode-switch', end);
+  }, [active, onActiveChange]);
+
+  // Track L: your rare achievements become highlight slides (when the Steam Web API is set up).
+  useEffect(() => {
+    if (!active) return;
+    let alive = true;
+    call<AchievementFeed>('achievements.feed', { offset: 0, limit: 40 })
+      .then((f) => alive && f?.status === 'ok' && setHighlights(highlightAchievements(f.items)))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [active]);
+
   // A game starting always ends the screensaver.
   useEffect(() => {
     if (running && active) onActiveChange(false);
@@ -131,17 +161,27 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
       caption: s.gameId ? byId.get(s.gameId)?.title ?? 'Your moment' : 'Your moment',
       sub: `Captured ${formatRelative(s.modifiedAt)}`,
     }));
-    // Interleave: two games, then one of the user's screenshots.
+    const achSlides: Slide[] = highlights.map((a) => ({
+      key: `a-${a.appId}-${a.apiName}`,
+      game: a.gameId ? byId.get(a.gameId) ?? null : null,
+      imageUrl: null,
+      caption: a.name,
+      sub: `${a.gameTitle} · ${a.globalPercent != null ? `${formatPercent(a.globalPercent)} of players` : 'Rare'} · ${formatRelative(a.unlockedAt)}`,
+      achievement: a,
+    }));
+    // Interleave: two games, then one of the user's screenshots, then a highlight now and then.
     const out: Slide[] = [];
     let gi = 0;
     let si = 0;
-    while (gi < gameSlides.length || si < shotSlides.length) {
+    let ai = 0;
+    while (gi < gameSlides.length || si < shotSlides.length || ai < achSlides.length) {
       if (gi < gameSlides.length) out.push(gameSlides[gi++]);
       if (gi < gameSlides.length) out.push(gameSlides[gi++]);
       if (si < shotSlides.length) out.push(shotSlides[si++]);
+      if (ai < achSlides.length) out.push(achSlides[ai++]);
     }
     return out;
-  }, [games, shots]);
+  }, [games, shots, highlights]);
 
   useEffect(() => {
     if (!active || slides.length < 2) return;
@@ -185,6 +225,7 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
               >
                 {slide.imageUrl ? <img src={slide.imageUrl} alt="" /> : slide.game ? <GameCover game={slide.game} kind="hero" eager /> : null}
               </motion.div>
+              {!slide.imageUrl && !slide.achievement && slide.game && !liveBlock && <AttractLoop game={slide.game} />}
             </motion.div>
           </AnimatePresence>
           <div className="attract__scrim" />
@@ -197,7 +238,17 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.9, ease: ease.out, delay: 0.5 }}
             >
-              {slide.game?.art.logo && !slide.imageUrl ? (
+              {slide.achievement ? (
+                <div className="attract__ach">
+                  <span className="attract__ach-icon shimmer" data-tier={shimmerTier(slide.achievement.globalPercent)}>
+                    {slide.achievement.icon ? <img src={slide.achievement.icon} alt="" /> : <span aria-hidden>★</span>}
+                  </span>
+                  <span>
+                    <span className="attract__ach-kicker">{shimmerTier(slide.achievement.globalPercent) === 'ultra' ? 'Ultra-rare achievement' : 'Rare achievement'}</span>
+                    <span className="attract__title">{slide.caption}</span>
+                  </span>
+                </div>
+              ) : slide.game?.art.logo && !slide.imageUrl ? (
                 <img className="attract__logo" src={slide.game.art.logo} alt={slide.caption} />
               ) : (
                 <div className="attract__title">{slide.caption}</div>
@@ -205,6 +256,7 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
               <div className="attract__sub">{slide.sub}</div>
             </motion.div>
           </AnimatePresence>
+          {slides.length > 1 && <div key={`p-${index}`} className="attract__progress" style={{ animationDuration: `${SLIDE_MS}ms` }} />}
           <AttractClock />
           <div className="attract__wake">Press any button</div>
         </motion.div>
@@ -224,5 +276,40 @@ function AttractClock() {
       <span className="num">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
       <span>{now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</span>
     </div>
+  );
+}
+
+/** The slide's silent micro-trailer (same rules as Home's live tiles), fading in over the still art. */
+function AttractLoop({ game }: { game: Game }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!game.installations.some((i) => i.platform === 'steam')) return;
+    let alive = true;
+    const t = window.setTimeout(() => {
+      call<LiveTileInfo>('liveTile.get', { gameId: game.id }, 120_000)
+        .then((i) => alive && i.src && setSrc(i.src))
+        .catch(() => {});
+    }, 1200);
+    return () => {
+      alive = false;
+      window.clearTimeout(t);
+    };
+  }, [game]);
+  if (!src) return null;
+  return (
+    <video
+      className="attract__loop"
+      data-shown={shown || undefined}
+      src={src}
+      muted
+      loop
+      playsInline
+      autoPlay
+      disablePictureInPicture
+      tabIndex={-1}
+      onPlaying={() => setShown(true)}
+      onError={() => setSrc(null)}
+    />
   );
 }

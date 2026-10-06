@@ -81,7 +81,18 @@ interface State {
   markNotificationsRead(): void;
   clearNotification(id: number): void;
   clearNotifications(): void;
-  setMode(mode: 'desktop' | 'immersive'): Promise<void>;
+  /** `instant` skips the Track L transition (used by the transition itself for its commit). */
+  setMode(mode: 'desktop' | 'immersive', opts?: { instant?: boolean }): Promise<void>;
+}
+
+/** Track L: plays the desktop ↔ Immersive transition around `commit` (registered by ModeTransition). */
+type ModeSwitcher = (mode: 'desktop' | 'immersive', commit: () => Promise<void>) => Promise<void>;
+let modeSwitcher: ModeSwitcher | null = null;
+export function registerModeSwitcher(fn: ModeSwitcher): () => void {
+  modeSwitcher = fn;
+  return () => {
+    if (modeSwitcher === fn) modeSwitcher = null;
+  };
 }
 
 const EMPTY_LIBRARY: LibrarySnapshot = { games: [], collections: [], duplicateSuggestions: [], lastScan: null };
@@ -333,7 +344,9 @@ export const useStore = create<State>((set, get) => ({
     set({ notifications: [] });
   },
 
-  async setMode(mode) {
+  async setMode(mode, opts) {
+    // Track L: the signature desktop ↔ Immersive transition wraps the switch (components/shell/ModeTransition.tsx).
+    if (!opts?.instant && modeSwitcher && get().window.mode !== mode) return modeSwitcher(mode, () => get().setMode(mode, { instant: true }));
     try {
       const w = await call<WindowState>('window.setMode', { mode });
       set({ window: w });

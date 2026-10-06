@@ -40,6 +40,20 @@
 | 17 | Windows build and install verified | See PROGRESS.md for the release verification record |
 | 18 | No paid APIs, subscriptions or infrastructure costs | ✅ GitHub Releases + free public endpoints |
 
+## Immersive Mode (v0.5, Track L)
+
+A console-grade, controller-first layout for the TV and the couch. Requirements:
+
+- **Switching** (F11, the Menu button, the Desktop mode / Open buttons) plays one signature ~0.9 s transition: the chrome folds away, the focused game's art fills the screen, the VYSTRAL star flares, Immersive rises in — and the reverse. It hides the native windowed ↔ full-screen change completely, is skipped by any input, is a quick crossfade under reduced motion (or with *Cinematic mode switch* off), and never plays while a game runs.
+- **Immersive opens where you were**: on the game you were looking at (detail page, focused card or Home hero).
+- **Rows** come from your own library and are ordered by time of day: Continue (with a pinned *Jump back in* slot), Picked for you, Favorites, Recently added, Never played, your collections, Installed, and browse rows by store (official marks) and genre.
+- **Quick actions without leaving the shelf**: hold X or press View for play/install, favourite, play status, store page, achievements and display settings.
+- **Game page** with Overview, Achievements, Sessions and Media tabs, all controller-navigable.
+- **System bar**: what's playing, notifications, controller batteries, network and the PC's battery (read-only Windows APIs), time and date.
+- **Couch mode**: 100–130 % text and a TV overscan safe area, adjustable from the sofa.
+- **Feel**: spatial UI sounds that follow the focus ring (pan), the row (pitch) and the game's mood (timbre); haptic ticks on row changes; a hero stage with live loops and depth parallax; a sparks accent on Play.
+- **Respect**: live loops follow Data saver/Offline/quality rules; effects pause while hidden or in a game; full keyboard, mouse and controller paths; every indicator named for screen readers; reduced motion and High contrast honoured; a short first-run tour that never blocks.
+
 ## Scope by phase
 
 See [PROGRESS.md](PROGRESS.md) for what is complete, partial and planned.
