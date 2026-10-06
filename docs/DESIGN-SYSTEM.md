@@ -69,6 +69,32 @@ Signature moments:
 - **Launch:** hero art expands with a slow Ken Burns drift, an accent flood, and a status line driven by real native phases.
 - **Return:** a session summary toast.
 
+## Immersive Mode
+
+The controller-first, 10-foot layout (`views/Immersive.tsx`, parts in `views/immersive/`). Root type rescales to 18–26 px × the couch scale.
+
+**The mode switch** (`components/shell/ModeTransition.tsx`, rules and phase machine in `lib/modeSwitch.ts`, styles in `mode-transition.css`). One full-window overlay does the visible work, so the native window can change presenter (windowed ↔ full screen) underneath it with no flash or visible resize:
+1. **Out (380 ms).** The leaving layout folds away (title bar up, sidebar left, content recedes to 0.94; or Immersive's rows sink and header/hints slide off), keyed on `html[data-mode-switch="out"]`. The focused game's art zooms from its card (or the Home hero / detail cover) to fill the window with a uniform scale and a 1.035 depth overshoot; a single light sweep crosses it; the VYSTRAL star flares in the centre with a ring burst. The overlay ends fully opaque.
+2. **Commit + settle.** The layouts swap and `window.setMode` runs; the new layout waits on its first frame (`data-mode-switch="hold"`, animations paused) until Windows has finished the resize (size changed, then still for two frames; ≤320 ms) and it has mounted. The star breathes meanwhile.
+3. **In (500 ms).** The art settles into Immersive's own backdrop (same game — Immersive opens focused on it) or recedes to 0.88 when returning to the desktop; the star flies into the new layout's mark; the new layout rises in with staggered springs (CSS `linear()` spring curves, rows 60 ms apart).
+- ~900 ms end to end. Any key, click, wheel or controller button skips: before the commit the input is swallowed, after it the input also reaches the new layout. Reduced motion, Safe mode or *Cinematic mode switch* off → a 130 + 170 ms crossfade through near-black (still hides the resize). Instant while a game starts or runs or when the window is hidden; native-initiated switches (start in Immersive, Performance Mode) are instant. Low quality and High contrast drop the sweep and burst.
+
+**Layout and focus.**
+- **Hero stage** (`HeroStage.tsx`): the focused game's art full-bleed with a slow drift; once focus rests 1.4 s on a Steam game its silent micro-trailer fades in (same rules as live tiles: setting, Data saver, Offline, reduced motion, Low quality, safe mode, hidden, game running). Three depth layers (art, palette glow, info) **lean** against each D-pad move and spring back (`parallax.ts`); off under reduced motion.
+- **Rows** (`rows.ts`): *Continue* always first, its first tile the wider pinned **Jump back in** slot; then, by time of day — mornings lean to discovery (Picked, Recently added, Never played), evenings to Favorites and your collections, late nights to the familiar — with browse rows **Your stores** (tiles by logo) and **Genres** last. Browse tiles open the A–Z grid filtered (chip in the header; B returns exactly where you were). Active row headers scale up and draw a palette underline; a `n / total` counter shows position.
+- **Navigation** (`nav.ts`): a pure reducer; focus follows the row *id* (rows appearing/disappearing never move it), columns clamp when a row shrinks, the grid keeps its column, shelves remember theirs. Rows outside ±2/4 of focus are fixed-height placeholders.
+- **Focus ring**: one travelling ring, tinted by the game's palette — a slowly turning two-tone border (accent → second colour) plus the sheen; while auto-repeating (momentum) labels step aside. High contrast: a plain 3 px yellow ring.
+- **Quick menu** (`QuickMenu.tsx`, geometry in `radial.ts`): hold X (≥420 ms; a tap still toggles Favorite) or press View/M. Six petals: Play/Install/Get it, Favorite, Status (a second ring of five statuses + Clear), Display, store page, Achievements. A direction selects the nearest petal; pressing it again walks to the neighbour.
+- **Game page** (`GamePage.tsx`): Overview / Achievements (rarity shimmer on rare and ultra-rare unlocks) / Sessions (last-session ghost + list) / Media (your screenshots, else artwork). LB/RB or Q/E switch tabs; Tab is trapped; arrow keys move focus; B closes; while it animates out it is inert.
+- **System bar** (`SystemBar.tsx`, native `system.status`): now playing, unread notifications, each controller with its battery, Wi-Fi/Ethernet/mobile with signal, PC battery (if any), time and date, Display. Every indicator has a spoken name.
+- **Search**: the on-screen keyboard with fast filters (All / Installed / Favorites / Never played); View cycles them.
+- **Couch mode** (`CouchSheet.tsx`, `lib/couch.ts`): text size 100–130 % and a TV safe area (0–6 % per edge, corner guides while adjusting); also in Settings › Controller & sound.
+- **Tour** (`Tour.tsx`): four non-blocking coach cards that advance as you do each thing (move, sections, quick actions, search/open); once; B or Skip ends it.
+- **Play accent** (`PlayBurst.ts`): a bloom and 16 sparks from the Play button before the launch portal; none under reduced motion, Low quality, Performance Mode or High contrast.
+- **Attract mode**: Ken Burns slides of your games and screenshots, live loops on game slides (live-tile rules), highlight slides for your rare achievements (≤10 %), and a slide progress hairline.
+
+**Sound.** Spatial UI sounds (`lib/spatialSound.ts`, played by `sound.spatial`): focus moves pan with the ring's centre (−0.8…0.8), step down one scale degree per row of depth (capped at 4), and take the focused game's mood waveform, a brighter version of its low-pass and a soft echo for spacious moods. A row change is a two-note step from the old row's pitch to the new; an edge is a soft low bump. Heard with interface sounds on (no ambient layer needed); never while a game starts or runs. **Haptics**: `tick` on row change and section switch, `edge` at row/list ends, `confirm` on Play.
+
 ## Living Canvas
 
 One WebGL2 fragment shader (`components/shell/LivingCanvas.tsx`):

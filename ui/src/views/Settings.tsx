@@ -23,6 +23,7 @@ import { openWhatsNew } from '../whatsnew/state';
 import { LiveTilesSettings, SoundSettings } from './settings/LiveTilesAndSoundSettings';
 import { DataSourcesSettings } from './settings/DataSourcesSettings';
 import { BackgroundTrackingSettings } from './settings/BackgroundTrackingSettings';
+import { ImmersiveSettings } from './settings/ImmersiveSettings';
 import './settings.css';
 
 interface Section {
@@ -86,7 +87,7 @@ export function SettingsView({ section }: { section?: string }) {
           {active === 'appearance' && <><Appearance s={settings} /><LiveTilesSettings /></>}
           {active === 'library' && <><LibrarySection s={settings} /><SteamWebApiSettings /><DataSourcesSettings /></>}
           {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /></>}
-          {active === 'controller' && <><Controller s={settings} /><SoundSettings /></>}
+          {active === 'controller' && <><Controller s={settings} /><ImmersiveSettings /><SoundSettings /></>}
           {active === 'ai' && <AiSection s={settings} />}
           {active === 'updates' && <Updates s={settings} />}
           {active === 'privacy' && <><Privacy s={settings} /><DataSaverSettings /><NetworkHealthSettings /></>}

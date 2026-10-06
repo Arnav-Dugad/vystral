@@ -40,7 +40,11 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(0.35, all["sound.ambientVolume"]!.GetValue<double>());
         Assert.True(all["dataSources.cheapshark"]!.GetValue<bool>());
         Assert.Equal("US", all["dataSources.priceCountry"]!.GetValue<string>());
-        Assert.Equal(57, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7) + Track H (1)
+        Assert.True(all["immersive.cinematicSwitch"]!.GetValue<bool>());
+        Assert.Equal(1, all["immersive.scale"]!.GetValue<double>());
+        Assert.Equal(0, all["immersive.safeArea"]!.GetValue<double>());
+        Assert.False(all["immersive.tourDone"]!.GetValue<bool>());
+        Assert.Equal(61, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7) + Track H (1) + Track L (4)
     }
 
     [Fact]

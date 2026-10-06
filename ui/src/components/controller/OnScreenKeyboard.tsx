@@ -43,7 +43,14 @@ interface RingRect {
  * - Keyboard and mouse work too: the query field stays focused for typing, keys are clickable,
  *   and predictions are tabbable buttons.
  */
-export function OnScreenKeyboard({ games, onClose, onOpenGame }: { games: Game[]; onClose: () => void; onOpenGame: (game: Game) => void }) {
+/** Track L: fast filters above the results (Immersive: All / Installed / Favorites / Never played). View cycles them. */
+export interface OskFilters {
+  options: { id: string; label: string; count: number }[];
+  value: string;
+  onChange: (id: string) => void;
+}
+
+export function OnScreenKeyboard({ games, onClose, onOpenGame, filters }: { games: Game[]; onClose: () => void; onOpenGame: (game: Game) => void; filters?: OskFilters }) {
   const reduce = useReducedMotion();
   const isPresent = useIsPresent();
   const uid = useId();
@@ -216,7 +223,11 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame }: { games: Game[]
       case 'Menu':
         flash('done');
         return done();
-      case 'View': return clear();
+      case 'View':
+        if (!filters || filters.options.length < 2) return clear();
+        haptic('tick');
+        sound.select();
+        return filters.onChange(filters.options[(filters.options.findIndex((o) => o.id === filters.value) + 1) % filters.options.length].id);
     }
   };
 
@@ -234,6 +245,7 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame }: { games: Game[]
   }, [isPresent]);
 
   const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!isPresent) return;
     const inInput = e.target === inputRef.current;
     if (e.key === 'Escape') {
       e.preventDefault();
@@ -267,6 +279,8 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame }: { games: Game[]
     <motion.div
       className="osk"
       data-dialog-open={isPresent || undefined}
+      // While it animates out it is gone: no key (a quick Enter after Escape) may act on it.
+      inert={!isPresent || undefined}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.18, ease: ease.in } }}
@@ -314,6 +328,27 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame }: { games: Game[]
             <X size="1.15em" aria-hidden />
           </button>
         </div>
+        {filters && filters.options.length > 1 && (
+          <div className="osk__filters" role="radiogroup" aria-label="Show">
+            {filters.options.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                role="radio"
+                aria-checked={o.id === filters.value}
+                className="osk__filter"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  sound.select();
+                  filters.onChange(o.id);
+                }}
+              >
+                {o.label} <span className="osk__filter-count num">{o.count.toLocaleString()}</span>
+              </button>
+            ))}
+            <span className="osk__filter-hint" aria-hidden><PadGlyph button="View" /></span>
+          </div>
+        )}
         <p className="visually-hidden" aria-live="polite">{announce}</p>
 
         <div className="osk__stage" ref={stageRef}>
@@ -423,6 +458,7 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame }: { games: Game[]
           <span><PadGlyph button="LB" /><PadGlyph button="RB" /> Cursor</span>
           <span><PadGlyph button="LT" /> Symbols</span>
           <span><PadGlyph button="RT" /> Results</span>
+          {filters && filters.options.length > 1 && <span><PadGlyph button="View" /> Filter</span>}
           <span><PadGlyph button="Y" /> Close</span>
         </footer>
       </motion.div>

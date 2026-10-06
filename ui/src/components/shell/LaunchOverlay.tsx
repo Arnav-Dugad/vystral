@@ -97,7 +97,7 @@ export function LaunchOverlay() {
     return (
       <AnimatePresence>
         {show && launch && game && (
-          <motion.div className="launch-pill" role="status" aria-live="polite" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={reduce ? { duration: 0.15 } : spring.panel}>
+          <motion.div className="launch-pill" data-dialog-open role="status" aria-live="polite" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={reduce ? { duration: 0.15 } : spring.panel}>
             <StatusIcon launch={launch} />
             <span><strong>{game.title}</strong> — {statusText(launch)}</span>
             {(launch.phase === 'waiting' || launch.phase === 'notDetected') && <Button size="sm" variant="ghost" onClick={stop}>Stop waiting</Button>}
@@ -173,6 +173,7 @@ function PortalShell({ gameId, title, children }: { gameId: string; title: strin
       aria-modal="true"
       aria-label={`Launching ${title}`}
       data-nav-scope="overlay"
+      data-dialog-open
       initial={{ clipPath: `circle(0px at ${origin.x}px ${origin.y}px)` }}
       animate={{ clipPath: `circle(${r}px at ${origin.x}px ${origin.y}px)` }}
       exit={{ opacity: 0, transition: { duration: 0.45, ease: ease.in } }}

@@ -54,9 +54,16 @@ export function startInput() {
     scroller?.scrollBy({ top: value * 38, behavior: 'auto' });
   });
   on('gamepad.connection', ({ count }) => {
+    // A controller came or went: stop any auto-repeat a vanished pad left running.
+    for (const t of held.values()) window.clearTimeout(t);
+    held.clear();
     useStore.getState().toast({ tone: 'info', title: count > 0 ? 'Controller connected' : 'Controller disconnected' });
   });
-  window.addEventListener('mousemove', () => (document.documentElement.dataset.input = 'mouse'), { passive: true });
+  // Zero-movement mousemoves (content moving under a still cursor) aren't the user picking up the mouse.
+  window.addEventListener('mousemove', (e) => {
+    if (e.movementX === 0 && e.movementY === 0) return;
+    document.documentElement.dataset.input = 'mouse';
+  }, { passive: true });
   window.addEventListener('keydown', () => (document.documentElement.dataset.input = 'keyboard'), { passive: true });
 }
 

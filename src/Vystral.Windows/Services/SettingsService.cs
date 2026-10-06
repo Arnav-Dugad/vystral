@@ -110,6 +110,11 @@ public sealed class SettingsService
         new StringDef("dataSources.priceCountry", "US", 2, "^[A-Z]{2}$"),
         // Track H: notice games started outside VYSTRAL, and keep tracking them while it is closed (opt-in).
         new BoolDef("tracking.background", false),
+        // Track L: Immersive Mode — the cinematic mode switch, couch text scale and TV safe area, the one-time tour.
+        new BoolDef("immersive.cinematicSwitch", true),
+        new NumberDef("immersive.scale", 1, 1, 1.3),
+        new NumberDef("immersive.safeArea", 0, 0, 0.06),
+        new BoolDef("immersive.tourDone", false),
     ];
 
     private readonly LibraryRepository _repo;

@@ -32,7 +32,8 @@ public sealed class GamepadBridge : IDisposable
         _timer.Interval = TimeSpan.FromMilliseconds(16);
         _timer.Tick += (_, _) => Poll();
         Gamepad.GamepadAdded += (_, _) => queue.TryEnqueue(() => { Notify(); UpdateTimer(); });
-        Gamepad.GamepadRemoved += (_, _) => queue.TryEnqueue(() => { Notify(); _pressed.Clear(); UpdateTimer(); });
+        // Release whatever was held first, so a controller unplugged mid-hold never leaves input stuck.
+        Gamepad.GamepadRemoved += (_, _) => queue.TryEnqueue(() => { ReleaseAll(); Notify(); _pressed.Clear(); UpdateTimer(); });
     }
 
     public void SetWindowActive(bool active)

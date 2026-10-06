@@ -10,6 +10,7 @@ import { TitleBar } from './components/shell/TitleBar';
 import { Sidebar } from './components/shell/Sidebar';
 import { CommandBar } from './components/shell/CommandBar';
 import { LaunchOverlay } from './components/shell/LaunchOverlay';
+import { ModeTransition } from './components/shell/ModeTransition';
 import { Intro, rememberIntroPreference } from './components/shell/Intro';
 import { UpdateCenterDialog } from './components/shell/UpdateCenter';
 import { WhatsNewHost } from './whatsnew/WhatsNewHost';
@@ -110,6 +111,7 @@ export default function App() {
       )}
       <CommandBar />
       <LaunchOverlay />
+      <ModeTransition />
       <UpdateCenterDialog />
       <WhatsNewHost />
       <NewCollectionDialog />
@@ -268,7 +270,7 @@ function useGlobalKeys() {
       } else if (e.key === 'F5' || (e.ctrlKey && e.key.toLowerCase() === 'r')) {
         e.preventDefault();
         void s.scanLibrary();
-      } else if (e.key === 'Escape' && !typing && !document.querySelector('[data-dialog-open], [data-menu-open]') && s.route.name === 'game') {
+      } else if (e.key === 'Escape' && !typing && !document.querySelector('[data-dialog-open], [data-menu-open]') && s.route.name === 'game' && s.window.mode !== 'immersive') {
         s.goBack();
       }
     };

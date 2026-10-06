@@ -17,6 +17,7 @@ import { updatesPreviewHandlers } from './preview.updates';
 import { TRACK_K_DEFAULT_SETTINGS, trackKPreviewHandlers } from './preview.trackK';
 import { DATA_SOURCE_DEFAULT_SETTINGS, dataSourcePreviewHandlers } from './preview.dataSources';
 import { TRACKING_DEFAULT_SETTINGS, decorateTrackingSessions, trackingPreviewHandlers } from './preview.tracking';
+import { TRACK_L_DEFAULT_SETTINGS, immersivePreviewHandlers } from './preview.immersive';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -61,6 +62,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_K_DEFAULT_SETTINGS,
   ...DATA_SOURCE_DEFAULT_SETTINGS,
   ...TRACKING_DEFAULT_SETTINGS,
+  ...TRACK_L_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -438,6 +440,8 @@ export function createPreviewBackend() {
     ...dataSourcePreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
     // Track H: games started outside VYSTRAL (fictional status; ?detected simulates one).
     ...trackingPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setLaunch, timers }),
+    // Track L: Immersive system bar (a fictional laptop on Wi-Fi with one wireless controller).
+    ...immersivePreviewHandlers(),
   };
 
   return {

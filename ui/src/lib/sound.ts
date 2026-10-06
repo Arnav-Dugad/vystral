@@ -1,6 +1,7 @@
 import { useStore } from '../state/store';
 import { AmbientEngine, ambientAllowed } from './ambient';
-import { moodFor } from './mood';
+import { moodFor, type Mood } from './mood';
+import { spatialSound, type SpatialKind, type SpatialSound } from './spatialSound';
 
 /**
  * Optional UI sounds, synthesised with Web Audio (no audio files, ~0 CPU when silent).
@@ -33,6 +34,48 @@ function play(freqs: number[], duration: number, gain: number, type: OscillatorT
   });
 }
 
+/* ------------------------------------------------------------------ spatial (Track L) */
+
+let lastSpatial = 0;
+
+/** Plays one spatial UI sound (lib/spatialSound.ts) through a mood low-pass and a stereo panner. */
+function playSpatial(s: SpatialSound) {
+  const st = useStore.getState();
+  if (!st.settings?.['sounds.enabled'] || (st.launch && ['starting', 'waiting', 'running'].includes(st.launch.phase))) return;
+  if (typeof AudioContext === 'undefined') return;
+  ctx ??= new AudioContext();
+  if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
+  const volume = Math.max(0, Math.min(1, st.settings['sounds.volume'] ?? 0.4));
+  const t0 = ctx.currentTime + 0.004;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = s.cutoff;
+  const panner = ctx.createStereoPanner();
+  panner.pan.value = s.pan;
+  filter.connect(panner).connect(ctx.destination);
+  for (const n of s.notes) {
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
+    osc.type = s.wave;
+    osc.frequency.value = n.freq;
+    const at = t0 + n.at;
+    env.gain.setValueAtTime(0, at);
+    env.gain.linearRampToValueAtTime(n.gain * volume, at + 0.006);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + n.dur);
+    osc.connect(env).connect(filter);
+    osc.start(at);
+    osc.stop(at + n.dur + 0.03);
+  }
+  if (s.echo > 0) {
+    const delay = ctx.createDelay(0.5);
+    delay.delayTime.value = 0.11;
+    const wet = ctx.createGain();
+    wet.gain.value = s.echo;
+    panner.connect(delay).connect(wet).connect(ctx.destination);
+  }
+  // Nodes are garbage-collected once the oscillators stop; nothing to clean up.
+}
+
 /* ------------------------------------------------------------------ ambient */
 
 let engine: AmbientEngine | null = null;
@@ -40,7 +83,7 @@ let watching = false;
 
 /** Where the focus is now (keyboard/controller focus, else the Immersive highlight), in viewport pixels. */
 function focusPoint(): { x: number; y: number } {
-  const el = (document.activeElement && document.activeElement !== document.body ? document.activeElement : document.querySelector('[data-focused]')) as HTMLElement | null;
+  const el = (document.activeElement && document.activeElement !== document.body ? document.activeElement : document.querySelector('[data-focused="true"]')) as HTMLElement | null;
   if (!el) return { x: innerWidth / 2, y: innerHeight / 2 };
   const r = el.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
@@ -101,6 +144,16 @@ export const sound = {
   /** Controller/arrow-key focus moves on desktop pages: heard only with ambient sound on. */
   spatialFocus() {
     if (ambientOn()) sound.focus();
+  },
+  /**
+   * Track L: Immersive's spatial sounds. Panned to the travelling focus ring, pitched by row depth,
+   * in the focused game's mood — with or without the ambient layer, whenever interface sounds are on.
+   */
+  spatial(kind: SpatialKind, mood: Mood, p: { x: number; width: number; depth: number; fromDepth?: number }) {
+    const now = performance.now();
+    if ((kind === 'focus' || kind === 'row') && now - lastSpatial < 45) return; // throttle at fast repeat rates
+    lastSpatial = now;
+    playSpatial(spatialSound(kind, mood, p));
   },
   back: () => play([740, 520], 0.06, 0.06),
   launch: () => play([392, 523, 784], 0.16, 0.08),

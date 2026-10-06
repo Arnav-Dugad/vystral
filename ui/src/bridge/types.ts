@@ -808,3 +808,25 @@ export interface TrackingStatus {
   /** Games the user asked VYSTRAL not to notice. */
   ignored: { gameId: string; title: string }[];
 }
+
+// ---------- Track L: Immersive Mode — couch settings, system bar (mirror of AppBackend.Immersive.cs / SystemStatusService) ----------
+
+export interface Settings {
+  /** The cinematic desktop ↔ Immersive switch; off = a quick crossfade. */
+  'immersive.cinematicSwitch': boolean;
+  /** Couch mode: Immersive text and interface scale, 1.0–1.3. */
+  'immersive.scale': number;
+  /** Couch mode: TV overscan safe area on each edge, 0–0.06 of the screen. */
+  'immersive.safeArea': number;
+  /** The short Immersive tour was finished or skipped (it shows once). */
+  'immersive.tourDone': boolean;
+}
+
+/** call('system.status'): what the Immersive system bar shows. Read-only Windows APIs; null = not present / unknown. */
+export interface SystemStatus {
+  /** Null on PCs without a battery. */
+  battery: { percent: number; charging: boolean; saver: boolean } | null;
+  network: { kind: 'wifi' | 'ethernet' | 'cellular' | 'other' | 'none'; /** 0–4 signal bars (Wi-Fi/cellular), else null. */ bars: number | null; internet: boolean };
+  /** Connected Xbox-compatible controllers; battery 0–1, null when wired or unknown. */
+  controllers: { battery: number | null; charging: boolean; wired: boolean }[];
+}
