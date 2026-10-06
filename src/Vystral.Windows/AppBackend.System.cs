@@ -48,7 +48,8 @@ public sealed partial class AppBackend
         {
             var snapshot = Library.Snapshot();
             // Keep user-chosen artwork; everything else can be re-imported or re-downloaded.
-            var keep = snapshot.Games.SelectMany(g => Repository.GetArtwork(g.Id).Where(a => a.Value.IsUser).Select(a => a.Value.File));
+            var keep = snapshot.Games.SelectMany(g => Repository.GetArtwork(g.Id).Where(a => a.Value.IsUser).Select(a => a.Value.File))
+                .Concat(_artPacks?.ReferencedFiles() ?? []); // Track N: art an art pack replaced stays restorable
             var freed = Artwork.ClearUnreferenced(keep) + (_liveTiles?.ClearCache() ?? 0); // live-tile loops are cached artwork too
             Repository.Audit("data.clearArtCache", $"{freed} bytes");
             return Task.FromResult<object?>(new { freedBytes = freed });

@@ -39,3 +39,67 @@
 @media (forced-colors: active) {
   .store-logo { color: CanvasText !important; }
 }
+
+/*
+ * Track N: interactive marks (data-motion, see lib/logoMotion.ts) draw themselves in their brand colour
+ * while their control is hovered, focused or selected, and fade back to monochrome afterwards. An ink
+ * copy of the mark sits over the monochrome one: strokes draw in with one dash (pathLength = 1),
+ * filled marks trace their outline and then fill, busy marks get a soft wipe. CSS transitions only,
+ * so leaving mid-draw reverses smoothly; reduced motion makes it an instant colour change.
+ */
+.store-logo__ink {
+  color: var(--pc, currentColor);
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out, ease-out);
+}
+.store-logo__shape {
+  /* Reset only after the ink has faded out, so the next hover draws again. */
+  transition: stroke-dashoffset 0s linear 200ms, fill-opacity 0s linear 200ms, clip-path 0s linear 200ms;
+}
+.store-logo[data-motion='trace'] .store-logo__shape {
+  stroke: currentColor;
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  fill-opacity: 0;
+}
+.store-logo[data-motion='draw'] .store-logo__shape { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.store-logo[data-motion='sweep'] .store-logo__shape { clip-path: inset(0 100% 0 0); }
+
+:is(
+    :is(.logo-host, button, a, label, [role='button'], [role='radio'], [role='option'], [role='tab']):is(:hover, :focus-visible),
+    .logo-host:focus-within,
+    [aria-pressed='true'], [aria-selected='true'], [aria-checked='true']
+  ) .store-logo[data-motion] .store-logo__ink,
+.store-logo[data-motion]:hover .store-logo__ink {
+  opacity: 1;
+  transition: opacity 0s;
+}
+:is(
+    :is(.logo-host, button, a, label, [role='button'], [role='radio'], [role='option'], [role='tab']):is(:hover, :focus-visible),
+    .logo-host:focus-within,
+    [aria-pressed='true'], [aria-selected='true'], [aria-checked='true']
+  ) .store-logo[data-motion] .store-logo__shape,
+.store-logo[data-motion]:hover .store-logo__shape {
+  stroke-dashoffset: 0;
+  fill-opacity: 1;
+  clip-path: inset(0 0 0 0);
+  transition:
+    stroke-dashoffset 460ms cubic-bezier(0.4, 0, 0.2, 1),
+    fill-opacity 280ms var(--ease-out, ease-out) 180ms,
+    clip-path 520ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root[data-theme='light'] .store-logo__ink { color: oklch(from var(--pc) min(l, 0.5) max(c, 0.06) h); }
+
+:root[data-reduced-motion='true'] :is(.store-logo__ink, .store-logo__shape) { transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  :is(.store-logo__ink, .store-logo__shape) { transition: none !important; }
+}
+
+/* High contrast and forced colours: marks stay in the text colour, never a hue. */
+:root[data-theme='contrast'] .store-logo__ink { display: none; }
+@media (forced-colors: active) {
+  .store-logo__ink { display: none; }
+}

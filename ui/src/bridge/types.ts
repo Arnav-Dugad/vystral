@@ -808,3 +808,26 @@ export interface TrackingStatus {
   /** Games the user asked VYSTRAL not to notice. */
   ignored: { gameId: string; title: string }[];
 }
+
+// ---------- Track N: art packs, live-tile director (mirror of ArtPackService and LiveTileDto) ----------
+
+export interface BridgeEvents {
+  /** An art pack's progress (a few times a second while it runs, and on every state change). */
+  'artPacks.progress': import('./types.artPacks').ArtPackJob;
+}
+
+/** The live-tile director's choice for a game's cached micro-trailer. */
+export interface LiveLoop {
+  /** Seconds into the clip. */
+  start: number;
+  duration: number;
+}
+
+export interface LiveTileInfo {
+  /** The stretch to loop; null/absent = the whole clip. */
+  loop?: LiveLoop | null;
+  /** The cached clip was already analysed (absent from older backends). */
+  directed?: boolean;
+}
+
+export type * from './types.artPacks';

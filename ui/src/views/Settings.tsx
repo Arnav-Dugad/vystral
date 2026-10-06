@@ -23,6 +23,7 @@ import { openWhatsNew } from '../whatsnew/state';
 import { LiveTilesSettings, SoundSettings } from './settings/LiveTilesAndSoundSettings';
 import { DataSourcesSettings } from './settings/DataSourcesSettings';
 import { BackgroundTrackingSettings } from './settings/BackgroundTrackingSettings';
+import { ArtPacksSettings } from './settings/ArtPacksSettings';
 import './settings.css';
 
 interface Section {
@@ -34,7 +35,7 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { id: 'appearance', label: 'Appearance', icon: <Palette size={17} />, keywords: 'theme dark light oled contrast accent colour color living canvas background motion animation reduced intro quality grid home live tiles trailer' },
-  { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download data sources steamgriddb igdb twitch rawg isthereanydeal cheapshark prices deals wikidata steam deck anti-cheat api key' },
+  { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download data sources steamgriddb igdb twitch rawg isthereanydeal cheapshark prices deals wikidata steam deck anti-cheat api key art packs style covers logos backgrounds blurred material' },
   { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu background apps processes driver tracker outside closed startup detected' },
   { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble sound audio ambient volume mood immersive fullscreen' },
   { id: 'windows', label: 'Windows integration', icon: <Monitor size={17} />, keywords: 'hotkey shortcut summon notifications toast windows tray achievements' },
@@ -84,7 +85,7 @@ export function SettingsView({ section }: { section?: string }) {
         </nav>
         <div className="settings__content">
           {active === 'appearance' && <><Appearance s={settings} /><LiveTilesSettings /></>}
-          {active === 'library' && <><LibrarySection s={settings} /><SteamWebApiSettings /><DataSourcesSettings /></>}
+          {active === 'library' && <><LibrarySection s={settings} /><SteamWebApiSettings /><DataSourcesSettings /><ArtPacksSettings /></>}
           {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /></>}
           {active === 'controller' && <><Controller s={settings} /><SoundSettings /></>}
           {active === 'ai' && <AiSection s={settings} />}
@@ -214,9 +215,9 @@ function LibrarySection({ s }: { s: Settings }) {
           <Button size="sm" variant="primary" loading={scan.running} onClick={() => void scanLibrary()}>Rescan now</Button>
         </div>
         {adapters.map((a) => (
-          <div key={a.platform} className="adapter">
+          <div key={a.platform} className="adapter logo-host">
             <div className="adapter__head">
-              <PlatformBadge platform={a.platform} size={20} />
+              <PlatformBadge platform={a.platform} size={20} motion />
               {a.status === 'Available' ? <Badge tone="ok" icon={<CheckCircle2 size={12} />}>Found</Badge> : a.status === 'NotInstalled' ? <Badge>Not installed</Badge> : <Badge tone="warn" icon={<AlertTriangle size={12} />}>Problem</Badge>}
               {a.lastScanCount != null && a.status === 'Available' && <span className="srow__hint">{a.lastScanCount} found{a.lastScanMs != null ? ` · ${a.lastScanMs} ms` : ''}</span>}
               <div style={{ marginLeft: 'auto' }}>

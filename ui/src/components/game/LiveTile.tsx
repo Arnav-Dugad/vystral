@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { call } from '../../bridge/bridge';
-import type { Game, LiveTileInfo, NetworkStatus } from '../../bridge/types';
+import type { Game, LiveLoop, LiveTileInfo, NetworkStatus } from '../../bridge/types';
 import { liveTileBlock, MIN_VISIBLE, pickPlaying, REST_MS, rotate, type LiveBlock, type TileSnapshot } from '../../lib/liveTiles';
+import { loopStep, segmentFor, SEAM_MS, type Segment } from '../../lib/director';
+import { directLiveTile } from './liveDirector';
 import { effectiveQuality } from '../../lib/trailer/policy';
 import { useReducedMotion, useStore } from '../../state/store';
 import './live-tile.css';
@@ -67,6 +69,12 @@ function liveSource(gameId: string): Promise<LiveTileInfo> {
     });
   }
   return p;
+}
+
+/** Track N: remembers the director's pick so every tile of this game (and later mounts) loops it. */
+function rememberLoop(gameId: string, loop: LiveLoop | null) {
+  const p = sources.get(gameId);
+  if (p) sources.set(gameId, p.then((info) => ({ ...info, loop, directed: true })));
 }
 
 /* ------------------------------------------------------------- conditions */
@@ -148,6 +156,11 @@ export function LiveLayer({ game }: { game: Game }) {
   const [slot, setSlot] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [shown, setShown] = useState(false);
+  // Track N: the director's loop for this clip (undefined = not analysed yet), and the segment it maps to once the clip's length is known.
+  const [loop, setLoop] = useState<LiveLoop | null | undefined>(undefined);
+  const [seg, setSeg] = useState<Segment | null>(null);
+  const [analysing, setAnalysing] = useState(false);
+  const seam = useRef<HTMLCanvasElement>(null);
   const steam = game.installations.some((i) => i.platform === 'steam');
   const enabled = steam && block === null;
 
@@ -167,6 +180,7 @@ export function LiveLayer({ game }: { game: Game }) {
           void liveSource(game.id).then((info) => {
             if (!alive || !info.src) return;
             setSrc(info.src);
+            setLoop(info.directed ? (info.loop ?? null) : undefined);
             update(key, { hasVideo: true });
           });
         }
@@ -213,9 +227,101 @@ export function LiveLayer({ game }: { game: Game }) {
     if (mounted && slot && v) void v.play().catch(() => undefined);
   }, [mounted, slot]);
 
+  // Track N: once a clip has played for a moment, ask the director for its best ~2 s (once per clip).
+  useEffect(() => {
+    if (!enabled || !src || loop !== undefined || !shown) return;
+    const ctl = new AbortController();
+    const t = window.setTimeout(() => {
+      setAnalysing(true);
+      directLiveTile(game.id, src, ctl.signal)
+        .then((l) => {
+          rememberLoop(game.id, l);
+          if (!ctl.signal.aborted) setLoop(l);
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          if (!ctl.signal.aborted) setAnalysing(false);
+        });
+    }, 1200);
+    return () => {
+      window.clearTimeout(t);
+      ctl.abort();
+      setAnalysing(false);
+    };
+  }, [enabled, src, loop, shown, game.id]);
+
+  // Map the loop to this clip once its length is known.
+  useEffect(() => {
+    const v = video.current;
+    if (!mounted || !v) return;
+    const apply = () => setSeg(segmentFor(loop, v.duration));
+    apply();
+    v.addEventListener('loadedmetadata', apply);
+    return () => v.removeEventListener('loadedmetadata', apply);
+  }, [mounted, loop]);
+
+  // Play only the segment: at its end, freeze the last frame on a canvas, jump back, and dissolve the
+  // canvas into the restarted segment (one decoder per tile, no visible jump).
+  useEffect(() => {
+    const v = video.current;
+    if (!mounted || !slot || !v || !seg) return;
+    let alive = true;
+    let handle = 0;
+    const rvfc = typeof v.requestVideoFrameCallback === 'function';
+    const seamOn = () => {
+      const c = seam.current;
+      if (!c || !v.videoWidth) return;
+      c.width = v.videoWidth;
+      c.height = v.videoHeight;
+      try {
+        c.getContext('2d')?.drawImage(v, 0, 0);
+        c.dataset.on = 'true';
+      } catch {
+        /* no seam is fine */
+      }
+    };
+    const seamOff = () => requestAnimationFrame(() => {
+      if (seam.current) delete seam.current.dataset.on;
+    });
+    const next = () => {
+      handle = rvfc ? v.requestVideoFrameCallback(tick) : requestAnimationFrame(tick);
+    };
+    function tick() {
+      if (!alive || !v || !seg) return;
+      const step = loopStep(v.currentTime, seg);
+      if (step !== 'play' && !v.seeking) {
+        seamOn(); // also when the browser looped the file itself or the clip was playing whole: never a visible jump
+        v.currentTime = seg.start;
+        v.addEventListener('seeked', seamOff, { once: true });
+      }
+      next();
+    }
+    if (v.readyState >= 1 && loopStep(v.currentTime, seg) === 'seek') {
+      seamOn();
+      v.currentTime = seg.start;
+      v.addEventListener('seeked', seamOff, { once: true });
+    }
+    next();
+    return () => {
+      alive = false;
+      if (rvfc) v.cancelVideoFrameCallback(handle);
+      else cancelAnimationFrame(handle);
+      v.removeEventListener('seeked', seamOff);
+    };
+  }, [mounted, slot, seg]);
+
   if (!steam) return null;
   return (
-    <div ref={ref} className="live-layer" data-playing={shown || undefined} aria-hidden>
+    <div
+      ref={ref}
+      className="live-layer"
+      data-playing={shown || undefined}
+      data-director={src ? (seg ? 'segment' : analysing ? 'analysing' : loop === undefined ? undefined : 'full') : undefined}
+      data-loop-start={seg ? seg.start.toFixed(2) : undefined}
+      data-loop-end={seg ? seg.end.toFixed(2) : undefined}
+      style={{ ['--seam-ms' as string]: `${SEAM_MS}ms` }}
+      aria-hidden
+    >
       {mounted && src && (
         <video
           ref={video}
@@ -237,6 +343,7 @@ export function LiveLayer({ game }: { game: Game }) {
           }}
         />
       )}
+      {mounted && src && seg && <canvas ref={seam} className="live-layer__seam" />}
     </div>
   );
 }

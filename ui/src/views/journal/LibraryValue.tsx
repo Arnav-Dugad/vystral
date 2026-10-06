@@ -7,6 +7,7 @@ import { formatRelative, PLATFORM_NAMES } from '../../lib/format';
 import { cumulativeValue, formatCents, SINCE_LABEL, storesIn, topValue, yearMarkers, type ValuePoint } from '../../lib/dataSources';
 import { useReducedMotion, useStore } from '../../state/store';
 import { Button, EmptyState, SectionHead, Segmented, Skeleton } from '../../components/ui/primitives';
+import { StoreLogo } from '../../components/ui/StoreLogo';
 import { StatTile } from '../perf/kit';
 import { useElementWidth } from '../perf/hooks';
 import '../perf/kit.css';
@@ -81,7 +82,7 @@ export function LibraryValue() {
       <div className="lv-toolbar">
         {stores.length > 1 && (
           <Segmented label="Store" value={store} onChange={(v) => setStore(v)}
-            options={[{ value: 'all', label: 'All stores' }, ...stores.map((p) => ({ value: p, label: PLATFORM_NAMES[p] }))]} />
+            options={[{ value: 'all', label: 'All stores' }, ...stores.map((p) => ({ value: p, label: PLATFORM_NAMES[p], icon: <StoreLogo platform={p} size={14} decorative motion /> }))]} />
         )}
         <span className="lv-toolbar__meta">
           {data.reason === 'disabled' ? 'Store prices are off in Settings' : data.reason === 'offline' ? 'Offline mode is on' : data.lastPriced ? `Prices as of ${formatRelative(data.lastPriced).toLowerCase()}` : 'No prices yet'}

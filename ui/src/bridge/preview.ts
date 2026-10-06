@@ -17,6 +17,8 @@ import { updatesPreviewHandlers } from './preview.updates';
 import { TRACK_K_DEFAULT_SETTINGS, trackKPreviewHandlers } from './preview.trackK';
 import { DATA_SOURCE_DEFAULT_SETTINGS, dataSourcePreviewHandlers } from './preview.dataSources';
 import { TRACKING_DEFAULT_SETTINGS, decorateTrackingSessions, trackingPreviewHandlers } from './preview.tracking';
+import { artPackPreviewHandlers } from './preview.artPacks';
+import type { DataSourcesStatus, UserArt } from './types';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -268,6 +270,7 @@ export function createPreviewBackend() {
     withFps: (id) => id === 'preview' || !!lib.sessions.find((s) => s.id === id)?.perfSummary?.includes('"fpsAvg"'),
   });
   const dataInsights = dataInsightPreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers });
+  const dataSources = dataSourcePreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers });
 
   const handlers: Record<string, (p: any) => unknown> = {
     'app.info': (): AppInfo => ({
@@ -435,9 +438,15 @@ export function createPreviewBackend() {
     // Track K: live tiles (a bundled local loop, never the network).
     ...trackKPreviewHandlers({ lib, settings: () => settings, liveTileRequests: [] }),
     // Track I: data sources — art picker, enrichment, prices, identity, compatibility, value (fictional data, local placeholder images).
-    ...dataSourcePreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
+    ...dataSources,
     // Track H: games started outside VYSTRAL (fictional status; ?detected simulates one).
     ...trackingPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setLaunch, timers }),
+    // Track N: art packs (local placeholder art; ?nosgdb = no SteamGridDB key). Also credits pack art in art.userArt.
+    ...artPackPreviewHandlers({
+      lib, emit: () => emit, settings: () => settings, timers,
+      userArt: (gameId) => dataSources['art.userArt']({ gameId }) as UserArt[],
+      dataSources: () => dataSources['dataSources.status']({}) as DataSourcesStatus,
+    }),
   };
 
   return {

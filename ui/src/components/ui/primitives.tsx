@@ -171,10 +171,10 @@ export function Badge({ tone, children, icon }: { tone?: 'accent' | 'ok' | 'warn
 }
 
 /** The store's mark plus its name (the name is visually hidden when `compact`, and shown as a tooltip). */
-export function PlatformBadge({ platform, compact, size = 14 }: { platform: PlatformKey; compact?: boolean; size?: number }) {
+export function PlatformBadge({ platform, compact, size = 14, motion }: { platform: PlatformKey; compact?: boolean; size?: number; /** Track N: the mark draws itself when its card or control is hovered/focused. */ motion?: boolean }) {
   return (
     <span className="platform-badge" style={{ ['--pc' as string]: `var(--p-${platform})` }} title={compact ? PLATFORM_NAMES[platform] : undefined}>
-      <StoreLogo platform={platform} size={size} decorative />
+      <StoreLogo platform={platform} size={size} decorative motion={motion} />
       {compact ? <span className="visually-hidden">{PLATFORM_NAMES[platform]}</span> : PLATFORM_NAMES[platform]}
     </span>
   );

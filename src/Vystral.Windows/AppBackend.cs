@@ -108,6 +108,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterUpdateExtrasHandlers();   // AppBackend.Updates.cs: what's new, "New" badges, silent rollback, network health
         RegisterLiveTileHandlers();       // AppBackend.LiveTiles.cs: Home live tiles (Steam micro-trailers, cached proxy)
         RegisterDataSourceHandlers();     // AppBackend.DataSources.cs: art picker, enrichment, prices, identity, compatibility, value
+        RegisterArtPackHandlers();        // AppBackend.ArtPacks.cs: one SteamGridDB style across the library, undoable
         RegisterTrackingHandlers();       // AppBackend.Tracking.cs: games started outside VYSTRAL, background tracker
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
