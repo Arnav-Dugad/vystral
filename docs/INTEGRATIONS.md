@@ -50,6 +50,21 @@ Enrichment never overwrites a field that already has a value or that you set; ev
 - **Estimated savings on your backlog** (Journal → Library value) uses cached CheapShark/IsThereAnyDeal quotes: best current offer minus the historical low, per currency.
 - **Next big sale** uses `src/Vystral.Windows/Recap/steam-sales.json`: Steam seasonal sale dates from Valve's Steamworks page *Upcoming Steam Events* (https://partner.steamgames.com/doc/marketing/upcoming_events), versioned with its retrieval date and validated by unit tests (https on a Valve domain, ordered, non-overlapping, ≤ 60 days each). Update it by hand when Valve publishes new dates.
 
+## Steam extras (v0.7, Track W; Settings → Library & stores → Steam extras)
+
+All three use the official Steam Web API (`api.steampowered.com`), never in Offline mode or while a game runs, with JSON caches in the data folder (no database tables). Every response is size-capped and validated; failures back off and keep the last good copy. Code: `src/Vystral.Windows/Integrations/SteamWebApi.Extras.cs` and the services named below.
+
+| Feature | Endpoints | Needs | Refresh | Code |
+|---|---|---|---|---|
+| **Wishlist** (own page, sidebar entry once on) | `IWishlistService/GetWishlist/v1` (appid, priority, date added; ≤ 3000), `IStoreBrowseService/GetItems/v1` (name, release date, coming-soon flag, header image; 50 ids per request), then today's price from the store's `appdetails?filters=price_overview` (the Library value lane, 100 apps per request, your price country). Each refresh records that price, so VYSTRAL draws its own price history (≤ 120 points per game) | Your Steam Web API key and SteamID64; opt-in | Every 12 h on its own, manual at most every 2 min; store facts 24 h; lowest-ever price from IsThereAnyDeal (your key, price country) or CheapShark (USD), ≤ 20 per refresh, 3 days each | `WishlistService.cs` |
+| **Friends who played a game** (chip on game pages) | `ISteamUser/GetFriendList`, `GetPlayerSummaries`, `IPlayerService/GetRecentlyPlayedGames/v1` per friend | Your key; opt-in; friends with public game details | One round at most every 4 h, started by opening a game page; 3 s between friends, ≤ 150 friends | `FriendsHistoryService.cs` |
+| **News and patch notes** (game page → News) | `ISteamNews/GetNewsForApp/v2` (`feeds=steam_community_announcements`, ≤ 20 posts, ≤ 200 KB) | Nothing (public); on by default | Cached 6 h per game, on page open | `SteamNewsService.cs`, `SteamNewsText.cs` |
+| **Achievement guide** (game page → Achievements) | None: the achievements and global rarity VYSTRAL already cached | Achievements already fetched for the game | — | `AchievementGuideService.cs` |
+
+- **Notifications:** with *Wishlist news* on (Settings → Windows integration → Windows notifications), a toast when a wishlisted game that was coming soon is out (within three days of its date), or when its Steam price drops to or below the lowest price the price source recorded, in the same currency. Each game and price notifies once (remembered across restarts), several are summed up in one toast, and nothing fires for games seen for the first time, so turning the wishlist on never floods you.
+- **Links** in posts keep their text only; they're never clickable.
+- **Patch-note safety:** BBCode and HTML are parsed into a fixed set of plain blocks (paragraph, heading, list item, quote, code, image, rule); no markup reaches the page. Links become text. Images survive only as HTTPS URLs on Steam's CDNs and are copied into the art cache (same size, type and magic-byte checks as all artwork) when you expand a post; the page only ever sees the local art-host URL. *Open full post* opens Steam's own news page for that post in your browser.
+
 ## Steam Input layouts (v0.6, Track Q; read-only, local)
 
 The game page's **Controls** tab shows the Steam Input layout Steam would use for a Steam game, from files Steam keeps on this PC. VYSTRAL never downloads layouts (Valve's official and community configs are read only once Steam itself has put them on disk) and never writes one.
