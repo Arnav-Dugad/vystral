@@ -17,6 +17,10 @@ export type Route =
   | { name: 'storage' }
   /** Track Q: the library health check. */
   | { name: 'health' }
+  /** Track U: search every connected source for any game, owned or not. */
+  | { name: 'discover'; query?: string }
+  /** Track U: the page for a game that isn't (necessarily) in the library. `title` shows while details load. */
+  | { name: 'discoverGame'; key: string; title?: string }
   | { name: 'settings'; section?: string };
 
 export interface Toast {
@@ -158,6 +162,9 @@ export const useStore = create<State>((set, get) => ({
       if (info.window.mode === 'immersive') document.documentElement.dataset.mode = 'immersive';
       const lastRoute = readLastRoute();
       if (lastRoute) set({ route: lastRoute });
+      // Track U: the browser preview's `?discover` (or `?discover=<text>`) opens the Discover page.
+      if (!isNative && new URLSearchParams(location.search).has('discover'))
+        set({ route: { name: 'discover', query: new URLSearchParams(location.search).get('discover') || undefined } });
     } catch (err) {
       set({ fatal: errorMessage(err) });
       return;
@@ -428,7 +435,7 @@ const ROUTE_KEY = 'vystral.lastRoute';
 
 function saveLastRoute(route: Route) {
   try {
-    if (route.name !== 'game') localStorage.setItem(ROUTE_KEY, JSON.stringify(route));
+    if (route.name !== 'game' && route.name !== 'discoverGame') localStorage.setItem(ROUTE_KEY, JSON.stringify(route));
   } catch {
     // storage unavailable — not important
   }

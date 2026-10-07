@@ -1,0 +1,107 @@
+/* Track U: universal search — result cards, highlights, source marks. Tokens only. */
+
+.dcover { width: 100%; height: 100%; }
+
+/* What was typed, inside a title. */
+mark.hl {
+  background: none;
+  color: var(--accent-text);
+  font-weight: var(--fw-semibold);
+  text-decoration: underline 2px oklch(from var(--accent) l c h / 0.55);
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+}
+:root[data-theme='contrast'] mark.hl { background: Mark; color: MarkText; text-decoration: none; }
+
+.dsrc-marks { display: inline-flex; align-items: center; gap: 5px; color: var(--text-3); flex: none; }
+
+/* ---------- cards ---------- */
+
+.dgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: var(--s-6) var(--s-5); }
+
+.dcard {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+  text-align: left;
+  border-radius: var(--r-lg);
+  color: var(--text-1);
+  animation: dcard-in 420ms var(--ease-out) both;
+  animation-delay: min(calc(var(--i, 0) * 28ms), 280ms);
+}
+.dcard__cover {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-2), 0 0 0 1px var(--line);
+  transition: transform 260ms var(--ease-out);
+  isolation: isolate;
+}
+.dcard__cover::after {
+  /* the glow is pre-rendered and only its opacity changes */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--accent-line);
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
+  pointer-events: none;
+}
+.dcard:hover .dcard__cover, .dcard:focus-visible .dcard__cover { transform: translateY(-4px) scale(1.015); }
+.dcard:hover .dcard__cover::after, .dcard:focus-visible .dcard__cover::after { opacity: 1; }
+.dcard:focus-visible { outline-offset: 4px; }
+.dcard__owned, .dcard__price, .dcard__extra {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  z-index: 1;
+}
+.dcard__owned { top: 8px; left: 8px; background: oklch(from var(--ok) l c h / 0.92); color: var(--text-on-accent); }
+.dcard__extra { top: 8px; right: 8px; background: var(--glass-strong); color: var(--text-2); }
+.dcard__price { bottom: 8px; right: 8px; background: var(--glass-strong); color: var(--text-1); backdrop-filter: blur(8px); }
+.dcard__cut { color: var(--ok); }
+.dcard__body { display: grid; gap: 5px; align-content: start; min-width: 0; }
+.dcard__title {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.dcard__meta { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--text-3); min-height: 16px; }
+.dcard__spacer { flex: 1; }
+.dcard--skeleton { animation: none; pointer-events: none; }
+.dcard--skeleton .skeleton { animation-delay: calc(var(--i, 0) * -120ms); }
+.dcard--skeleton .dcard__cover { box-shadow: none; }
+
+@keyframes dcard-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+:root[data-theme='contrast'] .dcard__cover { box-shadow: 0 0 0 1px CanvasText; }
+:root[data-theme='contrast'] .dcard__owned, :root[data-theme='contrast'] .dcard__price, :root[data-theme='contrast'] .dcard__extra {
+  background: Canvas; color: CanvasText; box-shadow: 0 0 0 1px CanvasText; backdrop-filter: none;
+}
+:root[data-quality='low'] .dcard__price { backdrop-filter: none; }
+
+/* ---------- command bar rows ---------- */
+
+.cmd__item--skeleton { pointer-events: none; }
+.cmd__item--skeleton .cmd__thumb { box-shadow: none; }
+.cmd__item--skeleton .skeleton { border-radius: 6px; }
+.cmd__meta .dsrc-marks { margin-left: 6px; vertical-align: -2px; }
+.cmd__owned { color: var(--ok); }
+.cmd__footer .dsrc-marks { color: inherit; }
+.cmd__footer > span { white-space: nowrap; }

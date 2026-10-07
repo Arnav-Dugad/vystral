@@ -25,6 +25,8 @@ import { HomeView } from './views/Home';
 import { LibraryView } from './views/Library';
 // Loaded eagerly: the card → page cover flight needs the page to mount in the same frame.
 import { GameDetailView } from './views/GameDetail';
+// Track U: eager for the same reason (the search result → page cover flight).
+import { DiscoverGameView } from './views/DiscoverGame';
 import { FieldKeyboardHost } from './components/controller/FieldKeyboard';
 import './components/shell/shell.css';
 
@@ -38,6 +40,7 @@ const StorageStudioView = lazy(() => import('./views/StorageStudio').then((m) =>
 const OnboardingView = lazy(() => import('./views/Onboarding').then((m) => ({ default: m.OnboardingView })));
 const ImmersiveView = lazy(() => import('./views/Immersive').then((m) => ({ default: m.ImmersiveView })));
 const HealthView = lazy(() => import('./views/Health').then((m) => ({ default: m.HealthView })));
+const DiscoverView = lazy(() => import('./views/Discover').then((m) => ({ default: m.DiscoverView })));
 
 export default function App() {
   const init = useStore((s) => s.init);
@@ -131,7 +134,8 @@ export default function App() {
 const routeMemory = new Map<string, { top: number; focusId: string | null }>();
 
 function routeKey(route: Route) {
-  return route.name === 'game' ? `game-${route.id}` : route.name === 'library' ? `library-${route.collectionId ?? ''}` : route.name;
+  return route.name === 'game' ? `game-${route.id}` : route.name === 'library' ? `library-${route.collectionId ?? ''}`
+    : route.name === 'discoverGame' ? `discover-${route.key}` : route.name;
 }
 
 function Routes() {
@@ -241,6 +245,8 @@ function View({ route }: { route: Route }) {
     case 'settings': return <SettingsView section={route.section} />;
     case 'storage': return <StorageStudioView />;
     case 'health': return <HealthView />;
+    case 'discover': return <DiscoverView query={route.query} />;
+    case 'discoverGame': return <DiscoverGameView key={route.key} itemKey={route.key} title={route.title} />;
   }
 }
 
@@ -280,7 +286,7 @@ function useGlobalKeys() {
       } else if (e.key === 'F5' || (e.ctrlKey && e.key.toLowerCase() === 'r')) {
         e.preventDefault();
         void s.scanLibrary();
-      } else if (e.key === 'Escape' && !typing && !document.querySelector('[data-dialog-open], [data-menu-open]') && s.route.name === 'game' && s.window.mode !== 'immersive') {
+      } else if (e.key === 'Escape' && !typing && !document.querySelector('[data-dialog-open], [data-menu-open]') && (s.route.name === 'game' || s.route.name === 'discoverGame') && s.window.mode !== 'immersive') {
         s.goBack();
       }
     };

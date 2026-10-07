@@ -58,6 +58,82 @@ public sealed partial class WikidataClient(ProviderTransport transport)
         return Parse(r.Body, keys);
     }
 
+    // ---------- Track U: Discover ----------
+
+    /// <summary>
+    /// Games whose name matches <paramref name="term"/>, through Wikidata's own entity search inside one SPARQL query
+    /// (keyless, CC0). Only items that are a video game (Q7889) come back, with their release date and store IDs.
+    /// </summary>
+    public async Task<string> DiscoverSearchAsync(string term, CancellationToken ct)
+    {
+        var query = BuildDiscoverSearch(term);
+        if (query is null) return """{"results":{"bindings":[]}}""";
+        return await PostAsync(query, ct);
+    }
+
+    /// <summary>One item's facts (labels of genres, studios and platforms) and store IDs.</summary>
+    public async Task<string?> DiscoverItemAsync(string qid, CancellationToken ct)
+    {
+        var query = BuildDiscoverItem(qid);
+        return query is null ? null : await PostAsync(query, ct);
+    }
+
+    private async Task<string> PostAsync(string query, CancellationToken ct)
+    {
+        var r = await transport.SendAsync(() =>
+        {
+            var req = new HttpRequestMessage(HttpMethod.Post, new Uri(Endpoint))
+            {
+                Content = new FormUrlEncodedContent([new("query", query), new("format", "json")]),
+            };
+            req.Headers.Accept.ParseAdd("application/sparql-results+json");
+            return req;
+        }, ct);
+        if (r.Status != HttpStatusCode.OK) throw new DataSourceException(DataSourceOutcome.Malformed, $"Wikidata answered with an unexpected status ({(int)r.Status}).");
+        return r.Body;
+    }
+
+    /// <summary>The search text as a safe SPARQL string literal body: no quotes, backslashes, braces or control characters.</summary>
+    internal static string SparqlText(string term) =>
+        new string(term.Trim().Where(c => !char.IsControl(c) && c is not ('"' or '\\' or '{' or '}' or '<' or '>')).Take(100).ToArray()).Trim();
+
+    private static readonly (string Name, string Property)[] DiscoverIdProperties =
+        [("steam", "P1733"), ("gogId", "P12727"), ("gog", "P2725"), ("epic", "P6278"), ("microsoft", "P5885"), ("igdb", "P5794"), ("rawg", "P9968")];
+
+    internal static string? BuildDiscoverSearch(string term)
+    {
+        var t = SparqlText(term);
+        if (t.Length < 2) return null;
+        var sb = new StringBuilder("SELECT ?item (SAMPLE(?label) AS ?lbl) (MIN(?date) AS ?released) (MIN(?ord) AS ?rank)");
+        foreach (var (name, _) in DiscoverIdProperties) sb.Append($" (SAMPLE(?{name}) AS ?v_{name})");
+        sb.Append(" WHERE { SERVICE wikibase:mwapi { bd:serviceParam wikibase:endpoint \"www.wikidata.org\"; wikibase:api \"EntitySearch\"; ");
+        sb.Append("mwapi:search \"").Append(t).Append("\"; mwapi:language \"en\"; mwapi:limit \"40\". ?item wikibase:apiOutputItem mwapi:item. ?ord wikibase:apiOrdinal true. } ");
+        sb.Append("?item wdt:P31 wd:Q7889 . ");
+        sb.Append("OPTIONAL { ?item rdfs:label ?label FILTER(LANG(?label) IN (\"en\", \"mul\")) } OPTIONAL { ?item wdt:P577 ?date } ");
+        foreach (var (name, prop) in DiscoverIdProperties) sb.Append($"OPTIONAL {{ ?item wdt:{prop} ?{name} }} ");
+        sb.Append("} GROUP BY ?item ORDER BY ?rank LIMIT 25");
+        return sb.ToString();
+    }
+
+    internal static string? BuildDiscoverItem(string qid)
+    {
+        if (!WikidataItem().IsMatch(qid)) return null;
+        var sb = new StringBuilder("SELECT ?item (SAMPLE(?label) AS ?lbl) (SAMPLE(?d) AS ?desc) (MIN(?date) AS ?released)");
+        sb.Append(" (GROUP_CONCAT(DISTINCT ?genreL; separator=\"|\") AS ?genres) (GROUP_CONCAT(DISTINCT ?devL; separator=\"|\") AS ?developers)");
+        sb.Append(" (GROUP_CONCAT(DISTINCT ?pubL; separator=\"|\") AS ?publishers) (GROUP_CONCAT(DISTINCT ?platL; separator=\"|\") AS ?platforms)");
+        foreach (var (name, _) in DiscoverIdProperties) sb.Append($" (SAMPLE(?{name}) AS ?v_{name})");
+        sb.Append(" WHERE { VALUES ?item { wd:").Append(qid).Append(" } ");
+        sb.Append("OPTIONAL { ?item rdfs:label ?label FILTER(LANG(?label) IN (\"en\", \"mul\")) } ");
+        sb.Append("OPTIONAL { ?item schema:description ?d FILTER(LANG(?d) = \"en\") } OPTIONAL { ?item wdt:P577 ?date } ");
+        sb.Append("OPTIONAL { ?item wdt:P136 ?genre . ?genre rdfs:label ?genreL FILTER(LANG(?genreL) = \"en\") } ");
+        sb.Append("OPTIONAL { ?item wdt:P178 ?dev . ?dev rdfs:label ?devL FILTER(LANG(?devL) IN (\"en\", \"mul\")) } ");
+        sb.Append("OPTIONAL { ?item wdt:P123 ?pub . ?pub rdfs:label ?pubL FILTER(LANG(?pubL) IN (\"en\", \"mul\")) } ");
+        sb.Append("OPTIONAL { ?item wdt:P400 ?plat . ?plat rdfs:label ?platL FILTER(LANG(?platL) = \"en\") } ");
+        foreach (var (name, prop) in DiscoverIdProperties) sb.Append($"OPTIONAL {{ ?item wdt:{prop} ?{name} }} ");
+        sb.Append("} GROUP BY ?item");
+        return sb.ToString();
+    }
+
     /// <summary>Builds one batched query; only well-formed numeric keys are included. Null when nothing is left to ask.</summary>
     internal static string? BuildQuery(string keyKind, IReadOnlyList<string> keys)
     {

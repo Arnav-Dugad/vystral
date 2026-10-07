@@ -139,6 +139,8 @@ public sealed class SettingsService
         new NumberDef("voiceover.volume", 1, 0, 1),
         new EnumDef("controller.glyphs", "auto", "auto", "xbox", "playstation", "nintendo"),
         new EnumDef("immersive.librarySort", "az", "az", "recent", "played", "added"),
+        // Track U: universal search also asks Steam's store search, Wikidata and (with your keys) IGDB and RAWG as you type.
+        new BoolDef("discover.searchOnline", true),
     ];
 
     private readonly LibraryRepository _repo;

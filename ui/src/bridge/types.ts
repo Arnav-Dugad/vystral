@@ -938,3 +938,19 @@ export interface BridgeEvents {
 }
 
 export type * from './types.cloud';
+
+// ---------------- Track U: universal game search, pages for games you don't own ----------------
+
+export interface Settings {
+  /** Universal search also asks Steam's store search, Wikidata and (with your keys) IGDB and RAWG as you type. */
+  'discover.searchOnline': boolean;
+}
+
+export interface BridgeEvents {
+  /** One source answered: the whole merged list so far for that channel's search. */
+  'discover.results': import('./types.discover').DiscoverSearch;
+  'discover.changed': import('./types.discover').DiscoverStatus;
+  'discover.watching': import('./types.discover').DiscoverWatch[];
+}
+
+export type * from './types.discover';

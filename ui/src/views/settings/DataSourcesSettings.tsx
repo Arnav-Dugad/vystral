@@ -25,6 +25,7 @@ export function DataSourcesSettings() {
   const localOnly = useStore((s) => s.settings?.['privacy.localOnly'] ?? false);
   const enrichment = useStore((s) => s.settings?.['dataSources.enrichment'] ?? true);
   const storePrices = useStore((s) => s.settings?.['dataSources.storePrices'] ?? true);
+  const searchOnline = useStore((s) => s.settings?.['discover.searchOnline'] ?? true); // Track U
   const country = useStore((s) => s.settings?.['dataSources.priceCountry'] ?? 'US');
   const setSetting = useStore((s) => s.setSetting);
   const [status, setStatus] = useState<DataSourcesStatus | null>(null);
@@ -69,6 +70,13 @@ export function DataSourcesSettings() {
             <div className="srow__hint">With an IGDB or RAWG connection, VYSTRAL fills only empty fields (never ones you or your stores already set), matching games by Steam app ID first. Paused while you play.</div>
           </div>
           <div className="srow__control"><Toggle id="dsrc-enrich" label="Fill in missing game details" checked={enrichment} onChange={(v) => void setSetting('dataSources.enrichment', v)} /></div>
+        </div>
+        <div className="srow" id="dsrc-discover">
+          <div className="srow__text">
+            <label className="srow__label" htmlFor="dsrc-discover-toggle">Search stores and game databases</label>
+            <div className="srow__hint">The command bar and Discover also send what you type to Steam’s store search and Wikidata (and IGDB and RAWG when connected) to find games that aren’t in your library. Your library itself is always searched on this PC.</div>
+          </div>
+          <div className="srow__control"><Toggle id="dsrc-discover-toggle" label="Search stores and game databases" checked={searchOnline} onChange={(v) => void setSetting('discover.searchOnline', v)} /></div>
         </div>
         <div className="srow">
           <div className="srow__text">

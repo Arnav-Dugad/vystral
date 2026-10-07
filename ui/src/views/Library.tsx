@@ -283,7 +283,13 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
                   ? cloudOn ? 'None of these games is on GeForce NOW or Xbox Cloud Gaming in your region, or the lists haven’t downloaded yet. Settings → Cloud play shows their status.' : 'Cloud play is off. Turn it on in Settings → Cloud play.'
                   : 'Try fewer words, a different quick filter, or clear the filter.'
           }
-          actions={text || quick !== 'all' || store ? <Button onClick={() => { setText(''); setQuick('all'); setStore(null); }}>Clear filters</Button> : undefined}
+          actions={text || quick !== 'all' || store ? (
+            <>
+              <Button onClick={() => { setText(''); setQuick('all'); setStore(null); }}>Clear filters</Button>
+              {/* Track U: the game may not be in the library at all. */}
+              {parsed.text.trim().length >= 2 && <Button variant="primary" onClick={() => useStore.getState().navigate({ name: 'discover', query: parsed.text.trim() })}>Search everywhere for “{parsed.text.trim()}”</Button>}
+            </>
+          ) : undefined}
         />
       ) : view === 'grid' ? (
         <VirtualGrid games={results} size={gridSize} caption={quick === 'unplayed' ? ageLabel : undefined} />

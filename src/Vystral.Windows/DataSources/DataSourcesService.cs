@@ -440,8 +440,14 @@ public sealed class DataSourcesService
     public async Task<DealsDto> GetDealsAsync(string gameId, bool refresh, CancellationToken ct)
     {
         var game = _repo.GetGame(gameId) ?? throw new DataSourceException(DataSourceOutcome.Malformed, "That game no longer exists.");
+        return await GetDealsForSteamAppAsync(game.SteamAppId, refresh, ct);
+    }
+
+    /// <summary>Track U: prices by Steam app ID, for games that aren't in the library too (Discover pages). Same cache and rules.</summary>
+    public async Task<DealsDto> GetDealsForSteamAppAsync(string? steamAppId, bool refresh, CancellationToken ct)
+    {
         var country = Country;
-        if (game.SteamAppId is not { } appId) return new DealsDto(null, "noSteamId", country, []);
+        if (steamAppId is not { } appId || appId.Length is 0 or > 10 || !appId.All(char.IsAsciiDigit)) return new DealsDto(null, "noSteamId", country, []);
         var quotes = new List<QuoteDto>();
         if (_settings.GetBool("dataSources.cheapshark"))
             quotes.Add(await QuoteAsync("cheapshark", "CheapShark", appId, refresh,
@@ -494,7 +500,13 @@ public sealed class DataSourcesService
     public string? OfferUrl(string gameId, string offerId)
     {
         var game = _repo.GetGame(gameId);
-        if (game?.SteamAppId is not { } appId) return null;
+        return OfferUrlForSteamApp(game?.SteamAppId, offerId);
+    }
+
+    /// <summary>Track U: the link of one offer previously shown for a Steam app (the page never sends URLs).</summary>
+    public string? OfferUrlForSteamApp(string? steamAppId, string offerId)
+    {
+        if (steamAppId is not { } appId) return null;
         foreach (var (provider, key) in new[] { ("deals-cheapshark", appId), ("deals-itad", $"{appId}:{Country}") })
         {
             if (_repo.GetProviderCache(provider, key) is not { } c) continue;
@@ -592,9 +604,15 @@ public sealed class DataSourcesService
     public async Task<CompatDto> GetCompatAsync(string gameId, CancellationToken ct)
     {
         var game = _repo.GetGame(gameId) ?? throw new DataSourceException(DataSourceOutcome.Malformed, "That game no longer exists.");
+        return await GetCompatForSteamAppAsync(game.SteamAppId, ct);
+    }
+
+    /// <summary>Track U: Steam Deck and anti-cheat by Steam app ID, for games that aren't in the library too. Same cache and rules.</summary>
+    public async Task<CompatDto> GetCompatForSteamAppAsync(string? steamAppId, CancellationToken ct)
+    {
         DeckDto? deck = null;
         string? deckReason = null;
-        if (game.SteamAppId is not { } appId) deckReason = "noSteamId";
+        if (steamAppId is not { } appId || appId.Length is 0 or > 10 || !appId.All(char.IsAsciiDigit)) deckReason = "noSteamId";
         else if (!_settings.GetBool("dataSources.steamDeck") || !_settings.GetBool("library.fetchMetadata")) deckReason = "disabled";
         else
         {
@@ -632,7 +650,7 @@ public sealed class DataSourcesService
                 try { await RefreshAntiCheatAsync(force: false, ct); }
                 catch (DataSourceException) { acReason = "unavailable"; }
             }
-            if (game.SteamAppId is { } sid && _repo.GetAntiCheat("steam", sid) is { } row) ac = ToAntiCheat(row);
+            if (deckReason != "noSteamId" && steamAppId is { } sid && _repo.GetAntiCheat("steam", sid) is { } row) ac = ToAntiCheat(row);
             else acReason ??= _repo.AntiCheatCount() == 0 ? (LocalOnly ? "offline" : "notLoaded") : "notListed";
         }
         return new CompatDto(deck, deckReason, ac, ac is null ? acReason : null);

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { HardDrive, BarChart3, BookOpen, Bot, Home, Images, LibraryBig, Settings2, Sparkles, Folder, Plus } from 'lucide-react';
+import { HardDrive, BarChart3, BookOpen, Bot, Compass, Home, Images, LibraryBig, Settings2, Sparkles, Folder, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { spring } from '../../lib/motion';
 import { useReducedMotion, useStore, type Route } from '../../state/store';
@@ -8,6 +8,8 @@ import { NewBadge } from '../../whatsnew/NewBadge';
 const NAV: { route: Route; label: string; icon: ReactNode }[] = [
   { route: { name: 'home' }, label: 'Home', icon: <Home size={18} /> },
   { route: { name: 'library' }, label: 'Library', icon: <LibraryBig size={18} /> },
+  // Track U: search every connected source for any game, owned or not.
+  { route: { name: 'discover' }, label: 'Discover', icon: <Compass size={18} /> },
   { route: { name: 'journal' }, label: 'Journal', icon: <BookOpen size={18} /> },
   { route: { name: 'performance' }, label: 'Performance', icon: <BarChart3 size={18} /> },
   { route: { name: 'moments' }, label: 'Moments', icon: <Images size={18} /> },
