@@ -9,8 +9,10 @@ namespace Vystral.Windows.Integrations;
 /// <summary>
 /// Lists packaged games (Xbox app / PC Game Pass / Microsoft Store) installed for the current user via
 /// <c>PackageManager.FindPackagesForUser("")</c>, which needs no elevation. A package counts as a game
-/// only if it ships a MicrosoftGame.config (GDK titles) or lives under an Xbox app library folder
-/// declared by a drive's .GamingRoot file. Games are activated by AppUserModelID through Windows.
+/// only if it ships a MicrosoftGame.config (GDK titles), lives under an Xbox app library folder
+/// declared by a drive's .GamingRoot file, or is an older Store (UWP) game that carries an Xbox Live
+/// xboxservices.config (Forza Horizon 4, Gears 5…), minus Microsoft's own Xbox apps.
+/// Games are activated by AppUserModelID through Windows.
 /// </summary>
 public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAdapter
 {
@@ -35,7 +37,7 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
     public IReadOnlyList<string> Limitations =>
     [
         "Shows Xbox app and Microsoft Store games installed on this PC. Game Pass games you haven't installed aren't shown.",
-        "Older Store games that don't identify themselves as games may be missed; you can add them yourself.",
+        "Older Store games without Xbox Live may be missed; you can add them yourself.",
         "Playtime isn't available locally for Xbox games; VYSTRAL tracks sessions you start from here.",
     ];
 
@@ -161,6 +163,17 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
         return text;
     }
 
+    /// <summary>
+    /// Microsoft's Xbox apps carry an xboxservices.config too (the Insider Hub does) but aren't games.
+    /// </summary>
+    internal static bool IsXboxSystemApp(string familyName)
+    {
+        var name = familyName.Split('_')[0];
+        return name.StartsWith("Microsoft.Xbox", StringComparison.OrdinalIgnoreCase) ||
+               name.Equals("Microsoft.GamingApp", StringComparison.OrdinalIgnoreCase) ||
+               name.Equals("Microsoft.GamingServices", StringComparison.OrdinalIgnoreCase);
+    }
+
     internal static IReadOnlyList<DiscoveredInstallation> Discover(
         IEnumerable<PackageInfo> packages, IReadOnlyList<string> gamingFolders, CancellationToken ct)
     {
@@ -188,7 +201,12 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
         var configPath = Path.Combine(location, "MicrosoftGame.config");
         var hasConfig = AdapterIo.FileExists(configPath);
         var underGamingRoot = gamingFolders.Any(f => AdapterIo.IsUnder(location, f));
-        if (!hasConfig && !underGamingRoot) return null;
+        // Older UWP games (installed under WindowsApps, no MicrosoftGame.config) still ship the Xbox Live
+        // config. Only its existence is checked: these packages' files are often encrypted and unreadable.
+        var xboxLiveTitle = !hasConfig && !underGamingRoot &&
+                            AdapterIo.FileExists(Path.Combine(location, "xboxservices.config")) &&
+                            !IsXboxSystemApp(package.FamilyName);
+        if (!hasConfig && !underGamingRoot && !xboxLiveTitle) return null;
 
         var manifest = AdapterIo.ReadXml(Path.Combine(location, "AppxManifest.xml"));
         if (manifest?.Root is null) return null;

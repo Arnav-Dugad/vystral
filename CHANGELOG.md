@@ -2,6 +2,11 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
+## [0.6.1] — 2026-10-07
+
+### Fixed
+- Older Xbox app and Microsoft Store games such as Forza Horizon 4 now appear in your library. They don't carry the newer game configuration file, so VYSTRAL now also recognises games by their Xbox Live configuration, while still leaving out Microsoft's own Xbox apps.
+
 ## [0.6.0] — 2026-10-06
 
 Your library, settings and history carry over.

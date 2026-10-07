@@ -137,6 +137,39 @@ public sealed class XboxAdapterTests : IDisposable
     }
 
     [Fact]
+    public void Discover_OlderStoreGameWithXboxLiveConfig_IsIncluded_XboxSystemAppsAreNot()
+    {
+        // Forza Horizon 4 as installed on a real PC: under WindowsApps, no MicrosoftGame.config, an xboxservices.config.
+        var game = MakePackage(@"WindowsApps\Microsoft.SunriseBaseGame_1.478.564.2_x64__8wekyb3d8bbwe", "Forza Horizon 4", withConfig: false);
+        _tmp.Write(@"WindowsApps\Microsoft.SunriseBaseGame_1.478.564.2_x64__8wekyb3d8bbwe\xboxservices.config", "{}");
+        var insider = MakePackage(@"WindowsApps\Microsoft.XboxInsider_1.0_x64__8wekyb3d8bbwe", "Xbox Insider Hub", withConfig: false);
+        _tmp.Write(@"WindowsApps\Microsoft.XboxInsider_1.0_x64__8wekyb3d8bbwe\xboxservices.config", "{}");
+        var app = MakePackage(@"WindowsApps\Calculator", "Calculator", withConfig: false);
+
+        var games = XboxAdapter.Discover(
+            [
+                Pkg("Microsoft.SunriseBaseGame_8wekyb3d8bbwe", "Forza Horizon 4", game),
+                Pkg("Microsoft.XboxInsider_8wekyb3d8bbwe", "Xbox Insider Hub", insider),
+                Pkg("Microsoft.WindowsCalculator_8wekyb3d8bbwe", "Calculator", app),
+            ],
+            [], CancellationToken.None);
+
+        var found = Assert.Single(games);
+        Assert.Equal("Forza Horizon 4", found.Title);
+        Assert.Equal("Microsoft.SunriseBaseGame_8wekyb3d8bbwe", found.PlatformGameId);
+        Assert.Equal("Microsoft.SunriseBaseGame_8wekyb3d8bbwe!Game", found.Launch.Value);
+    }
+
+    [Theory]
+    [InlineData("Microsoft.XboxInsider_8wekyb3d8bbwe", true)]
+    [InlineData("Microsoft.XboxApp_8wekyb3d8bbwe", true)]
+    [InlineData("Microsoft.GamingApp_8wekyb3d8bbwe", true)]
+    [InlineData("Microsoft.SunriseBaseGame_8wekyb3d8bbwe", false)]
+    [InlineData("Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe", false)]
+    public void IsXboxSystemApp_OnlyMicrosoftsXboxApps(string family, bool expected) =>
+        Assert.Equal(expected, XboxAdapter.IsXboxSystemApp(family));
+
+    [Fact]
     public void Discover_SkipsFrameworkResourceSideloadedMissingAndManifestless()
     {
         var a = MakePackage("A", "A", withConfig: true);
