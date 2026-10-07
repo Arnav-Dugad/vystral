@@ -66,6 +66,13 @@ Immersive Mode (0.6, all on your PC):
 - **Voice-over and captions** (off by default) speak through Windows' own speech engine via the WebView2 Web Speech API. Only voices installed on this PC (`localService`) are used; online "Natural" voices are never picked, so no text leaves the PC. If no local voice is installed it shows captions only. Nothing is recorded or stored except your settings (voice name, speed, volume).
 - **Button glyphs** "Automatic" reads the connected controller's name and USB vendor ID through the standard Gamepad API, in memory only, to choose Xbox, PlayStation or Nintendo glyphs.
 
+Play data and insights (0.7, Track Y; all on your PC, nothing new sent anywhere):
+
+- **Display mode per session.** With performance metrics on, each new session also records your **main display's** resolution, refresh rate and whether HDR is on (read-only `EnumDisplaySettings` and Windows' display configuration), stored with the session in `vystral.db` and deleted with tracked history. It powers the hardware timeline on game pages and in Performance.
+- **Controller battery history** (Settings → Controller & sound, on by default; turn it off there). About every 10 minutes while a wireless controller is connected, plus when its level moves by 5% or it starts or stops charging, VYSTRAL stores the level, whether it's charging, the controller's name as Windows reports it and an **opaque hash** of its device id (never the id itself) in `vystral.db` (`controller_battery`). Readings older than 90 days are deleted automatically; *Clear battery history* deletes all of them. Deleting tracked history doesn't touch them (they aren't session data).
+- **Energy estimate** (Settings → Launching & sessions, off by default) is calculated from the GPU/CPU load already stored with your sessions, your graphics card and processor names (read once from the registry) and, if you enter them, your PC's wattage, electricity price and currency (stored as settings). Nothing else is recorded.
+- **Hour-of-week heatmap, genre drift and completion forecasts** are calculated in the interface from sessions, genres and IGDB time-to-beat estimates already on your PC; nothing is stored.
+
 VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 
 ## When VYSTRAL uses the network

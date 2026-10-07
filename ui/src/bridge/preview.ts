@@ -25,6 +25,8 @@ import { TRACK_P_DEFAULT_SETTINGS, previewFriendsOn, trackPPreviewHandlers } fro
 import type { SteamApiStatus } from './types';
 import { healthPreviewHandlers } from './preview.health';
 import { CLOUD_DEFAULT_SETTINGS, cloudPreviewHandlers } from './preview.cloud';
+import { PLAY_DATA_DEFAULT_SETTINGS, decoratePace, playDataPreviewHandlers } from './preview.playData';
+import type { TimeToBeatMap } from './types';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -75,6 +77,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_P_DEFAULT_SETTINGS,
   ...CLOUD_DEFAULT_SETTINGS,
   ...TRACK_T_DEFAULT_SETTINGS,
+  ...PLAY_DATA_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -244,6 +247,7 @@ export function createPreviewBackend() {
   if (params.has('reduced')) settings['motion.reduce'] = 'on';
   if (params.has('vibration')) settings['controller.vibration'] = true;
   if (previewFriendsOn(params)) settings['home.friendsActivity'] = true; // Track P: ?friends, ?friendsPrivate
+  if (params.has('energy')) settings['energy.enabled'] = true; // Track Y: the opt-in energy estimate
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
   // Track T: `?nowPlaying` starts the preview with a game already running (Immersive's Now playing row).
@@ -286,8 +290,11 @@ export function createPreviewBackend() {
     // The bars use the same fictional IGDB estimates the game page shows.
     igdbTimeToBeat: (gameId) => (dataSources['enrichment.get']({ gameId }) as Enrichment).sources.find((s) => s.source === 'igdb')?.facts?.timeToBeat ?? null,
   });
+  // Track Y: hardware history, energy, controller battery; ?pace gives games with an estimate a recent cadence.
+  const playData = playDataPreviewHandlers({ lib, settings: () => settings });
+  if (params.has('pace')) decoratePace(lib, recap['ttb.map']() as TimeToBeatMap);
   const insight = insightPreviewHandlers({
-    emit: () => (name: string, payload: unknown) => emit(name, name === 'launch.preflight' ? recap.__decoratePreflight(payload as PreflightResult) : payload), settings: () => settings, setSettings: (s) => { settings = s; }, timers,
+    emit: () => (name: string, payload: unknown) => emit(name, name === 'launch.preflight' ? playData.__decoratePreflight(recap.__decoratePreflight(payload as PreflightResult)) : payload), settings: () => settings, setSettings: (s) => { settings = s; }, timers,
     withFps: (id) => id === 'preview' || !!lib.sessions.find((s) => s.id === id)?.perfSummary?.includes('"fpsAvg"'),
   });
   const dataInsights = dataInsightPreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers });
@@ -470,7 +477,7 @@ export function createPreviewBackend() {
     }),
     // Track M: away card (?away), time to beat (?ttb), anti-cheat notes (?antiCheat), forecast (?saleOn), session replay.
     ...recap,
-    'launch.preflightResult': (p: { ticket: string }) => recap.__decoratePreflight(insight['launch.preflightResult'](p)),
+    'launch.preflightResult': (p: { ticket: string }) => playData.__decoratePreflight(recap.__decoratePreflight(insight['launch.preflightResult'](p))),
     // Track L: Immersive system bar (a fictional laptop on Wi-Fi with one wireless controller).
     ...immersivePreviewHandlers(),
     // Track P: friends playing now (?friends, ?friendsPrivate), update-space forecast (?diskTight; also overrides system.drives then).
@@ -479,6 +486,8 @@ export function createPreviewBackend() {
     ...healthPreviewHandlers({ lib, emit: () => emit, timers }),
     // Track O: cloud play (fictional catalogue; ?cloud turns it on, ?cloudMeter=near|reached|free|none, ?cloudNoData).
     ...cloudPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; }, timers }),
+    // Track Y: hardware history, energy estimate (?energy), controller battery (?lowBattery, ?nopads).
+    ...playData,
   };
 
   return {

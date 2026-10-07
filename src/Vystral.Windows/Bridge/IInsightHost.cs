@@ -3,7 +3,8 @@ using Vystral.Windows.Services;
 namespace Vystral.Windows.Bridge;
 
 /// <summary>A connected game controller. Battery is null for wired pads or when Windows doesn't report it.</summary>
-public sealed record ControllerInfo(string Name, int? BatteryPercent, bool? Charging, bool Wireless);
+/// <param name="Key">Track Y: opaque hash of the device id (<see cref="ControllerKeys"/>), matching the battery history; null if unknown.</param>
+public sealed record ControllerInfo(string Name, int? BatteryPercent, bool? Charging, bool Wireless, string? Key = null);
 
 /// <summary>A Windows notification VYSTRAL wants to show. Route is navigated to when it is clicked.</summary>
 public sealed record NotificationRequest(string Category, string Title, string Body, string RouteJson, string? Tag = null);

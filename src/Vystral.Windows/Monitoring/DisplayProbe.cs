@@ -38,6 +38,29 @@ public static class DisplayProbe
         }
     }
 
+    /// <summary>
+    /// Track Y: the primary monitor's current mode (resolution, refresh rate, HDR) for the hardware history.
+    /// Same read-only APIs; null when Windows doesn't answer.
+    /// </summary>
+    public static Core.Insights.SessionDisplay? ForPrimary()
+    {
+        try
+        {
+            var monitor = MonitorFromPoint(new Point(), 1 /* MONITOR_DEFAULTTOPRIMARY */);
+            if (monitor == 0) return null;
+            var info = new MonitorInfoEx { Size = Marshal.SizeOf<MonitorInfoEx>() };
+            if (!GetMonitorInfoW(monitor, ref info)) return null;
+            var mode = new DevMode { Size = (ushort)Marshal.SizeOf<DevMode>() };
+            if (!EnumDisplaySettingsW(info.Device, -1 /* ENUM_CURRENT_SETTINGS */, ref mode)) return null;
+            var (_, hdr) = ReadAdvancedColor(info.Device);
+            return Core.Insights.SessionDisplay.Sanitize((int)mode.PelsWidth, (int)mode.PelsHeight, mode.DisplayFrequency > 1 ? (int)mode.DisplayFrequency : null, hdr);
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException or MarshalDirectiveException)
+        {
+            return null;
+        }
+    }
+
     private static (bool?, bool?) ReadAdvancedColor(string gdiDevice)
     {
         if (GetDisplayConfigBufferSizes(2 /* QDC_ONLY_ACTIVE_PATHS */, out var pathCount, out var modeCount) != 0) return (null, null);
@@ -161,7 +184,11 @@ public static class DisplayProbe
         public uint PanningHeight;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Point { public int X; public int Y; }
+
     [DllImport("user32.dll")] private static extern nint MonitorFromWindow(nint hwnd, uint flags);
+    [DllImport("user32.dll")] private static extern nint MonitorFromPoint(Point pt, uint flags);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool GetMonitorInfoW(nint monitor, ref MonitorInfoEx info);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool EnumDisplaySettingsW(string device, int mode, ref DevMode devMode);
     [DllImport("user32.dll")] private static extern int GetDisplayConfigBufferSizes(uint flags, out int numPaths, out int numModes);

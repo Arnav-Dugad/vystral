@@ -138,18 +138,51 @@ public static class PreflightChecks
 
     // ---------------- controller ----------------
 
-    public static PreflightCheckDto Controllers(IReadOnlyList<ControllerInfo> pads)
+    /// <param name="drainPerHour">
+    /// Track Y: the pad's usual drain in points per hour from the battery history (by <see cref="ControllerInfo.Key"/>),
+    /// or null. With it, the card says roughly how long the battery lasts, and warns above 20% when that is short.
+    /// </param>
+    public static PreflightCheckDto Controllers(IReadOnlyList<ControllerInfo> pads, Func<string, double?>? drainPerHour = null)
     {
         const string label = "Controller";
         if (pads.Count == 0)
             return new("controller", label, "info", "None connected", "If this game needs a controller, connect or pair it now.");
-        var low = pads.Where(p => p.BatteryPercent is <= 20 && p.Charging != true).OrderBy(p => p.BatteryPercent).FirstOrDefault();
+        int? Left(ControllerInfo p) => p.Key is { } k && drainPerHour is not null
+            ? Core.Insights.BatteryHistory.MinutesLeft(p.BatteryPercent, SafeDrain(drainPerHour, k), p.Charging)
+            : null;
+        var low = pads.Where(p => p.BatteryPercent is <= Core.Insights.BatteryHistory.LowPercent && p.Charging != true).OrderBy(p => p.BatteryPercent).FirstOrDefault();
         var name = pads.Count == 1 ? pads[0].Name : $"{pads.Count} connected";
         var battery = pads.Where(p => p.BatteryPercent is not null).Select(p => p.BatteryPercent!.Value).DefaultIfEmpty(-1).Min();
         var value = battery >= 0 ? $"{name} · {battery}% battery" : name;
-        return low is not null
-            ? new("controller", label, "warn", value, $"{low.Name} is low on battery. Charge it or swap the batteries before a long session.")
-            : new("controller", label, "ok", value);
+        if (low is not null)
+        {
+            var lowLeft = Left(low);
+            return new("controller", label, "warn", value, lowLeft is { } m
+                ? $"{low.Name} is low on battery: about {FormatMinutes(m)} left at your usual rate. Charge it or swap the batteries before a long session."
+                : $"{low.Name} is low on battery. Charge it or swap the batteries before a long session.");
+        }
+        var soon = pads.Select(p => (Pad: p, Left: Left(p))).Where(x => x.Left is < Core.Insights.BatteryHistory.ShortMinutes).OrderBy(x => x.Left).FirstOrDefault();
+        if (soon.Pad is not null)
+            return new("controller", label, "warn", value,
+                $"{soon.Pad.Name} has about {FormatMinutes(soon.Left!.Value)} of battery left at your usual rate. Charge it before a long session.");
+        return new("controller", label, "ok", value);
+    }
+
+    private static double? SafeDrain(Func<string, double?> drain, string key)
+    {
+        try { return drain(key); }
+        catch (Exception) { return null; }
+    }
+
+    /// <summary>"45 min", "1 h 10 min", "3 h".</summary>
+    public static string FormatMinutes(int minutes)
+    {
+        var m = Math.Max(1, minutes);
+        if (m < 60) return $"{m} min";
+        var rounded = m >= 180 ? (int)Math.Round(m / 30.0) * 30 : (int)Math.Round(m / 5.0) * 5;
+        var h = rounded / 60;
+        var rest = rounded % 60;
+        return rest == 0 ? $"{h} h" : $"{h} h {rest} min";
     }
 
     // ---------------- display ----------------

@@ -18,6 +18,7 @@ import { GameCover } from '../components/game/GameCover';
 import { Shelf } from '../components/game/Shelf';
 import { Badge, Button, EmptyState, IconButton, PlatformBadge, Skeleton } from '../components/ui/primitives';
 import { useLogoTone } from '../lib/logoTone';
+import { RollUp } from '../components/ui/RollUp';
 import './home.css';
 
 export function HomeView() {
@@ -181,7 +182,7 @@ function LibraryPulse({ games }: { games: Game[] }) {
       <div className="pulse__tiles">
         {tiles.map((t) => (
           <button key={t.label} className="pulse__tile" onClick={t.go ?? (() => navigate({ name: 'library' }))}>
-            <span className="pulse__value num" data-tone={t.tone}>{t.value.toLocaleString()}</span>
+            <span className="pulse__value num" data-tone={t.tone}><RollUp id={`home.pulse.${t.label}`}>{t.value.toLocaleString()}</RollUp></span>
             <span className="pulse__label">{t.label}</span>
           </button>
         ))}

@@ -139,6 +139,12 @@ public sealed class SettingsService
         new NumberDef("voiceover.volume", 1, 0, 1),
         new EnumDef("controller.glyphs", "auto", "auto", "xbox", "playstation", "nintendo"),
         new EnumDef("immersive.librarySort", "az", "az", "recent", "played", "added"),
+        // Track Y: controller battery history (local only) and the opt-in energy estimate.
+        new BoolDef("controller.batteryHistory", true),
+        new BoolDef("energy.enabled", false),
+        new NumberDef("energy.watts", 0, 0, 3000),
+        new NumberDef("energy.price", 0, 0, 1000),
+        new StringDef("energy.currency", "", 3, "^([A-Z]{3})?$"),
     ];
 
     private readonly LibraryRepository _repo;
