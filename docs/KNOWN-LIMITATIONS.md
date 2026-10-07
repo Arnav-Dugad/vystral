@@ -109,6 +109,7 @@
 - Controller battery history uses Windows.Gaming.Input's battery report: wired pads, and many third-party or Bluetooth pads that Windows doesn't report a battery for, never appear. It's sampled only while VYSTRAL is open (not by the background tracker), so the usual-drain estimate needs about 45 minutes of discharge seen by the app. Real controllers haven't been tested yet (preview data only).
 - Completion forecasts need an IGDB time-to-beat estimate (your own IGDB key) and at least 3 sessions on 2 days with an hour of play in the last 4 weeks; store-reported playtime counts toward "played", but only VYSTRAL-tracked sessions give the pace.
 - The hour-of-week heatmap uses the PC's current time zone for all sessions, so sessions recorded while travelling in another zone are placed by today's zone.
+
 **Library tools (0.7, Track X)**
 - The Home card announces each new problem or warning once. The very first background check after updating only records what's already there, so existing issues never appear on Home (they're on the Health page). An issue that comes back within 120 days isn't announced again.
 - Drive changes are noticed by comparing drive letters every 4 seconds; a drive mounted into a folder (no letter) is noticed only by the next scan or the daily check.

@@ -73,7 +73,6 @@ Play data and insights (0.7, Track Y; all on your PC, nothing new sent anywhere)
 - **Energy estimate** (Settings → Launching & sessions, off by default) is calculated from the GPU/CPU load already stored with your sessions, your graphics card and processor names (read once from the registry) and, if you enter them, your PC's wattage, electricity price and currency (stored as settings). Nothing else is recorded.
 - **Hour-of-week heatmap, genre drift and completion forecasts** are calculated in the interface from sessions, genres and IGDB time-to-beat estimates already on your PC; nothing is stored.
 
-VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 Library tools (0.7, Track X), all read-only and on your PC unless noted in the network table:
 
 - **New health issues on Home** re-run the same offline health check when a drive appears or disappears (VYSTRAL compares the list of drive letters every few seconds), after a scan or a Steam install change, and once a day. Which issues it has seen and announced is kept in `ui-state\health-watch.json` (issue ids and dates only). Turn the card off in Settings → Library & stores → Library health.

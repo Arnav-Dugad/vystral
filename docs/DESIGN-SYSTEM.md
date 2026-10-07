@@ -204,6 +204,7 @@ All charts share the Journal/Performance chrome (`views/perf/kit.css`: hairline 
 - **Controller battery** (`components/controller/BatteryHistoryCard.tsx`): one small line per pad (2 px accent line, 10% wash, broken where the pad was off), a `Low` hairline at 20%, charging marked along the baseline.
 
 **Roll-ups** (`components/ui/RollUp.tsx`, `lib/rollup.ts`): numbers count up like an odometer the first time they scroll into view, once per app session per element (`id`). Each digit keeps its final glyph in flow (width and baseline never move) and a 0–9 strip rolls over it, clipped with `clip-path`; the units digit spins two extra turns, the tens one, and digits land left to right (55 ms stagger, 720 ms + turns). Transform only; none under reduced motion, while a game runs or in Performance Mode; screen readers get the final text. Used on Journal headline tiles, game-page stat tiles and Home's Library radar.
+
 ## Library tools (v0.7, Track X)
 
 - **Something new on Home** (`views/home/HealthNewsCard.tsx`, `health-news.css`): a compact glass card tinted by severity (`--warn`, `--danger` for problems) with an icon tile whose single ring breathes out twice and then rests (none under reduced motion or Performance Mode), the top new issue's title and calm detail, a fanned stack of up to four affected covers, the one-tap fix (primary; never a pointless *Rescan* for a disconnected drive) and *See all N*. Dismiss hides everything that was new at once; each issue is announced once, ever.
