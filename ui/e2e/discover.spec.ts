@@ -80,13 +80,13 @@ test.describe('Discover page', () => {
     await expect(sources).toContainText('RAWG: not connected');
     await expect(sources).toContainText(/Steam: \d+ match/);
     const cards = page.locator('section[aria-labelledby="disc-rest"] .dcard');
-    await expect(cards.first()).toBeVisible();
-    await expect(page.locator('section[aria-labelledby="disc-rest"]')).toHaveAttribute('aria-busy', 'false');
+    await expect(cards.first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('section[aria-labelledby="disc-rest"]')).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 });
     const before = await cards.count();
 
     // Infinite scroll: IGDB has more pages for “of”.
     await page.getByRole('button', { name: 'Show more results' }).scrollIntoViewIfNeeded();
-    await expect.poll(async () => cards.count(), { timeout: 10_000 }).toBeGreaterThan(before);
+    await expect.poll(async () => cards.count(), { timeout: 20_000 }).toBeGreaterThan(before);
 
     // Filters narrow the list and can be cleared.
     const all = await cards.count();

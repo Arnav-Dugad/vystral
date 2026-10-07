@@ -74,6 +74,25 @@ Track O. VYSTRAL is a launcher and companion for **GeForce NOW** and **Xbox Clou
 
 Rules for the catalogue endpoints (grey: public and unauthenticated, but undocumented): opt-in; at most one refresh a day per market and service (the market is your Windows region unless you pick one); a back-off of 1, 2, 4… up to 24 hours after an error and a pause for as long as a 429 asks; a cookie-less client with no redirects and a plain `VYSTRAL/<version>` User-Agent; answers capped (2 MB per GeForce NOW page, 1 MB SIGL, 4 MB per display-catalogue batch, at most 20 pages and 15,000 entries); every ID validated by pattern before it's stored or used (GeForce NOW UUID, digits-only cmsId, 12-character product ID, package family name), titles stripped of markup and clipped. A failed refresh keeps the last good copy. Launch arguments are built only from those validated IDs and passed as separate arguments (no shell); only `https` vendor pages and `msxbox:` reach ShellExecute. The page names only a game and a service.
 
+## Universal search and Discover (Track U; Settings → Library & stores → Data sources)
+
+Find any game, owned or not, from the command bar (Ctrl+K, a *Not in your library* group) or the **Discover** page. Code: `src/Vystral.Windows/Discover/`, `AppBackend.Discover.cs`, `ui/src/views/Discover*.tsx`.
+
+| Source | Request | Gate |
+|---|---|---|
+| Steam | `store.steampowered.com/api/storesearch/?term=…&l=english&cc=<price country>` (about 10 apps), and `api/appdetails?appids=<id>&cc=…` when a page opens | *Search stores and game databases* and *Fetch game details*; Steam's polite lane (1.6 s between requests) |
+| IGDB | `POST /v4/games` with `search "…"`, 20 per page (offset paging), then one game and its `game_time_to_beats` for a page | Your Twitch app; 4 requests/s lane |
+| RAWG | `games?search=…&search_precise=true&page_size=20&page=n`, `games/<slug>` | Your key |
+| Wikidata | One SPARQL query using Wikidata's own `EntitySearch` (via `wikibase:mwapi`), only items that are a video game (Q7889), with release date and store IDs; one query per page for labels | *Wikidata* switch; 2 s lane |
+
+- **Merging** (`DiscoverMerger`, xunit-tested): hits sharing a Steam app ID, IGDB ID/slug, RAWG slug or Wikidata item are one game (Wikidata's IDs glue the others together); otherwise an identical normalized title (edition words kept) from **another** source joins only when both years are known and within one year, or one year is unknown and the title is unambiguous. Conflicting IDs never merge; two hits from one source never merge by title. Library games match by Steam app ID, else exact title and agreeing year, and always come first, marked *In your library*.
+- **Streaming:** `discover.search` returns at once with each source's state; every answer arrives as a `discover.results` event with the whole merged list. A newer search on the same channel (command bar or page) cancels the previous one. Answers are cached in memory (15 min, 200 searches), entries and details in LRUs; nothing new is written to the database.
+- **Pages** (`discover.details`): Steam appdetails (description, genres, studios, date, Metacritic, price in your price country, trailer), IGDB (summary, rating, time to beat), RAWG (only when nothing else describes it, or it's RAWG's own result), Wikidata (other stores' IDs, cached in the existing identity table), Steam Deck and anti-cheat (the existing services, by app ID), CheapShark/ITAD prices (existing services, by app ID), and cloud availability from the catalogues already downloaded by cloud play: GeForce NOW by Steam app ID only (verified), Xbox Cloud Gaming by an unambiguous title (“Likely match”). No request is made for cloud data.
+- **Trailers** reuse the trailer proxy: the page gets a stand-in 32-hex ID (a hash of the app ID) that `trailer.get` and the media host accept; the trailer is the one `SteamTrailers.Select` picks from appdetails, so the same allow-list applies. Kept in memory (64 at most).
+- **Images** go through the artwork pipeline (HTTPS, host allow-list: Steam CDNs, `images.igdb.com`, `media.rawg.io`; size cap; magic bytes; tiny Steam placeholders refused) into `_thumbs/discover/`; newer Steam apps fall back to the store's asset index.
+- **Where to get it** links are built natively from validated IDs: Steam, GOG (`gog.com/en/<path>`), Epic (`store.epicgames.com/p/<slug>`), Microsoft Store (`apps.microsoft.com/detail/<ID>`), plus IGDB/RAWG/Wikidata pages. They open in the browser; nothing is bought, installed or launched.
+- **Watching** is a local list (`ui-state/discover-watching.json`); it doesn't sync with Steam's wishlist and checks prices only when you open a page.
+
 ## Adding a store
 
 Implement `IPlatformAdapter` (see `SteamAdapter` for the reference pattern), keep it read-only and tolerant of malformed data, add fixture tests using `TempDir` and `FakeRegistry`, register it in `AdapterCatalog`, and add its launch scheme to `LaunchValidator`.

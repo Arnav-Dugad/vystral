@@ -103,6 +103,13 @@
 - "Automatic" button glyphs need the controller to appear in the page's Gamepad list, which Chromium fills only after a button on that controller was pressed while VYSTRAL had focus. Nintendo glyphs follow position (the bottom button reads "B", as printed). Controllers Windows only exposes as a generic HID device show Xbox glyphs.
 - Close VYSTRAL (in the Immersive guide) closes the app only; it never shuts down, restarts or sleeps the PC.
 
+**Universal search (Track U)**
+- Steam's store search returns about ten apps and no release year, so Steam results without another source merge by title only when the title is unambiguous; DLC and soundtracks are recognised by their names only.
+- IGDB's `game_type` and `external_games.external_game_source` fields and Wikidata's `EntitySearch` service were built from their documentation and live checks of Wikidata and Steam; IGDB and RAWG searches haven't been run against the real services (no developer key was used).
+- GeForce NOW availability is shown only for games with a Steam app ID; Xbox Cloud Gaming by title is a likely match. Both need cloud play on (its catalogues are only downloaded then).
+- The Watching list doesn't notify about price drops; prices are checked when you open a game's page. It doesn't sync with Steam's wishlist.
+- Results and pages are kept in memory only; after a restart a page is looked up again.
+
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).
 - Display-scaling changes, monitor hot-plug, sleep/resume and controller hot-plug have not been tested yet.
