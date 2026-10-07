@@ -938,3 +938,24 @@ export interface BridgeEvents {
 }
 
 export type * from './types.cloud';
+
+// ---------- Track W: Steam data extras — wishlist, friends' recent games, achievement guide, news (types in ./types.trackW) ----------
+
+export interface Settings {
+  /** Steam wishlist with prices, release dates and price history (opt-in; needs your Steam Web API key). */
+  'wishlist.sync': boolean;
+  /** Windows notification when a wishlisted game is released or drops to its lowest price ever. */
+  'notifications.wishlist': boolean;
+  /** "Friends who played this" on game pages, from friends' public recently played games (opt-in). */
+  'friends.gameHistory': boolean;
+  /** Official Steam news and patch notes on game pages (public, no key). */
+  'news.patchNotes': boolean;
+}
+
+export interface BridgeEvents {
+  'wishlist.changed': { refreshing: boolean };
+  'friends.historyChanged': { refreshing: boolean };
+  'achievements.goalChanged': { gameId: string; goal: import('./types.trackW').GuideAchievement | null };
+}
+
+export type * from './types.trackW';

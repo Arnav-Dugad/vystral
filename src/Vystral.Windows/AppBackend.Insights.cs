@@ -20,7 +20,7 @@ public sealed record HotkeyParams(string Shortcut);
 /// </summary>
 public sealed partial class AppBackend : ILaunchFixRunner
 {
-    private static readonly HashSet<string> NotifiableEvents = ["launch.state", "update.state", "install.progress", "achievements.unlocked", "disk.forecast"];
+    private static readonly HashSet<string> NotifiableEvents = ["launch.state", "update.state", "install.progress", "achievements.unlocked", "disk.forecast", "wishlist.alerts"];
 
     private IInsightHost? _insightHost;
     private NotificationPolicy _notifications = null!;

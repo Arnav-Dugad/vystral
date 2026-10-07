@@ -1,0 +1,8 @@
+{"response":{"total_count":5,"games":[
+  {"appid":620,"name":"Portal 2","playtime_2weeks":185,"playtime_forever":2400,"img_icon_url":"abc"},
+  {"appid":1145360,"name":"Hades","playtime_2weeks":30,"playtime_forever":10},
+  {"appid":440,"name":"TF2","playtime_2weeks":0,"playtime_forever":9000},
+  {"appid":"730","playtime_2weeks":999999,"playtime_forever":1},
+  {"appid":620,"playtime_2weeks":5},
+  {"name":"no id","playtime_2weeks":5}
+]}}

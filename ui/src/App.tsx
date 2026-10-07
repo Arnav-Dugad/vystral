@@ -38,6 +38,7 @@ const StorageStudioView = lazy(() => import('./views/StorageStudio').then((m) =>
 const OnboardingView = lazy(() => import('./views/Onboarding').then((m) => ({ default: m.OnboardingView })));
 const ImmersiveView = lazy(() => import('./views/Immersive').then((m) => ({ default: m.ImmersiveView })));
 const HealthView = lazy(() => import('./views/Health').then((m) => ({ default: m.HealthView })));
+const WishlistView = lazy(() => import('./views/Wishlist').then((m) => ({ default: m.WishlistView }))); // Track W
 
 export default function App() {
   const init = useStore((s) => s.init);
@@ -241,6 +242,7 @@ function View({ route }: { route: Route }) {
     case 'settings': return <SettingsView section={route.section} />;
     case 'storage': return <StorageStudioView />;
     case 'health': return <HealthView />;
+    case 'wishlist': return <WishlistView />;
   }
 }
 

@@ -139,6 +139,11 @@ public sealed class SettingsService
         new NumberDef("voiceover.volume", 1, 0, 1),
         new EnumDef("controller.glyphs", "auto", "auto", "xbox", "playstation", "nintendo"),
         new EnumDef("immersive.librarySort", "az", "az", "recent", "played", "added"),
+        // Track W: wishlist sync (opt-in), its notifications, friends' recent games on game pages (opt-in), news and patch notes.
+        new BoolDef("wishlist.sync", false),
+        new BoolDef("notifications.wishlist", true),
+        new BoolDef("friends.gameHistory", false),
+        new BoolDef("news.patchNotes", true),
     ];
 
     private readonly LibraryRepository _repo;

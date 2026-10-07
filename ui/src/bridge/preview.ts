@@ -25,6 +25,8 @@ import { TRACK_P_DEFAULT_SETTINGS, previewFriendsOn, trackPPreviewHandlers } fro
 import type { SteamApiStatus } from './types';
 import { healthPreviewHandlers } from './preview.health';
 import { CLOUD_DEFAULT_SETTINGS, cloudPreviewHandlers } from './preview.cloud';
+import { TRACK_W_DEFAULT_SETTINGS, previewTrackWSettings, trackWPreviewHandlers } from './preview.trackW';
+import type { AchievementsResult } from './types';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -75,6 +77,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_P_DEFAULT_SETTINGS,
   ...CLOUD_DEFAULT_SETTINGS,
   ...TRACK_T_DEFAULT_SETTINGS,
+  ...TRACK_W_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -244,6 +247,7 @@ export function createPreviewBackend() {
   if (params.has('reduced')) settings['motion.reduce'] = 'on';
   if (params.has('vibration')) settings['controller.vibration'] = true;
   if (previewFriendsOn(params)) settings['home.friendsActivity'] = true; // Track P: ?friends, ?friendsPrivate
+  settings = { ...settings, ...previewTrackWSettings(params) }; // Track W: ?wishlist, ?friendsHistory
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
   // Track T: `?nowPlaying` starts the preview with a game already running (Immersive's Now playing row).
@@ -479,6 +483,12 @@ export function createPreviewBackend() {
     ...healthPreviewHandlers({ lib, emit: () => emit, timers }),
     // Track O: cloud play (fictional catalogue; ?cloud turns it on, ?cloudMeter=near|reached|free|none, ?cloudNoData).
     ...cloudPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; }, timers }),
+    // Track W: wishlist (?wishlist), friends' recent games (?friendsHistory), achievement guide (?achGuide pins a goal), news (?news).
+    ...trackWPreviewHandlers({
+      lib, emit: () => emit, settings: () => settings, timers,
+      steamStatus: () => handlers['steam.status']({}) as SteamApiStatus,
+      achievements: (gameId) => Promise.resolve(handlers['steam.achievements']({ gameId }) as Promise<AchievementsResult>),
+    }),
   };
 
   return {

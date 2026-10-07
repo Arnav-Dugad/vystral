@@ -14,6 +14,7 @@ import { UpdatePanel } from '../components/shell/UpdateCenter';
 import { BackdropHint } from '../components/shell/SystemBackdrop';
 import { useSystemAppearance } from '../state/systemAppearance';
 import { SteamWebApiSettings } from './settings/SteamWebApiSettings';
+import { SteamExtrasSettings } from './settings/SteamExtrasSettings'; // Track W
 import { FpsCaptureSettings } from './settings/FpsCaptureSettings';
 import { WindowsIntegrationSettings } from './settings/WindowsIntegrationSettings';
 import { DataSaverSettings } from './settings/DataSaverSettings';
@@ -41,7 +42,7 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { id: 'appearance', label: 'Appearance', icon: <Palette size={17} />, keywords: 'theme dark light oled contrast accent colour color living canvas background motion animation reduced intro quality grid home live tiles trailer' },
-  { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download data sources steamgriddb igdb twitch rawg isthereanydeal cheapshark prices deals wikidata steam deck anti-cheat api key art packs style covers logos backgrounds blurred material health broken shortcuts missing drive duplicates fix' },
+  { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download data sources steamgriddb igdb twitch rawg isthereanydeal cheapshark prices deals wikidata steam deck anti-cheat api key art packs style covers logos backgrounds blurred material health broken shortcuts missing drive duplicates fix wishlist sale lowest price release friends played news patch notes updates' },
   { id: 'cloud', label: 'Cloud play', icon: <Cloud size={17} />, keywords: 'cloud streaming stream geforce now gfn nvidia xbox cloud gaming game pass xcloud hours meter membership performance ultimate edge browser region' },
   { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu background apps processes driver tracker outside closed startup detected' },
   { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble on-screen keyboard typing text suggestions sound audio ambient volume mood immersive fullscreen' },
@@ -101,7 +102,7 @@ export function SettingsView({ section }: { section?: string }) {
         </nav>
         <div className="settings__content">
           {active === 'appearance' && <><Appearance s={settings} /><LiveTilesSettings /></>}
-          {active === 'library' && <><LibrarySection s={settings} /><HealthSettings /><SteamWebApiSettings /><DataSourcesSettings /><TimeToBeatSettings /><ArtPacksSettings /></>}
+          {active === 'library' && <><LibrarySection s={settings} /><HealthSettings /><SteamWebApiSettings /><SteamExtrasSettings /><DataSourcesSettings /><TimeToBeatSettings /><ArtPacksSettings /></>}
           {active === 'cloud' && <CloudSettings />}
           {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /><AntiCheatNotesSettings /></>}
           {active === 'controller' && <><Controller s={settings} /><ImmersiveSettings /><SoundSettings /></>}

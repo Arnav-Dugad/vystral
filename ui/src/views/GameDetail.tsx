@@ -39,10 +39,13 @@ import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
 import { ControlsPanel } from '../components/game/ControlsPanel';
 import { takeGameTab } from '../lib/gameTab';
+import { AchievementGuidePanel, CurrentGoalChip } from '../components/game/AchievementGuide';
+import { FriendsPlayedChip } from '../components/game/FriendsPlayedChip';
+import { PatchNotes } from '../components/game/PatchNotes';
 import './detail.css';
 
-type Tab = 'overview' | 'achievements' | 'sessions' | 'versions' | 'artwork' | 'controls';
-const TABS: Tab[] = ['overview', 'achievements', 'sessions', 'versions', 'artwork', 'controls'];
+type Tab = 'overview' | 'achievements' | 'news' | 'sessions' | 'versions' | 'artwork' | 'controls';
+const TABS: Tab[] = ['overview', 'achievements', 'news', 'sessions', 'versions', 'artwork', 'controls'];
 
 export function GameDetailView({ id }: { id: string }) {
   const game = useStore((s) => s.gamesById.get(id));
@@ -78,7 +81,7 @@ export function GameDetailView({ id }: { id: string }) {
 
   return (
     <div className="detail">
-      <DetailHero game={game} />
+      <DetailHero game={game} onOpenAchievements={() => setTab('achievements')} />
       <div className="page detail__body">
         <StatsRow game={game} />
         <div style={{ marginTop: 'var(--s-8)' }}>
@@ -89,6 +92,7 @@ export function GameDetailView({ id }: { id: string }) {
             tabs={[
               { value: 'overview', label: 'Overview' },
               { value: 'achievements', label: 'Achievements' },
+              ...(isSteamGame(game) ? [{ value: 'news' as const, label: 'News' }] : []), // Track W: patch notes and announcements
               { value: 'sessions', label: `Sessions${game.sessionCount ? ` · ${game.sessionCount}` : ''}` },
               { value: 'versions', label: `Versions${game.installations.length > 1 ? ` · ${game.installations.length}` : ''}` },
               { value: 'artwork', label: 'Artwork' },
@@ -101,7 +105,10 @@ export function GameDetailView({ id }: { id: string }) {
           {tab === 'sessions' && <Sessions game={game} />}
           {tab === 'versions' && <Versions game={game} />}
           {tab === 'artwork' && <ArtworkTab game={game} />}
-          {tab === 'achievements' && <AchievementsPanel game={game} />}
+          {tab === 'achievements' && (isSteamGame(game)
+            ? <div className="ach-with-guide"><AchievementsPanel game={game} /><AchievementGuidePanel game={game} /></div>
+            : <AchievementsPanel game={game} />)}
+          {tab === 'news' && <PatchNotes game={game} />}
           {tab === 'controls' && <ControlsPanel game={game} />}
         </div>
         <Related game={game} />
@@ -110,7 +117,9 @@ export function GameDetailView({ id }: { id: string }) {
   );
 }
 
-function DetailHero({ game }: { game: Game }) {
+const isSteamGame = (game: Game) => game.installations.some((i) => i.platform === 'steam');
+
+function DetailHero({ game, onOpenAchievements }: { game: Game; onOpenAchievements: () => void }) {
   const goBack = useStore((s) => s.goBack);
   const launchGame = useStore((s) => s.launchGame);
   const collections = useStore((s) => s.library.collections);
@@ -194,6 +203,7 @@ function DetailHero({ game }: { game: Game }) {
             <span>{status.text}</span>
           </div>
           <UpdateSpaceChip game={game} />{/* Track P: room the next Steam update needs */}
+          <FriendsPlayedChip game={game} />{/* Track W: friends who played this recently (opt-in) */}
           <div className="dhero__actions">
             <div className="split-btn">
               <PlayButton game={game} autoFocus joined={installed.length > 1} />
@@ -228,6 +238,7 @@ function DetailHero({ game }: { game: Game }) {
               <MoreHorizontal size={19} />
             </IconButton>
           </div>
+          <CurrentGoalChip game={game} onOpen={onOpenAchievements} />{/* Track W: the pinned achievement goal */}
         </div>
       </motion.div>
       <Menu at={menuAt} entries={more} onClose={() => setMenuAt(null)} label="Game actions" />

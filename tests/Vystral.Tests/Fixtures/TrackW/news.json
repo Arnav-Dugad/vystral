@@ -1,0 +1,9 @@
+{"appnews":{"appid":620,"newsitems":[
+  {"gid":"5124585837391111111","title":"Patch 1.2.3 &amp; balance changes","url":"https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/5124585837391111111","is_external_url":false,"author":"Valve","contents":"[h2]What's new[/h2][p]Fixed a crash when [b]loading[/b] saves.[/p][list][*]Faster menus[*]New map[/list][img src=\"{STEAM_CLAN_IMAGE}/123/abc.png\"][/img]","feedlabel":"Community Announcements","date":1700000000,"feedname":"steam_community_announcements","feed_type":1,"appid":620,"tags":["patchnotes"]},
+  {"gid":"5124585837392222222","title":"Summer event","author":"Valve","contents":"<p>Join us this <strong>summer</strong>!</p><script>alert(1)</script><img src=\"https://evil.example/x.png\">","date":1699000000,"appid":620,"tags":["mod_reviewed","<script>"]},
+  {"gid":"not-digits","title":"Bad gid","contents":"x","date":1699000000,"appid":620},
+  {"gid":"5124585837393333333","title":"Other app","contents":"x","date":1699000000,"appid":440},
+  {"gid":"5124585837394444444","title":"","contents":"x","date":1699000000,"appid":620},
+  {"gid":"5124585837395555555","title":"No date","contents":"x","appid":620},
+  {"gid":"5124585837391111111","title":"Duplicate","contents":"x","date":1700000000,"appid":620}
+],"count":7}}
