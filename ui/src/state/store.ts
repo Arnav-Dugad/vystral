@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { call, errorMessage, isNative, on } from '../bridge/bridge';
 import { rarity, unlockToastText } from '../lib/achievements';
+import { readFirstPaint, type FirstPaint } from '../lib/firstPaint';
 import type {
   AdapterInfo, AppInfo, DriveInfo, Game, LaunchState, LibrarySnapshot, SettingKey, Settings, UpdateState, WindowState,
 } from '../bridge/types';
@@ -69,6 +70,8 @@ interface State {
   /** Notification centre history (most recent first). */
   notifications: (Toast & { at: number; read: boolean })[];
   fatal: string | null;
+  /** Track AA: last start's Home snapshot, shown until the live library arrives (null when there was none or it was unusable). */
+  firstPaint: FirstPaint | null;
 
   init(): Promise<void>;
   refreshLibrary(): Promise<void>;
@@ -128,6 +131,10 @@ const settingsInFlight = new Map<string, number>();
 
 const indexGames = (lib: LibrarySnapshot) => new Map(lib.games.map((g) => [g.id, g]));
 const sameRoute = (a: Route, b: Route) => JSON.stringify(a) === JSON.stringify(b);
+/** Declared before the store: the store reads the last route while it is created. */
+const ROUTE_KEY = 'vystral.lastRoute';
+/** Track AA: read once, before the first render (the host put it there before any script ran). */
+const initialFirstPaint = readFirstPaint();
 
 export const useStore = create<State>((set, get) => ({
   ready: false,
@@ -136,14 +143,16 @@ export const useStore = create<State>((set, get) => ({
   settings: null,
   window: { mode: 'desktop', maximized: false, fullscreen: false, captionInsetRight: 138, scale: 1 },
   library: EMPTY_LIBRARY,
-  gamesById: new Map(),
+  // Track AA: the snapshot's games, so a card opened before the live library arrives still has its game.
+  gamesById: new Map(initialFirstPaint?.games.map((g) => [g.id, g]) ?? []),
   libraryLoaded: false,
   adapters: [],
   drives: [],
   scan: { running: false, platforms: {} },
   launch: null,
   update: null,
-  route: { name: 'home' },
+  // Track AA: restored before the first render (not after app.info), so the first frame is already the right page.
+  route: readLastRoute() ?? { name: 'home' },
   back: [],
   forward: [],
   navKind: 'push',
@@ -153,6 +162,7 @@ export const useStore = create<State>((set, get) => ({
   toasts: [],
   notifications: [],
   fatal: null,
+  firstPaint: initialFirstPaint,
 
   async init() {
     subscribeEvents(set, get);
@@ -162,8 +172,6 @@ export const useStore = create<State>((set, get) => ({
       const modeChanged = get().window.mode !== 'desktop';
       set({ info, settings: info.settings, window: modeChanged ? { ...info.window, mode: get().window.mode } : info.window, launch: info.launch, update: info.update });
       if (info.window.mode === 'immersive') document.documentElement.dataset.mode = 'immersive';
-      const lastRoute = readLastRoute();
-      if (lastRoute) set({ route: lastRoute });
       // Track U: the browser preview's `?discover` (or `?discover=<text>`) opens the Discover page.
       if (!isNative && new URLSearchParams(location.search).has('discover'))
         set({ route: { name: 'discover', query: new URLSearchParams(location.search).get('discover') || undefined } });
@@ -295,6 +303,12 @@ export const useStore = create<State>((set, get) => ({
   },
 
   patchGame(id, patch) {
+    // Track AA: before the live library arrives, only the first-paint games exist; patch those in place.
+    if (!get().libraryLoaded) {
+      const current = get().gamesById.get(id);
+      if (current) set({ gamesById: new Map(get().gamesById).set(id, { ...current, ...patch }) });
+      return;
+    }
     const lib = get().library;
     const games = lib.games.map((g) => (g.id === id ? { ...g, ...patch } : g));
     const library = { ...lib, games };
@@ -433,8 +447,6 @@ function subscribeEvents(set: (p: Partial<State>) => void, get: () => State) {
   mq.addEventListener('change', () => set({ systemReducedMotion: mq.matches }));
 }
 
-const ROUTE_KEY = 'vystral.lastRoute';
-
 function saveLastRoute(route: Route) {
   try {
     if (route.name !== 'game' && route.name !== 'discoverGame') localStorage.setItem(ROUTE_KEY, JSON.stringify(route));
@@ -446,7 +458,10 @@ function saveLastRoute(route: Route) {
 function readLastRoute(): Route | null {
   try {
     const raw = localStorage.getItem(ROUTE_KEY);
-    return raw ? (JSON.parse(raw) as Route) : null;
+    const route = raw ? (JSON.parse(raw) as Route) : null;
+    // Only pages that need no id; anything else (an older or damaged entry) starts on Home.
+    const known = ['home', 'library', 'journal', 'performance', 'moments', 'constellation', 'assistant', 'settings', 'storage', 'health'];
+    return route && typeof route === 'object' && known.includes(route.name) ? route : null;
   } catch {
     return null;
   }
@@ -455,5 +470,9 @@ function readLastRoute(): Route | null {
 /** Selector helpers. */
 export const useSettings = () => useStore((s) => s.settings);
 export const useReducedMotion = () =>
-  useStore((s) => (s.settings?.['motion.reduce'] === 'on' ? true : s.settings?.['motion.reduce'] === 'off' ? false : s.systemReducedMotion));
+  useStore((s) => {
+    // Track AA: before settings arrive, the first-paint snapshot's preference applies (no motion flip on the first frames).
+    const pref = s.settings?.['motion.reduce'] ?? s.firstPaint?.appearance.reduceMotion;
+    return pref === 'on' ? true : pref === 'off' ? false : s.systemReducedMotion;
+  });
 export const useGameRunning = () => useStore((s) => s.launch?.phase === 'running');

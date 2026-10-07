@@ -89,6 +89,39 @@ public sealed class Database
         return string.Join("; ", conn.Query<string>("PRAGMA integrity_check"));
     }
 
+    /// <summary>
+    /// Track AA: SQLite's quick integrity check (the B-tree structure without the slower index cross-checks).
+    /// Returns "ok" when healthy. Read-only.
+    /// </summary>
+    public string QuickCheck()
+    {
+        using var conn = Open();
+        return string.Join("; ", conn.Query<string>("PRAGMA quick_check(20)"));
+    }
+
+    /// <summary>Track AA: bytes on disk for the database and its WAL journal (0 for a file that doesn't exist).</summary>
+    public long SizeOnDisk()
+    {
+        if (FilePath == ":memory:") return 0;
+        long Len(string p) => File.Exists(p) ? new FileInfo(p).Length : 0;
+        return Len(FilePath) + Len(FilePath + "-wal");
+    }
+
+    /// <summary>
+    /// Track AA: rebuilds the file without free pages (VACUUM), folds the WAL back in, and refreshes the
+    /// query planner's statistics (PRAGMA optimize). VACUUM is atomic: if it fails or the process dies
+    /// part-way, SQLite keeps the database exactly as it was. Throws <see cref="SqliteException"/> when another
+    /// connection holds the file (SQLITE_BUSY / SQLITE_LOCKED); callers treat that as "try again later".
+    /// </summary>
+    public void Compact()
+    {
+        using var conn = Open();
+        conn.Execute("PRAGMA wal_checkpoint(TRUNCATE);");
+        conn.Execute("VACUUM;");
+        conn.Execute("PRAGMA wal_checkpoint(TRUNCATE);");
+        conn.Execute("PRAGMA optimize;");
+    }
+
     /// <summary>Consistent online backup using SQLite's backup API (safe while in use).</summary>
     public void BackupTo(string destination)
     {

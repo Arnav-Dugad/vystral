@@ -1058,3 +1058,20 @@ export interface SystemStatus {
   /** Windows' regional format uses a 24-hour clock (null/absent = unknown: use the interface language's default). */
   clock24h?: boolean | null;
 }
+
+// ---------- Track AA: startup speed, after-update self-check, database compaction (types in ./types.maintenance) ----------
+
+export interface Settings {
+  /** The monthly quiet database compaction (VACUUM), only when the PC is idle and plugged in. */
+  'data.autoCompact': boolean;
+}
+
+export interface BridgeEvents {
+  /** The after-update self-check's round trip: the UI echoes it with call('update.selfCheck.echo', …). */
+  'selfcheck.ping': { nonce: string; probe: string };
+  'selfcheck.done': import('./types.maintenance').SelfCheckStatus;
+  /** An automatic compaction ran (or was tried). */
+  'data.compaction': import('./types.maintenance').CompactionStatus;
+}
+
+export type * from './types.maintenance';

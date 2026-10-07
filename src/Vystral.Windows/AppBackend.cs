@@ -118,6 +118,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterSubscriptionHandlers();   // AppBackend.Subscriptions.cs: your subscriptions, what they include, leaving soon, queue alerts (Track V)
         RegisterDiscoverHandlers();       // AppBackend.Discover.cs: universal game search, pages for games you don't own, Watching (Track U)
         RegisterTrackWHandlers();         // AppBackend.TrackW.cs: wishlist, friends' recent games, achievement guide, news (Track W)
+        RegisterMaintenanceHandlers();    // AppBackend.Maintenance.cs: first-paint snapshot, startup timings, after-update self-check, compaction (Track AA)
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 
@@ -175,6 +176,7 @@ public sealed partial class AppBackend : IDisposable
         if (_initialScanStarted) return;
         _initialScanStarted = true;
         ConfirmStartWhenStable();
+        OnUiReadyMaintenance(); // Track AA: startup timings and the after-update self-check
         _ = Task.Run(async () =>
         {
             try { await Library.ScanAsync(_life.Token); }
@@ -238,6 +240,7 @@ public sealed partial class AppBackend : IDisposable
 
     public void Dispose()
     {
+        DisposeMaintenance(); // Track AA
         Sessions.Dispose();
         _liveTiles?.Dispose();
         _cloud?.Dispose();

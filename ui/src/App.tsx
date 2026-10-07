@@ -62,11 +62,13 @@ export default function App() {
   // Theme, motion, quality and Performance Mode are expressed as root attributes for CSS.
   useEffect(() => {
     const root = document.documentElement;
-    root.dataset.theme = settings?.['appearance.theme'] ?? 'obsidian';
+    // Track AA: until settings arrive, keep the first-paint snapshot's theme (set before the first render).
+    const early = useStore.getState().firstPaint?.appearance;
+    root.dataset.theme = settings?.['appearance.theme'] ?? early?.theme ?? 'obsidian';
     root.dataset.reducedMotion = String(reduce);
     root.dataset.performance = String(running);
     root.dataset.mode = mode;
-    const q = settings?.['appearance.quality'] ?? 'auto';
+    const q = settings?.['appearance.quality'] ?? early?.quality ?? 'auto';
     root.dataset.quality = q === 'auto' ? ((navigator.hardwareConcurrency ?? 8) <= 4 ? 'low' : 'balanced') : q;
     if (settings) rememberIntroPreference(settings['startup.intro'] && !reduce);
     if (settings) void call('window.captionTheme', { value: settings['appearance.theme'] !== 'light' }).catch(() => {});

@@ -31,6 +31,24 @@ function csp(): Plugin {
   };
 }
 
+// Track AA: preload the Latin faces the first screen uses (UI, display and figures), so text appears in its
+// own font on the first paint instead of swapping a moment later. Other subsets still load on demand.
+const PRELOAD_FONTS = [/^assets\/geist-latin-wght-normal-[\w-]+\.woff2$/, /^assets\/unbounded-latin-wght-normal-[\w-]+\.woff2$/, /^assets\/geist-mono-latin-wght-normal-[\w-]+\.woff2$/];
+function fontPreload(): Plugin {
+  return {
+    name: 'vystral-font-preload',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler: (html, ctx) => {
+        const files = Object.keys(ctx.bundle ?? {}).filter((f) => PRELOAD_FONTS.some((re) => re.test(f)));
+        const links = files.map((f) => `<link rel="preload" href="./${f}" as="font" type="font/woff2" crossorigin>`).join('\n    ');
+        return html.replace('<!--FONT-PRELOAD-->', links);
+      },
+    },
+  };
+}
+
 // "What's new" source: CHANGELOG.md's newest sections, parsed at build time into a virtual module
 // (the format of CHANGELOG.md doesn't change; see docs/RELEASING.md).
 const CHANGELOG_ID = 'virtual:vystral-changelog';
@@ -50,7 +68,7 @@ function changelog(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [react(), csp(), changelog()],
+  plugins: [react(), csp(), changelog(), fontPreload()],
   build: {
     target: 'es2023',
     sourcemap: false,

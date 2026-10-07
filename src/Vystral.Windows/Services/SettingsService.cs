@@ -171,6 +171,8 @@ public sealed class SettingsService
         new StringDef("immersive.rowOrder", "", 2000, @"^[A-Za-z0-9:_|\-]*\z"),
         new BoolDef("immersive.attractClock", false),
         new BoolDef("immersive.attractTrailers", true),
+        // Track AA: the monthly quiet database compaction (VACUUM), only when the PC is idle and plugged in.
+        new BoolDef("data.autoCompact", true),
     ];
 
     private readonly LibraryRepository _repo;

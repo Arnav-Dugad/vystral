@@ -1,0 +1,83 @@
+/* Track AA: Settings → Updates → After-update check, and Data & recovery → Database upkeep. */
+
+.upk { padding: 0; }
+.upk__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+}
+.upk__text { flex: 1; min-width: 0; }
+.upk__icon { flex: none; color: var(--text-3); }
+.upk__icon[data-tone='ok'] { color: var(--ok); }
+.upk__icon[data-tone='warn'] { color: var(--warn); }
+.upk__icon[data-tone='danger'] { color: var(--danger); }
+
+.upk__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 var(--s-5) var(--s-3);
+  padding: 4px 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  border-radius: var(--r-sm);
+}
+.upk__toggle:hover { color: var(--text-1); }
+.upk__toggle svg { transition: transform var(--dur-fast) var(--ease-out); }
+.upk__toggle svg[data-open='true'] { transform: rotate(180deg); }
+
+.upk__checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.upk-check {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-5);
+  border-bottom: 1px solid var(--line);
+  animation: upk-in 260ms var(--ease-out) both;
+}
+.upk-check:last-child { border-bottom: 0; }
+.upk-check__icon { margin-top: 2px; color: var(--text-3); }
+.upk-check[data-outcome='passed'] .upk-check__icon { color: var(--ok); }
+.upk-check[data-outcome='failed'] .upk-check__icon { color: var(--danger); }
+.upk-check__label { font-weight: var(--fw-medium); }
+.upk-check__detail { margin-top: 2px; font-size: var(--fs-sm); color: var(--text-2); }
+.upk-check[data-outcome='failed'] .upk-check__detail { color: var(--text-1); }
+
+/* The size line briefly lights up when a compaction just finished. */
+.upk__size { transition: color var(--dur-base) var(--ease-out); }
+.upk__size[data-flash] { color: var(--ok); }
+
+/* Before/after sliver: the full track is the size before, the fill is what is left. */
+.upk-bar {
+  position: relative;
+  height: 4px;
+  max-width: 260px;
+  margin-top: 8px;
+  border-radius: var(--r-pill);
+  background: var(--bg-3);
+  overflow: hidden;
+}
+.upk-bar__after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--dur-slow) var(--ease-emph);
+}
+
+@keyframes upk-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+[data-reduced-motion='true'] .upk-check { animation: none; }
+[data-reduced-motion='true'] .upk-bar__after,
+[data-reduced-motion='true'] .upk__size { transition: none; }
+
+@media (forced-colors: active) {
+  .upk-bar { border: 1px solid CanvasText; background: Canvas; }
+  .upk-bar__after { background: Highlight; }
+  .upk__icon, .upk-check__icon { color: CanvasText; }
+}

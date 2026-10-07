@@ -151,3 +151,10 @@
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).
 - Display-scaling changes, monitor hot-plug, sleep/resume and controller hot-plug have not been tested yet.
+
+**Startup and upkeep (v0.7)**
+- The cached first paint is ignored for the first start after every update (the snapshot is stamped with the version), so that start paints from live data as before.
+- Until the live library arrives (usually a fraction of a second), Home shows last start's snapshot: a game added, removed or played since then appears a moment later. Opening a game in that moment shows its cached card data first.
+- The self-check's bridge round trip is skipped (not failed) when the interface is suspended for a game or doesn't answer within 30 s.
+- Automatic compaction needs ten idle minutes on mains power; a PC that is always busy or on battery only compacts with *Compact now*. Idle time is the time since the last input in this Windows session.
+- The real-app startup gain hasn't been measured yet (see PERFORMANCE.md); the numbers come from a WebView2 harness hosting the real interface.
