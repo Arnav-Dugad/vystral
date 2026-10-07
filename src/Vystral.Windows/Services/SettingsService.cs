@@ -139,6 +139,17 @@ public sealed class SettingsService
         new NumberDef("voiceover.volume", 1, 0, 1),
         new EnumDef("controller.glyphs", "auto", "auto", "xbox", "playstation", "nintendo"),
         new EnumDef("immersive.librarySort", "az", "az", "recent", "played", "added"),
+        // Track V: your subscriptions (stored here only), the opt-in public Game Pass lists, cloud services shown,
+        // "leaving soon" notifications, what you pay (optional), GeForce NOW queue alerts.
+        new StringDef("subs.owned", "", 200, @"^([a-z][a-z0-9-]{1,20}(,[a-z][a-z0-9-]{1,20}){0,11})?\z"),
+        new BoolDef("subs.asked", false),
+        new BoolDef("subs.catalog", false),
+        new BoolDef("subs.cloudShowAll", false),
+        new BoolDef("subs.leavingNotify", true),
+        new NumberDef("subs.price", 0, 0, 1000),
+        new StringDef("subs.currency", "", 3, @"^([A-Z]{3})?\z"),
+        new BoolDef("cloud.queueAlerts", true),
+        new NumberDef("cloud.queueAlertAt", 5, 1, 50),
     ];
 
     private readonly LibraryRepository _repo;

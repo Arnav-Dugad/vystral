@@ -25,6 +25,7 @@ import { TRACK_P_DEFAULT_SETTINGS, previewFriendsOn, trackPPreviewHandlers } fro
 import type { SteamApiStatus } from './types';
 import { healthPreviewHandlers } from './preview.health';
 import { CLOUD_DEFAULT_SETTINGS, cloudPreviewHandlers } from './preview.cloud';
+import { SUBS_DEFAULT_SETTINGS, subsPreviewHandlers } from './preview.subs';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -75,6 +76,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_P_DEFAULT_SETTINGS,
   ...CLOUD_DEFAULT_SETTINGS,
   ...TRACK_T_DEFAULT_SETTINGS,
+  ...SUBS_DEFAULT_SETTINGS, // Track V
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -479,6 +481,8 @@ export function createPreviewBackend() {
     ...healthPreviewHandlers({ lib, emit: () => emit, timers }),
     // Track O: cloud play (fictional catalogue; ?cloud turns it on, ?cloudMeter=near|reached|free|none, ?cloudNoData).
     ...cloudPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; }, timers }),
+    // Track V: your subscriptions (fictional Game Pass lists; ?subs, ?subsPrice, ?leaving, ?subsAsk, ?subsNoData).
+    ...subsPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; } }),
   };
 
   return {

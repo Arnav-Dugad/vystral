@@ -938,3 +938,35 @@ export interface BridgeEvents {
 }
 
 export type * from './types.cloud';
+
+// ---------- Track V: your gaming subscriptions, "leaving soon", cloud queue alerts (types in ./types.subs) ----------
+
+export interface Settings {
+  /** The plans you said you have (comma list of SubsPlanId). Stored on this PC only; never checked against an account. */
+  'subs.owned': string;
+  /** You answered (or dismissed) "Which subscriptions do you have?". */
+  'subs.asked': boolean;
+  /** Opt-in: download Microsoft's public Game Pass lists to see what your plans include. Off by default. */
+  'subs.catalog': boolean;
+  /** Cloud play shows every service, not only the ones you have. */
+  'subs.cloudShowAll': boolean;
+  /** A Windows notification a few days before a game you own leaves Game Pass. */
+  'subs.leavingNotify': boolean;
+  /** What you pay a month in total (0 = not entered), only for the value card's cost per hour. */
+  'subs.price': number;
+  /** ISO 4217 code for that price ('' = your Windows currency). */
+  'subs.currency': string;
+  /** GeForce NOW queue alerts (read from the official app's window title; "Your stream is starting"). */
+  'cloud.queueAlerts': boolean;
+  /** Notify when the queue position reaches this number or less. */
+  'cloud.queueAlertAt': number;
+}
+
+export interface BridgeEvents {
+  'subs.changed': import('./types.subs').SubsStatus;
+  /** Owned games leaving Game Pass (the native side also shows the notification). */
+  'subs.leaving': { key: string; count: number; items: { gameId: string; title: string; end: string | null }[] };
+  'cloud.queue': import('./types.subs').CloudQueueSignal;
+}
+
+export type * from './types.subs';

@@ -8,9 +8,10 @@ import { useReducedMotion, useStore } from '../state/store';
 import { Badge, Button, PlatformBadge, Toggle } from '../components/ui/primitives';
 import { StoreLogo } from '../components/ui/StoreLogo';
 import { ServiceLogo } from '../components/ui/ServiceLogo';
+import { SubsStep, useSubsStep } from './onboarding/SubsStep';
 import './onboarding.css';
 
-const STEPS = ['welcome', 'look', 'stores', 'features', 'privacy'] as const;
+const STEPS = ['welcome', 'look', 'stores', 'subs', 'features', 'privacy'] as const;
 type Step = (typeof STEPS)[number];
 
 /** First run. Skippable at every step; nothing here blocks the library from loading. */
@@ -19,7 +20,12 @@ export function OnboardingView() {
   const reduce = useReducedMotion();
   const setSetting = useStore((s) => s.setSetting);
   const index = STEPS.indexOf(step);
-  const next = () => (index < STEPS.length - 1 ? setStep(STEPS[index + 1]) : finish());
+  // Track V: leaving the subscriptions step with Continue saves the answer (Skip setup leaves it for the Home card).
+  const subs = useSubsStep();
+  const next = () => {
+    if (step === 'subs') void subs.save();
+    return index < STEPS.length - 1 ? setStep(STEPS[index + 1]) : finish();
+  };
   const finish = () => void setSetting('onboarding.completed', true);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -72,6 +78,7 @@ export function OnboardingView() {
             {step === 'welcome' && <Welcome />}
             {step === 'look' && <Look />}
             {step === 'stores' && <Stores />}
+            {step === 'subs' && <SubsStep state={subs} />}
             {step === 'features' && <Features />}
             {step === 'privacy' && <Privacy />}
           </motion.div>

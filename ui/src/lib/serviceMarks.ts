@@ -11,7 +11,7 @@ import { STORE_MARKS, type BrandMark } from './storeMarks';
  * what it runs on. Services without a properly licensed mark get a plain, descriptive icon instead —
  * never an invented or imitated logo.
  */
-export type GenericIcon = 'artwork' | 'database' | 'price' | 'deal' | 'shield' | 'pulse';
+export type GenericIcon = 'artwork' | 'database' | 'price' | 'deal' | 'shield' | 'pulse' | 'gift';
 
 export type ServiceMark =
   | (BrandMark & { name: string; /** Brand hue, tuned (like the store tokens) to read on dark surfaces. */ hue: string })
@@ -33,12 +33,20 @@ export type ServiceId =
   | 'itad'
   | 'cheapshark'
   | 'awacy'
-  | 'presentmon';
+  | 'presentmon'
+  // Track V: gaming subscriptions.
+  | 'game-pass'
+  | 'ea-play'
+  | 'ubisoft-plus'
+  | 'humble-choice'
+  | 'prime-gaming';
 
 const NVIDIA_PATH =
   'M8.948 8.798v-1.43a6.7 6.7 0 0 1 .424-.018c3.922-.124 6.493 3.374 6.493 3.374s-2.774 3.851-5.75 3.851c-.398 0-.787-.062-1.158-.185v-4.346c1.528.185 1.837.857 2.747 2.385l2.04-1.714s-1.492-1.952-4-1.952a6.016 6.016 0 0 0-.796.035m0-4.735v2.138l.424-.027c5.45-.185 9.01 4.47 9.01 4.47s-4.08 4.964-8.33 4.964c-.37 0-.733-.035-1.095-.097v1.325c.3.035.61.062.91.062 3.957 0 6.82-2.023 9.593-4.408.459.371 2.34 1.263 2.73 1.652-2.633 2.208-8.772 3.984-12.253 3.984-.335 0-.653-.018-.971-.053v1.864H24V4.063zm0 10.326v1.131c-3.657-.654-4.673-4.46-4.673-4.46s1.758-1.944 4.673-2.262v1.237H8.94c-1.528-.186-2.73 1.245-2.73 1.245s.68 2.412 2.739 3.11M2.456 10.9s2.164-3.197 6.5-3.533V6.201C4.153 6.59 0 10.653 0 10.653s2.35 6.802 8.948 7.42v-1.237c-4.84-.6-6.492-5.936-6.492-5.936z';
 const NVIDIA_HUE = 'oklch(0.76 0.19 130)';
 const XBOX = STORE_MARKS.xbox as BrandMark;
+const EA = STORE_MARKS.ea as BrandMark;
+const UBISOFT = STORE_MARKS.ubisoft as BrandMark;
 
 export const SERVICE_MARKS: Record<ServiceId, ServiceMark> = {
   steamdeck: {
@@ -102,6 +110,19 @@ export const SERVICE_MARKS: Record<ServiceId, ServiceMark> = {
   // Simple Icons has no GeForce NOW mark: NVIDIA's own mark names the service's maker.
   'geforce-now': { kind: 'brand', name: 'GeForce NOW', slug: 'nvidia', inset: 0, hue: NVIDIA_HUE, path: NVIDIA_PATH },
   'xbox-cloud': { ...XBOX, name: 'Xbox Cloud Gaming', hue: 'var(--p-xbox)' },
+  // Track V: subscriptions wear their maker's mark (Game Pass: the Xbox sphere; EA Play: EA; Ubisoft+: Ubisoft).
+  'game-pass': { ...XBOX, name: 'Game Pass', hue: 'var(--p-xbox)' },
+  'ea-play': { ...EA, name: 'EA Play', hue: 'var(--p-ea)' },
+  'ubisoft-plus': { ...UBISOFT, name: 'Ubisoft+', hue: 'var(--p-ubisoft)' },
+  'humble-choice': {
+    kind: 'brand',
+    name: 'Humble Choice',
+    slug: 'humblebundle',
+    inset: 0.6,
+    hue: 'oklch(0.68 0.17 25)',
+    path: 'M17.895 19.341c-3.384 0 1.826-19.186 1.826-19.186L16.233.151s-1.427 4.515-2.37 9.533h-3.005c.078-1.032.116-2.076.099-3.114-.135-8.26-4.974-6.73-7.14-4.835C1.758 3.538.033 6.962 0 9.6c.328-.016 1.624-.022 1.624-.022S2.702 4.66 6.086 4.66c3.385 0-1.834 19.187-1.834 19.187l3.49.002s1.803-5.136 2.7-10.872l2.87-.017c-.167 1.485-.22 3.124-.196 4.646.136 8.26 4.956 6.488 7.122 4.593 2.166-1.896 3.782-5.9 3.762-7.822.002-.002-1.645.013-1.665.013.006.152-1.056 4.951-4.44 4.951z',
+  },
+  'prime-gaming': { kind: 'generic', name: 'Prime Gaming', icon: 'gift', reason: 'No openly licensed drawing of Amazon’s Prime Gaming or Luna marks.' },
 
   steamgriddb: { kind: 'generic', name: 'SteamGridDB', icon: 'artwork', reason: 'No openly licensed drawing of the SteamGridDB mark.' },
   rawg: { kind: 'generic', name: 'RAWG', icon: 'database', reason: 'No openly licensed drawing of the RAWG mark.' },

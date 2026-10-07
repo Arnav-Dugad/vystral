@@ -34,6 +34,7 @@ import { TimeToBeatPanel } from '../components/game/TimeToBeatBar';
 import { AntiCheatNote } from '../components/game/AntiCheatNote';
 import { UpdateSpaceChip } from '../components/game/UpdateSpaceChip';
 import { CloudPlayButton } from '../components/cloud/CloudPlayButton';
+import { SubsGamePills } from '../components/subs/SubsBits';
 import { ArtSlotActions, useUserArt } from '../components/game/ArtPicker';
 import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
@@ -194,6 +195,7 @@ function DetailHero({ game }: { game: Game }) {
             <span>{status.text}</span>
           </div>
           <UpdateSpaceChip game={game} />{/* Track P: room the next Steam update needs */}
+          <SubsGamePills gameId={game.id} />{/* Track V: included with your plans, leaving soon */}
           <div className="dhero__actions">
             <div className="split-btn">
               <PlayButton game={game} autoFocus joined={installed.length > 1} />

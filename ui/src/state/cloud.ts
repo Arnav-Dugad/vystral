@@ -3,11 +3,13 @@
  * session) and launching. Kept out of the main store so the feature stays self-contained; loaded on first use and
  * refreshed on library, settings and cloud events.
  */
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { create } from 'zustand';
 import { call, errorMessage, on } from '../bridge/bridge';
 import type { CloudLaunchResult, CloudMap, CloudService, CloudSession, CloudStatus } from '../bridge/types';
 import { useStore } from './store';
+import { filterCloudMap } from '../lib/subs';
+import { useAllowedCloudServices } from './subs';
 
 interface CloudState {
   map: CloudMap | null;
@@ -99,7 +101,10 @@ function useStart(force = false) {
 export function useCloudMap(): CloudMap | null {
   const enabled = useStart();
   const map = useCloudStore((s) => s.map);
-  return enabled ? map : EMPTY;
+  // Track V: once you've said which services you have, the others are left out (unless "show every service" is on).
+  const allowed = useAllowedCloudServices();
+  const shown = useMemo(() => filterCloudMap(map, allowed), [map, allowed]);
+  return enabled ? shown : EMPTY;
 }
 
 const EMPTY: CloudMap = {};

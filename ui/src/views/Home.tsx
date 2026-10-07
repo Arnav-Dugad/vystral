@@ -7,6 +7,7 @@ import { NeverPlayedSection } from './home/NeverPlayed';
 import { AwayCard } from './home/AwayCard';
 import { FriendsCard } from './home/FriendsCard';
 import { DiskForecastCard } from './home/DiskForecastCard';
+import { SubsAskCard, SubsIncludedRow, SubsValueCard } from './home/SubsHome';
 import { formatDuration, formatRelative, importedPlaytime, isInstalled, isMissing, lastPlayed, PLATFORM_NAMES, plural } from '../lib/format';
 import { ease, spring } from '../lib/motion';
 import { featuredGame, suggestGames } from '../lib/recommend';
@@ -86,6 +87,8 @@ export function HomeView() {
         {/* Track P: an update that won't fit (renders nothing otherwise); friends playing now (opt-in). */}
         <DiskForecastCard />
         <FriendsCard />
+        {/* Track V: the one-time subscriptions question (renders nothing once answered). */}
+        <SubsAskCard />
         <Shelf title="Continue playing" games={continuePlaying} variant="landscape" live />
         {suggestions.length > 0 && (
           <Shelf
@@ -96,9 +99,12 @@ export function HomeView() {
             live
           />
         )}
+        {/* Track V: games your plans include that you don't own yet (renders nothing while the lists are off). */}
+        <SubsIncludedRow />
         <Shelf title="Favorites" meta={plural(favorites.length, 'game')} games={favorites} live />
         <Shelf title="Recently added" games={recent} live />
         <NeverPlayedSection games={visible} live />
+        <SubsValueCard />
         <LibraryPulse games={visible} />
       </div>
     </div>
