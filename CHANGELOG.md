@@ -2,6 +2,49 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
+## [0.7.0] — 2026-10-07
+
+Your library, settings and history carry over.
+
+### Discover
+- **Find any game.** Search Steam, Wikidata and, with your own keys, IGDB and RAWG from Ctrl+K or the new Discover page, owned or not. Results stream in, merged into one per game, with your library first.
+- **Pages for games you don't own.** Trailer, description, time to beat, Steam Deck and anti-cheat badges, prices and deals, whether GeForce NOW or Xbox Cloud Gaming can stream it, and official store links that open in your browser. Add any of them to a local Watching list.
+
+### Your subscriptions
+- **Tell VYSTRAL what you pay for.** Game Pass, EA Play, Ubisoft+, Humble Choice, Prime Gaming and GeForce NOW, during setup, from a one-time Home card or in Settings. Your answer stays on this PC.
+- **Tailored to them (opt-in).** Badges on games your plans include, an "In my subscriptions" filter, a Home row of included games you don't own yet, "leaving soon" badges with a reminder before a game leaves Game Pass, and a value card with your hours (and cost per hour if you enter a price).
+- **Cloud play shows only your services**, and GeForce NOW can tell you when your stream is starting.
+
+### Steam extras
+- **Wishlist (opt-in).** Your Steam wishlist with today's price, the lowest ever, release countdowns and price history, plus optional notifications when a game comes out or hits its lowest price.
+- **News tab.** Official announcements and patch notes on Steam game pages, safely formatted, with posts since you last played highlighted.
+- **Achievement guide.** The easiest achievements left, hidden ones kept hidden until you ask, and a goal you can pin next to the Play button.
+- **Friends who played (opt-in).** Which Steam friends played a game in the last two weeks.
+
+### Library
+- **Something new on Home.** When a drive is unplugged or a shortcut breaks, Home tells you once, with a one-tap safe fix.
+- **Compare with default.** See how your Steam Input layout differs from the template it started from, marked on the controller.
+- **Uninstall advisor.** Your hours, whether saves are in Steam Cloud, the download size and any subscription that includes the game, then the store's own uninstall.
+- **Files tab.** Steam Workshop, Vortex and Mod Organizer 2 mods (read-only) and, if you opt in, where the game keeps its saves according to PCGamingWiki.
+
+### Journal and Performance
+- **When you play.** A heatmap of your week with your prime time, and a stream graph of how your genres drifted over the year.
+- **Completion forecast.** "At your pace you'll finish this in about 3 weeks", with an honest range.
+- **Hardware history.** Driver and display changes per game, next to the frame-rate comparison.
+- **Energy estimate (opt-in).** kWh per session, game and month, and cost if you enter a price, always labelled as an estimate.
+- **Controller battery history,** and a warning before a session when your pad won't last.
+
+### Immersive Mode and the game page
+- **A screensaver that remembers.** Trailers of games you haven't played in a while; press A to open one. An optional big clock for TVs that drifts to protect your screen.
+- **Your rows, your order.** Hold Y on a row title, move it with the D-pad, drop it with A.
+- **A header that follows you.** Game pages dock their cover, title and Play button into a slim bar as you scroll, and the section tabs stay just below it.
+- **Numbers that count up** the first time you see them.
+
+### Faster and tidier
+- **Opens straight to your Home.** The last Home appears at once and updates live, so VYSTRAL is usable in under a second (about 0.84 s on our test PC).
+- **After-update self-check.** A new version checks the database, interface, artwork and settings on its first start; a real problem counts as a failed start, so a version that keeps failing goes back automatically.
+- **Monthly database compaction** while your PC is idle and plugged in, never while you play.
+
 ## [0.6.1] — 2026-10-07
 
 ### Fixed

@@ -50,6 +50,11 @@ export const NEW_FEATURES: NewFeature[] = [
   { key: 'settings.controller.voiceover', since: '0.6.0' },
   { key: 'settings.controller.keyboard', since: '0.6.0' },
   { key: 'library.health', since: '0.6.0', seenOn: { name: 'health' } },
+  // 0.7.0
+  { key: 'nav.discover', since: '0.7.0', seenOn: { name: 'discover' } },
+  { key: 'settings.library.subscriptions', since: '0.7.0' },
+  { key: 'settings.library.steam-extras', since: '0.7.0' },
+  { key: 'journal.insights', since: '0.7.0', seenOn: { name: 'journal' } },
 ];
 
 const BY_KEY = new Map(NEW_FEATURES.map((f) => [f.key, f]));

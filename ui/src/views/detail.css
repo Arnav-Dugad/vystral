@@ -215,3 +215,16 @@
   .ddock__title { color: CanvasText; }
   .ddock__cover-lift { display: none; }
 }
+
+/* The section tabs stay reachable under the docked header bar instead of sliding beneath it. */
+.detail__tabbar {
+  position: sticky;
+  top: 72px;
+  z-index: 25;
+  margin-top: var(--s-8);
+  margin-inline: calc(var(--s-3) * -1);
+  padding-inline: var(--s-3);
+  background: color-mix(in oklch, var(--bg-0) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+@media (forced-colors: active) { .detail__tabbar { background: Canvas; backdrop-filter: none; } }

@@ -93,7 +93,7 @@ export function GameDetailView({ id }: { id: string }) {
       <DetailHero game={game} onOpenAchievements={() => setTab('achievements')} />
       <div className="page detail__body">
         <StatsRow game={game} />
-        <div style={{ marginTop: 'var(--s-8)' }}>
+        <div className="detail__tabbar">
           <Tabs
             label="Game sections"
             value={tab}

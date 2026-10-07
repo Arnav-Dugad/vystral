@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { NewBadge } from '../../whatsnew/NewBadge';
 import { AlertTriangle, BellRing, CloudOff, Lock, RefreshCw, Timer } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { SubsStatus } from '../../bridge/types';
@@ -68,7 +69,7 @@ export function SubscriptionsSettings() {
   return (
     <section className="sgroup" id="settings-subs" aria-labelledby="subsset-title">
       <h2 className="sgroup__title" id="subsset-title">
-        Your subscriptions <Badge icon={<Lock size={11} />}>Stays on this PC</Badge>
+        Your subscriptions <Badge icon={<Lock size={11} />}>Stays on this PC</Badge><NewBadge k="settings.library.subscriptions" variant="pill" seenWhenVisible />
       </h2>
       <p className="sgroup__desc">
         Tell VYSTRAL what you pay for and it tailors itself: badges on games your plans include, an “In my subscriptions” filter, a Home row of included games

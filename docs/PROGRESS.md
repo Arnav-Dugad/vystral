@@ -1,6 +1,6 @@
 # Progress
 
-Status as of **v0.6.0 (2026-10-06)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
+Status as of **v0.7.0 (2026-10-07)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
 
 ## Phase 1 — Foundation ✅
 - ✅ Repository, solution, CI and release workflows
@@ -70,6 +70,17 @@ Status as of **v0.6.0 (2026-10-06)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Velopack per-user installer, portable zip, delta updates, in-app update viewer
 - ✅ GitHub Releases with a stable "latest" download link
 - See "Verification record" below for the release check.
+
+## Verification record (v0.7.0)
+
+| Check | Result |
+|---|---|
+| .NET tests | **2011 passed, 0 failed** (one timing test, Preflight/background tracking, is occasionally flaky under heavy load) |
+| UI unit tests | **711 passed, 0 failed** |
+| Playwright e2e + axe + visual regression | **235 passed, 2 flaky** (passed on retry) |
+| Real app (dev build, owner's library of 205 games) | First content in 840 ms and ready in 954 ms from process start (startup-timings log); Discover search for "elden ring" answered by Steam (6), IGDB (18) and Wikidata (2), merged, with a full page (trailer, ₹ price, 46 h time to beat, Metacritic, Deck and anti-cheat badges); Forza Horizon 4 listed; game page dock, News/Files/Controls/Achievements tabs; Journal; self-check 6 of 6; no page errors |
+| Fixed during the check | Game page tabs slid under the docked header (now sticky below it); Discover's "Turn on" could search before the setting was saved and show nothing |
+| Not verified | Subscription catalogues, wishlist, friends' history and news against the owner's live account (left off: opt-in); GeForce NOW queue position in the window title; real controllers for battery history; energy estimate against a wall meter |
 
 ## Verification record (v0.6.0)
 

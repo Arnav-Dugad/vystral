@@ -1,0 +1,10 @@
+import { chromium } from '@playwright/test';
+const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1536, height: 960 } });
+await p.addInitScript(() => sessionStorage.setItem('vystral.introPlayed', '1'));
+await p.goto('http://localhost:5311/?reduced', { waitUntil: 'networkidle' });
+await p.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /^Library/ }).click();
+await p.locator('.vgrid .card').first().click(); await p.waitForTimeout(1500);
+await p.mouse.move(800, 600); await p.mouse.wheel(0, 900); await p.waitForTimeout(800);
+await p.screenshot({ path: process.argv[2] });
+const r = await p.evaluate(() => { const t = document.querySelector('.detail__body .tabs').getBoundingClientRect(); const bar = document.querySelector('.ddock__bar').getBoundingClientRect(); return { tabsTop: t.top, barBottom: bar.bottom }; });
+console.log(JSON.stringify(r)); await b.close();

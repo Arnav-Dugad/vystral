@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { NewBadge } from '../../whatsnew/NewBadge';
 import { Gift, Lock } from 'lucide-react';
 import { call } from '../../bridge/bridge';
 import type { SteamApiStatus } from '../../bridge/types';
@@ -26,7 +27,7 @@ export function SteamExtrasSettings() {
   const needsKey = configured === false ? ' Connect the Steam Web API above first.' : '';
   return (
     <section className="sgroup" aria-labelledby="steamextras-title">
-      <h2 className="sgroup__title" id="steamextras-title">Steam extras</h2>
+      <h2 className="sgroup__title" id="steamextras-title">Steam extras<NewBadge k="settings.library.steam-extras" variant="pill" seenWhenVisible /></h2>
       <p className="sgroup__desc">Your wishlist, what friends played and each game’s news. All are read from Steam’s official Web API and cached on this PC.</p>
       <div className="sgroup__rows surface">
         <Row
