@@ -19,6 +19,9 @@ import { LineChart } from './perf/LineChart';
 import { FrameRatePanel, ThermalPanel } from './perf/InsightPanels';
 import { BackgroundAppsCard, DriverChangeCard } from './perf/DataInsightCards';
 import { useInsightSamples, useThrottleBands } from './perf/insightData';
+import { HardwareTimeline } from './perf/HardwareTimeline';
+import { EnergyCard, SessionEnergyTile } from './perf/EnergyCard';
+import { BatteryHistoryCard } from '../components/controller/BatteryHistoryCard';
 import {
   METRICS, NOISE_PCT, compareCandidates, compareValues, domainFor, downsampleSegments, extractSeries, formatMetric, parsePerfSummary,
   seriesStats, splitSegments, summaryValue, type MetricDef, type MetricKey, type Pt,
@@ -227,6 +230,13 @@ export function PerformanceView({ sessionId }: { sessionId?: string }) {
             <BackgroundAppsCard />
           </div>
 
+          {/* Track Y: hardware at each session start, the opt-in energy estimate, controller battery. */}
+          <HardwareTimeline gameId={gameFilter === 'all' ? null : gameFilter} />
+          <div className="pf-insights">
+            <EnergyCard gameId={gameFilter === 'all' ? null : gameFilter} />
+            <BatteryHistoryCard variant="performance" />
+          </div>
+
           <div className="pf-layout">
             <aside className="pf-list surface" aria-label="Sessions with performance metrics">
               <div className="pf-list__head">
@@ -385,6 +395,7 @@ function SessionDetail({ entry, game, compare }: { entry: PerfEntry; game: Game 
             />
           );
         })}
+        <SessionEnergyTile sessionId={entry.id} />
       </div>
 
       <ThermalPanel summary={summary} samples={insight.samples} />

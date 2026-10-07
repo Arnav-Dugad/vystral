@@ -37,7 +37,10 @@ internal static class ControllerProbe
                 }
                 catch (Exception) { }
 
-                list.Add(new ControllerInfo(name.Length > 60 ? name[..60] : name, percent, charging, wireless));
+                name = name.Length > 60 ? name[..60] : name;
+                string? key = null;
+                try { key = ControllerKeys.For(raw.NonRoamableId, name); } catch (Exception) { } // Track Y: matches the battery history
+                list.Add(new ControllerInfo(name, percent, charging, wireless, key));
             }
         }
         catch (Exception ex)

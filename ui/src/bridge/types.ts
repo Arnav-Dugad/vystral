@@ -938,3 +938,20 @@ export interface BridgeEvents {
 }
 
 export type * from './types.cloud';
+
+// ---------- Track Y: play data and insights — hardware history, energy estimate, controller battery history ----------
+
+export interface Settings {
+  /** Keep a sparse controller battery history (about every 10 minutes while connected); local only. */
+  'controller.batteryHistory': boolean;
+  /** Opt-in energy estimate from recorded GPU/CPU load. Off by default. */
+  'energy.enabled': boolean;
+  /** Your PC's full-load wattage; 0 = use typical board power for the detected GPU and CPU. */
+  'energy.watts': number;
+  /** Electricity price per kWh; 0 = don't show cost. */
+  'energy.price': number;
+  /** ISO 4217 currency for the price; '' = the Windows region's currency. */
+  'energy.currency': string;
+}
+
+export type * from './types.playData';

@@ -31,6 +31,9 @@ import { StoreLogo } from '../components/ui/StoreLogo';
 import { DriverChangeCard } from './perf/DataInsightCards';
 import { GameExtras, IdentityPanel } from '../components/game/GameDataPanels';
 import { TimeToBeatPanel } from '../components/game/TimeToBeatBar';
+import { CompletionForecastPanel } from '../components/game/CompletionForecast';
+import { HardwareTimeline } from './perf/HardwareTimeline';
+import { RollUp } from '../components/ui/RollUp';
 import { AntiCheatNote } from '../components/game/AntiCheatNote';
 import { UpdateSpaceChip } from '../components/game/UpdateSpaceChip';
 import { CloudPlayButton } from '../components/cloud/CloudPlayButton';
@@ -310,7 +313,7 @@ function StatsRow({ game }: { game: Game }) {
       {stats.map((s) => (
         <div key={s.label} className="stat">
           <div className="caps">{s.label}</div>
-          <div className="stat__value">{s.value}</div>
+          <div className="stat__value"><RollUp id={`game.${game.id}.${s.label}`}>{s.value}</RollUp></div>
           {s.hint && <div className="stat__hint">{s.hint}</div>}
         </div>
       ))}
@@ -385,7 +388,7 @@ function Overview({ game }: { game: Game }) {
         {game.description ? <p className="overview__desc selectable">{game.description}</p> : <p className="overview__desc" style={{ color: 'var(--text-3)' }}>No description available. VYSTRAL only shows information it can source reliably.</p>}
         {/* Track I: compatibility badges, IGDB/RAWG facts and deals, each with its source. */}
         {/* Track M: playtime vs IGDB time to beat, and an informative kernel anti-cheat note (each renders nothing without data). */}
-        <div className="gd-recap"><TimeToBeatPanel game={game} /><AntiCheatNote game={game} /></div>
+        <div className="gd-recap"><TimeToBeatPanel game={game} /><CompletionForecastPanel game={game} /><AntiCheatNote game={game} /></div>
         <GameExtras game={game} />
         <div style={{ marginTop: 'var(--s-6)' }}>
           <Field label="Your notes" hint={notesSave.status === 'saved' ? 'Saved on this PC' : notesSave.status === 'failed' ? 'Not saved. Keep typing to try again.' : 'Saving…'} htmlFor="notes">
@@ -434,6 +437,8 @@ function Sessions({ game }: { game: Game }) {
     <div className="sessions">
       {/* Track F: FPS before/after a GPU driver change for this game (renders nothing until there's a change). */}
       <DriverChangeCard gameId={game.id} hideWhenEmpty />
+      {/* Track Y: driver and display at each session start, with changes marked (nothing until recorded). */}
+      <HardwareTimeline gameId={game.id} hideWhenEmpty />
       {sessions.map((s) => {
         let perf: PerfSummary | null = null;
         try { perf = s.perfSummary ? JSON.parse(s.perfSummary) : null; } catch { perf = null; }

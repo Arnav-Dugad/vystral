@@ -326,5 +326,26 @@ internal static class Migrations
                 fetched    TEXT NOT NULL
             ) WITHOUT ROWID;
             """),
+        (8, "play data: display per session, controller battery history", """
+            -- Track Y: the primary display a session started on (read-only EnumDisplaySettings / DisplayConfig).
+            -- NULL when it wasn't recorded (older sessions, metrics off, or Windows didn't say).
+            ALTER TABLE sessions ADD COLUMN display_width INTEGER;
+            ALTER TABLE sessions ADD COLUMN display_height INTEGER;
+            ALTER TABLE sessions ADD COLUMN display_hz INTEGER;
+            ALTER TABLE sessions ADD COLUMN display_hdr INTEGER;
+
+            -- Controller battery readings, sampled sparsely (about every 10 minutes while connected, plus on a
+            -- change). pad is an opaque hash of the controller's device id; name is what Windows calls it.
+            -- Pruned after 90 days. Not session data, so deleting tracked history leaves it alone.
+            CREATE TABLE controller_battery (
+                pad      TEXT NOT NULL,
+                at       TEXT NOT NULL,
+                name     TEXT NOT NULL,
+                percent  INTEGER NOT NULL,
+                charging INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (pad, at)
+            ) WITHOUT ROWID;
+            CREATE INDEX ix_controller_battery_at ON controller_battery(at);
+            """),
     ];
 }

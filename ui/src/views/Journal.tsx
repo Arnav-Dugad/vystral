@@ -28,6 +28,8 @@ import {
 } from './journal/stats';
 import { NewBadge } from '../whatsnew/NewBadge';
 import { openReplay } from '../state/recap';
+import { RollUp } from '../components/ui/RollUp';
+import { PlayInsights } from './journal/PlayInsights';
 import './journal.css';
 
 const RANGE_OPTIONS: { value: Range; label: string }[] = [
@@ -243,19 +245,19 @@ export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab
           </motion.div>
 
           <motion.div className="vx-tiles jr-tiles" {...reveal(1)}>
-            <StatTile icon={<Clock size={13} />} label="Tracked time" value={<span>{formatDuration(totals.seconds)}</span>} sub={`Across ${plural(totals.activeDays, 'active day')}`} />
-            <StatTile icon={<Activity size={13} />} label="Sessions" value={<span>{totals.sessions.toLocaleString()}</span>} sub={totals.sessions ? `Avg ${formatDuration(totals.seconds / totals.sessions)}` : 'None in this range'} />
-            <StatTile icon={<Gamepad2 size={13} />} label="Games played" value={<span>{totals.games.toLocaleString()}</span>} sub={top[0] ? `Most: ${gameTitle(gamesById.get(top[0].gameId))}` : '—'} />
+            <StatTile icon={<Clock size={13} />} label="Tracked time" value={<span><RollUp id="journal.tracked">{formatDuration(totals.seconds)}</RollUp></span>} sub={`Across ${plural(totals.activeDays, 'active day')}`} />
+            <StatTile icon={<Activity size={13} />} label="Sessions" value={<span><RollUp id="journal.sessions">{totals.sessions.toLocaleString()}</RollUp></span>} sub={totals.sessions ? `Avg ${formatDuration(totals.seconds / totals.sessions)}` : 'None in this range'} />
+            <StatTile icon={<Gamepad2 size={13} />} label="Games played" value={<span><RollUp id="journal.games">{totals.games.toLocaleString()}</RollUp></span>} sub={top[0] ? `Most: ${gameTitle(gamesById.get(top[0].gameId))}` : '—'} />
             <StatTile
               icon={<Timer size={13} />}
               label="Longest session"
-              value={<span>{totals.longest ? formatDuration(totals.longest.seconds) : '—'}</span>}
+              value={<span><RollUp id="journal.longest">{totals.longest ? formatDuration(totals.longest.seconds) : '—'}</RollUp></span>}
               sub={totals.longest ? `${gameTitle(gamesById.get(totals.longest.gameId))} · ${shortDate(totals.longest.startMs)}` : 'None in this range'}
             />
             <StatTile
               icon={<Flame size={13} />}
               label="Current streak"
-              value={<span>{streak}<small>{streak === 1 ? 'day' : 'days'}</small></span>}
+              value={<span><RollUp id="journal.streak">{String(streak)}</RollUp><small>{streak === 1 ? 'day' : 'days'}</small></span>}
               sub={bestStreak > 1 ? `Best: ${plural(bestStreak, 'day')} in a row` : 'Play on consecutive days to build one'}
             />
           </motion.div>
@@ -333,6 +335,9 @@ export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab
                   )}
                 </motion.section>
               </div>
+
+              {/* Track Y: hour of the week, genre drift, completion forecasts. */}
+              <PlayInsights scoped={scoped} all={all} range={range} rangeText={RANGE_TEXT[range]} now={now} gamesById={gamesById} reveal={reveal} />
             </>
           )}
 

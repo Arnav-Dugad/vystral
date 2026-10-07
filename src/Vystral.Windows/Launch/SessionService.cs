@@ -150,6 +150,9 @@ public sealed class SessionService : IDisposable
     /// <summary>Track F: creates the background-app tracker for a session (snapshots every ~30 s). Null, or returning null, skips it.</summary>
     public Func<BackgroundAppTracker?>? BackgroundApps { get; set; }
 
+    /// <summary>Track Y: the primary display's mode, read once at session start (read-only). Null skips it.</summary>
+    public Func<Core.Insights.SessionDisplay?>? DisplayIdentity { get; set; }
+
     /// <summary>Raised when a session moves to running or ends; the host uses it to enter/leave Performance Mode.</summary>
     public event Action<LaunchStateDto>? StateChanged;
 
@@ -747,6 +750,7 @@ public sealed class SessionService : IDisposable
             _sampler = collect ? new PerfSampler() : null;
             _fps = collect ? new FpsSession(svc.SafeFpsPlan()) : null;
             if (_sampler is not null) svc.RecordGpu(sessionId, _sampler);
+            if (_sampler is not null && !adopted) svc.RecordDisplay(sessionId);
             if (adopted)
             {
                 // A handed-over session: its summary covers the samples recorded before the hand-over too.
@@ -851,6 +855,16 @@ public sealed class SessionService : IDisposable
                 _repo.SetSessionGpu(sessionId, gpu.Driver, gpu.Name);
         }
         catch (Exception ex) { Log.Warn("session", "Couldn't record the GPU driver", ex: ex); }
+    }
+
+    private void RecordDisplay(string sessionId)
+    {
+        try
+        {
+            if (DisplayIdentity?.Invoke() is { } d && (d.Width is not null || d.RefreshHz is not null || d.Hdr is not null))
+                _repo.SetSessionDisplay(sessionId, d);
+        }
+        catch (Exception ex) { Log.Warn("session", "Couldn't record the display mode", ex: ex); }
     }
 
     private BackgroundAppTracker? SafeBackgroundTracker()

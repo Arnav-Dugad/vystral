@@ -103,6 +103,13 @@
 - "Automatic" button glyphs need the controller to appear in the page's Gamepad list, which Chromium fills only after a button on that controller was pressed while VYSTRAL had focus. Nintendo glyphs follow position (the bottom button reads "B", as printed). Controllers Windows only exposes as a generic HID device show Xbox glyphs.
 - Close VYSTRAL (in the Immersive guide) closes the app only; it never shuts down, restarts or sleeps the PC.
 
+**Play data and insights (0.7, Track Y)**
+- The energy estimate is a model, not a measurement: typical board power for the detected GPU and CPU (a table of common NVIDIA, AMD and Intel parts; unknown cards use 200 W desktop / 100 W laptop) scaled by recorded load, plus a fixed allowance for the rest of the PC. Expect ±30% against a wall meter; entering your measured wattage is more accurate. Monitors aren't included. It isn't validated against a real meter yet.
+- Hardware history records the **main** display (Windows' primary monitor), not necessarily the one the game ran on, and only for sessions recorded with performance metrics on. Resolution is the desktop mode: a game running in exclusive full screen at a different resolution isn't seen. Sessions before 0.7 have no display data.
+- Controller battery history uses Windows.Gaming.Input's battery report: wired pads, and many third-party or Bluetooth pads that Windows doesn't report a battery for, never appear. It's sampled only while VYSTRAL is open (not by the background tracker), so the usual-drain estimate needs about 45 minutes of discharge seen by the app. Real controllers haven't been tested yet (preview data only).
+- Completion forecasts need an IGDB time-to-beat estimate (your own IGDB key) and at least 3 sessions on 2 days with an hour of play in the last 4 weeks; store-reported playtime counts toward "played", but only VYSTRAL-tracked sessions give the pace.
+- The hour-of-week heatmap uses the PC's current time zone for all sessions, so sessions recorded while travelling in another zone are placed by today's zone.
+
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).
 - Display-scaling changes, monitor hot-plug, sleep/resume and controller hot-plug have not been tested yet.

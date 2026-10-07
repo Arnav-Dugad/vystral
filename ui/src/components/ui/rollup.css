@@ -1,0 +1,29 @@
+/* ===== Number roll-up (Track Y) =====
+   Each digit keeps its final glyph in flow (invisible), so width and baseline never change; a strip of
+   0–9 is clipped over it with clip-path (overflow would move the baseline) and rolls up with a transform. */
+.rollup { display: inline; }
+.rollup__anim { display: inline; white-space: pre; }
+.rollup__digit {
+  position: relative;
+  display: inline-block;
+  clip-path: inset(0 -0.08em);
+  font-variant-numeric: tabular-nums;
+}
+.rollup__ghost { visibility: hidden; }
+.rollup__strip {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(calc(var(--to) * -1lh));
+  animation: rollup-spin var(--dur) cubic-bezier(0.16, 1, 0.3, 1) var(--delay) backwards;
+  animation-play-state: paused;
+  will-change: transform;
+}
+.rollup__strip > span { display: block; height: 1lh; }
+.rollup[data-rolling] .rollup__strip { animation-play-state: running; }
+@keyframes rollup-spin {
+  from { transform: translateY(0); }
+}
+:root:is([data-reduced-motion='true'], [data-performance='true']) .rollup__strip { animation: none; }

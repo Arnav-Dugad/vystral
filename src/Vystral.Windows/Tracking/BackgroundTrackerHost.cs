@@ -216,6 +216,7 @@ public sealed class BackgroundTrackerHost : IDisposable
         var sink = new ToastSink(this, settings, policy);
         var sessions = new SessionService(repo, adapters, settings, sink) { ExternalSource = SessionSources.Background };
         sessions.GpuIdentity = sampler => GpuDriverProbe.Read(sampler, registry);
+        sessions.DisplayIdentity = DisplayProbe.ForPrimary; // Track Y: hardware history
         sessions.BackgroundApps = () => settings.GetBool("performance.backgroundApps")
             ? new BackgroundAppTracker(new NtProcessSnapshotSource(), BackgroundAppTracker.ReadMemoryLoad, Environment.ProcessId, Environment.ProcessorCount)
             : null;

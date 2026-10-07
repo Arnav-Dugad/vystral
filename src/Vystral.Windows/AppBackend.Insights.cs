@@ -264,7 +264,7 @@ public sealed partial class AppBackend : ILaunchFixRunner
         };
         if (host is not null)
         {
-            list.Add(new PreflightCheck("controller", _ => PreflightChecks.Controllers(host.GetControllers())));
+            list.Add(new PreflightCheck("controller", _ => PreflightChecks.Controllers(host.GetControllers(), BatteryDrainFor)));
             list.Add(new PreflightCheck("display", _ => host.WindowHandle == 0 ? null : PreflightChecks.Display(DisplayProbe.ForWindow(host.WindowHandle))));
         }
         return list;
