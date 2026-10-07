@@ -1,17 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { call, on } from '../../bridge/bridge';
-import type { AchievementFeed, AchievementFeedItem, Game, LiveTileInfo, MediaItem } from '../../bridge/types';
+import type { AchievementFeed, AchievementFeedItem, Game, MediaItem } from '../../bridge/types';
 import { useLiveBlock } from '../../components/game/LiveTile';
 import { formatPercent } from '../../lib/achievements';
 import { shimmerTier } from '../../lib/shimmer';
 import '../../components/ui/shimmer.css';
 import { highlightAchievements } from './attractSlides';
-import { formatRelative, isInstalled, lastPlayed } from '../../lib/format';
+import { formatDuration, formatRelative, lastPlayed } from '../../lib/format';
 import { pushPadHandler } from '../../lib/input';
 import { ease } from '../../lib/motion';
+import { paletteFor, peekPalette, titleHue } from '../../lib/palette';
 import { useGameRunning, useReducedMotion, useStore } from '../../state/store';
 import { GameCover } from '../../components/game/GameCover';
+import { PadHint } from '../../components/ui/primitives';
+import { BigClock, CornerClock } from './BigClock';
+import { loopFor } from './loopSource';
+import { showcaseKicker, showcasePool, trailerMode, type ShowcaseReason, type TrailerMode } from './screensaver';
+import { playedSeconds } from './rows';
+import { useSystemStatus } from './useSystemStatus';
 import './attract.css';
 
 interface Slide {
@@ -20,29 +27,57 @@ interface Slide {
   imageUrl: string | null;
   caption: string;
   sub: string;
+  /** Track Z: why this game is showcased ("It's been a while", "Still waiting for you"). */
+  reason?: ShowcaseReason;
   /** Track L: an achievement highlight (a rare unlock of yours) instead of plain art. */
   achievement?: AchievementFeedItem;
 }
 
+/** `?attractTest` (development only): starts after a few seconds and moves through slides quickly. */
+const TEST = import.meta.env.DEV && typeof location !== 'undefined' && location.search.includes('attractTest');
+const SLIDE_MS = TEST ? 4500 : 10_000;
 
-const SLIDE_MS = 9000;
+/** "Last played 8 months ago · 42 h played", or how long it has waited. */
+function showcaseLine(g: Game, reason: ShowcaseReason | undefined): string {
+  const at = lastPlayed(g).at;
+  const played = playedSeconds(g);
+  if (!at) return reason === 'waiting' ? `In your library since ${formatRelative(g.added)} · not started yet` : g.genres.slice(0, 2).join(' · ');
+  return [`Last played ${formatRelative(at)}`, played >= 3600 ? `${formatDuration(played)} played` : ''].filter(Boolean).join(' · ');
+}
 
 /**
- * Attract mode: after a few idle minutes in Immersive, a slow screensaver of hero art and the
- * user's own screenshots. The first input of any kind only wakes it (it never also acts on the
- * interface underneath), and the interface is exactly where it was because it never unmounted.
+ * Attract mode: after a few idle minutes in Immersive, a slow screensaver. Track Z: it showcases
+ * games you haven't touched in a while with their silent trailer loops (live-tile rules; never on
+ * Data saver or Low quality, paused on battery saver; Ken Burns stills otherwise), your
+ * screenshots and rare achievements, and optionally a big clock for TVs. The first input only
+ * wakes it and never also acts on the interface underneath, which never unmounted, so you're
+ * exactly where you were — except A (or Enter) on a showcased game, which opens its page.
  */
-export function AttractMode({ games, active, onActiveChange }: { games: Game[]; active: boolean; onActiveChange: (v: boolean) => void }) {
+export function AttractMode({
+  games,
+  active,
+  onActiveChange,
+  onOpen,
+}: {
+  games: Game[];
+  active: boolean;
+  onActiveChange: (v: boolean) => void;
+  /** A on a showcased game: open its page (the screensaver has already closed). */
+  onOpen?: (game: Game) => void;
+}) {
   const settings = useStore((s) => s.settings);
   const running = useGameRunning();
   const reduce = useReducedMotion();
   const enabled = settings?.['immersive.attract'] ?? true;
-  // `?attractTest` (development only) shortens the idle delay to a few seconds for testing.
-  const idleMinutes = import.meta.env.DEV && location.search.includes('attractTest') ? 0.05 : settings?.['immersive.attractMinutes'] ?? 3;
+  const idleMinutes = TEST ? 0.05 : settings?.['immersive.attractMinutes'] ?? 3;
+  const bigClock = !!settings?.['immersive.attractClock'];
   const [index, setIndex] = useState(0);
   const [shots, setShots] = useState<MediaItem[]>([]);
   const [highlights, setHighlights] = useState<AchievementFeedItem[]>([]);
   const liveBlock = useLiveBlock();
+  const status = useSystemStatus();
+  const hour12 = status?.clock24h == null ? null : !status.clock24h;
+  const mode: TrailerMode = trailerMode({ enabled: settings?.['immersive.attractTrailers'] ?? true, liveBlock, batterySaver: !!status?.battery?.saver });
   const lastInput = useRef(Date.now());
 
   // Idle detection: any input resets the timer; a slow poll decides when to start.
@@ -61,7 +96,7 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
       const idle = Date.now() - lastInput.current > idleMinutes * 60_000;
       const busy = running || document.hidden || !!document.querySelector('[data-dialog-open]') || useStore.getState().commandOpen;
       if (idle && !busy && !active) onActiveChange(true);
-    }, import.meta.env.DEV && location.search.includes('attractTest') ? 500 : 5000);
+    }, TEST ? 500 : 5000);
     return () => {
       offPad();
       offScroll();
@@ -72,45 +107,6 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
       window.clearInterval(poll);
     };
   }, [enabled, idleMinutes, running, active, onActiveChange]);
-
-  // While active, the first input of any kind wakes the interface — and is swallowed.
-  useEffect(() => {
-    if (!active) return;
-    const wake = (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      lastInput.current = Date.now();
-      onActiveChange(false);
-    };
-    const popPad = pushPadHandler(() => {
-      lastInput.current = Date.now();
-      onActiveChange(false);
-      return true;
-    });
-    addEventListener('keydown', wake, true);
-    addEventListener('pointerdown', wake, true);
-    // Small pointer jitters shouldn't wake it; a deliberate move should.
-    let travelled = 0;
-    const move = (e: PointerEvent) => {
-      travelled += Math.abs(e.movementX) + Math.abs(e.movementY);
-      if (travelled > 40) wake(e);
-    };
-    addEventListener('pointermove', move, true);
-    return () => {
-      popPad();
-      removeEventListener('keydown', wake, true);
-      removeEventListener('pointerdown', wake, true);
-      removeEventListener('pointermove', move, true);
-    };
-  }, [active, onActiveChange]);
-
-  // Switching to desktop mode (from anywhere: hotkey, native) ends it too.
-  useEffect(() => {
-    if (!active) return;
-    const end = () => onActiveChange(false);
-    addEventListener('vystral:mode-switch', end);
-    return () => removeEventListener('vystral:mode-switch', end);
-  }, [active, onActiveChange]);
 
   // Track L: your rare achievements become highlight slides (when the Steam Web API is set up).
   useEffect(() => {
@@ -141,18 +137,24 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
     };
   }, [active, settings]);
 
+  // The pool is fixed for the length of one screensaver (it's rebuilt the next time it starts).
+  const [startedAt, setStartedAt] = useState(() => Date.now());
+  useEffect(() => {
+    if (active) {
+      setStartedAt(Date.now());
+      setIndex(0);
+    }
+  }, [active]);
+
   const slides = useMemo<Slide[]>(() => {
     const byId = new Map(games.map((g) => [g.id, g]));
-    const pool = games
-      .filter((g) => isInstalled(g) || g.favorite)
-      .sort((a, b) => (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? ''))
-      .slice(0, 24);
-    const gameSlides: Slide[] = pool.map((g) => ({
+    const gameSlides: Slide[] = showcasePool(games, startedAt).map(({ game: g, reason }) => ({
       key: `g-${g.id}`,
       game: g,
       imageUrl: null,
       caption: g.title,
-      sub: lastPlayed(g).at ? `Last played ${formatRelative(lastPlayed(g).at)}` : g.genres.slice(0, 2).join(' · '),
+      sub: showcaseLine(g, reason),
+      reason,
     }));
     const shotSlides: Slide[] = shots.map((s) => ({
       key: `s-${s.url}`,
@@ -181,7 +183,7 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
       if (ai < achSlides.length) out.push(achSlides[ai++]);
     }
     return out;
-  }, [games, shots, highlights]);
+  }, [games, shots, highlights, startedAt]);
 
   useEffect(() => {
     if (!active || slides.length < 2) return;
@@ -189,12 +191,83 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
     return () => window.clearInterval(t);
   }, [active, slides.length]);
 
-  useEffect(() => {
-    if (active) setIndex(0);
-  }, [active]);
-
   const slide = slides[index % Math.max(1, slides.length)];
+  const next = slides.length > 1 ? slides[(index + 1) % slides.length] : null;
   const direction = index % 2 === 0 ? 1 : -1;
+  const slideRef = useRef(slide);
+  slideRef.current = slide;
+
+  // While active, the first input of any kind wakes the interface and is swallowed. A (or Enter)
+  // on a showcased game also opens its page.
+  useEffect(() => {
+    if (!active) return;
+    const close = (open: boolean) => {
+      lastInput.current = Date.now();
+      onActiveChange(false);
+      const g = slideRef.current?.game;
+      if (open && g && onOpen) onOpen(g);
+    };
+    const wake = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const key = e instanceof KeyboardEvent ? e.key : '';
+      close(key === 'Enter' || key === ' ');
+    };
+    const popPad = pushPadHandler((b) => {
+      close(b === 'A');
+      return true;
+    });
+    addEventListener('keydown', wake, true);
+    addEventListener('pointerdown', wake, true);
+    // Small pointer jitters shouldn't wake it; a deliberate move should.
+    let travelled = 0;
+    const move = (e: PointerEvent) => {
+      travelled += Math.abs(e.movementX) + Math.abs(e.movementY);
+      if (travelled > 40) wake(e);
+    };
+    addEventListener('pointermove', move, true);
+    return () => {
+      popPad();
+      removeEventListener('keydown', wake, true);
+      removeEventListener('pointerdown', wake, true);
+      removeEventListener('pointermove', move, true);
+    };
+  }, [active, onActiveChange, onOpen]);
+
+  // Switching to desktop mode (from anywhere: hotkey, native) ends it too.
+  useEffect(() => {
+    if (!active) return;
+    const end = () => onActiveChange(false);
+    addEventListener('vystral:mode-switch', end);
+    return () => removeEventListener('vystral:mode-switch', end);
+  }, [active, onActiveChange]);
+
+  // The next slide's trailer is looked up ahead of time, so its crossfade starts on cue.
+  useEffect(() => {
+    if (!active || mode !== 'play' || !next?.game || next.imageUrl || next.achievement) return;
+    if (next.game.installations.some((i) => i.platform === 'steam')) void loopFor(next.game.id);
+  }, [active, mode, next]);
+
+  // The big clock's glow takes the showcased game's colour.
+  const [tint, setTint] = useState<string>('oklch(0.75 0.15 292)');
+  const tintGame = slide?.game ?? null;
+  useEffect(() => {
+    if (!active || !bigClock || !tintGame) return;
+    const peek = peekPalette(tintGame);
+    if (peek) {
+      setTint(peek.accent);
+      return;
+    }
+    setTint(`oklch(0.75 0.15 ${titleHue(tintGame.title)})`);
+    let alive = true;
+    void paletteFor(tintGame).then((p) => alive && setTint(p.accent)).catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [active, bigClock, tintGame]);
+
+  const kicker = slide?.reason ? showcaseKicker(slide.reason) : null;
+  const showsGame = !!slide?.game && !!onOpen;
 
   return (
     <AnimatePresence>
@@ -203,6 +276,9 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
           className="attract"
           role="presentation"
           aria-hidden
+          data-clock={bigClock || undefined}
+          data-trailers={mode}
+          data-slide-game={slide.game?.id}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.45, ease: ease.out } }}
@@ -225,7 +301,7 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
               >
                 {slide.imageUrl ? <img src={slide.imageUrl} alt="" /> : slide.game ? <GameCover game={slide.game} kind="hero" eager /> : null}
               </motion.div>
-              {!slide.imageUrl && !slide.achievement && slide.game && !liveBlock && <AttractLoop game={slide.game} />}
+              {!slide.imageUrl && !slide.achievement && slide.game && mode !== 'off' && <AttractLoop game={slide.game} mode={mode} />}
             </motion.div>
           </AnimatePresence>
           <div className="attract__scrim" />
@@ -248,65 +324,73 @@ export function AttractMode({ games, active, onActiveChange }: { games: Game[]; 
                     <span className="attract__title">{slide.caption}</span>
                   </span>
                 </div>
-              ) : slide.game?.art.logo && !slide.imageUrl ? (
-                <img className="attract__logo" src={slide.game.art.logo} alt={slide.caption} />
               ) : (
-                <div className="attract__title">{slide.caption}</div>
+                <>
+                  {kicker && <div className="attract__kicker">{kicker}</div>}
+                  {slide.game?.art.logo && !slide.imageUrl ? (
+                    <img className="attract__logo" src={slide.game.art.logo} alt={slide.caption} />
+                  ) : (
+                    <div className="attract__title">{slide.caption}</div>
+                  )}
+                </>
               )}
               <div className="attract__sub">{slide.sub}</div>
             </motion.div>
           </AnimatePresence>
           {slides.length > 1 && <div key={`p-${index}`} className="attract__progress" style={{ animationDuration: `${SLIDE_MS}ms` }} />}
-          <AttractClock />
-          <div className="attract__wake">Press any button</div>
+          {bigClock ? <BigClock tint={tint} hour12={hour12} /> : <CornerClock hour12={hour12} />}
+          <div className="attract__wake">
+            {showsGame && <PadHint button="A">View game</PadHint>}
+            <span className="attract__wake-any">Any button to return</span>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
   );
 }
 
-function AttractClock() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const t = window.setInterval(() => setNow(new Date()), 10_000);
-    return () => window.clearInterval(t);
-  }, []);
-  return (
-    <div className="attract__clock">
-      <span className="num">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-      <span>{now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</span>
-    </div>
-  );
-}
-
-/** The slide's silent micro-trailer (same rules as Home's live tiles), fading in over the still art. */
-function AttractLoop({ game }: { game: Game }) {
+/**
+ * The slide's silent micro-trailer (live-tile pipeline), crossfading in over the still art once it
+ * plays. `pause` (battery saver) holds the frame on screen and starts nothing new.
+ */
+function AttractLoop({ game, mode }: { game: Game; mode: Exclude<TrailerMode, 'off'> }) {
   const [src, setSrc] = useState<string | null>(null);
   const [shown, setShown] = useState(false);
+  const video = useRef<HTMLVideoElement>(null);
+  const steam = game.installations.some((i) => i.platform === 'steam');
   useEffect(() => {
-    if (!game.installations.some((i) => i.platform === 'steam')) return;
+    if (!steam || mode !== 'play' || src) return;
     let alive = true;
+    // A beat after the slide arrives, so the still art lands first.
     const t = window.setTimeout(() => {
-      call<LiveTileInfo>('liveTile.get', { gameId: game.id }, 120_000)
-        .then((i) => alive && i.src && setSrc(i.src))
-        .catch(() => {});
-    }, 1200);
+      void loopFor(game.id).then((s) => alive && s && setSrc(s));
+    }, 900);
     return () => {
       alive = false;
       window.clearTimeout(t);
     };
-  }, [game]);
+  }, [game.id, steam, mode, src]);
+  useEffect(() => {
+    const v = video.current;
+    if (!v) return;
+    if (mode === 'pause') v.pause();
+    else void v.play().catch(() => undefined);
+  }, [mode, src]);
   if (!src) return null;
   return (
     <video
+      ref={video}
       className="attract__loop"
       data-shown={shown || undefined}
+      data-paused={mode === 'pause' || undefined}
       src={src}
       muted
       loop
       playsInline
-      autoPlay
+      autoPlay={mode === 'play'}
+      preload="auto"
       disablePictureInPicture
+      disableRemotePlayback
       tabIndex={-1}
       onPlaying={() => setShown(true)}
       onError={() => setSrc(null)}

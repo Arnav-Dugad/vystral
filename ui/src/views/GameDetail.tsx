@@ -38,6 +38,7 @@ import { ArtSlotActions, useUserArt } from '../components/game/ArtPicker';
 import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
 import { ControlsPanel } from '../components/game/ControlsPanel';
+import { HeroDock } from '../components/game/HeroDock';
 import { takeGameTab } from '../lib/gameTab';
 import './detail.css';
 
@@ -116,6 +117,8 @@ function DetailHero({ game }: { game: Game }) {
   const collections = useStore((s) => s.library.collections);
   const reduce = useReducedMotion();
   const coverRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
   useFlightLanding(game.id, coverRef, !reduce);
   // Leaving the page, the cover becomes the start of the flight back into its card.
   useEffect(() => {
@@ -166,99 +169,120 @@ function DetailHero({ game }: { game: Game }) {
   ];
 
   return (
-    <section className="dhero">
-      <motion.div className="dhero__art" initial={reduce ? false : { opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, ease: ease.cinematic }}>
-        <GameCover game={game} kind="hero" eager />
-        <HeroTrailer game={game} active />
-      </motion.div>
-      <div className="dhero__scrim" />
-      <LastSessionGhost game={game} />
-      <div className="dhero__top">
-        <Button variant="ghost" size="sm" icon={<ArrowLeft size={16} />} onClick={goBack} className="dhero__back">
-          Back
-        </Button>
-      </div>
-      <motion.div className="dhero__content" initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring.hero, delay: 0.05 }}>
-        <div className="dhero__cover" data-game-id={game.id} ref={coverRef}>
-          <GameCover game={game} eager />
+    <>
+      {/* Track Z: the fluid header — Back lives in its sticky bar; the cover, title and Play dock into it as you scroll. */}
+      <HeroDock
+        game={game}
+        hero={heroRef}
+        cover={coverRef}
+        title={titleRef}
+        back={
+          <Button variant="ghost" size="sm" icon={<ArrowLeft size={16} />} onClick={goBack} className="dhero__back">
+            Back
+          </Button>
+        }
+      />
+      <section className="dhero" ref={heroRef}>
+        <div className="dhero__stage dk">
+          <motion.div className="dhero__art" initial={reduce ? false : { opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, ease: ease.cinematic }}>
+            <GameCover game={game} kind="hero" eager />
+            <HeroTrailer game={game} active />
+          </motion.div>
         </div>
-        <div className="dhero__info">
-          {game.art.logo ? <img className="dhero__logo" src={game.art.logo} alt={game.title} data-logo-tone={logoTone ?? undefined} /> : <h1 className="dhero__title">{game.title}</h1>}
-          {game.art.logo && <h1 className="visually-hidden">{game.title}</h1>}
-          <div className="dhero__badges">
-            {[...new Set(game.installations.map((i) => i.platform))].map((p) => <PlatformBadge key={p} platform={p} />)}
-            {game.genres.slice(0, 3).map((g) => <Badge key={g}>{g}</Badge>)}
+        <div className="dhero__scrim" />
+        <LastSessionGhost game={game} />
+        <motion.div className="dhero__content" initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring.hero, delay: 0.05 }}>
+          <div className="dhero__cover-slot dk">
+            <div className="dhero__cover" data-game-id={game.id} ref={coverRef}>
+              <GameCover game={game} eager />
+            </div>
           </div>
-          <div className={`dhero__status dhero__status--${status.tone}`} role="status">
-            {status.tone === 'warn' ? <AlertTriangle size={15} aria-hidden /> : <HardDrive size={15} aria-hidden />}
-            <span>{status.text}</span>
-          </div>
-          <UpdateSpaceChip game={game} />{/* Track P: room the next Steam update needs */}
-          <div className="dhero__actions">
-            <div className="split-btn">
-              <PlayButton game={game} autoFocus joined={installed.length > 1} />
-              {installed.length > 1 && (
-                <button
-                  ref={chooserRef}
-                  className="split-btn__more"
-                  aria-label="Choose which store to play from"
+          <div className="dhero__info">
+            <div className="dhero__titlebox dk" ref={titleRef}>
+              <div className="dhero__titlecurve dk">
+                <div className="dhero__titlescale dk">
+                  {game.art.logo ? <img className="dhero__logo" src={game.art.logo} alt={game.title} data-logo-tone={logoTone ?? undefined} /> : <h1 className="dhero__title">{game.title}</h1>}
+                </div>
+              </div>
+            </div>
+            {game.art.logo && <h1 className="visually-hidden">{game.title}</h1>}
+            <div className="dhero__meta dk">
+              <div className="dhero__badges">
+                {[...new Set(game.installations.map((i) => i.platform))].map((p) => <PlatformBadge key={p} platform={p} />)}
+                {game.genres.slice(0, 3).map((g) => <Badge key={g}>{g}</Badge>)}
+              </div>
+              <div className={`dhero__status dhero__status--${status.tone}`} role="status">
+                {status.tone === 'warn' ? <AlertTriangle size={15} aria-hidden /> : <HardDrive size={15} aria-hidden />}
+                <span>{status.text}</span>
+              </div>
+              <UpdateSpaceChip game={game} />{/* Track P: room the next Steam update needs */}
+              <div className="dhero__actions">
+                <div className="split-btn">
+                  <PlayButton game={game} autoFocus joined={installed.length > 1} />
+                  {installed.length > 1 && (
+                    <button
+                      ref={chooserRef}
+                      className="split-btn__more"
+                      aria-label="Choose which store to play from"
+                      onClick={() => {
+                        const r = chooserRef.current!.getBoundingClientRect();
+                        setChooseAt({ x: r.left, y: r.bottom + 6 });
+                      }}
+                    >
+                      <ChevronDown size={18} />
+                    </button>
+                  )}
+                </div>
+                {/* Track O: Play in the cloud (renders nothing unless cloud play is on and a service lists this game). */}
+                <CloudPlayButton game={game} />
+                <IconButton label={game.favorite ? 'Remove from favorites' : 'Add to favorites'} pressed={game.favorite} onClick={() => void toggleFavorite(game)} className="dhero__icon">
+                  <Heart size={19} fill={game.favorite ? 'currentColor' : 'none'} />
+                </IconButton>
+                <IconButton
+                  ref={moreRef}
+                  label="More actions"
+                  className="dhero__icon"
                   onClick={() => {
-                    const r = chooserRef.current!.getBoundingClientRect();
-                    setChooseAt({ x: r.left, y: r.bottom + 6 });
+                    const r = moreRef.current!.getBoundingClientRect();
+                    setMenuAt({ x: r.left, y: r.bottom + 6 });
                   }}
                 >
-                  <ChevronDown size={18} />
-                </button>
-              )}
+                  <MoreHorizontal size={19} />
+                </IconButton>
+              </div>
             </div>
-            {/* Track O: Play in the cloud (renders nothing unless cloud play is on and a service lists this game). */}
-            <CloudPlayButton game={game} />
-            <IconButton label={game.favorite ? 'Remove from favorites' : 'Add to favorites'} pressed={game.favorite} onClick={() => void toggleFavorite(game)} className="dhero__icon">
-              <Heart size={19} fill={game.favorite ? 'currentColor' : 'none'} />
-            </IconButton>
-            <IconButton
-              ref={moreRef}
-              label="More actions"
-              className="dhero__icon"
-              onClick={() => {
-                const r = moreRef.current!.getBoundingClientRect();
-                setMenuAt({ x: r.left, y: r.bottom + 6 });
-              }}
-            >
-              <MoreHorizontal size={19} />
-            </IconButton>
           </div>
-        </div>
-      </motion.div>
-      <Menu at={menuAt} entries={more} onClose={() => setMenuAt(null)} label="Game actions" />
-      <Menu
-        at={chooseAt}
-        onClose={() => setChooseAt(null)}
-        label="Play from"
-        entries={[
-          { kind: 'label', label: 'Play from' },
-          ...installed.map<MenuEntry>((i) => ({
-            label: `${PLATFORM_NAMES[i.platform]}${i.id === game.preferredInstallationId ? ' (preferred)' : ''}`,
-            icon: <Play size={16} />,
-            onSelect: () => void launchGame(game.id, i.id),
-          })),
-          { kind: 'separator' },
-          ...installed.map<MenuEntry>((i) => ({
-            label: `Always use ${PLATFORM_NAMES[i.platform]}`,
-            icon: i.id === game.preferredInstallationId ? <Check size={16} /> : <span style={{ width: 16 }} />,
-            onSelect: () => void setPreferred(game, i.id),
-          })),
-        ]}
-      />
-      <Dialog
-        open={removeOpen}
-        onClose={() => setRemoveOpen(false)}
-        title={`Remove ${game.title} from VYSTRAL?`}
-        actions={<><Button variant="ghost" onClick={() => setRemoveOpen(false)}>Cancel</Button><HoldToConfirm onConfirm={() => { setRemoveOpen(false); void removeManualGame(game); }}>Remove from VYSTRAL</HoldToConfirm></>}
-      >
-        VYSTRAL forgets this entry and its tracked sessions. The program and its files on your PC are not touched.
-      </Dialog>
-    </section>
+        </motion.div>
+        <Menu at={menuAt} entries={more} onClose={() => setMenuAt(null)} label="Game actions" />
+        <Menu
+          at={chooseAt}
+          onClose={() => setChooseAt(null)}
+          label="Play from"
+          entries={[
+            { kind: 'label', label: 'Play from' },
+            ...installed.map<MenuEntry>((i) => ({
+              label: `${PLATFORM_NAMES[i.platform]}${i.id === game.preferredInstallationId ? ' (preferred)' : ''}`,
+              icon: <Play size={16} />,
+              onSelect: () => void launchGame(game.id, i.id),
+            })),
+            { kind: 'separator' },
+            ...installed.map<MenuEntry>((i) => ({
+              label: `Always use ${PLATFORM_NAMES[i.platform]}`,
+              icon: i.id === game.preferredInstallationId ? <Check size={16} /> : <span style={{ width: 16 }} />,
+              onSelect: () => void setPreferred(game, i.id),
+            })),
+          ]}
+        />
+        <Dialog
+          open={removeOpen}
+          onClose={() => setRemoveOpen(false)}
+          title={`Remove ${game.title} from VYSTRAL?`}
+          actions={<><Button variant="ghost" onClick={() => setRemoveOpen(false)}>Cancel</Button><HoldToConfirm onConfirm={() => { setRemoveOpen(false); void removeManualGame(game); }}>Remove from VYSTRAL</HoldToConfirm></>}
+        >
+          VYSTRAL forgets this entry and its tracked sessions. The program and its files on your PC are not touched.
+        </Dialog>
+      </section>
+    </>
   );
 }
 

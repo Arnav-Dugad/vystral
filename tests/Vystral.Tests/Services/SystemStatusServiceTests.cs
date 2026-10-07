@@ -60,10 +60,29 @@ public sealed class SystemStatusServiceTests
     [Fact]
     public void Serializes_in_the_shape_the_UI_expects()
     {
-        var dto = new SystemStatusDto(new BatteryDto(76, false, false), new NetworkDto("wifi", 3, true), [new ControllerDto(0.62, false, false)]);
+        var dto = new SystemStatusDto(new BatteryDto(76, false, false), new NetworkDto("wifi", 3, true), [new ControllerDto(0.62, false, false)], Clock24h: true);
         var json = JsonSerializer.Serialize(dto, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        Assert.Equal("""{"battery":{"percent":76,"charging":false,"saver":false},"network":{"kind":"wifi","bars":3,"internet":true},"controllers":[{"battery":0.62,"charging":false,"wired":false}]}""", json);
+        Assert.Equal("""{"battery":{"percent":76,"charging":false,"saver":false},"network":{"kind":"wifi","bars":3,"internet":true},"controllers":[{"battery":0.62,"charging":false,"wired":false}],"clock24h":true}""", json);
     }
+
+    [Theory]
+    [InlineData("HH:mm", true)]
+    [InlineData("H:mm", true)]
+    [InlineData("H.mm", true)]
+    [InlineData("HH' h 'mm", true)]
+    [InlineData("h:mm tt", false)]
+    [InlineData("hh:mm tt", false)]
+    [InlineData("tt h:mm", false)]
+    [InlineData("'H'h:mm tt", false)] // a quoted literal H is not the hour
+    [InlineData("\\Hh:mm", false)]     // nor is an escaped one
+    public void Is24Hour_reads_the_regional_time_pattern(string pattern, bool expected) => Assert.Equal(expected, SystemStatusService.Is24Hour(pattern));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("mm:ss")]
+    public void Is24Hour_is_unknown_without_an_hour(string? pattern) => Assert.Null(SystemStatusService.Is24Hour(pattern));
 
     [Fact]
     public void Reading_the_real_system_never_throws()

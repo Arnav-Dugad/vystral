@@ -6,6 +6,7 @@ import type { CollectionInfo, Game, InstallProgress, LaunchPhase, PlatformKey } 
 import { importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../../lib/format';
 import { isWaiting } from '../../lib/neverPlayed';
 import { suggestGames } from '../../lib/recommend';
+import { applyRowOrder } from './rowOrder';
 
 export type Tile =
   | { kind: 'game'; key: string; game: Game; /** The "Last played" slot: wider, labelled, always first. */ pinned?: boolean }
@@ -129,7 +130,11 @@ function pickSample(games: readonly Game[]): Game | null {
   return played[0] ?? games.find((g) => g.art.hero) ?? games[0] ?? null;
 }
 
-export function homeRows(visible: readonly Game[], collections: readonly CollectionInfo[], now: number, hour: number, live: LiveState = {}): Row[] {
+/**
+ * The Home rows. `order` (Track Z) is your own row order (row ids); empty = the automatic,
+ * time-of-day order. Live rows are placed after it either way.
+ */
+export function homeRows(visible: readonly Game[], collections: readonly CollectionInfo[], now: number, hour: number, live: LiveState = {}, order: readonly string[] = []): Row[] {
   const recent = visible
     .filter((g) => isInstalled(g) && lastPlayed(g).at)
     .sort((a, b) => lastPlayed(b).at!.localeCompare(lastPlayed(a).at!))
@@ -163,7 +168,7 @@ export function homeRows(visible: readonly Game[], collections: readonly Collect
     rows.filter((r) => r.tiles.length > 0 && !(r.browse && r.tiles.length < 2)),
     hour,
   );
-  return withLiveRows(ordered, live);
+  return withLiveRows(applyRowOrder(ordered, order), live);
 }
 
 /**

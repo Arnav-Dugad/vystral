@@ -139,6 +139,10 @@ public sealed class SettingsService
         new NumberDef("voiceover.volume", 1, 0, 1),
         new EnumDef("controller.glyphs", "auto", "auto", "xbox", "playstation", "nintendo"),
         new EnumDef("immersive.librarySort", "az", "az", "recent", "played", "added"),
+        // Track Z: your own Immersive Home row order (row ids joined by '|'; '' = automatic), the screensaver's big clock and its trailer loops.
+        new StringDef("immersive.rowOrder", "", 2000, @"^[A-Za-z0-9:_|\-]*\z"),
+        new BoolDef("immersive.attractClock", false),
+        new BoolDef("immersive.attractTrailers", true),
     ];
 
     private readonly LibraryRepository _repo;

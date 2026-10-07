@@ -8,16 +8,20 @@ import { pushPadHandler } from '../../lib/input';
 import { ease, pick, spring } from '../../lib/motion';
 import { sound } from '../../lib/sound';
 import { useReducedMotion, useStore } from '../../state/store';
+import { voiceOver } from '../../lib/voiceover';
 import { PadHint } from '../../components/ui/primitives';
+import { parseRowOrder } from './rowOrder';
 
-type RowId = 'scale' | 'safe' | 'cinematic';
-const ROWS: RowId[] = ['scale', 'safe', 'cinematic'];
+type RowId = 'scale' | 'safe' | 'cinematic' | 'clock' | 'rowOrder';
+const ROWS: RowId[] = ['scale', 'safe', 'cinematic', 'clock', 'rowOrder'];
 
 /**
  * Couch display settings, from the sofa (Track L): text/interface size (100–130%) and a TV
  * overscan safe area (off–6% per edge), applied live with corner guides showing the safe edge,
  * plus the cinematic mode switch. Up/Down pick a row, Left/Right change it, A/B close. Saved as
  * normal settings (also in desktop Settings › Controller & sound).
+ * Track Z: the screensaver's big clock (for TVs) and Reset row order (back to the automatic,
+ * time-of-day order of the Home rows).
  */
 export function CouchSheet({ onClose }: { onClose: () => void }) {
   const reduce = useReducedMotion();
@@ -30,6 +34,8 @@ export function CouchSheet({ onClose }: { onClose: () => void }) {
   const scale = couchScale(settings?.['immersive.scale']);
   const safe = couchSafe(settings?.['immersive.safeArea']);
   const cinematic = settings?.['immersive.cinematicSwitch'] ?? true;
+  const bigClock = !!settings?.['immersive.attractClock'];
+  const customOrder = parseRowOrder(settings?.['immersive.rowOrder']).length > 0;
 
   useLayoutEffect(() => {
     refs.current[row]?.focus({ preventScroll: true });
@@ -42,6 +48,16 @@ export function CouchSheet({ onClose }: { onClose: () => void }) {
       haptic('tick');
       return;
     }
+    if (id === 'clock') {
+      void setSetting('immersive.attractClock', !bigClock);
+      sound.select();
+      haptic('tick');
+      return;
+    }
+    if (id === 'rowOrder') {
+      if (dir > 0) resetOrder();
+      return;
+    }
     const key = id === 'scale' ? 'immersive.scale' : 'immersive.safeArea';
     const current = id === 'scale' ? scale : safe;
     const next = stepCouch(id, current, dir);
@@ -52,6 +68,17 @@ export function CouchSheet({ onClose }: { onClose: () => void }) {
     void setSetting(key, next);
     sound.focus();
     haptic('tick');
+  };
+
+  const resetOrder = () => {
+    if (!customOrder) {
+      haptic('edge');
+      return;
+    }
+    void setSetting('immersive.rowOrder', '');
+    sound.select();
+    haptic('confirm');
+    voiceOver.say('Home rows are back in their automatic order', 'nav');
   };
 
   const handle = (button: string, repeat: boolean): boolean => {
@@ -69,7 +96,8 @@ export function CouchSheet({ onClose }: { onClose: () => void }) {
       case 'Right': case 'ArrowRight': change(ROWS[row], 1); return true;
       case 'A': case 'Enter': case ' ':
         if (repeat) return true;
-        if (ROWS[row] === 'cinematic') change('cinematic', 1);
+        if (ROWS[row] === 'cinematic' || ROWS[row] === 'clock') change(ROWS[row], 1);
+        else if (ROWS[row] === 'rowOrder') resetOrder();
         else onClose();
         return true;
       case 'B': case 'Escape': case 'Y': case 'View':
@@ -180,6 +208,47 @@ export function CouchSheet({ onClose }: { onClose: () => void }) {
           >
             <span className="imm-couch__knob" />
             <span className="imm-couch__switch-text">{cinematic ? 'On' : 'Off'}</span>
+          </button>
+        </div>
+        <div className="imm-couch__row" data-focused={row === 3} onPointerEnter={() => setRow(3)}>
+          <span className="imm-couch__label" id={`${uid}-clock`}>
+            Big clock screensaver
+            <span className="imm-couch__sub">A large clock for TVs, drifting a little every minute</span>
+          </span>
+          <button
+            ref={(el) => {
+              refs.current[3] = el;
+            }}
+            type="button"
+            role="switch"
+            aria-checked={bigClock}
+            aria-labelledby={`${uid}-clock`}
+            tabIndex={row === 3 ? 0 : -1}
+            className="imm-couch__switch"
+            onClick={() => change('clock', 1)}
+          >
+            <span className="imm-couch__knob" />
+            <span className="imm-couch__switch-text">{bigClock ? 'On' : 'Off'}</span>
+          </button>
+        </div>
+        <div className="imm-couch__row" data-focused={row === 4} onPointerEnter={() => setRow(4)}>
+          <span className="imm-couch__label" id={`${uid}-order`}>
+            Home row order
+            <span className="imm-couch__sub">{customOrder ? 'Your own order. To move a row, go left past its first game and hold Y.' : 'By time of day. To move a row, go left past its first game and hold Y.'}</span>
+          </span>
+          <button
+            ref={(el) => {
+              refs.current[4] = el;
+            }}
+            type="button"
+            aria-labelledby={`${uid}-order`}
+            aria-describedby={`${uid}-order-btn`}
+            aria-disabled={!customOrder || undefined}
+            tabIndex={row === 4 ? 0 : -1}
+            className="imm-couch__reset"
+            onClick={resetOrder}
+          >
+            <span id={`${uid}-order-btn`}>{customOrder ? 'Reset row order' : 'Automatic'}</span>
           </button>
         </div>
         <footer className="imm-couch__hints" aria-hidden>

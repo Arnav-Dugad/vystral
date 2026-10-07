@@ -3,39 +3,13 @@ import {
   Battery, BatteryCharging, BatteryFull, BatteryLow, BatteryMedium, BatteryWarning, Bell, EthernetPort, Gamepad2, MonitorCog,
   Signal, SignalLow, SignalMedium, Wifi, WifiHigh, WifiLow, WifiOff, WifiZero,
 } from 'lucide-react';
-import { call, on } from '../../bridge/bridge';
+import { on } from '../../bridge/bridge';
 import type { SystemStatus } from '../../bridge/types';
 import { useGameRunning, useStore } from '../../state/store';
 import { batteryLabel, batteryLevel, controllerLabel, elapsed, networkLabel, wifiArcs } from './systemStatus';
+import { clockParts } from './screensaver';
+import { useSystemStatus } from './useSystemStatus';
 
-const POLL_MS = 30_000;
-
-/** The system reading, refreshed every 30 s while Immersive is visible and no game runs. */
-function useSystemStatus(): SystemStatus | null {
-  const running = useGameRunning();
-  const [status, setStatus] = useState<SystemStatus | null>(null);
-  useEffect(() => {
-    if (running) return;
-    let alive = true;
-    const load = () => {
-      if (document.visibilityState === 'hidden') return;
-      void call<SystemStatus>('system.status')
-        .then((s) => alive && s && setStatus(s))
-        .catch(() => {});
-    };
-    load();
-    const t = window.setInterval(load, POLL_MS);
-    const offPad = on('gamepad.connection', load);
-    document.addEventListener('visibilitychange', load);
-    return () => {
-      alive = false;
-      window.clearInterval(t);
-      offPad();
-      document.removeEventListener('visibilitychange', load);
-    };
-  }, [running]);
-  return status;
-}
 
 /**
  * Immersive's system bar (Track L): what's playing, unread notifications, controllers and their
@@ -91,7 +65,7 @@ export function SystemBar({ onDisplay }: { onDisplay: () => void }) {
       ) : null}
       {status && <NetworkGlyph network={status.network} />}
       {status?.battery && <BatteryGlyph battery={status.battery} />}
-      <Clock />
+      <Clock hour12={status?.clock24h == null ? null : !status.clock24h} />
       <button type="button" className="imm-sys imm-sys__btn" onClick={onDisplay} aria-label="Display and text size">
         <MonitorCog size="1.1em" aria-hidden />
       </button>
@@ -148,7 +122,7 @@ function NowElapsed({ start }: { start: string | null }) {
   return e ? <span className="imm-sys__elapsed num"> · {e}</span> : null;
 }
 
-function Clock() {
+function Clock({ hour12 }: { hour12: boolean | null }) {
   const running = useGameRunning();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -168,7 +142,8 @@ function Clock() {
   }, [running]);
   return (
     <div className="imm__clock">
-      <span className="num">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+      {/* Track Z: 12- or 24-hour as Windows' regional format says. */}
+      <span className="num">{clockParts(now, hour12).label}</span>
       <span className="imm__date">{now.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}</span>
     </div>
   );

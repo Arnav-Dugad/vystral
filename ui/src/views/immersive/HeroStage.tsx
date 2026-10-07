@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useTransform } from 'motion/react';
-import { call } from '../../bridge/bridge';
-import type { Game, LiveTileInfo } from '../../bridge/types';
+import type { Game } from '../../bridge/types';
+import { loopFor } from './loopSource';
 import { useLiveBlock } from '../../components/game/LiveTile';
 import { GameCover } from '../../components/game/GameCover';
 import { ease } from '../../lib/motion';
@@ -11,20 +11,6 @@ import { layerOffset, leanX, leanY } from './parallax';
 /** Focus must rest this long on a game before its loop starts (browsing never churns decoders). */
 export const HERO_LOOP_DELAY_MS = 1400;
 
-const loops = new Map<string, Promise<string | null>>();
-
-function loopFor(gameId: string): Promise<string | null> {
-  let p = loops.get(gameId);
-  if (!p) {
-    p = call<LiveTileInfo>('liveTile.get', { gameId }, 120_000)
-      .then((i) => i.src)
-      .catch(() => null);
-    loops.set(gameId, p);
-    // Transient refusals (offline, data saver…) are asked again next time.
-    void p.then((src) => !src && loops.delete(gameId));
-  }
-  return p;
-}
 
 /**
  * The hero stage (Track L): the focused game's art full-bleed, with its silent micro-trailer

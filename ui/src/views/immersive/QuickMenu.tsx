@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion, useIsPresent } from 'motion/react';
-import { ArrowDownToLine, CircleSlash, ExternalLink, Flag, Heart, MonitorCog, Play, Store, Trophy } from 'lucide-react';
+import { ArrowDownToLine, ArrowDownUp, CircleSlash, ExternalLink, Flag, Heart, MonitorCog, Play, Store, Trophy } from 'lucide-react';
 import type { Game, GameStatus, GamepadButton } from '../../bridge/types';
 import { haptic } from '../../lib/haptics';
 import { pushPadHandler } from '../../lib/input';
@@ -20,7 +20,9 @@ export type QuickAction =
   | { kind: 'status'; status: GameStatus | null }
   | { kind: 'achievements' }
   | { kind: 'store' }
-  | { kind: 'display' };
+  | { kind: 'display' }
+  /** Track Z: pick up the focused Home row to move it. */
+  | { kind: 'moveRow' };
 
 interface Item {
   id: string;
@@ -75,7 +77,20 @@ function statusItems(game: Game): Item[] {
  * direction, pressing again walks to its neighbour), A acts, B steps back or closes. Mouse and
  * keyboard work too. It never acts on hidden UI: while it is open it owns all input.
  */
-export function QuickMenu({ game, anchor, onAction, onClose }: { game: Game; anchor: { x: number; y: number }; onAction: (a: QuickAction) => void; onClose: () => void }) {
+export function QuickMenu({
+  game,
+  anchor,
+  moveRow,
+  onAction,
+  onClose,
+}: {
+  game: Game;
+  anchor: { x: number; y: number };
+  /** Track Z: the focused Home row's name when it can be moved (adds a Move row petal). */
+  moveRow?: string;
+  onAction: (a: QuickAction) => void;
+  onClose: () => void;
+}) {
   const reduce = useReducedMotion();
   const present = useIsPresent();
   const uid = useId();
@@ -156,7 +171,14 @@ export function QuickMenu({ game, anchor, onAction, onClose }: { game: Game; anc
     if (repeat) return true;
     switch (button) {
       case 'A': case 'Enter': case ' ': select(index); return true;
-      case 'B': case 'Escape': case 'View': case 'Y': back(); return true;
+      case 'Y': case 'y':
+        // Track Z: Y picks up the focused Home row (when it can move); otherwise it closes, as before.
+        if (moveRow && ring === 'main') {
+          sound.select();
+          onAction({ kind: 'moveRow' });
+        } else back();
+        return true;
+      case 'B': case 'Escape': case 'View': back(); return true;
       default: return true; // the quick menu owns every button while open
     }
   };
@@ -252,6 +274,12 @@ export function QuickMenu({ game, anchor, onAction, onClose }: { game: Game; anc
           );
         })}
       </div>
+      {moveRow && ring === 'main' && (
+        <button type="button" className="imm-quick__move" onClick={() => onAction({ kind: 'moveRow' })} aria-label={`Move row: ${moveRow}`}>
+          <ArrowDownUp size="1.1em" aria-hidden />
+          <PadHint button="Y">Move row</PadHint>
+        </button>
+      )}
       <footer className="imm-quick__hints" aria-hidden>
         <PadHint button="A">Select</PadHint>
         <PadHint button="B">{ring === 'status' ? 'Back' : 'Close'}</PadHint>
