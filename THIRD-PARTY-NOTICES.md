@@ -48,4 +48,6 @@ No third-party game data ships with VYSTRAL. These sources are contacted only wh
 | IGDB (Twitch) | Twitch Developer Services Agreement | User's own Twitch application; “Data from IGDB.com” with a link on every page showing it |
 | RAWG | RAWG API terms (attribution and an active link back required; no redistribution) | User's own key; “Data from RAWG.io” with a link on every page showing it. RAWG's Metacritic number is not used |
 | CheapShark | CheapShark API terms (no catalog building) | Called only when a game page is opened; deal links go through CheapShark's own redirect unchanged |
+| PCGamingWiki (www.pcgamingwiki.com) | Content under CC BY-NC-SA 3.0 (PCGamingWiki contributors) | Off by default; looked up per game on the user's PC and cached there only, never bundled or redistributed in releases; credited “Save locations from PCGamingWiki, CC BY-NC-SA 3.0” with a link to the article wherever it's shown; VYSTRAL is non-commercial |
+| Steam Workshop titles (`ISteamRemoteStorage/GetPublishedFileDetails`) | Valve's public Steam Web API | Off by default; only installed item ids are sent; titles credited “Workshop titles from Steam” and cached on the user's PC |
 | IsThereAnyDeal | ITAD API terms (data and links unchanged, link to ITAD) | User's own key; prices and shop links shown exactly as sent, with a link to ITAD |

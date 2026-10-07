@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import type { ControlId, ControllerControl } from '../../bridge/types';
+import type { ControlId, ControllerControl, ControllerDiffChange } from '../../bridge/types';
 import { ANCHORS, CONTROL_NAME, layoutCallouts, truncate, VIEW } from '../../lib/gamepad';
 
 /** How far from a control's centre its callout line starts, so the line meets the control's edge, not its label. */
@@ -22,12 +22,14 @@ const BUMPER_L = 'M 336 170 C 358 152 398 143 440 142';
  * assistive technology (the controls table next to it says the same thing); `active` highlights one control, and
  * hovering a callout reports it with `onActive`. Lines draw themselves in, unless motion is reduced.
  */
-export const GamepadDiagram = memo(function GamepadDiagram({ controls, active, onActive, setKey }: {
+export const GamepadDiagram = memo(function GamepadDiagram({ controls, active, onActive, setKey, diff }: {
   controls: ControllerControl[];
   active: ControlId | null;
   onActive: (c: ControlId | null) => void;
   /** Changes when the shown set changes, so callouts animate in again. */
   setKey: string;
+  /** Track X: "Compare with default" marks added / removed / changed controls. */
+  diff?: ReadonlyMap<ControlId, ControllerDiffChange>;
 }) {
   const callouts = useMemo(() => layoutCallouts(controls), [controls]);
   const bound = useMemo(() => new Set(controls.filter((c) => c.bindings.length || c.mode).map((c) => c.control)), [controls]);
@@ -38,6 +40,7 @@ export const GamepadDiagram = memo(function GamepadDiagram({ controls, active, o
       'data-bound': ids.some((i) => bound.has(i)) || undefined,
       'data-active': (active && ids.includes(active)) || undefined,
       'data-layer': ids.some((i) => layer.has(i)) || undefined,
+      'data-diff': ids.map((i) => diff?.get(i)).find(Boolean),
     };
   };
   const face = (id: 'a' | 'b' | 'x' | 'y') => {
@@ -102,6 +105,7 @@ export const GamepadDiagram = memo(function GamepadDiagram({ controls, active, o
               className="pad__callout"
               data-active={isActive || undefined}
               data-layer={layer.has(c.control) || undefined}
+              data-diff={diff?.get(c.control) ?? (c.control === 'ls' ? diff?.get('lsClick') : c.control === 'rs' ? diff?.get('rsClick') : undefined)}
               style={{ ['--i' as string]: i }}
               onMouseEnter={() => onActive(c.control)}
               onMouseLeave={() => onActive(null)}

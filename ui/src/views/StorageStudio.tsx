@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { HardDrive, Info, Recycle, ShieldCheck, Trash2 } from 'lucide-react';
-import { call, errorMessage } from '../bridge/bridge';
+import { HardDrive, Recycle, ShieldCheck, Trash2 } from 'lucide-react';
+import { call } from '../bridge/bridge';
 import type { DriveInfo, Game, PlatformKey } from '../bridge/types';
 import { formatBytes, formatRelative, PLATFORM_NAMES } from '../lib/format';
 import { exit, pick, spring } from '../lib/motion';
@@ -11,11 +11,9 @@ import { useReducedMotion, useStore } from '../state/store';
 import { GameCover } from '../components/game/GameCover';
 import { InstallBadge } from '../components/game/InstallProgress';
 import { Badge, Button, EmptyState, PlatformBadge, SectionHead, Skeleton } from '../components/ui/primitives';
-import { StoreLogo } from '../components/ui/StoreLogo';
 import { EmptyArt } from '../components/ui/EmptyArt';
-import { HoldToConfirm } from '../components/controller/HoldToConfirm';
-import { Dialog } from '../components/ui/Dialog';
 import { PendingUpdates } from './storage/PendingUpdates';
+import { UninstallAdvisor } from '../components/game/UninstallAdvisor';
 import './storage-studio.css';
 
 /** Storage Studio: where installed games live, and what could be freed up through the stores. */
@@ -77,7 +75,8 @@ export function StorageStudioView() {
         </div>
       )}
 
-      <UninstallDialog target={uninstall} onClose={() => setUninstall(null)} />
+      {/* Track X: the uninstall advisor (hours, cloud saves, size to get it back, subscriptions) before the store's own uninstall. */}
+      <UninstallAdvisor game={uninstall?.game ?? null} installationId={uninstall?.installation.id} open={!!uninstall} onClose={() => setUninstall(null)} />
     </div>
   );
 }
@@ -354,82 +353,12 @@ function Suggestions({ data, onUninstall }: { data: { items: Suggestion[]; recla
 }
 
 function StoreAction({ item, onUninstall }: { item: DriveGame; onUninstall: (g: DriveGame) => void }) {
-  const toast = useStore((s) => s.toast);
-  if (item.platform === 'steam' && /^\d{1,10}$/.test(item.installation.platformGameId)) {
-    return (
-      <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={() => onUninstall(item)} aria-label={`Uninstall ${item.game.title} in Steam`}>
-        Uninstall…
-      </Button>
-    );
-  }
   if (item.platform === 'manual') {
     return <span className="suggest__manual" title="Added by you: remove it the way you installed it.">Added by you</span>;
   }
   return (
-    <Button
-      size="sm"
-      variant="ghost"
-      icon={<StoreLogo platform={item.platform as PlatformKey} size={14} decorative motion />}
-      aria-label={`Open ${item.game.title} in ${PLATFORM_NAMES[item.platform]}`}
-      onClick={() =>
-        void call('game.openInStore', { installationId: item.installation.id }).catch((err) =>
-          toast({ tone: 'info', title: `Couldn’t open ${PLATFORM_NAMES[item.platform as PlatformKey]}`, body: errorMessage(err) }),
-        )
-      }
-    >
-      Open in {PLATFORM_NAMES[item.platform]}
+    <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={() => onUninstall(item)} aria-label={`Uninstall ${item.game.title} in ${PLATFORM_NAMES[item.platform as PlatformKey]}`}>
+      Uninstall…
     </Button>
-  );
-}
-
-function UninstallDialog({ target, onClose }: { target: DriveGame | null; onClose: () => void }) {
-  const toast = useStore((s) => s.toast);
-  const [busy, setBusy] = useState(false);
-  const [last, setLast] = useState<DriveGame | null>(target);
-  useEffect(() => {
-    if (target) setLast(target);
-  }, [target]);
-  const t = target ?? last;
-
-  const confirm = async () => {
-    if (!t) return;
-    setBusy(true);
-    try {
-      await call('steam.uninstall', { gameId: t.game.id });
-      onClose();
-      toast({ tone: 'info', title: 'Steam’s uninstall window is open', body: `Confirm there to remove ${t.game.title}. VYSTRAL updates your library when Steam finishes.` });
-    } catch (err) {
-      toast({ tone: 'danger', title: 'Couldn’t ask Steam to uninstall', body: errorMessage(err) });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Dialog
-      open={!!target}
-      onClose={onClose}
-      title={t ? `Uninstall ${t.game.title} with Steam?` : 'Uninstall with Steam?'}
-      describedBy="uninstall-desc"
-      actions={
-        <>
-          <Button variant="ghost" onClick={onClose} data-autofocus>Keep it</Button>
-          <HoldToConfirm loading={busy} onConfirm={() => void confirm()}>Open Steam’s uninstall</HoldToConfirm>
-        </>
-      }
-    >
-      {t && (
-        <div id="uninstall-desc" className="uninstall">
-          <p>Here’s exactly what happens:</p>
-          <ol className="uninstall__steps">
-            <li>Steam shows its own uninstall confirmation. Nothing happens until you confirm there.</li>
-            <li>If you confirm, Steam removes the game’s files{t.sizeBytes ? <> and frees about <strong className="num">{formatBytes(t.sizeBytes)}</strong></> : null}{t.installation.drive ? ` on ${t.installation.drive}` : ''}.</li>
-            <li>Saves synced to Steam Cloud stay in Steam Cloud. Some games keep saves only on this PC, so check first if this game matters to you.</li>
-            <li>VYSTRAL deletes nothing itself. The game stays in your library as not installed, with your notes and play history.</li>
-          </ol>
-          <p className="uninstall__hint"><Info size={14} aria-hidden /> You can reinstall it any time from its page in VYSTRAL.</p>
-        </div>
-      )}
-    </Dialog>
   );
 }

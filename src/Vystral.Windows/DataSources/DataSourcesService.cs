@@ -80,6 +80,9 @@ public sealed class DataSourcesService
     public SteamStoreDataClient SteamStore { get; }
     public AntiCheatClient AntiCheat { get; }
     public EnrichmentService Enrichment { get; }
+    /// <summary>Track X: save-game locations (opt-in, keyless) and Workshop item titles (opt-in, keyless).</summary>
+    public PcGamingWikiClient PcGamingWiki { get; }
+    public WorkshopDetailsClient WorkshopDetails { get; }
 
     public Func<bool> IsGameActive { get; set; } = () => false;
 
@@ -90,7 +93,8 @@ public sealed class DataSourcesService
     public static readonly TimeSpan IdentityMissTtl = TimeSpan.FromDays(7);
     public static readonly TimeSpan PriceTtl = TimeSpan.FromHours(24);
 
-    public DataSourcesService(LibraryRepository repo, SettingsService settings, ArtworkService artwork, ISecretStore secrets, HttpClient http)
+    public DataSourcesService(LibraryRepository repo, SettingsService settings, ArtworkService artwork, ISecretStore secrets, HttpClient http,
+        HttpClient? noRedirectHttp = null)
     {
         _repo = repo;
         _settings = settings;
@@ -107,6 +111,16 @@ public sealed class DataSourcesService
         SteamStore = new SteamStoreDataClient(T("steamdeck", "Steam", 1600));
         AntiCheat = new AntiCheatClient(T("awacy", "AreWeAntiCheatYet", 1000, 8 * 1024 * 1024));
         Enrichment = new EnrichmentService(repo, Igdb, Rawg, ProviderReady);
+        // Track X: PCGamingWiki's app-id lookup answers with a redirect that must be read, not followed, so its lane uses
+        // a client without automatic redirects (same connect logic, same user agent).
+        var noRedirect = noRedirectHttp;
+        if (noRedirect is null)
+        {
+            noRedirect = new HttpClient(Services.FastConnect.CreateHandler(allowRedirects: false)) { Timeout = http.Timeout };
+            foreach (var ua in http.DefaultRequestHeaders.UserAgent) noRedirect.DefaultRequestHeaders.UserAgent.Add(ua);
+        }
+        PcGamingWiki = new PcGamingWikiClient(_transports["pcgamingwiki"] = new ProviderTransport(noRedirect, "pcgamingwiki", "PCGamingWiki", TimeSpan.FromMilliseconds(1500), 3 * 1024 * 1024));
+        WorkshopDetails = new WorkshopDetailsClient(T("workshop", "Steam Workshop", 1600, 2 * 1024 * 1024));
     }
 
     internal ProviderTransport Transport(string id) => _transports[id];
@@ -173,6 +187,16 @@ public sealed class DataSourcesService
         new("awacy", "AreWeAntiCheatYet", "keyless", null, "dataSources.antiCheat", "MIT licence (AreWeAntiCheatYet contributors).",
             "Anti-cheat details per AreWeAntiCheatYet.", "raw.githubusercontent.com",
             "Nothing about you: the whole public list is downloaded at most once a week.", "Which anti-cheat a game uses, and its Linux/Steam Deck status."),
+        // Track X (both off by default).
+        new("pcgamingwiki", "PCGamingWiki", "keyless", null, "dataSources.pcgamingwiki",
+            "CC BY-NC-SA 3.0 (PCGamingWiki contributors). Credited wherever it's shown; looked up on this PC only, never shipped with VYSTRAL.",
+            "Save locations from PCGamingWiki, CC BY-NC-SA 3.0.", "www.pcgamingwiki.com",
+            "A game's Steam app ID, then its article name, when you open that game's Files tab.",
+            "Where a game keeps its saves on Windows, checked against your PC (read-only), with Open folder."),
+        new("workshop", "Steam Workshop titles", "keyless", null, "dataSources.workshopTitles", "Valve's public Steam Web API (no key), shown with attribution.",
+            "Workshop titles from Steam.", "api.steampowered.com",
+            "The Workshop item IDs installed for a game, when you open its Files tab (up to 100 per request).",
+            "Names for the Workshop items in a game's mod list instead of bare numbers."),
     ];
 
     public DataSourcesStatusDto Status()
@@ -287,7 +311,9 @@ public sealed class DataSourcesService
                         return r.Count == 1 && r[0].ItemId is not null ? "Wikidata answered." : "Wikidata answered, but without the expected test item.";
                     }),
                     "steamdeck" => await Do(async () => await SteamStore.GetDeckReportAsync("620", ct) is not null ? "Steam answered." : "Steam answered without a report."),
-                    _ => await Do(async () => $"Downloaded {await RefreshAntiCheatAsync(force: true, ct)} entries."),
+                    "pcgamingwiki" => await PcGamingWiki.TestAsync(ct), // Track X
+                    "workshop" => await WorkshopDetails.TestAsync(ct),  // Track X
+                    _ =>await Do(async () => $"Downloaded {await RefreshAntiCheatAsync(force: true, ct)} entries."),
                 };
             }
             result = Record(id, DataSourceOutcome.Ok, message);

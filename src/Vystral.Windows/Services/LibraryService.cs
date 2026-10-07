@@ -44,6 +44,9 @@ public sealed class LibraryService
 
     public bool IsScanning => _scanLock.CurrentCount == 0;
 
+    /// <summary>Raised after a full scan has been applied (Track X: background health re-check).</summary>
+    public event Action? ScanCompleted;
+
     public LibrarySnapshotDto Snapshot() => _repo.LoadSnapshot(ArtworkService.Url);
 
     public IReadOnlyList<AdapterInfoDto> GetAdapters() => _adapters.Select(a =>
@@ -81,6 +84,8 @@ public sealed class LibraryService
             });
             _events.Emit("library.changed", null);
             StartEnrichment();
+            try { ScanCompleted?.Invoke(); } // Track X: the background health re-check
+            catch (Exception ex) when (ex is InvalidOperationException or IOException) { Log.Warn("library", "A scan listener failed", ex: ex); }
             return report;
         }
         finally

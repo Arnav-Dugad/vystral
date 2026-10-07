@@ -150,7 +150,8 @@ function buildIssues(lib: { games: Game[]; sessions: Session[] }): HealthIssue[]
 
 export function healthPreviewHandlers(ctx: { lib: { games: Game[]; sessions: Session[] }; emit: () => Emit; timers: number[] }) {
   const params = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
-  let issues: HealthIssue[] = params.has('health') ? buildIssues(ctx.lib) : [];
+  // Track X: ?healthNew shows the same issues (the Home card points at them).
+  let issues: HealthIssue[] = params.has('health') || params.has('healthNew') ? buildIssues(ctx.lib) : [];
   const dismissed = new Map<string, HealthIssue>();
   const visibleGames = () => ctx.lib.games.filter((g) => !g.hidden).length;
   const report = (): HealthReport => ({
@@ -207,7 +208,7 @@ export function healthPreviewHandlers(ctx: { lib: { games: Game[]; sessions: Ses
     'health.locateExecutable': () => {
       throw new BridgeError('unsupported', 'Locating a program needs the VYSTRAL app (preview mode can’t open file dialogs).');
     },
-    'controls.get': (p: { gameId: string }): ControllerLayout => previewLayout(ctx.lib.games.find((g) => g.id === p.gameId), params.has('controls')),
+    'controls.get': (p: { gameId: string }): ControllerLayout => previewLayout(ctx.lib.games.find((g) => g.id === p.gameId), params.has('controls') || params.has('compare')), // Track X: ?compare
   };
 }
 

@@ -139,6 +139,10 @@ public sealed class SettingsService
         new NumberDef("voiceover.volume", 1, 0, 1),
         new EnumDef("controller.glyphs", "auto", "auto", "xbox", "playstation", "nintendo"),
         new EnumDef("immersive.librarySort", "az", "az", "recent", "played", "added"),
+        // Track X: save locations from PCGamingWiki and Steam Workshop titles (both opt-in, keyless); the Home card for new health issues.
+        new BoolDef("dataSources.pcgamingwiki", false),
+        new BoolDef("dataSources.workshopTitles", false),
+        new BoolDef("home.healthNews", true),
     ];
 
     private readonly LibraryRepository _repo;

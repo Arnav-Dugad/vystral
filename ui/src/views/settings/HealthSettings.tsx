@@ -5,7 +5,7 @@ import { call } from '../../bridge/bridge';
 import type { HealthReport } from '../../bridge/types';
 import { tier, TIER_LABEL } from '../../lib/health';
 import { useStore } from '../../state/store';
-import { Badge, Button } from '../../components/ui/primitives';
+import { Badge, Button, Toggle } from '../../components/ui/primitives';
 
 /** Settings › Library & stores: the library health check (Track Q) — a quick score and a way in. */
 export function HealthSettings() {
@@ -16,6 +16,8 @@ export function HealthSettings() {
     return () => { live = false; };
   }, []);
   const n = report?.issues.length ?? 0;
+  const newsOn = useStore((s) => s.settings?.['home.healthNews'] ?? true);
+  const setSetting = useStore((s) => s.setSetting);
   return (
     <section className="sgroup">
       <h2 className="sgroup__title">Library health<NewBadge k="settings.library.health" variant="pill" seenWhenVisible /></h2>
@@ -34,6 +36,19 @@ export function HealthSettings() {
           <div className="srow__control" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {report && <Badge tone={report.score >= 90 ? 'ok' : report.score >= 45 ? 'accent' : 'warn'}>{report.score} · {TIER_LABEL[tier(report.score)]}</Badge>}
             <Button size="sm" icon={<HeartPulse size={14} />} onClick={() => useStore.getState().navigate({ name: 'health' })}>Open health check</Button>
+          </div>
+        </div>
+        {/* Track X: the background re-check's Home card. */}
+        <div className="srow">
+          <div className="srow__text">
+            <label className="srow__label" htmlFor="health-news-toggle">Tell me on Home when something new needs a look</label>
+            <div className="srow__hint">
+              VYSTRAL checks again quietly when a drive is plugged in or removed, after a scan, and once a day. Each new problem is shown once, with its
+              safe fix; nothing old ever nags.
+            </div>
+          </div>
+          <div className="srow__control">
+            <Toggle id="health-news-toggle" label="Tell me on Home when something new needs a look" checked={newsOn} onChange={(v) => void setSetting('home.healthNews', v)} />
           </div>
         </div>
       </div>

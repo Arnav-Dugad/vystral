@@ -7,6 +7,7 @@ import { NeverPlayedSection } from './home/NeverPlayed';
 import { AwayCard } from './home/AwayCard';
 import { FriendsCard } from './home/FriendsCard';
 import { DiskForecastCard } from './home/DiskForecastCard';
+import { HealthNewsCard } from './home/HealthNewsCard';
 import { formatDuration, formatRelative, importedPlaytime, isInstalled, isMissing, lastPlayed, PLATFORM_NAMES, plural } from '../lib/format';
 import { ease, spring } from '../lib/motion';
 import { featuredGame, suggestGames } from '../lib/recommend';
@@ -85,6 +86,8 @@ export function HomeView() {
         <AwayCard />
         {/* Track P: an update that won't fit (renders nothing otherwise); friends playing now (opt-in). */}
         <DiskForecastCard />
+        {/* Track X: something new from the background health check (renders nothing otherwise). */}
+        <HealthNewsCard />
         <FriendsCard />
         <Shelf title="Continue playing" games={continuePlaying} variant="landscape" live />
         {suggestions.length > 0 && (

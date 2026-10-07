@@ -1,0 +1,21 @@
+{{Infobox game
+|cover        = Lumen Garden cover.jpg
+|steam appid  = 1145360
+}}
+'''Lumen Garden''' is a fictional game used only by VYSTRAL's tests (the shape follows PCGamingWiki's templates).
+
+==Game data==
+===Configuration file(s) location===
+{{Game data|
+{{Game data/config|Windows|{{p|appdata}}\Example Studio\Lumen Garden\config.ini}}
+}}
+
+===Save game data location===
+{{Game data|
+{{Game data/saves|Windows|{{p|userprofile\Documents}}\Saved Games\Lumen Garden\|{{p|appdata}}\Example Studio\Lumen Garden\Profiles<ref>{{Refcheck|user=Someone|date=2026-01-01}}</ref>{{note|Older builds only.}}}}
+{{Game data/saves|Microsoft Store|{{P|localappdata}}\Packages\ExampleStudio.LumenGarden_q53c1yqmx7pha\SystemAppData\wgs}}
+{{Game data/saves|Steam|{{p|steam}}\userdata\{{p|uid}}\1145360\remote}}
+{{Game data/saves|OS X|{{p|osxhome}}/Library/Application Support/Lumen Garden/}}
+{{Game data/saves|Linux|{{p|linuxhome}}/.local/share/Lumen Garden/}}
+<!-- {{Game data/saves|Windows|{{p|appdata}}\Commented out}} -->
+}}

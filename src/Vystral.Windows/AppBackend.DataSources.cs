@@ -49,6 +49,10 @@ public sealed partial class AppBackend
         [("steamdeck", "home")] = "https://www.steamdeck.com/verified",
         [("awacy", "home")] = "https://areweanticheatyet.com/",
         [("awacy", "terms")] = "https://github.com/AreWeAntiCheatYet/AreWeAntiCheatYet/blob/HEAD/LICENSE",
+        // Track X.
+        [("pcgamingwiki", "home")] = "https://www.pcgamingwiki.com/",
+        [("pcgamingwiki", "terms")] = "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+        [("workshop", "home")] = "https://steamcommunity.com/workshop/",
     };
 
     private void RegisterDataSourceHandlers()
