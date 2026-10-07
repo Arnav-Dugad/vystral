@@ -160,6 +160,8 @@ public sealed class SettingsService
         new StringDef("subs.currency", "", 3, @"^([A-Z]{3})?\z"),
         new BoolDef("cloud.queueAlerts", true),
         new NumberDef("cloud.queueAlertAt", 5, 1, 50),
+        // Track U: universal search also asks Steam's store search, Wikidata and (with your keys) IGDB and RAWG as you type.
+        new BoolDef("discover.searchOnline", true),
     ];
 
     private readonly LibraryRepository _repo;

@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   BarChart3, BookOpen, Bot, CornerDownLeft, FilePlus2, Gamepad2, Home, Images, LibraryBig, Moon, Play, RefreshCw,
-  Search, Settings2, Sparkles, Wand2, ArrowDownToLine, HeartPulse,
+  Search, Settings2, Sparkles, Wand2, ArrowDownToLine, HeartPulse, Compass, Check, CloudOff,
 } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
-import type { AiQuery, Game } from '../../bridge/types';
+import type { AiQuery, DiscoverResult, DiscoverSearch, Game } from '../../bridge/types';
 import { formatRelative, isInstalled, lastPlayed, PLATFORM_NAMES } from '../../lib/format';
 import { exit, pick, spring } from '../../lib/motion';
 import { fromAiQuery, parseQuery, searchGames, type ParsedQuery } from '../../lib/search';
@@ -15,10 +15,15 @@ import { GameCover } from '../game/GameCover';
 import { Badge, Kbd } from '../ui/primitives';
 import { StoreLogos } from '../ui/StoreLogo';
 import { openUpdateCenter } from './UpdateCenter';
+import { cleanQuery, splitByLibrary, SOURCE_NAMES } from '../../lib/discover';
+import { useDiscoverSearch } from '../../state/discover';
+import { DiscoverCover, Highlight, listWords, openResult, SourceMarks } from '../discover/DiscoverBits';
+import '../discover/discover.css';
 
 interface Item {
   id: string;
-  group: 'Games' | 'Actions' | 'Go to' | 'Local AI';
+  /** Track U: 'Not in your library' holds results from Steam, IGDB, RAWG and Wikidata. */
+  group: 'Games' | 'Not in your library' | 'Actions' | 'Go to' | 'Local AI';
   label: ReactNode;
   meta?: ReactNode;
   icon: ReactNode;
@@ -130,6 +135,18 @@ function CommandBody({ onClose }: { onClose: () => void }) {
     return found.slice(0, parsed.structured ? 40 : 8);
   }, [games, parsed, text, aiQuery]);
 
+  // Track U: plain title searches also ask the connected sources for games that aren't in the library.
+  const remoteText = parsed.text || text.trim();
+  const remoteEligible = !!cleanQuery(text) && !aiQuery && parsed.intent !== 'launch' && parsed.chips.length === 0;
+  const online = useDiscoverSearch(remoteText, 'bar', { enabled: remoteEligible, debounceMs: 300 });
+  const shownIds = useMemo(() => new Set(results.map((g) => g.id)), [results]);
+  const remote = useMemo(
+    () => (remoteEligible && online.search ? splitByLibrary(online.search.results, shownIds) : { owned: [], rest: [] }),
+    [remoteEligible, online.search, shownIds],
+  );
+  const searchingOnline = remoteEligible && !settings?.['privacy.localOnly'] && (settings?.['discover.searchOnline'] ?? true);
+  const askedSources = (online.search?.sources ?? []).filter((s) => s.state !== 'skipped').map((s) => s.id);
+
   const go = (r: Parameters<typeof navigate>[0]) => () => {
     navigate(r);
     onClose();
@@ -166,7 +183,20 @@ function CommandBody({ onClose }: { onClose: () => void }) {
       onClose();
       if (parsed.intent === 'launch') void launchGame(g.id);
       else navigate({ name: 'game', id: g.id });
-    })),
+    }, parsed.intent === 'launch' ? null : parsed.text)),
+    ...(remoteEligible
+      ? [
+          ...remote.owned.slice(0, 2).map((r) => discoverItem(r, remoteText, 'Games', onClose)),
+          ...remote.rest.slice(0, 6).map((r) => discoverItem(r, remoteText, 'Not in your library', onClose)),
+          {
+            id: 'discover-all', group: 'Not in your library' as const,
+            label: <>Search everywhere for “{text.trim()}”</>,
+            meta: everywhereMeta(online.search, online.busy, !!settings?.['privacy.localOnly'], settings?.['discover.searchOnline'] ?? true),
+            icon: <span className="cmd__icon"><Compass size={16} /></span>,
+            run: go({ name: 'discover', query: text.trim() }),
+          },
+        ]
+      : []),
     ...(settings?.['ai.enabled'] && q.split(/\s+/).length >= 3 && !aiQuery
       ? [{
           id: 'ai', group: 'Local AI' as const, label: aiBusy ? 'Asking your local model…' : `Interpret “${text.trim()}” with local AI`,
@@ -249,7 +279,20 @@ function CommandBody({ onClose }: { onClose: () => void }) {
           lastGroup = item.group;
           return (
             <div key={item.id}>
-              {header && <div className="cmd__group caps">{header === 'Games' && !text.trim() ? 'Recently played' : header}</div>}
+              {header && <div className="cmd__group caps">{header === 'Games' ? (text.trim() ? 'In your library' : 'Recently played') : header}</div>}
+              {item.id === 'discover-all' && online.busy && remote.rest.length === 0 && searchingOnline && (
+                <div className="cmd__skeletons" aria-hidden>
+                  {[0, 1].map((n) => (
+                    <div key={n} className="cmd__item cmd__item--skeleton">
+                      <span className="cmd__thumb skeleton" />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div className="skeleton" style={{ height: 12, width: n ? '42%' : '58%' }} />
+                        <div className="skeleton" style={{ height: 10, width: n ? '26%' : '34%', marginTop: 6 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               <button
                 id={`cmd-${item.id}`}
                 data-index={i}
@@ -277,19 +320,24 @@ function CommandBody({ onClose }: { onClose: () => void }) {
         <span><Kbd>↑</Kbd> <Kbd>↓</Kbd> to move</span>
         <span><Kbd>Enter</Kbd> to open</span>
         <span><Kbd>Esc</Kbd> to close</span>
-        <span style={{ marginLeft: 'auto' }}>Searches run on this PC{settings?.['ai.enabled'] ? ' · local AI available' : ''}</span>
+        <span style={{ marginLeft: 'auto' }}>
+          {searchingOnline && askedSources.length > 0
+            ? <span title={`Your library is searched on this PC; also asking ${listWords(askedSources.map((s) => SOURCE_NAMES[s]))}`}>Also asking <SourceMarks sources={askedSources} size={12} label={false} /><span className="visually-hidden"> {listWords(askedSources.map((s) => SOURCE_NAMES[s]))}</span></span>
+            : 'Searches run on this PC'}
+          {settings?.['ai.enabled'] ? ' · local AI available' : ''}
+        </span>
       </div>
     </>
   );
 }
 
-function gameItem(g: Game, launch: boolean, run: () => void): Item {
+function gameItem(g: Game, launch: boolean, run: () => void, query?: string | null): Item {
   const lp = lastPlayed(g);
   const installed = isInstalled(g);
   return {
     id: g.id,
     group: 'Games',
-    label: launch ? <>Launch <strong>{g.title}</strong></> : g.title,
+    label: launch ? <>Launch <strong>{g.title}</strong></> : query ? <Highlight text={g.title} query={query} /> : g.title,
     meta: (
       <>
         <StoreLogos platforms={g.installations.map((i) => i.platform)} size={14} decorative />{' '}
@@ -305,4 +353,43 @@ function gameItem(g: Game, launch: boolean, run: () => void): Item {
     ),
     run,
   };
+}
+
+/** Track U: a game from Steam, IGDB, RAWG or Wikidata. Opens its page (or, for a library match, the game's own page). */
+function discoverItem(r: DiscoverResult, query: string, group: Item['group'], close: () => void): Item {
+  const id = `d-${r.key}`;
+  return {
+    id,
+    group,
+    label: <Highlight text={r.title} query={query} />,
+    meta: (
+      <>
+        {r.libraryGameId && <span className="cmd__owned"><Check size={11} aria-hidden /> In your library · </span>}
+        {r.year ?? 'Year unknown'}
+        {r.stores.length > 0 && <> · <StoreLogos platforms={r.stores} size={14} decorative /> {[...new Set(r.stores.map((p) => PLATFORM_NAMES[p]))].join(' · ')}</>}
+        {r.kind === 'extra' && ' · add-on'}
+        <SourceMarks sources={r.sources} size={12} />
+      </>
+    ),
+    icon: (
+      <span className="cmd__thumb">
+        <DiscoverCover itemKey={r.key} title={r.title} known={r.cover} genres={r.genres} />
+      </span>
+    ),
+    run: () => {
+      const thumb = document.getElementById(`cmd-${id}`)?.querySelector('.cmd__thumb');
+      openResult(r, thumb);
+      close();
+    },
+  };
+}
+
+/** What the "Search everywhere" row says about the online search right now. */
+function everywhereMeta(search: DiscoverSearch | null, busy: boolean, offline: boolean, searchOnline: boolean) {
+  if (offline) return <><CloudOff size={11} aria-hidden /> Offline mode is on, so only your library is searched</>;
+  if (!searchOnline) return 'Searching stores and game databases is off · open Discover to turn it on';
+  const asked = (search?.sources ?? []).filter((s) => s.state !== 'skipped');
+  if (busy) return asked.length ? `Asking ${listWords(asked.map((s) => s.name))}…` : 'Searching…';
+  const found = search?.results.filter((r) => !r.libraryGameId).length ?? 0;
+  return found ? 'Filters, more results and every source on the Discover page' : `Nothing else found on ${listWords(asked.map((s) => s.name)) || 'the connected sources'} · try other words`;
 }

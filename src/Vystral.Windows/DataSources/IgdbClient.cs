@@ -95,6 +95,39 @@ public sealed class IgdbClient(ProviderTransport transport, Func<(string ClientI
         }
     }
 
+    // ---------- Track U: Discover (any game, owned or not) ----------
+
+    public const int DiscoverPageSize = 20;
+
+    private const string DiscoverSearchFields =
+        "fields name,slug,first_release_date,cover.image_id,platforms.name,platforms.abbreviation,genres.name," +
+        "external_games.uid,external_games.external_game_source,total_rating_count,game_type;";
+
+    private const string DiscoverGameFields =
+        "fields name,slug,summary,first_release_date,cover.image_id,artworks.image_id,screenshots.image_id,platforms.name,platforms.abbreviation," +
+        "genres.name,external_games.uid,external_games.external_game_source,involved_companies.company.name,involved_companies.developer," +
+        "involved_companies.publisher,total_rating,total_rating_count,game_type;";
+
+    /// <summary>One page of a title search with the fields Discover lists. Returns IGDB's raw answer (see DiscoverParsers).</summary>
+    public async Task<string> DiscoverSearchAsync(string term, int page, CancellationToken ct)
+    {
+        var t = EscapeApicalypse(term);
+        if (t.Length is 0 or > 100) return "[]";
+        var offset = Math.Clamp(page, 0, 9) * DiscoverPageSize;
+        return await QueryAsync("games", $"search \"{t}\"; {DiscoverSearchFields} limit {DiscoverPageSize}; offset {offset.ToString(CultureInfo.InvariantCulture)};", ct);
+    }
+
+    /// <summary>One game with the fields Discover's page shows. Returns IGDB's raw answer.</summary>
+    public async Task<string> DiscoverGameAsync(long id, CancellationToken ct) =>
+        await QueryAsync("games", $"{DiscoverGameFields} where id = {id.ToString(CultureInfo.InvariantCulture)};", ct);
+
+    /// <summary>One game by its slug (Wikidata stores IGDB slugs). Returns IGDB's raw answer.</summary>
+    public async Task<string> DiscoverGameBySlugAsync(string slug, CancellationToken ct)
+    {
+        if (slug.Length is 0 or > 120 || !slug.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-')) return "[]";
+        return await QueryAsync("games", $"{DiscoverGameFields} where slug = \"{slug}\"; limit 2;", ct);
+    }
+
     // ---------- Transport ----------
 
     private async Task<string> QueryAsync(string endpoint, string body, CancellationToken ct, (string ClientId, string Secret)? overrideCreds = null)

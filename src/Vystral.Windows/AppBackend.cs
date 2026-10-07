@@ -116,6 +116,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterPlayDataHandlers();       // AppBackend.PlayData.cs: hardware history, energy estimate, controller battery history (Track Y)
         RegisterTrackXHandlers();         // AppBackend.TrackX.cs: new health issues on Home, layout compare, uninstall advisor, mods, save files
         RegisterSubscriptionHandlers();   // AppBackend.Subscriptions.cs: your subscriptions, what they include, leaving soon, queue alerts (Track V)
+        RegisterDiscoverHandlers();       // AppBackend.Discover.cs: universal game search, pages for games you don't own, Watching (Track U)
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

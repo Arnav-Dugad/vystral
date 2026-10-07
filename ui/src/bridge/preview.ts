@@ -30,6 +30,7 @@ import type { TimeToBeatMap } from './types';
 import { TRACK_X_DEFAULT_SETTINGS, trackXPreviewHandlers } from './preview.trackX';
 import type { ControllerLayout, HealthReport } from './types';
 import { SUBS_DEFAULT_SETTINGS, subsPreviewHandlers } from './preview.subs';
+import { DISCOVER_DEFAULT_SETTINGS, discoverPreviewHandlers } from './preview.discover';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -83,6 +84,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...PLAY_DATA_DEFAULT_SETTINGS,
   ...TRACK_X_DEFAULT_SETTINGS,
   ...SUBS_DEFAULT_SETTINGS, // Track V
+  ...DISCOVER_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -501,6 +503,8 @@ export function createPreviewBackend() {
     }),
     // Track V: your subscriptions (fictional Game Pass lists; ?subs, ?subsPrice, ?leaving, ?subsAsk, ?subsNoData).
     ...subsPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; } }),
+    // Track U: universal search and pages for games you don't own (fictional catalogue; ?discover, ?discoverSlow, ?discoverNoKeys, ?discoverFail).
+    ...discoverPreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
   };
 
   return {

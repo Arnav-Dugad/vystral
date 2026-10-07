@@ -49,6 +49,28 @@ public sealed partial class RawgClient(ProviderTransport transport, Func<string?
         catch (DataSourceException ex) when (ex.Message == NotFound) { return false; }
     }
 
+    // ---------- Track U: Discover ----------
+
+    public const int DiscoverPageSize = 20;
+
+    /// <summary>One page of a title search (raw answer; see DiscoverParsers). A page past the end is an empty answer.</summary>
+    public async Task<string> DiscoverSearchAsync(string term, int page, CancellationToken ct)
+    {
+        var t = term.Trim();
+        if (t.Length is 0 or > 100) return """{"results":[]}""";
+        var p = Math.Clamp(page, 0, 9) + 1;
+        try { return await GetAsync($"games?search={Uri.EscapeDataString(t)}&search_precise=true&page_size={DiscoverPageSize}&page={p.ToString(CultureInfo.InvariantCulture)}", ct); }
+        catch (DataSourceException ex) when (ex.Message == NotFound) { return """{"results":[]}"""; }
+    }
+
+    /// <summary>One game by slug (raw answer), or null when RAWG has no such game.</summary>
+    public async Task<string?> DiscoverGameAsync(string slug, CancellationToken ct)
+    {
+        if (!SlugOrId().IsMatch(slug)) return null;
+        try { return await GetAsync($"games/{slug}", ct); }
+        catch (DataSourceException ex) when (ex.Message == NotFound) { return null; }
+    }
+
     private const string NotFound = "RAWG has no entry for this game.";
 
     private async Task<string> GetAsync(string pathAndQuery, CancellationToken ct, string? keyOverride = null)

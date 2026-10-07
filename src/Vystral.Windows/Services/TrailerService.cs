@@ -74,6 +74,24 @@ public sealed partial class TrailerService : IDisposable
         _media.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
     }
 
+    /// <summary>Track U: trailers of games that aren't in the library, by a stand-in ID (kept in memory only, capped).</summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SteamTrailer> _external = new(StringComparer.Ordinal);
+    internal const int MaxExternal = 64;
+
+    /// <summary>
+    /// Track U: lets the proxy serve a Discover page's Steam trailer under <paramref name="standInId"/> (32 hex, never a
+    /// library game's ID). The trailer was chosen by <see cref="SteamTrailers.Select"/>, so the same allow-list applies.
+    /// </summary>
+    public void RegisterExternal(string standInId, SteamTrailer trailer)
+    {
+        if (!ExternalId().IsMatch(standInId)) return;
+        if (_external.Count >= MaxExternal && !_external.ContainsKey(standInId)) _external.Clear();
+        _external[standInId] = trailer;
+    }
+
+    [GeneratedRegex(@"\A[0-9a-f]{32}\z")]
+    private static partial Regex ExternalId();
+
     /// <summary>Data saver is on manually, or automatically because Windows reports a metered connection.</summary>
     public bool DataSaverActive => _settings.GetBool("dataSaver.enabled") || (_settings.GetBool("dataSaver.onMetered") && _network.Current.Metered);
 
@@ -88,6 +106,14 @@ public sealed partial class TrailerService : IDisposable
     public async Task<TrailerDto> GetAsync(string gameId, CancellationToken ct)
     {
         const string source = "Steam";
+        // Track U: a Discover page's stand-in ID (a game that isn't in the library), registered when its page loaded.
+        if (_external.TryGetValue(gameId, out var ext))
+        {
+            if (BlockReason() is { } why) return new TrailerDto(false, null, null, ext.Name, why, source);
+            var isHls = ext.Format == "hls";
+            return new TrailerDto(true, isHls ? "hls" : "file",
+                $"https://{MediaService.MediaHost}{PathPrefix}{gameId}/{(isHls ? SteamTrailers.MasterEntry : SteamTrailers.FileEntry)}", ext.Name, null, source);
+        }
         var appId = _repo.GetSteamAppId(gameId);
         if (appId is null || !AppId().IsMatch(appId)) return new TrailerDto(false, null, null, null, "noSteamApp", source);
 
@@ -147,7 +173,7 @@ public sealed partial class TrailerService : IDisposable
         if (ParseProxyPath(absolutePath) is not { } parsed) return null;
         var (gameId, relative) = parsed;
         if (BlockReason() is not null) return null;
-        if (_repo.GetTrailer(gameId)?.Trailer is not { } trailer) return null;
+        if ((_external.TryGetValue(gameId, out var ext) ? ext : _repo.GetTrailer(gameId)?.Trailer) is not { } trailer) return null;
         var upstream = SteamTrailers.ResolveUpstream(trailer, relative);
         if (upstream is null) return null;
 

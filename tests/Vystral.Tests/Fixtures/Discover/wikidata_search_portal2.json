@@ -1,0 +1,76 @@
+{
+  "head" : {
+    "vars" : [ "item", "lbl", "released", "v_steam", "v_gogId", "v_gog", "v_epic", "v_microsoft", "v_igdb", "v_rawg", "rank" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q279446"
+      },
+      "lbl" : {
+        "xml:lang" : "mul",
+        "type" : "literal",
+        "value" : "Portal 2"
+      },
+      "released" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2011-04-18T00:00:00Z"
+      },
+      "v_steam" : {
+        "type" : "literal",
+        "value" : "620"
+      },
+      "v_microsoft" : {
+        "type" : "literal",
+        "value" : "bt2b17v20d1p"
+      },
+      "v_igdb" : {
+        "type" : "literal",
+        "value" : "portal-2"
+      },
+      "v_rawg" : {
+        "type" : "literal",
+        "value" : "portal-2"
+      },
+      "rank" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#int",
+        "type" : "literal",
+        "value" : "0"
+      }
+    }, {
+      "item" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q124069832"
+      },
+      "lbl" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Portal 2 Sixense Perceptual Pack"
+      },
+      "released" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "2013-09-20T00:00:00Z"
+      },
+      "v_steam" : {
+        "type" : "literal",
+        "value" : "247120"
+      },
+      "v_igdb" : {
+        "type" : "literal",
+        "value" : "portal-2-sixense-perceptual-pack"
+      },
+      "v_rawg" : {
+        "type" : "literal",
+        "value" : "portal-2-sixense-perceptual-pack"
+      },
+      "rank" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#int",
+        "type" : "literal",
+        "value" : "2"
+      }
+    } ]
+  }
+}
