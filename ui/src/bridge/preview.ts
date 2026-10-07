@@ -31,6 +31,8 @@ import { TRACK_X_DEFAULT_SETTINGS, trackXPreviewHandlers } from './preview.track
 import type { ControllerLayout, HealthReport } from './types';
 import { SUBS_DEFAULT_SETTINGS, subsPreviewHandlers } from './preview.subs';
 import { DISCOVER_DEFAULT_SETTINGS, discoverPreviewHandlers } from './preview.discover';
+import { TRACK_W_DEFAULT_SETTINGS, previewTrackWSettings, trackWPreviewHandlers } from './preview.trackW';
+import type { AchievementsResult } from './types';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -85,6 +87,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_X_DEFAULT_SETTINGS,
   ...SUBS_DEFAULT_SETTINGS, // Track V
   ...DISCOVER_DEFAULT_SETTINGS,
+  ...TRACK_W_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -255,6 +258,7 @@ export function createPreviewBackend() {
   if (params.has('vibration')) settings['controller.vibration'] = true;
   if (previewFriendsOn(params)) settings['home.friendsActivity'] = true; // Track P: ?friends, ?friendsPrivate
   if (params.has('energy')) settings['energy.enabled'] = true; // Track Y: the opt-in energy estimate
+  settings = { ...settings, ...previewTrackWSettings(params) }; // Track W: ?wishlist, ?friendsHistory
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
   // Track T: `?nowPlaying` starts the preview with a game already running (Immersive's Now playing row).
@@ -505,6 +509,12 @@ export function createPreviewBackend() {
     ...subsPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; } }),
     // Track U: universal search and pages for games you don't own (fictional catalogue; ?discover, ?discoverSlow, ?discoverNoKeys, ?discoverFail).
     ...discoverPreviewHandlers({ lib, emit: () => emit, settings: () => settings, timers }),
+    // Track W: wishlist (?wishlist), friends' recent games (?friendsHistory), achievement guide (?achGuide pins a goal), news (?news).
+    ...trackWPreviewHandlers({
+      lib, emit: () => emit, settings: () => settings, timers,
+      steamStatus: () => handlers['steam.status']({}) as SteamApiStatus,
+      achievements: (gameId) => Promise.resolve(handlers['steam.achievements']({ gameId }) as Promise<AchievementsResult>),
+    }),
   };
 
   return {

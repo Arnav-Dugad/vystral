@@ -1,0 +1,18 @@
+{"response":{"store_items":[
+  {"item_type":0,"id":1145360,"success":1,"visible":true,"name":"Hades","store_url_path":"app/1145360/Hades/","appid":1145360,"type":0,"is_free":false,
+   "release":{"steam_release_date":1600300800,"is_coming_soon":false},
+   "best_purchase_option":{"packageid":1,"final_price_in_cents":"1249","original_price_in_cents":"2499","formatted_final_price":"$12.49","formatted_original_price":"$24.99","discount_pct":50},
+   "assets":{"asset_url_format":"steam/apps/1145360/${FILENAME}?t=1700000000","header":"header.jpg","main_capsule":"capsule_616x353.jpg"}},
+  {"item_type":0,"id":2050650,"success":1,"visible":true,"name":"Resident‮ Evil\u0007 4","appid":2050650,"is_free":false,
+   "release":{"steam_release_date":1767225600,"is_coming_soon":true,"coming_soon_display":"date_quarter"},
+   "assets":{"asset_url_format":"steam/apps/999/${FILENAME}","header":"header.jpg"}},
+  {"item_type":0,"id":1086940,"success":1,"name":"Baldur's Gate 3","appid":1086940,
+   "release":{"steam_release_date":1767312000,"is_coming_soon":true,"custom_release_date_message":"Coming soon™"},
+   "best_purchase_option":{"final_price_in_cents":"not a number","discount_pct":250},
+   "assets":{"asset_url_format":"steam/apps/1086940/../../evil/${FILENAME}","header":"header.jpg"}},
+  {"item_type":0,"id":620,"success":1,"name":"Portal 2","appid":620,"is_free":true,
+   "assets":{"asset_url_format":"steam/apps/620/0123456789abcdef0123456789abcdef01234567/${FILENAME}?t=1","header":"header_alt.jpg"}},
+  {"item_type":0,"id":555,"success":1,"name":"Not requested","appid":555},
+  {"item_type":0,"id":730,"success":2,"appid":730},
+  {"item_type":0,"id":1145360,"success":1,"name":"Duplicate","appid":1145360}
+]}}

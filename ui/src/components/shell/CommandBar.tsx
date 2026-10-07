@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   BarChart3, BookOpen, Bot, CornerDownLeft, FilePlus2, Gamepad2, Home, Images, LibraryBig, Moon, Play, RefreshCw,
-  Search, Settings2, Sparkles, Wand2, ArrowDownToLine, HeartPulse, Compass, Check, CloudOff,
+  Search, Settings2, Sparkles, Wand2, ArrowDownToLine, HeartPulse, Compass, Check, CloudOff, Gift,
 } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { AiQuery, DiscoverResult, DiscoverSearch, Game } from '../../bridge/types';
@@ -167,6 +167,7 @@ function CommandBody({ onClose }: { onClose: () => void }) {
   const pages: Item[] = [
     { id: 'p-home', group: 'Go to', label: 'Home', icon: <Home size={16} />, run: go({ name: 'home' }) },
     { id: 'p-lib', group: 'Go to', label: 'Library', icon: <LibraryBig size={16} />, run: go({ name: 'library' }) },
+    { id: 'p-wish', group: 'Go to', label: 'Wishlist', icon: <Gift size={16} />, run: go({ name: 'wishlist' }) }, // Track W
     { id: 'p-jr', group: 'Go to', label: 'Journal', icon: <BookOpen size={16} />, run: go({ name: 'journal' }) },
     { id: 'p-perf', group: 'Go to', label: 'Performance', icon: <BarChart3 size={16} />, run: go({ name: 'performance' }) },
     { id: 'p-mom', group: 'Go to', label: 'Moments', icon: <Images size={16} />, run: go({ name: 'moments' }) },

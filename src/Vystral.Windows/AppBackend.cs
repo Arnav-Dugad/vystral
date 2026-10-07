@@ -117,6 +117,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterTrackXHandlers();         // AppBackend.TrackX.cs: new health issues on Home, layout compare, uninstall advisor, mods, save files
         RegisterSubscriptionHandlers();   // AppBackend.Subscriptions.cs: your subscriptions, what they include, leaving soon, queue alerts (Track V)
         RegisterDiscoverHandlers();       // AppBackend.Discover.cs: universal game search, pages for games you don't own, Watching (Track U)
+        RegisterTrackWHandlers();         // AppBackend.TrackW.cs: wishlist, friends' recent games, achievement guide, news (Track W)
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

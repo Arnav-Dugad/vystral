@@ -21,6 +21,8 @@ export type Route =
   | { name: 'discover'; query?: string }
   /** Track U: the page for a game that isn't (necessarily) in the library. `title` shows while details load. */
   | { name: 'discoverGame'; key: string; title?: string }
+  /** Track W: the Steam wishlist. */
+  | { name: 'wishlist' }
   | { name: 'settings'; section?: string };
 
 export interface Toast {
@@ -403,7 +405,7 @@ function subscribeEvents(set: (p: Partial<State>) => void, get: () => State) {
   on('window.state', (w) => set({ window: w }));
   // Clicking a Windows notification brings VYSTRAL forward and opens the relevant page.
   on('app.navigate', ({ route }) => {
-    const known = ['home', 'library', 'game', 'journal', 'performance', 'moments', 'constellation', 'assistant', 'settings', 'storage', 'health'];
+    const known = ['home', 'library', 'game', 'journal', 'performance', 'moments', 'constellation', 'assistant', 'settings', 'storage', 'health', 'wishlist'];
     if (!route || !known.includes(route.name) || (route.name === 'game' && !route.id)) return;
     if (get().window.mode === 'immersive' && route.name !== 'game') void get().setMode('desktop');
     get().navigate(route as Route);

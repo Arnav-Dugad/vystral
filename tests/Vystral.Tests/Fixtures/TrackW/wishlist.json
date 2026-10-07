@@ -1,0 +1,12 @@
+{"response":{"items":[
+  {"appid":1145360,"priority":1,"date_added":1693526400},
+  {"appid":"620","priority":2,"date_added":"1700000000"},
+  {"appid":1145360,"priority":9,"date_added":1693526400},
+  {"appid":0,"priority":3,"date_added":1700000000},
+  {"appid":-5,"priority":3},
+  {"appid":99999999999,"priority":3},
+  {"appid":"abc","priority":3},
+  {"appid":2050650,"priority":-4,"date_added":99999999999999},
+  "not an object",
+  {"appid":1086940}
+]}}
