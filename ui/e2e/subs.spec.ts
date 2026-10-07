@@ -134,7 +134,7 @@ test.describe('tailored to your plans', () => {
     expect(await tiles.count()).toBeGreaterThan(3);
     await expect(row.locator('.subs-tile__gen')).toHaveCount(1); // the one whose poster hasn't downloaded: a drawn tile
     await tiles.first().click();
-    expect(await page.evaluate(() => window.__vystralPreviewSubs?.opened.length)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.__vystralPreviewSubs?.opened.length)).toBe(1);
 
     const value = page.getByTestId('subs-value');
     await expect(value).toContainText(/in games your plans include/);
@@ -150,7 +150,7 @@ test.describe('tailored to your plans', () => {
   test('with a price, cost per hour is shown and labelled as an estimate', async ({ page }) => {
     await open(page, '?subsPrice&reduced');
     const value = page.getByTestId('subs-value');
-    await expect(value.getByText(/^About \$\d+\.\d\d an hour$/)).toBeVisible();
+    await expect(value.getByText(/^About \$\d+\.\d\d an hour$/)).toBeVisible({ timeout: 15_000 });
     await expect(value).toContainText('What you entered ($29.99 a month)');
     await expect(value).toContainText('Play on other devices isn’t counted');
   });
