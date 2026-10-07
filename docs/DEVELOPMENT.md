@@ -30,6 +30,8 @@ docs/                 documentation
 ```powershell
 # UI with sample data in a browser (hot reload). A "Preview · sample data" badge marks it.
 cd ui; npm run dev            # http://localhost:5173  (?games=5000 for a big library, ?empty, ?onboarding, ?reduced)
+                              # Track AA: ?firstpaint (start from the saved Home snapshot), ?slowLibrary=1500,
+                              # ?selfCheckFail, ?selfCheckNone, ?compactBusy
 
 # Full app
 cd ui; npm run build; cd ..

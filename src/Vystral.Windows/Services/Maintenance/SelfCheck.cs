@@ -84,11 +84,12 @@ public static class SelfCheckRunner
     public static readonly TimeSpan IntegrityTimeout = TimeSpan.FromSeconds(20);
     public static readonly TimeSpan BridgeTimeout = TimeSpan.FromSeconds(30);
 
-    public static async Task<SelfCheckReport> RunAsync(ISelfCheckProbes probes, string version, bool manual, DateTimeOffset now, CancellationToken ct)
+    public static async Task<SelfCheckReport> RunAsync(ISelfCheckProbes probes, string version, bool manual, DateTimeOffset now, CancellationToken ct,
+        TimeSpan? integrityTimeout = null, TimeSpan? bridgeTimeout = null)
     {
         // The two slow ones run side by side, so the whole check normally takes well under a second.
-        var integrity = IntegrityAsync(probes, ct);
-        var bridge = BridgeAsync(probes, ct);
+        var integrity = IntegrityAsync(probes, ct, integrityTimeout ?? IntegrityTimeout);
+        var bridge = BridgeAsync(probes, ct, bridgeTimeout ?? BridgeTimeout);
         var database = Database(probes);
         var art = ArtCache(probes);
         var settings = Settings(probes);
@@ -114,13 +115,13 @@ public static class SelfCheckRunner
         }
     }
 
-    internal static async Task<SelfCheckItem> IntegrityAsync(ISelfCheckProbes p, CancellationToken ct)
+    internal static async Task<SelfCheckItem> IntegrityAsync(ISelfCheckProbes p, CancellationToken ct, TimeSpan timeout)
     {
         const string id = "integrity", label = "Database integrity check";
         try
         {
             var work = Task.Run(p.QuickCheck, ct);
-            var done = await Task.WhenAny(work, Task.Delay(IntegrityTimeout, ct));
+            var done = await Task.WhenAny(work, Task.Delay(timeout, ct));
             // Slowness is never a failure: a big library on a busy disk simply gets checked next time.
             if (done != work) return new(id, label, CheckOutcome.Skipped, "Took too long this time; it will be checked again.", false);
             var result = await work;
@@ -138,13 +139,13 @@ public static class SelfCheckRunner
         }
     }
 
-    internal static async Task<SelfCheckItem> BridgeAsync(ISelfCheckProbes p, CancellationToken ct)
+    internal static async Task<SelfCheckItem> BridgeAsync(ISelfCheckProbes p, CancellationToken ct, TimeSpan after)
     {
         const string id = "bridge", label = "Interface and VYSTRAL talk to each other";
         try
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(BridgeTimeout);
+            timeout.CancelAfter(after);
             var ok = await p.BridgeRoundTripAsync(timeout.Token);
             return ok switch
             {

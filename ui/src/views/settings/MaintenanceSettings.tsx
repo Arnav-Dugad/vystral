@@ -57,10 +57,10 @@ export function SelfCheckSettings() {
       <p className="sgroup__desc">
         The first time a new version starts, VYSTRAL checks that it works on this PC: the database, the interface, artwork and settings. A real problem counts as a failed start, so a version that keeps failing goes back to the last one that worked. Being slow never does.
       </p>
-      <div className="sgroup__rows surface mt">
-        <div className="mt__head">
-          <Icon size={20} className="mt__icon" data-tone={tone ?? 'none'} aria-hidden />
-          <div className="mt__text" aria-live="polite">
+      <div className="sgroup__rows surface upk">
+        <div className="upk__head">
+          <Icon size={20} className="upk__icon" data-tone={tone ?? 'none'} aria-hidden />
+          <div className="upk__text" aria-live="polite">
             <div className="srow__label">{report ? selfCheckHeadline(report) : status ? 'Not checked yet' : 'Loading…'}</div>
             <div className="srow__hint">
               {report ? selfCheckHint(report, status!.currentVersion) : status ? 'It runs by itself the first time a new version starts. You can also run it now.' : ' '}
@@ -72,20 +72,20 @@ export function SelfCheckSettings() {
         </div>
         {report && (
           <>
-            <button type="button" className="mt__toggle" aria-expanded={open} aria-controls={listId} onClick={() => setOpen(!open)}>
+            <button type="button" className="upk__toggle" aria-expanded={open} aria-controls={listId} onClick={() => setOpen(!open)}>
               <ChevronDown size={14} aria-hidden data-open={open} />
               {open ? 'Hide the checks' : 'Show the checks'}
             </button>
             {open && (
-              <ul className="mt__checks" id={listId}>
+              <ul className="upk__checks" id={listId}>
                 {report.checks.map((c, i) => {
                   const CIcon = OUTCOME_ICON[c.outcome];
                   return (
-                    <li key={c.id} className="mt-check" data-outcome={c.outcome} style={{ animationDelay: `${i * 35}ms` }}>
-                      <CIcon size={15} className="mt-check__icon" role="img" aria-label={OUTCOME_LABEL[c.outcome]} />
+                    <li key={c.id} className="upk-check" data-outcome={c.outcome} style={{ animationDelay: `${i * 35}ms` }}>
+                      <CIcon size={15} className="upk-check__icon" role="img" aria-label={OUTCOME_LABEL[c.outcome]} />
                       <div>
-                        <div className="mt-check__label">{c.label}</div>
-                        <div className="mt-check__detail">{c.detail}</div>
+                        <div className="upk-check__label">{c.label}</div>
+                        <div className="upk-check__detail">{c.detail}</div>
                       </div>
                     </li>
                   );
@@ -147,12 +147,12 @@ export function CompactionSettings() {
         <div className="srow">
           <div className="srow__text">
             <div className="srow__label">Compact the database</div>
-            <div className="srow__hint mt__size" data-flash={justSaved || undefined} aria-live="polite">
+            <div className="srow__hint upk__size" data-flash={justSaved || undefined} aria-live="polite">
               {status ? compactionHint(status) : '…'}
             </div>
             {ratio != null && (
-              <div className="mt-bar" aria-hidden title="Size before and after the last compaction">
-                <span className="mt-bar__after" style={{ width: `${Math.max(4, ratio * 100)}%` }} />
+              <div className="upk-bar" aria-hidden title="Size before and after the last compaction">
+                <span className="upk-bar__after" style={{ width: `${Math.max(4, ratio * 100)}%` }} />
               </div>
             )}
           </div>

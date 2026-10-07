@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   AlertTriangle, ArrowLeft, BarChart3, Check, ChevronDown, Clock3, Eye, EyeOff, FolderOpen, FolderPlus, Heart, HardDrive,
@@ -19,7 +19,6 @@ import { useReducedMotion, useStore } from '../state/store';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { GameCover } from '../components/game/GameCover';
 import { GameCard } from '../components/game/GameCard';
-import { AchievementsPanel } from '../components/game/AchievementsPanel';
 import { PlayButton } from '../components/game/PlayButton';
 import { LastSessionGhost } from '../components/game/LastSessionGhost';
 import { SessionOriginChip } from '../components/game/SessionOriginChip';
@@ -37,8 +36,11 @@ import { CloudPlayButton } from '../components/cloud/CloudPlayButton';
 import { ArtSlotActions, useUserArt } from '../components/game/ArtPicker';
 import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
-import { ControlsPanel } from '../components/game/ControlsPanel';
 import { takeGameTab } from '../lib/gameTab';
+
+// Track AA: tab panels that aren't on the first screen load when their tab opens (not at startup).
+const AchievementsPanel = lazy(() => import('../components/game/AchievementsPanel').then((m) => ({ default: m.AchievementsPanel })));
+const ControlsPanel = lazy(() => import('../components/game/ControlsPanel').then((m) => ({ default: m.ControlsPanel })));
 import './detail.css';
 
 type Tab = 'overview' | 'achievements' | 'sessions' | 'versions' | 'artwork' | 'controls';
@@ -101,8 +103,8 @@ export function GameDetailView({ id }: { id: string }) {
           {tab === 'sessions' && <Sessions game={game} />}
           {tab === 'versions' && <Versions game={game} />}
           {tab === 'artwork' && <ArtworkTab game={game} />}
-          {tab === 'achievements' && <AchievementsPanel game={game} />}
-          {tab === 'controls' && <ControlsPanel game={game} />}
+          {tab === 'achievements' && <Suspense fallback={null}><AchievementsPanel game={game} /></Suspense>}
+          {tab === 'controls' && <Suspense fallback={null}><ControlsPanel game={game} /></Suspense>}
         </div>
         <Related game={game} />
       </div>

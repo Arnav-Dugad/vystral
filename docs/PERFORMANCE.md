@@ -5,6 +5,7 @@
 | Target | Budget |
 |---|---|
 | Cached startup to interactive (primary machine) | ≤ 3 s |
+| Process start → Home on screen from the first-paint snapshot (v0.7) | < 1 s |
 | Ordinary interactions (app processing) | < 100 ms |
 | Interface animation | 60 fps baseline; Living Canvas capped at 30 fps at reduced resolution |
 | Libraries | thousands of games without jank (virtualized lists, worker palette extraction) |
@@ -112,7 +113,47 @@ Robustness, from the same harness: 50,000 back-to-back samples kept the handle c
 
 **Not chosen:** NVML's `nvmlDeviceGetUtilizationRates` (NVIDIA only, and it measures "any kernel running" over a driver-chosen window, so it reads higher than 3D load: 37–40% vs 30% here) — it would save ~0.45 ms per 2 s on NVIDIA, not worth a different meaning per vendor. DXGI `QueryVideoMemoryInfo` reports only the calling process's own video memory, not the game's or the adapter's.
 
+### Startup (v0.7)
+
+Goal: Home on screen in under a second, from a cached snapshot, then updated live.
+
+**What changed**
+
+- **Cached first paint.** The interface saves a compact Home view-model (hero, the games on each shelf with their already-cached cover URLs, the Library radar numbers, the theme; ~25–70 KB, at most 120 games, no notes or paths) a few seconds after the library changes and when the window is hidden. The host keeps it in `ui-state/first-paint.json`, stamped with VYSTRAL's version, and hands it to the page with a document-created script before any page script runs. Home renders from it at once and reconciles with the live library: the same component tree and keys, so cards keep their DOM nodes (Playwright checks every card survives). A missing, corrupt, oversized, older-than-45-days or other-version file is ignored and the live path runs as before; it is never used in safe mode, before onboarding, in an Immersive start or after a database reset, and it is removed after the first navigation so a renderer-crash reload takes the live path.
+- **Backend in parallel with WinUI.** The backend (database open and migrate, session recovery, settings, services, bridge handlers) is built on its own thread started right after `StartupProtection`, while WinUI loads `XamlControlsResources` and creates the window, instead of afterwards on the UI thread. The WebView2 environment is created first thing in the window's constructor. Single instance, rollback and tracker mode are untouched (all of that happens before, in `Program.Main`); `app.ready` + 20 s is still the success rule and is still sent only after the *live* library.
+- **First frame.** `boot.js` (a 1 KB blocking script in `<head>`) puts the snapshot's theme on `<html>` before anything is drawn, the inline background follows it, and the native window colour follows the saved theme, so a light theme never flashes dark. The Latin Geist, Geist Mono and Unbounded faces are preloaded. Home draws the hero and the first shelf on the first frame and the rows below the fold in a deferred render right after.
+- **Lazy loading.** three.js (736 KB) was already loaded only by Constellation; a Playwright test now guards that startup requests no three.js or Constellation chunk. The game page's Achievements and Controls panels moved out of the startup bundle (−22 KB JS, −10 KB CSS); the new startup code adds ~7 KB, so the entry chunk is about the same size (717 → 724 KB).
+
+**Measured 2026-10-07** on the reference machine (i7-13650HX, Windows 11). The machine was busy with other builds during the runs (CPU 55–100%), so medians over interleaved runs are given with the best run; read differences, not absolute values. The real app was **not** run: it is single-instance and uses the real data folder.
+
+1. *WebView2 harness*: a WinForms program that hosts the real built UI exactly as `MainWindow` does (same virtual-host mapping and settings, scratch user-data folder, warm). `library.get` goes through VYSTRAL's real `BridgeDispatcher` and `LibraryRepository.LoadSnapshot` over a synthetic 300-game database, cold in each process; other bridge calls are answered instantly. 9 interleaved runs per build; ms since process start:
+
+| Mark | Before (0.6.0 UI) | After, live | After, cached first paint |
+|---|---|---|---|
+| WebView2 environment ready | 180 | 176 | 176 |
+| WebView2 controller ready | 419 | 421 | 421 |
+| Navigation → DOMContentLoaded (bundle parsed) | 524 | 538 | 527 |
+| Shell in the DOM | 539 | 554 | 579 |
+| `library.get` request → reply (cold, 300 games) | 611 → 814 | 583 → 769 | 600 → 811 |
+| **Home content in the DOM** | **905** (best 750) | **805** (best 683) | **579** (best 483) |
+| Live Home reconciled / `app.ready` | 907 | 806 | 837 |
+
+So Home appears ~325 ms earlier (median) and no longer waits for `app.info` and `library.get`; the live update lands ~250 ms later, keeping every card.
+
+2. *Database parts of startup* (same synthetic library, console harness, first call in a fresh process / warm): open + migrate check 6 / 3 ms, session recovery 8 / 0.3 ms, settings 9 / 0.1 ms, `LoadSnapshot` 92 / 21 ms, JSON serialization of the 283 KB reply 54 / 5 ms. With 2,000 games: `LoadSnapshot` 92–177 ms, 1.9 MB of JSON. The cold library path is what the cached first paint takes off the critical path.
+3. *WebView2 alone*: creating the environment returns in ~10–40 ms; the controller (browser and renderer processes) takes ~200–250 ms. Starting the environment earlier only overlapped ~20 ms in an experiment with 300 ms of blocking work on the UI thread, because the controller needs the window; the bigger overlap comes from building the backend during WinUI's own start (not measurable without the real app; the new timeline below logs it).
+4. *UI only, Playwright* (Chromium, `vite preview` of the production build, preview backend, warm cache): Home in the DOM ~200 ms after navigation live vs ~90–170 ms from the cached snapshot; with `?slowLibrary=2500` the cached Home is up within ~60–100 ms and survives reconciliation unchanged.
+
+**Startup timeline in the log.** Every start writes one `Startup timings (ms since the process started)` line to `logs\vystral-*.log` (local only, no telemetry): `appMain`, `protectionDone`, `backendStart`/`backendReady` (backend thread), `xamlStart`, `xamlReady`, `windowCreate`, `webviewEnvStart`/`webviewEnvReady`, `backendWait`/`backendWaitDone` (how long the UI thread still waited), `webviewReady`, `firstPaintInjected`, `navigationStart`, `domContentLoaded`, `navigationCompleted`, `appReady`, and the interface's own marks converted to the same clock: `ui:script`, `ui:firstPaint` (cached Home painted), `ui:liveHome`, `ui:ready`, `ui:fcp`. `call('diagnostics.startup')` returns the same. Use it for the real-app before/after on the reference machine.
+
+### After-update self-check and compaction (v0.7)
+
+- *Self-check*: runs 2 s after `app.ready` on the first start of a version; the integrity check (`PRAGMA quick_check`) and the bridge round trip run side by side. On the synthetic 300-game database `quick_check` takes 1–4 ms; the whole check normally finishes well under a second. Timeouts (20 s integrity, 30 s round trip) give *skipped*, never *failed*.
+- *Compaction*: a 15-minute timer (first after 10 minutes) evaluates the schedule with three cheap calls (`GetSystemPowerStatus`, `GetLastInputInfo`, free space). In the test suite a ~3 MB file whose rows were deleted compacts to under a quarter of its size.
+
 ## Not yet measured
+
+- Real-app startup before/after on the reference machine (timeline above; the harness numbers stand in for it).
 
 - Frame pacing of the Living Canvas on weak iGPUs (the "auto" quality setting lowers to "low" on ≤4-core CPUs).
 - Startup with 5,000+ real games: tested with preview data only.
