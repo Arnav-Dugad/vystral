@@ -314,7 +314,7 @@ export function trackWPreviewHandlers(ctx: Ctx): Record<string, (p: any) => unkn
         refreshing = false;
         fetchedAt = Date.now();
         ctx.emit()('wishlist.changed', { refreshing: false });
-      }, 2500));
+      }, 6000)); // long enough to see on a slow machine
     }
     // ?achGuide: pin Nebula Drift's easiest locked achievement (once every handler exists).
     const nebula = params.has('achGuide') ? ctx.lib.games.find((g) => g.title === 'Nebula Drift') : undefined;

@@ -88,7 +88,8 @@ test.describe('Discover page', () => {
     await page.getByRole('button', { name: 'Show more results' }).scrollIntoViewIfNeeded();
     await expect.poll(async () => cards.count(), { timeout: 20_000 }).toBeGreaterThan(before);
 
-    // Filters narrow the list and can be cleared.
+    // Filters narrow the list and can be cleared (count once every source has answered the new page).
+    await expect(page.locator('section[aria-labelledby="disc-rest"]')).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 });
     const all = await cards.count();
     await page.getByRole('group', { name: 'Store' }).getByRole('button', { name: 'GOG' }).click();
     await expect.poll(async () => cards.count()).toBeLessThan(all);

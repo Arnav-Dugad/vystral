@@ -105,7 +105,7 @@ test.describe('wishlist', () => {
     await page.goto('/?wishlist=loading&reduced');
     await nav(page, 'Wishlist');
     await expect(page.getByText(/Reading your wishlist from Steam/)).toBeVisible();
-    await expect(page.getByRole('list', { name: /wishlisted games/ })).toBeVisible({ timeout: 8000 });
+    await expect(page.getByRole('list', { name: /wishlisted games/ })).toBeVisible({ timeout: 15_000 });
 
     await page.goto('/?wishlist=invalid&reduced');
     await nav(page, 'Wishlist');
