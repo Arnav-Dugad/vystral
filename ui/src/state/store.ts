@@ -128,6 +128,16 @@ function startToastTimer(id: number, dismiss: (id: number) => void) {
  */
 const settingSeq = new Map<string, number>();
 const settingsInFlight = new Map<string, number>();
+const settingsWaiters: (() => void)[] = [];
+
+/**
+ * Resolves once no setting save is in flight. Requests that depend on a setting the user just changed
+ * (a search after "Turn on") wait for it, so the backend never answers them with the old value.
+ */
+export function settingsSettled(): Promise<void> {
+  if (settingsInFlight.size === 0) return Promise.resolve();
+  return new Promise((resolve) => settingsWaiters.push(resolve));
+}
 
 const indexGames = (lib: LibrarySnapshot) => new Map(lib.games.map((g) => [g.id, g]));
 const sameRoute = (a: Route, b: Route) => JSON.stringify(a) === JSON.stringify(b);
@@ -277,6 +287,7 @@ export const useStore = create<State>((set, get) => ({
       const n = (settingsInFlight.get(key) ?? 1) - 1;
       if (n > 0) settingsInFlight.set(key, n);
       else settingsInFlight.delete(key);
+      if (settingsInFlight.size === 0) settingsWaiters.splice(0).forEach((resolve) => resolve());
     }
   },
 

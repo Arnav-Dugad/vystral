@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { call, errorMessage, on } from '../bridge/bridge';
 import type { DiscoverChannel, DiscoverImage, DiscoverSearch, DiscoverStatus, DiscoverWatch } from '../bridge/types';
 import { cleanQuery, isNewer } from '../lib/discover';
-import { useStore } from './store';
+import { settingsSettled, useStore } from './store';
 
 export interface DiscoverSearchState {
   /** The cleaned text being searched (null: nothing to search). */
@@ -55,8 +55,10 @@ export function useDiscoverSearch(text: string, channel: DiscoverChannel, { enab
     }
     let live = true;
     setSearch((prev) => (prev?.query === query ? prev : null));
-    call<DiscoverSearch>('discover.search', { query, channel, page: 0 })
-      .then((r) => { if (live) accept(r); })
+    // Wait for a setting the user just changed (Turn on, Offline mode) to be saved before asking.
+    settingsSettled()
+      .then(() => (live ? call<DiscoverSearch>('discover.search', { query, channel, page: 0 }) : null))
+      .then((r) => { if (live && r) accept(r); })
       .catch((err) => { if (live) setError(errorMessage(err)); });
     return () => { live = false; };
   }, [query, channel, accept, gates]);
@@ -81,10 +83,16 @@ export function useDiscoverStatus(): DiscoverStatus | null {
   const [status, setStatus] = useState<DiscoverStatus | null>(null);
   useEffect(() => {
     let live = true;
-    call<DiscoverStatus>('discover.status').then((s) => live && setStatus(s)).catch(() => {});
-    const off = on('discover.changed', setStatus);
+    // Only the newest answer counts: an older request resolving late must not bring back a stale state.
+    let seq = 0;
+    const ask = () => {
+      const mine = ++seq;
+      call<DiscoverStatus>('discover.status').then((s) => { if (live && mine === seq) setStatus(s); }).catch(() => {});
+    };
+    ask();
+    const off = on('discover.changed', (s) => { seq++; setStatus(s); });
     // Preview has no native "changed" event for settings: ask again when settings change.
-    const offSettings = on('settings.changed', () => void call<DiscoverStatus>('discover.status').then((s) => live && setStatus(s)).catch(() => {}));
+    const offSettings = on('settings.changed', ask);
     return () => { live = false; off(); offSettings(); };
   }, []);
   return status;
