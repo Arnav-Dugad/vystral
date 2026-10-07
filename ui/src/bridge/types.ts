@@ -955,3 +955,21 @@ export interface Settings {
 }
 
 export type * from './types.playData';
+
+// ---------- Track X: library tools — new health issues on Home, layout compare, uninstall advisor, mods, save files (types in ./types.trackX) ----------
+
+export interface Settings {
+  /** Save locations from PCGamingWiki on a game's Files tab (opt-in; keyless; CC BY-NC-SA, credited). */
+  'dataSources.pcgamingwiki': boolean;
+  /** Names for Steam Workshop items from Steam's public GetPublishedFileDetails (opt-in; keyless). */
+  'dataSources.workshopTitles': boolean;
+  /** A small Home card when the background health check notices something new (once per issue). */
+  'home.healthNews': boolean;
+}
+
+export interface BridgeEvents {
+  /** The background health re-check noticed something new (or a pending one went away). */
+  'health.news': import('./types.trackX').HealthNews;
+}
+
+export type * from './types.trackX';

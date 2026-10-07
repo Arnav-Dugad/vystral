@@ -27,6 +27,8 @@ import { healthPreviewHandlers } from './preview.health';
 import { CLOUD_DEFAULT_SETTINGS, cloudPreviewHandlers } from './preview.cloud';
 import { PLAY_DATA_DEFAULT_SETTINGS, decoratePace, playDataPreviewHandlers } from './preview.playData';
 import type { TimeToBeatMap } from './types';
+import { TRACK_X_DEFAULT_SETTINGS, trackXPreviewHandlers } from './preview.trackX';
+import type { ControllerLayout, HealthReport } from './types';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -78,6 +80,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...CLOUD_DEFAULT_SETTINGS,
   ...TRACK_T_DEFAULT_SETTINGS,
   ...PLAY_DATA_DEFAULT_SETTINGS,
+  ...TRACK_X_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -488,6 +491,12 @@ export function createPreviewBackend() {
     ...cloudPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; }, timers }),
     // Track Y: hardware history, energy estimate (?energy), controller battery (?lowBattery, ?nopads).
     ...playData,
+    // Track X: new health issues on Home (?healthNew), layout compare (?compare), uninstall advisor (?uninstall), mods (?mods), save files (?saves).
+    ...trackXPreviewHandlers({
+      lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; }, timers,
+      healthCheck: () => handlers['health.check']({}) as HealthReport,
+      controlsGet: (gameId) => handlers['controls.get']({ gameId }) as ControllerLayout,
+    }),
   };
 
   return {

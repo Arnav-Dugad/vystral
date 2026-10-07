@@ -145,6 +145,10 @@ public sealed class SettingsService
         new NumberDef("energy.watts", 0, 0, 3000),
         new NumberDef("energy.price", 0, 0, 1000),
         new StringDef("energy.currency", "", 3, "^([A-Z]{3})?$"),
+        // Track X: save locations from PCGamingWiki and Steam Workshop titles (both opt-in, keyless); the Home card for new health issues.
+        new BoolDef("dataSources.pcgamingwiki", false),
+        new BoolDef("dataSources.workshopTitles", false),
+        new BoolDef("home.healthNews", true),
     ];
 
     private readonly LibraryRepository _repo;

@@ -53,6 +53,8 @@ export function HealthView() {
     void check();
   }, [check]);
   useEffect(() => on('health.progress', (p) => setProgress(p)), []);
+  // Track X: opening this page counts as seeing whatever the Home card would have announced.
+  useEffect(() => void call('health.newsSeen', { all: true }).catch(() => {}), []);
 
   const refreshAll = async (next?: HealthReport) => {
     if (next) setReport(next);

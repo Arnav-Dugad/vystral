@@ -109,6 +109,13 @@
 - Controller battery history uses Windows.Gaming.Input's battery report: wired pads, and many third-party or Bluetooth pads that Windows doesn't report a battery for, never appear. It's sampled only while VYSTRAL is open (not by the background tracker), so the usual-drain estimate needs about 45 minutes of discharge seen by the app. Real controllers haven't been tested yet (preview data only).
 - Completion forecasts need an IGDB time-to-beat estimate (your own IGDB key) and at least 3 sessions on 2 days with an hour of play in the last 4 weeks; store-reported playtime counts toward "played", but only VYSTRAL-tracked sessions give the pace.
 - The hour-of-week heatmap uses the PC's current time zone for all sessions, so sessions recorded while travelling in another zone are placed by today's zone.
+**Library tools (0.7, Track X)**
+- The Home card announces each new problem or warning once. The very first background check after updating only records what's already there, so existing issues never appear on Home (they're on the Health page). An issue that comes back within 120 days isn't announced again.
+- Drive changes are noticed by comparing drive letters every 4 seconds; a drive mounted into a folder (no letter) is noticed only by the next scan or the daily check.
+- Compare with default needs Steam's templates (or the Workshop layout yours started from) on this PC. Steam doesn't record what a layout started from in every case; VYSTRAL then compares with Steam's Gamepad template and says so. Paddles, trackpads and gyro aren't on the drawing; their changes are listed below it.
+- The uninstall advisor's Steam Cloud answer means Steam keeps *some* files for the game online; it can't tell whether that's every save. Re-download size is the installed size Steam reports (downloads are usually smaller). Game Pass membership can't be checked without signing in, which VYSTRAL never does.
+- Mods: only Steam Workshop, Vortex's default staging folder (for a short list of games) and Mod Organizer 2's global instances are found. Portable MO2 installs, relocated Vortex folders and other mod managers aren't.
+- Save files depend on PCGamingWiki's article (community-written, may be incomplete or out of date) and work only for games with a Steam app ID. Registry-based saves and unusual paths are listed but not checked. PCGamingWiki's Cargo API currently refuses anonymous queries, so the article is found through its documented app-id lookup instead.
 
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).

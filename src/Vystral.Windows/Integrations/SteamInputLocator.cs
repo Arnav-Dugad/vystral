@@ -56,7 +56,79 @@ public sealed partial class SteamInputLocator(Func<string?> steamPath)
         }
     }
 
-    private ControllerLayoutDto? Find(string steam, string appId)
+    /// <summary>
+    /// Track X: the layout the game uses next to the one it started from — the template or Workshop layout Steam
+    /// recorded as its "progenitor", else a template with the same name, else Steam's Gamepad template for the
+    /// controller type. Only files already in Steam's folder are read; nothing is written or downloaded.
+    /// </summary>
+    public ControllerCompareDto Compare(string? appId)
+    {
+        var yours = Get(appId);
+        if (yours.Status != "steamInput") return ControllerCompareDto.Simple("notSteamInput", yours);
+        var steam = steamPath();
+        if (steam is null) return ControllerCompareDto.Simple("notSteamInput", yours);
+        try
+        {
+            steam = Path.GetFullPath(steam);
+            var found = FindDetailed(steam, appId!);
+            if (found is null || found.Layout.Status != "steamInput") return ControllerCompareDto.Simple("notSteamInput", yours);
+            var layout = found.Layout;
+            if (layout.SourceKind == "template")
+                return new ControllerCompareDto("same", layout, layout, "self", layout.TemplateName ?? layout.Title, [], layout.Sets.Sum(s => s.Controls.Count), [], [], null);
+
+            var templates = Path.Combine(steam, "controller_base", "templates");
+            if (SteamInputCompare.Progenitor(found.Progenitor) is { } origin)
+            {
+                var baseline = origin.Kind == "template"
+                    ? LoadDetailed(Path.Combine(templates, origin.Value), steam, "template", layout.ControllerType)?.Layout
+                    : FirstConfig(Path.Combine(steam, "steamapps", "workshop", "content", "241100", origin.Value), layout.ControllerType) is { } w
+                        ? LoadDetailed(w, steam, "workshop", layout.ControllerType)?.Layout : null;
+                if (baseline is { Status: "steamInput" })
+                    return SteamInputCompare.Compare(layout, baseline, "progenitor", baseline.Title ?? "the layout it started from");
+            }
+
+            // Same name as a template for this controller type ("Gamepad", "Keyboard (WASD) and Mouse").
+            var candidates = TemplatesFor(templates, layout.ControllerType);
+            if (layout.Title is { Length: > 0 } title)
+            {
+                foreach (var file in candidates)
+                {
+                    if (LoadDetailed(file, steam, "template", layout.ControllerType)?.Layout is { Status: "steamInput" } t &&
+                        string.Equals(t.Title, title, StringComparison.OrdinalIgnoreCase))
+                        return SteamInputCompare.Compare(layout, t, "title", t.Title);
+                }
+            }
+            foreach (var name in SteamInputCompare.DefaultTemplateCandidates(layout.ControllerType))
+            {
+                if (!TemplateName().IsMatch(name)) continue;
+                if (LoadDetailed(Path.Combine(templates, name), steam, "template", layout.ControllerType)?.Layout is { Status: "steamInput" } d)
+                    return SteamInputCompare.Compare(layout, d, "controllerDefault", d.Title ?? "Gamepad");
+            }
+            return ControllerCompareDto.Simple("noDefault", layout, "Steam's templates aren't on this PC, so there's nothing to compare with.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            Services.Log.Warn("controls", "Couldn't compare Steam Input layouts", new { appId }, ex);
+            return ControllerCompareDto.Simple("noDefault", yours, "VYSTRAL couldn't read Steam's templates.");
+        }
+    }
+
+    /// <summary>Template files for one controller type (at most 16), so a name match never parses the whole folder.</summary>
+    private static IReadOnlyList<string> TemplatesFor(string templates, string? controllerType)
+    {
+        if (!Directory.Exists(templates) || controllerType is not { Length: > 0 and <= 40 }) return [];
+        var prefix = controllerType.ToLowerInvariant() + "_";
+        return new DirectoryInfo(templates).EnumerateFiles("*.vdf").Take(400)
+            .Where(f => TemplateName().IsMatch(f.Name) && f.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).Take(16).Select(f => f.FullName).ToList();
+    }
+
+    /// <summary>A layout found on disk, with the "progenitor" Steam recorded in it (what a personal layout started from).</summary>
+    private sealed record Found(ControllerLayoutDto Layout, string? Progenitor);
+
+    private ControllerLayoutDto? Find(string steam, string appId) => FindDetailed(steam, appId)?.Layout;
+
+    private Found? FindDetailed(string steam, string appId)
     {
         var configsRoot = Path.Combine(steam, "steamapps", "common", "Steam Controller Configs");
         foreach (var account in Accounts(steam, configsRoot))
@@ -70,19 +142,19 @@ public sealed partial class SteamInputLocator(Func<string?> steamPath)
                 if (node.GetString("template") is { } template && TemplateName().IsMatch(template))
                 {
                     var file = Path.Combine(steam, "controller_base", "templates", template);
-                    if (Load(file, steam, "template", type) is { } t) return t with { TemplateName = t.Title };
+                    if (LoadDetailed(file, steam, "template", type) is { } t) return t with { Layout = t.Layout with { TemplateName = t.Layout.Title }, Progenitor = "templates\\" + template };
                 }
                 if (node.GetString("workshop") is { } workshop && Digits().IsMatch(workshop))
                 {
                     var dir = Path.Combine(steam, "steamapps", "workshop", "content", "241100", workshop);
-                    if (FirstConfig(dir, null) is { } file && Load(file, steam, "workshop", type) is { } w) return w;
+                    if (FirstConfig(dir, null) is { } file && LoadDetailed(file, steam, "workshop", type) is { } w) return w;
                 }
-                if (FirstConfig(Path.Combine(config, appId), type) is { } own && Load(own, steam, "personal", type) is { } p) return p;
+                if (FirstConfig(Path.Combine(config, appId), type) is { } own && LoadDetailed(own, steam, "personal", type) is { } p) return p;
             }
             // No entry in any set, but Steam may still have saved your edits for this app.
-            if (FirstConfig(Path.Combine(config, appId), "controller_xboxone") is { } saved && Load(saved, steam, "personal", null) is { } s) return s;
+            if (FirstConfig(Path.Combine(config, appId), "controller_xboxone") is { } saved && LoadDetailed(saved, steam, "personal", null) is { } s) return s;
             var legacy = Path.Combine(steam, "userdata", account, "241100", "remote", "controller_config", appId);
-            if (FirstConfig(legacy, "controller_xboxone") is { } cloud && Load(cloud, steam, "personal", null) is { } c) return c;
+            if (FirstConfig(legacy, "controller_xboxone") is { } cloud && LoadDetailed(cloud, steam, "personal", null) is { } c) return c;
         }
         return null;
     }
@@ -135,21 +207,23 @@ public sealed partial class SteamInputLocator(Func<string?> steamPath)
                 ?? files.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).FirstOrDefault())?.FullName;
     }
 
-    private static ControllerLayoutDto? Load(string file, string steam, string kind, string? typeHint)
+    private static Found? LoadDetailed(string file, string steam, string kind, string? typeHint)
     {
         var text = ReadCapped(file, steam, SteamInputLayout.MaxBytes);
         if (text is null) return null;
         try
         {
-            var layout = SteamInputLayout.Parse(text, kind);
-            return layout.ControllerType is null && typeHint is not null
+            var root = Vdf.Parse(text, SteamInputLayout.MaxDepth);
+            var layout = SteamInputLayout.Map(root, kind);
+            var progenitor = root["controller_mappings"]?.GetString("progenitor");
+            return new Found(layout.ControllerType is null && typeHint is not null
                 ? layout with { ControllerType = typeHint, ControllerLabel = SteamInputLayout.ControllerLabel(typeHint) }
-                : layout;
+                : layout, progenitor);
         }
         catch (FormatException ex)
         {
             Services.Log.Warn("controls", "A Steam Input layout couldn't be read", new { kind, error = ex.Message });
-            return ControllerLayoutDto.Simple("unreadable", "Steam has a layout for this game, but VYSTRAL couldn't read it.") with { SourceKind = kind };
+            return new Found(ControllerLayoutDto.Simple("unreadable", "Steam has a layout for this game, but VYSTRAL couldn't read it.") with { SourceKind = kind }, null);
         }
     }
 

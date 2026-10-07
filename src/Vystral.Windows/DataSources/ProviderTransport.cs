@@ -28,7 +28,8 @@ public sealed class DataSourceException(DataSourceOutcome outcome, string messag
     public DataSourceOutcome Outcome { get; } = outcome;
 }
 
-public sealed record ProviderResponse(HttpStatusCode Status, string Body, string? ETag);
+/// <param name="Location">The redirect target, when a lane uses a client that doesn't follow redirects (Track X: PCGamingWiki).</param>
+public sealed record ProviderResponse(HttpStatusCode Status, string Body, string? ETag, Uri? Location = null);
 
 /// <summary>
 /// One polite HTTP lane per provider: requests are serialized and spaced at least
@@ -109,7 +110,7 @@ public sealed class ProviderTransport(HttpClient http, string provider, string d
                     Log.Warn("datasource", "Server error", new { provider = Provider, path, status = (int)response.StatusCode });
                     throw new DataSourceException(DataSourceOutcome.Unavailable, $"{DisplayName} is having trouble right now. Try again later.");
                 }
-                return new ProviderResponse(response.StatusCode, body, response.Headers.ETag?.Tag);
+                return new ProviderResponse(response.StatusCode, body, response.Headers.ETag?.Tag, response.Headers.Location);
             }
         }
         finally

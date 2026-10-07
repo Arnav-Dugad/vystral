@@ -42,10 +42,12 @@ import { Menu, type MenuEntry } from '../components/ui/Menu';
 import { Dialog } from '../components/ui/Dialog';
 import { ControlsPanel } from '../components/game/ControlsPanel';
 import { takeGameTab } from '../lib/gameTab';
+import { FilesPanel } from '../components/game/FilesPanel';
+import { UninstallAdvisor } from '../components/game/UninstallAdvisor';
 import './detail.css';
 
-type Tab = 'overview' | 'achievements' | 'sessions' | 'versions' | 'artwork' | 'controls';
-const TABS: Tab[] = ['overview', 'achievements', 'sessions', 'versions', 'artwork', 'controls'];
+type Tab = 'overview' | 'achievements' | 'sessions' | 'versions' | 'artwork' | 'controls' | 'files';
+const TABS: Tab[] = ['overview', 'achievements', 'sessions', 'versions', 'artwork', 'controls', 'files'];
 
 export function GameDetailView({ id }: { id: string }) {
   const game = useStore((s) => s.gamesById.get(id));
@@ -96,6 +98,7 @@ export function GameDetailView({ id }: { id: string }) {
               { value: 'versions', label: `Versions${game.installations.length > 1 ? ` · ${game.installations.length}` : ''}` },
               { value: 'artwork', label: 'Artwork' },
               { value: 'controls', label: 'Controls' },
+              { value: 'files', label: 'Files' }, // Track X: save locations and mods
             ]}
           />
         </div>
@@ -106,6 +109,7 @@ export function GameDetailView({ id }: { id: string }) {
           {tab === 'artwork' && <ArtworkTab game={game} />}
           {tab === 'achievements' && <AchievementsPanel game={game} />}
           {tab === 'controls' && <ControlsPanel game={game} />}
+          {tab === 'files' && <FilesPanel game={game} />}
         </div>
         <Related game={game} />
       </div>
@@ -133,6 +137,7 @@ function DetailHero({ game }: { game: Game }) {
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [chooseAt, setChooseAt] = useState<{ x: number; y: number } | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false); // Track X
   const moreRef = useRef<HTMLButtonElement>(null);
   const chooserRef = useRef<HTMLButtonElement>(null);
 
@@ -152,6 +157,10 @@ function DetailHero({ game }: { game: Game }) {
       icon: <StoreLogo platform={i.platform} size={16} decorative />,
       onSelect: () => void call('game.openInStore', { installationId: i.id }).catch((err) => useStore.getState().toast({ tone: 'info', title: errorMessage(err) })),
     })),
+    // Track X: the uninstall advisor, before the store's own uninstall.
+    ...(installed.some((i) => i.platform !== 'manual')
+      ? [{ label: 'Before you uninstall…', icon: <Trash2 size={16} />, onSelect: () => setAdvisorOpen(true) } as MenuEntry]
+      : []),
     { kind: 'separator' },
     ...(collections.length
       ? collections.map<MenuEntry>((c) => ({
@@ -253,6 +262,7 @@ function DetailHero({ game }: { game: Game }) {
           })),
         ]}
       />
+      <UninstallAdvisor game={game} open={advisorOpen} onClose={() => setAdvisorOpen(false)} />
       <Dialog
         open={removeOpen}
         onClose={() => setRemoveOpen(false)}

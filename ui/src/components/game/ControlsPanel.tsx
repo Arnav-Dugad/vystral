@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertTriangle, Gamepad2, Layers, Info } from 'lucide-react';
+import { AlertTriangle, Gamepad2, GitCompareArrows, Layers, Info } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
-import type { ControlId, ControllerLayout, ControllerSet, Game } from '../../bridge/types';
+import type { ControlId, ControllerCompare, ControllerLayout, ControllerSet, Game } from '../../bridge/types';
 import { bindingLine, CONTROL_NAME } from '../../lib/gamepad';
 import { pick, spring } from '../../lib/motion';
 import { useReducedMotion } from '../../state/store';
-import { Badge, Segmented, Skeleton } from '../ui/primitives';
+import { Badge, Button, Segmented, Skeleton } from '../ui/primitives';
 import { GamepadDiagram } from './GamepadDiagram';
+import { ControlsCompare } from './ControlsCompare';
 import './controls.css';
 
 const SOURCE_LABEL = { personal: 'Your own layout', template: 'Steam template', workshop: 'Downloaded layout' } as const;
@@ -58,7 +59,7 @@ export function ControlsPanel({ game, variant = 'desktop' }: { game: Game; varia
     case 'unreadable':
       return <ControlsMessage icon={<AlertTriangle size={22} />} title="This layout couldn’t be read" body={layout.note ?? 'Steam has a layout for this game, but it isn’t in a format VYSTRAL understands.'} />;
     default:
-      return <LayoutView layout={layout} variant={variant} />;
+      return <LayoutView layout={layout} variant={variant} gameId={game.id} />;
   }
 }
 
@@ -74,8 +75,18 @@ function ControlsMessage({ icon, title, body }: { icon: ReactNode; title: string
   );
 }
 
-function LayoutView({ layout, variant }: { layout: ControllerLayout; variant: 'desktop' | 'immersive' }) {
+function LayoutView({ layout, variant, gameId }: { layout: ControllerLayout; variant: 'desktop' | 'immersive'; gameId: string }) {
   const reduce = useReducedMotion();
+  // Track X: "Compare with default" — looked up quietly once; the button appears only when there's something to compare with.
+  const [cmp, setCmp] = useState<ControllerCompare | null>(null);
+  const [comparing, setComparing] = useState(false);
+  useEffect(() => {
+    if (variant !== 'desktop') return;
+    let live = true;
+    call<ControllerCompare>('controls.compare', { gameId }).then((c) => live && setCmp(c)).catch(() => {});
+    return () => { live = false; };
+  }, [gameId, variant]);
+  const canCompare = cmp?.status === 'ok' || cmp?.status === 'same';
   const sets = layout.sets.filter((s) => s.kind === 'set');
   const layers = layout.sets.filter((s) => s.kind === 'layer');
   const [setId, setSetId] = useState(sets[0]?.id ?? layout.sets[0]?.id ?? '');
@@ -98,8 +109,13 @@ function LayoutView({ layout, variant }: { layout: ControllerLayout; variant: 'd
           </p>
           {layout.description && <p className="controls__desc">{layout.description}</p>}
         </div>
-        {(sets.length > 1 || shownLayers.length > 0) && (
+        {(sets.length > 1 || shownLayers.length > 0 || canCompare) && (
           <div className="controls__switch">
+            {canCompare && (
+              <Button size="sm" variant={comparing ? 'secondary' : 'ghost'} icon={<GitCompareArrows size={14} />} aria-pressed={comparing} onClick={() => setComparing(!comparing)}>
+                {comparing ? 'Hide comparison' : 'Compare with default'}
+              </Button>
+            )}
             {sets.length > 1 && (
               <Segmented
                 label="Action set"
@@ -122,6 +138,8 @@ function LayoutView({ layout, variant }: { layout: ControllerLayout; variant: 'd
         )}
       </div>
 
+      {comparing && cmp && <ControlsCompare cmp={cmp} set={current} onDone={() => setComparing(false)} />}
+      {!comparing && <>
       <div className="controls__stage">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
@@ -173,7 +191,8 @@ function LayoutView({ layout, variant }: { layout: ControllerLayout; variant: 'd
           ))}
         </tbody>
       </table>
-      <p className="controls__foot">Read from Steam’s files on this PC. VYSTRAL never changes your layout — edit it in Steam’s controller settings.</p>
+      </>}
+      {!comparing && <p className="controls__foot">Read from Steam’s files on this PC. VYSTRAL never changes your layout — edit it in Steam’s controller settings.</p>}
     </div>
   );
 }

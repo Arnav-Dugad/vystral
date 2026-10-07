@@ -74,6 +74,15 @@ Play data and insights (0.7, Track Y; all on your PC, nothing new sent anywhere)
 - **Hour-of-week heatmap, genre drift and completion forecasts** are calculated in the interface from sessions, genres and IGDB time-to-beat estimates already on your PC; nothing is stored.
 
 VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
+Library tools (0.7, Track X), all read-only and on your PC unless noted in the network table:
+
+- **New health issues on Home** re-run the same offline health check when a drive appears or disappears (VYSTRAL compares the list of drive letters every few seconds), after a scan or a Steam install change, and once a day. Which issues it has seen and announced is kept in `ui-state\health-watch.json` (issue ids and dates only). Turn the card off in Settings → Library & stores → Library health.
+- **Compare with default** reads the same Steam Input files as the Controls tab, plus the template in `controller_base/templates/` (or the Workshop layout) your layout says it started from.
+- **Uninstall advisor** reads, for Steam games, whether `userdata\<account>\<appid>\remotecache.vdf` or `…\remote` exists (file count, sizes and dates only — never their contents beyond Steam's own file list) and `SizeOnDisk` from the app manifest. The button opens Steam's own `steam://uninstall/<appid>`, the store app, or Windows' *Installed apps*; nothing is uninstalled by VYSTRAL.
+- **Mods** (game page → Files) lists folder names, sizes and dates in `steamapps\workshop\content\<appid>` and `appworkshop_<appid>.acf`, Vortex's default `%APPDATA%\Vortex\<game>\mods`, and Mod Organizer 2 instances in `%LOCALAPPDATA%\ModOrganizer` (their `ModOrganizer.ini` and the selected profile's `modlist.txt`). Nothing is changed.
+- **Save files** checks whether the folders PCGamingWiki lists exist on this PC and adds up their sizes; the files are never opened and nothing about them is sent anywhere.
+
+VYSTRAL never reads store credentials, cookies, tokens, the contents of saves, or game memory.
 
 ## When VYSTRAL uses the network
 
@@ -99,6 +108,8 @@ VYSTRAL never reads store credentials, cookies, tokens, saves or game memory.
 | Steam Deck compatibility | `store.steampowered.com` | The Steam app ID of the game whose page you opened | On while “Fetch game details” is on; switch in Settings |
 | Anti-cheat list (AreWeAntiCheatYet) | `raw.githubusercontent.com` | Nothing about you or your games: the public list is downloaded whole, at most weekly | On; switch in Settings |
 | Library value prices | `store.steampowered.com` | Steam app IDs of games in your library (100 per request) and your price country | On; only when you open Journal → Library value; switch in Settings |
+| Save locations (PCGamingWiki, Track X) | `www.pcgamingwiki.com` (documented MediaWiki and Cargo APIs, and its `/api/appid.php` lookup) | The Steam app ID of the game whose Files tab you opened, then that game's article name. Answers (article name and the save locations it lists) are kept in `cache\pcgamingwiki.json` for 14 days (3 days for "no article") | Off until you turn on *PCGamingWiki* in Settings → Data sources or press *Look up save locations*; never with Offline mode, in safe mode or while a game runs |
+| Workshop titles (Steam, Track X) | `api.steampowered.com` (`ISteamRemoteStorage/GetPublishedFileDetails`, public, no key) | The Workshop item IDs installed for the game whose Files tab you opened, up to 100 per request. Titles are kept in `cache\workshop-titles.json` for 14 days | Off until you turn on *Steam Workshop titles* or press *Show Workshop names*; never with Offline mode, in safe mode or while a game runs |
 | Cloud play: GeForce NOW games list | `api-prod.nvidia.com` (the public list behind nvidia.com's games page) | Your two-letter region; nothing about you or your library. About 10 requests of ~250 KB, 3 s apart | Off; with cloud play on, at most once a day per region (back-off of 1–24 h after errors, a pause when asked to slow down); never with Offline mode, in safe mode or while you play; Data saver stops the background refresh |
 | Cloud play: Xbox Cloud Gaming list | `catalog.gamepass.com` (the public “all cloud games” list behind xbox.com) and `displaycatalog.mp.microsoft.com` (Microsoft Store product details) | Your region; then Microsoft Store product IDs from those lists (never your library), up to 20 per request. The first time about 30 product requests (~1.3 MB each, ~35 MB total); after that only new products, each re-checked every 60 days | Same as above |
 | Cloud play: GeForce NOW status | `status.geforcenow.com` (Atlassian Statuspage public API) | Nothing (one request, cached 5 minutes) | Only with cloud play on, when you open a game's cloud options or Settings → Cloud play |

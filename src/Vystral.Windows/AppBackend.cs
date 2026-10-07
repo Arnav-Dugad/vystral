@@ -114,6 +114,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterHealthHandlers();         // AppBackend.Health.cs: library health check, per-game Steam Input layouts (Track Q)
         RegisterCloudHandlers();          // AppBackend.Cloud.cs: Xbox Cloud Gaming and GeForce NOW (opt-in), hours meter
         RegisterPlayDataHandlers();       // AppBackend.PlayData.cs: hardware history, energy estimate, controller battery history (Track Y)
+        RegisterTrackXHandlers();         // AppBackend.TrackX.cs: new health issues on Home, layout compare, uninstall advisor, mods, save files
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 
