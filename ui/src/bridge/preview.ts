@@ -25,6 +25,7 @@ import { TRACK_P_DEFAULT_SETTINGS, previewFriendsOn, trackPPreviewHandlers } fro
 import type { SteamApiStatus } from './types';
 import { healthPreviewHandlers } from './preview.health';
 import { CLOUD_DEFAULT_SETTINGS, cloudPreviewHandlers } from './preview.cloud';
+import { MAINTENANCE_DEFAULT_SETTINGS, maintenancePreviewHandlers } from './preview.maintenance';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -75,6 +76,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_P_DEFAULT_SETTINGS,
   ...CLOUD_DEFAULT_SETTINGS,
   ...TRACK_T_DEFAULT_SETTINGS,
+  ...MAINTENANCE_DEFAULT_SETTINGS, // Track AA
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -298,7 +300,7 @@ export function createPreviewBackend() {
       window: { mode: 'desktop', maximized: false, fullscreen: false, captionInsetRight: 138, scale: 1 },
       settings, launch, update, os: navigator.userAgent, cpuCount: navigator.hardwareConcurrency ?? 8,
     }),
-    'app.ready': () => true,
+    // 'app.ready' is in preview.maintenance.ts (Track AA: it starts the after-update self-check).
     'window.state': () => ({ mode: 'desktop', maximized: false, fullscreen: false, captionInsetRight: 138, scale: 1 }),
     'window.setMode': (p: { mode: 'desktop' | 'immersive' }) => ({ mode: p.mode, maximized: false, fullscreen: p.mode === 'immersive', captionInsetRight: 138, scale: 1 }),
     'library.get': snapshot,
@@ -479,12 +481,16 @@ export function createPreviewBackend() {
     ...healthPreviewHandlers({ lib, emit: () => emit, timers }),
     // Track O: cloud play (fictional catalogue; ?cloud turns it on, ?cloudMeter=near|reached|free|none, ?cloudNoData).
     ...cloudPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; }, timers }),
+    // Track AA: first-paint snapshot (?firstpaint, ?slowLibrary=ms), after-update self-check (?selfCheckFail, ?selfCheckNone), compaction (?compactBusy).
+    ...maintenancePreviewHandlers({ emit: () => emit, settings: () => settings, timers }),
   };
+  const slowLibrary = Math.min(10_000, Number(params.get('slowLibrary') ?? 0) || 0);
 
   return {
     attach(e: Emit) { emit = e; },
     async call(method: string, params?: unknown) {
       await new Promise((r) => setTimeout(r, 20 + Math.random() * 40));
+      if (method === 'library.get' && slowLibrary) await new Promise((r) => setTimeout(r, slowLibrary)); // Track AA
       const h = handlers[method];
       if (!h) return true; // window controls etc. are no-ops in preview
       return h(params);

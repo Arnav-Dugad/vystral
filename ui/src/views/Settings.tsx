@@ -30,6 +30,7 @@ import { OnScreenKeyboardRows } from './settings/KeyboardSettings';
 import { ServiceLogo } from '../components/ui/ServiceLogo';
 import { HealthSettings } from './settings/HealthSettings';
 import { CloudSettings } from './settings/CloudSettings';
+import { CompactionSettings, SelfCheckSettings } from './settings/MaintenanceSettings';
 import './settings.css';
 
 interface Section {
@@ -47,9 +48,9 @@ const SECTIONS: Section[] = [
   { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble on-screen keyboard typing text suggestions sound audio ambient volume mood immersive fullscreen' },
   { id: 'windows', label: 'Windows integration', icon: <Monitor size={17} />, keywords: 'hotkey shortcut summon notifications toast windows tray achievements' },
   { id: 'ai', label: 'Local AI', icon: <Bot size={17} />, keywords: 'ollama assistant model ai natural language' },
-  { id: 'updates', label: 'Updates', icon: <Download size={17} />, keywords: 'update version release automatic download' },
+  { id: 'updates', label: 'Updates', icon: <Download size={17} />, keywords: 'update version release automatic download self-check health check after update rollback' },
   { id: 'privacy', label: 'Privacy', icon: <ShieldCheck size={17} />, keywords: 'privacy telemetry network offline local data' },
-  { id: 'data', label: 'Data & recovery', icon: <Database size={17} />, keywords: 'backup export delete history cache logs reset database safe mode recovery' },
+  { id: 'data', label: 'Data & recovery', icon: <Database size={17} />, keywords: 'backup export delete history cache logs reset database safe mode recovery compact compaction vacuum size upkeep' },
   { id: 'about', label: 'About', icon: <Info size={17} />, keywords: 'version licence license github credits' },
 ];
 
@@ -345,6 +346,7 @@ function Updates({ s }: { s: Settings }) {
         <BoolRow s={s} k="updates.autoCheck" label="Check for updates automatically" hint="Once shortly after starting VYSTRAL. Only contacts github.com." />
         <BoolRow s={s} k="updates.autoDownload" label="Download updates in the background" hint="Never while a game is running. Updates install when you restart VYSTRAL." />
       </Group>
+      <SelfCheckSettings />
     </>
   );
 }
@@ -399,6 +401,8 @@ function DataSection() {
         <Row label="Artwork cache" hint={diag ? formatBytes(diag.artCacheBytes) : '…'} control={<Button size="sm" onClick={() => void run('data.clearArtCache', (r) => `Freed ${formatBytes(r.freedBytes)}. Store artwork will be re-imported on the next scan.`)}>Clear</Button>} />
         <Row label="Export your journal" hint="Sessions, playtime, notes and ratings as a JSON file." control={<Button size="sm" onClick={() => void run('data.exportJournal', (r) => `Exported to ${r.path}`)}>Export…</Button>} />
       </Group>
+      <CompactionSettings />
+
       <Group title="Reset & delete">
         <Row label="Delete tracked play history" hint="Removes sessions and performance readings recorded by VYSTRAL. Store playtime and your games are not affected." control={<Button size="sm" variant="danger" onClick={() => setConfirm('history')}>Delete…</Button>} />
         <Row label="Reset all settings" hint="Restores defaults. Your library, notes and history are kept." control={<Button size="sm" variant="danger" onClick={() => setConfirm('reset')}>Reset…</Button>} />

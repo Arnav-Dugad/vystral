@@ -37,7 +37,8 @@ public partial class App : Application
     {
         // Register for notification clicks before anything reads the activation arguments.
         _notifications.Initialize(ShellIntegration.Aumid, ShellIntegration.EnsureRegistered);
-        _window = new MainWindow(Program.SafeMode, _notifications);
+        Vystral.Windows.Services.Startup.StartupTimeline.Mark("xamlReady");
+        _window = new MainWindow(Program.SafeMode, _notifications, Program.Startup!);
         var window = _window;
         _notifications.Navigate += route => window.DispatcherQueue.TryEnqueue(() => window.NavigateFromNotification(route));
 

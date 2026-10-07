@@ -1,0 +1,83 @@
+/* Track AA: Settings → Updates → After-update check, and Data & recovery → Database upkeep. */
+
+.mt { padding: 0; }
+.mt__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+}
+.mt__text { flex: 1; min-width: 0; }
+.mt__icon { flex: none; color: var(--text-3); }
+.mt__icon[data-tone='ok'] { color: var(--ok); }
+.mt__icon[data-tone='warn'] { color: var(--warn); }
+.mt__icon[data-tone='danger'] { color: var(--danger); }
+
+.mt__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 var(--s-5) var(--s-3);
+  padding: 4px 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  border-radius: var(--r-sm);
+}
+.mt__toggle:hover { color: var(--text-1); }
+.mt__toggle svg { transition: transform var(--dur-fast) var(--ease-out); }
+.mt__toggle svg[data-open='true'] { transform: rotate(180deg); }
+
+.mt__checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.mt-check {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-5);
+  border-bottom: 1px solid var(--line);
+  animation: mt-in 260ms var(--ease-out) both;
+}
+.mt-check:last-child { border-bottom: 0; }
+.mt-check__icon { margin-top: 2px; color: var(--text-3); }
+.mt-check[data-outcome='passed'] .mt-check__icon { color: var(--ok); }
+.mt-check[data-outcome='failed'] .mt-check__icon { color: var(--danger); }
+.mt-check__label { font-weight: var(--fw-medium); }
+.mt-check__detail { margin-top: 2px; font-size: var(--fs-sm); color: var(--text-2); }
+.mt-check[data-outcome='failed'] .mt-check__detail { color: var(--text-1); }
+
+/* The size line briefly lights up when a compaction just finished. */
+.mt__size { transition: color var(--dur-base) var(--ease-out); }
+.mt__size[data-flash] { color: var(--ok); }
+
+/* Before/after sliver: the full track is the size before, the fill is what is left. */
+.mt-bar {
+  position: relative;
+  height: 4px;
+  max-width: 260px;
+  margin-top: 8px;
+  border-radius: var(--r-pill);
+  background: var(--bg-3);
+  overflow: hidden;
+}
+.mt-bar__after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--dur-slow) var(--ease-emph);
+}
+
+@keyframes mt-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+[data-reduced-motion='true'] .mt-check { animation: none; }
+[data-reduced-motion='true'] .mt-bar__after,
+[data-reduced-motion='true'] .mt__size { transition: none; }
+
+@media (forced-colors: active) {
+  .mt-bar { border: 1px solid CanvasText; background: Canvas; }
+  .mt-bar__after { background: Highlight; }
+  .mt__icon, .mt-check__icon { color: CanvasText; }
+}

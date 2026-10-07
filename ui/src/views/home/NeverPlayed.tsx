@@ -3,7 +3,8 @@ import { motion } from 'motion/react';
 import { Archive, BookmarkPlus, Moon, Play } from 'lucide-react';
 import type { Game } from '../../bridge/types';
 import { isInstalled, PLATFORM_NAMES, plural } from '../../lib/format';
-import { ageLabel, ageSourceNote, neverPlayedGames, tonightPicks } from '../../lib/neverPlayed';
+import { ageLabel, ageSourceNote } from '../../lib/neverPlayed';
+import { gamesFor, type HomeModel } from '../../lib/homeModel';
 import { pick, spring } from '../../lib/motion';
 import { setLaunchOrigin } from '../../lib/flight';
 import { setGameStatus } from '../../state/statusActions';
@@ -20,20 +21,26 @@ import './never-played.css';
  * "Owned, never played": a few gentle picks for tonight, then everything else that has been
  * waiting, longest first, each labelled with how long VYSTRAL has known about it.
  */
-export function NeverPlayedSection({ games, live }: { games: Game[]; live?: boolean }) {
+export function NeverPlayedSection({ never, byId, live }: {
+  /** Track AA: computed with the rest of Home (lib/homeModel.ts), live or from the first-paint snapshot. */
+  never: HomeModel['never'];
+  byId: ReadonlyMap<string, Game>;
+  live?: boolean;
+}) {
   const navigate = useStore((s) => s.navigate);
   const now = useMemo(() => Date.now(), []);
-  const waiting = useMemo(() => neverPlayedGames(games), [games]);
-  const picks = useMemo(() => tonightPicks(games, now, 3), [games, now]);
-  if (waiting.length === 0) return null;
-  const pickIds = new Set(picks.map((p) => p.game.id));
-  const rest = waiting.filter((g) => !pickIds.has(g.id)).slice(0, 24);
+  const picks = useMemo(() => never.picks.flatMap((p) => {
+    const game = byId.get(p.id);
+    return game ? [{ game, reason: p.reason }] : [];
+  }), [never, byId]);
+  const rest = useMemo(() => gamesFor(never.restIds, byId), [never, byId]);
+  if (never.count === 0) return null;
 
   return (
     <section className="never" aria-labelledby="never-title">
       <SectionHead
         title={<span id="never-title" className="home__title-icon"><Moon size={16} aria-hidden /> Owned, never played</span>}
-        meta={<span title={ageSourceNote('firstSeen')}>{plural(waiting.length, 'game')} waiting · longest first</span>}
+        meta={<span title={ageSourceNote('firstSeen')}>{plural(never.count, 'game')} waiting · longest first</span>}
         action={<Button size="sm" variant="ghost" onClick={() => navigate({ name: 'library', quick: 'unplayed' })}>See all</Button>}
       />
       {picks.length > 0 && (

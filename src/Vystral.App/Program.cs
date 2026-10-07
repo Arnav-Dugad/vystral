@@ -7,6 +7,7 @@ using Velopack;
 using Vystral.App.Host;
 using Vystral.Windows.Services;
 using Vystral.Windows.Services.Rollback;
+using Vystral.Windows.Services.Startup;
 using Vystral.Windows.Tracking;
 
 namespace Vystral.App;
@@ -21,6 +22,9 @@ public static class Program
     private static extern short GetAsyncKeyState(int key);
 
     public static bool SafeMode { get; private set; }
+
+    /// <summary>Track AA: the backend being built in parallel with WinUI's start (see <see cref="EarlyStartup"/>).</summary>
+    internal static EarlyStartup? Startup { get; private set; }
 
     [STAThread]
     private static int Main(string[] args)
@@ -67,6 +71,7 @@ public static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int RunApp(string[] args)
     {
+        StartupTimeline.Mark("appMain"); // after Velopack's hooks
         // A notification click (vystral:// URI) passes exactly "--uri <uri>". Anything a crafted URI
         // could smuggle onto that command line is ignored, including --safe-mode.
         var uriLaunch = args.Length > 0 && args[0] == ActivationUri.Switch;
@@ -92,9 +97,14 @@ public static class Program
         var paths = new AppPaths();
         Log.Initialize(paths.Logs);
         StartupProtection.RunAtStartup(paths.Root, SafeMode);
+        StartupTimeline.Mark("protectionDone");
+
+        // Track AA: build the backend (database, settings, services) while WinUI starts, not after it.
+        Startup = EarlyStartup.Begin(paths, SafeMode);
 
         Application.Start(callback =>
         {
+            StartupTimeline.Mark("xamlStart");
             var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
             SynchronizationContext.SetSynchronizationContext(context);
             _ = new App();

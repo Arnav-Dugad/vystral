@@ -7,10 +7,16 @@
     <meta name="color-scheme" content="dark light" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <title>VYSTRAL</title>
+    <!-- The last Home snapshot's theme, before anything is drawn (Track AA). -->
+    <script src="./boot.js"></script>
     <style>
-      /* Paint the window colour before any script runs: no white flash. */
-      html, body { background: #09090e; margin: 0; }
+      /* Paint the window colour before any script runs: no white flash, and the right theme's colour. */
+      html { background: #09090e; }
+      html[data-theme='light'] { background: #f2f3f7; }
+      html[data-theme='oled'], html[data-theme='contrast'] { background: #000; }
+      html, body { margin: 0; }
     </style>
+    <!--FONT-PRELOAD-->
   </head>
   <body>
     <div id="root"></div>

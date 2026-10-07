@@ -113,6 +113,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterTrackPHandlers();         // AppBackend.TrackP.cs: friends playing now (opt-in), update-space forecast
         RegisterHealthHandlers();         // AppBackend.Health.cs: library health check, per-game Steam Input layouts (Track Q)
         RegisterCloudHandlers();          // AppBackend.Cloud.cs: Xbox Cloud Gaming and GeForce NOW (opt-in), hours meter
+        RegisterMaintenanceHandlers();    // AppBackend.Maintenance.cs: first-paint snapshot, startup timings, after-update self-check, compaction (Track AA)
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 
@@ -170,6 +171,7 @@ public sealed partial class AppBackend : IDisposable
         if (_initialScanStarted) return;
         _initialScanStarted = true;
         ConfirmStartWhenStable();
+        OnUiReadyMaintenance(); // Track AA: startup timings and the after-update self-check
         _ = Task.Run(async () =>
         {
             try { await Library.ScanAsync(_life.Token); }
@@ -233,6 +235,7 @@ public sealed partial class AppBackend : IDisposable
 
     public void Dispose()
     {
+        DisposeMaintenance(); // Track AA
         Sessions.Dispose();
         _liveTiles?.Dispose();
         _cloud?.Dispose();

@@ -139,6 +139,8 @@ public sealed class SettingsService
         new NumberDef("voiceover.volume", 1, 0, 1),
         new EnumDef("controller.glyphs", "auto", "auto", "xbox", "playstation", "nintendo"),
         new EnumDef("immersive.librarySort", "az", "az", "recent", "played", "added"),
+        // Track AA: the monthly quiet database compaction (VACUUM), only when the PC is idle and plugged in.
+        new BoolDef("data.autoCompact", true),
     ];
 
     private readonly LibraryRepository _repo;

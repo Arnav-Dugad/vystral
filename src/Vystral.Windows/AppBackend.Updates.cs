@@ -88,6 +88,13 @@ public sealed partial class AppBackend
             try
             {
                 await Task.Delay(StartupGuard.SuccessDelay, _life.Token);
+                // Track AA: a real after-update self-check failure leaves this start unconfirmed, so it counts as a
+                // failed start (like one that never got ready). Slowness never does: an unfinished check doesn't block this.
+                if (_selfCheckHardFailure)
+                {
+                    Log.Warn("rollback", "Not confirming this start: the after-update self-check failed", new { version });
+                    return;
+                }
                 _startup.MarkSucceeded(version);
             }
             catch (OperationCanceledException) { }
@@ -97,7 +104,8 @@ public sealed partial class AppBackend
 
     private void RecordCleanExit()
     {
-        if (StartupProtection.StartedVersion is { } version) _startup?.MarkCleanExit(version, _uiReady);
+        // Track AA: after a failed self-check a clean exit doesn't clear the attempt either.
+        if (StartupProtection.StartedVersion is { } version) _startup?.MarkCleanExit(version, _uiReady && !_selfCheckHardFailure);
         _healthIo?.Dispose();
     }
 }

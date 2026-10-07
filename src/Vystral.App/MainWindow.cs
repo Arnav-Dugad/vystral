@@ -13,6 +13,7 @@ using Vystral.Windows;
 using Vystral.Windows.Bridge;
 using Vystral.Windows.Launch;
 using Vystral.Windows.Services;
+using Vystral.Windows.Services.Startup;
 using Windows.Graphics;
 
 namespace Vystral.App;
@@ -45,9 +46,21 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
     private readonly GlobalHotkey _hotkey;
     private string? _pendingRoute;
     private bool _pageLoaded;
+    // Track AA: startup speed.
+    private static readonly global::Windows.UI.Color LightWindow = global::Windows.UI.Color.FromArgb(255, 242, 243, 247); // --bg-0 of the light theme
+    private readonly AppPaths _paths;
+    private readonly bool _safeMode;
+    private readonly Task<CoreWebView2Environment>? _envTask;
+    private global::Windows.UI.Color _windowColor = Obsidian;
+    private string? _firstPaintScriptId;
 
-    public MainWindow(bool safeMode, AppNotifications notifications)
+    internal MainWindow(bool safeMode, AppNotifications notifications, EarlyStartup startup)
     {
+        StartupTimeline.Mark("windowCreate");
+        _paths = startup.Paths;
+        _safeMode = safeMode;
+        // Track AA: WebView2's environment first, so its browser process starts while the window and the backend finish.
+        _envTask = StartWebViewEnvironment();
         Title = "VYSTRAL";
         ExtendsContentIntoTitleBar = true;
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
@@ -65,22 +78,28 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         _root.Children.Add(_web);
         Content = _root;
 
-        _backend = new AppBackend(this, this, safeMode);
         // Track G: Windows accent + Mica backdrop (used when Living Canvas is off).
         _appearance = new AppearanceHost(this, safeMode);
-        _backend.AppearanceHost = _appearance;
-        _placement = new WindowPlacement(Path.Combine(_backend.Paths.Root, "window.json"));
+        _placement = new WindowPlacement(Path.Combine(_paths.Root, "window.json"));
         _placement.Restore(AppWindow);
-        if (_backend.Settings.GetBool("startup.immersive") && !safeMode) SetMode("immersive");
-
         _gamepad = new GamepadBridge(DispatcherQueue, this);
-        _backend.Sessions.StateChanged += s => DispatcherQueue.TryEnqueue(() => OnLaunchState(s));
-        _backend.Sessions.Sampled += s => DispatcherQueue.TryEnqueue(() => _pulse?.Update(s));
 
         // Track B: global summon shortcut, notifications, and pre-flight probes (controllers, display).
         var hwnd = Win32.GetHwnd(this);
         _hotkey = new GlobalHotkey(hwnd);
         _hotkey.Pressed += Summon;
+
+        // Track AA: the backend was built on its own thread while WinUI started; wait for whatever is left.
+        StartupTimeline.Mark("backendWait");
+        _backend = startup.WaitForBackend();
+        StartupTimeline.Mark("backendWaitDone");
+        startup.Host.Attach(this);
+        _backend.AppearanceHost = _appearance;
+        ApplyStartupTheme(_backend.Settings.GetString("appearance.theme"));
+        if (_backend.Settings.GetBool("startup.immersive") && !safeMode) SetMode("immersive");
+
+        _backend.Sessions.StateChanged += s => DispatcherQueue.TryEnqueue(() => OnLaunchState(s));
+        _backend.Sessions.Sampled += s => DispatcherQueue.TryEnqueue(() => _pulse?.Update(s));
         _backend.InsightHost = new InsightHost(this, hwnd, _hotkey, notifications);
         _backend.ClipboardHost = new ClipboardHost(this); // Track M: "Copy image" on session replay cards
 
@@ -93,7 +112,11 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
 
     // ---------------- WebView2 setup ----------------
 
-    private async Task InitializeWebViewAsync()
+    /// <summary>
+    /// Track AA: starts creating the WebView2 environment straight away (null when the runtime is missing;
+    /// <see cref="InitializeWebViewAsync"/> then explains). Same options and folder as before.
+    /// </summary>
+    private Task<CoreWebView2Environment>? StartWebViewEnvironment()
     {
         try
         {
@@ -102,6 +125,24 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or FileNotFoundException or InvalidOperationException)
         {
             Log.Warn("webview", "WebView2 runtime not found", ex: ex);
+            return null;
+        }
+        try
+        {
+            StartupTimeline.Mark("webviewEnvStart");
+            var options = new CoreWebView2EnvironmentOptions { AreBrowserExtensionsEnabled = false };
+            return CoreWebView2Environment.CreateWithOptionsAsync(null, _paths.WebViewData, options).AsTask();
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException<CoreWebView2Environment>(ex);
+        }
+    }
+
+    private async Task InitializeWebViewAsync()
+    {
+        if (_envTask is null)
+        {
             ShowFatal("Microsoft Edge WebView2 Runtime is missing",
                 "VYSTRAL draws its interface with the WebView2 Runtime that ships with Windows 11. It looks like it was removed. Install it from Microsoft and start VYSTRAL again.",
                 new Uri("https://go.microsoft.com/fwlink/p/?LinkId=2124703"));
@@ -119,9 +160,10 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
 
         try
         {
-            var options = new CoreWebView2EnvironmentOptions { AreBrowserExtensionsEnabled = false };
-            var env = await CoreWebView2Environment.CreateWithOptionsAsync(null, _backend.Paths.WebViewData, options);
+            var env = await _envTask;
+            StartupTimeline.Mark("webviewEnvReady");
             await _web.EnsureCoreWebView2Async(env);
+            StartupTimeline.Mark("webviewReady");
             _core = _web.CoreWebView2;
 
             _core.SetVirtualHostNameToFolderMapping(AppHost, wwwroot, CoreWebView2HostResourceAccessKind.Deny);
@@ -158,8 +200,17 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
             _core.PermissionRequested += (_, e) => e.State = CoreWebView2PermissionState.Deny;
             _core.WebMessageReceived += OnWebMessage;
             _core.ProcessFailed += OnProcessFailed;
+            _core.DOMContentLoaded += (_, _) => StartupTimeline.Mark("domContentLoaded");
             _core.NavigationCompleted += (_, nav) =>
             {
+                StartupTimeline.Mark("navigationCompleted");
+                // Track AA: the snapshot is for the first load only; a reload (e.g. after a renderer crash) takes the live path.
+                if (_firstPaintScriptId is { } scriptId)
+                {
+                    _firstPaintScriptId = null;
+                    try { _core?.RemoveScriptToExecuteOnDocumentCreated(scriptId); }
+                    catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException) { }
+                }
                 if (!nav.IsSuccess) return;
                 _pageLoaded = true;
                 if (_pendingRoute is { } route)
@@ -170,6 +221,8 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
                 }
             };
 
+            await InjectFirstPaintAsync();
+            StartupTimeline.Mark("navigationStart");
             _core.Navigate($"https://{AppHost}/index.html");
         }
         catch (Exception ex)
@@ -178,6 +231,55 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
             ShowFatal("VYSTRAL couldn't start its interface",
                 $"WebView2 failed to start ({ex.GetType().Name}). Restarting your PC usually fixes this. Logs are in {_backend.Paths.Logs}.", null);
         }
+    }
+
+    /// <summary>
+    /// Track AA: hands the last Home snapshot to the page before any of its scripts run, so Home paints at once
+    /// and is then reconciled with live data. Skipped in safe mode (the recovery path stays as plain as possible),
+    /// before onboarding, in Immersive starts, and after a database reset. A stale or corrupt file is simply ignored.
+    /// </summary>
+    private async Task InjectFirstPaintAsync()
+    {
+        if (_core is null) return;
+        try
+        {
+            string reason;
+            FirstPaintSnapshot? snapshot = null;
+            if (_safeMode) reason = "safeMode";
+            else if (_backend.StartupProblem is not null)
+            {
+                reason = "databaseReset";
+                _backend.FirstPaint.Clear();
+            }
+            else if (!_backend.Settings.GetBool("onboarding.completed")) reason = "onboarding";
+            else if (_immersive) reason = "immersive";
+            else snapshot = _backend.FirstPaint.Load(_backend.Version, DateTimeOffset.Now, out reason);
+
+            if (snapshot is not null)
+            {
+                _firstPaintScriptId = await _core.AddScriptToExecuteOnDocumentCreatedAsync(FirstPaintStore.Script(snapshot));
+                StartupTimeline.Mark("firstPaintInjected");
+            }
+            Log.Info("startup", "First paint", new { reason, savedAt = snapshot?.SavedAt, bytes = snapshot?.PayloadJson.Length });
+        }
+        catch (Exception ex)
+        {
+            // Never a reason for the interface not to load: it just paints from live data.
+            Log.Warn("startup", "Couldn't hand the first-paint snapshot to the interface", ex: ex);
+        }
+    }
+
+    /// <summary>Track AA: the window's colour under the page matches the theme, so nothing flashes before the first paint.</summary>
+    private void ApplyStartupTheme(string theme)
+    {
+        _windowColor = theme switch
+        {
+            "light" => LightWindow,
+            "oled" or "contrast" => global::Windows.UI.Color.FromArgb(255, 0, 0, 0),
+            _ => Obsidian,
+        };
+        _web.DefaultBackgroundColor = _windowColor;
+        _root.Background = new SolidColorBrush(_windowColor);
     }
 
     private static bool IsTrustedUri(string uri) =>
@@ -530,6 +632,14 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         tb.ButtonPressedForegroundColor = C(palette.Foreground);
         // Mica takes its tint from the content's theme, so it follows VYSTRAL's theme rather than Windows'.
         if (_root is not null) _root.RequestedTheme = dark ? ElementTheme.Dark : ElementTheme.Light; // null during construction
+        // Track AA: keep the colour under the page in step with a theme change (only visible while the page repaints).
+        var color = dark ? (_windowColor.Equals(LightWindow) ? Obsidian : _windowColor) : LightWindow;
+        if (_root is not null && _web is not null && SystemBackdrop is null && !color.Equals(_windowColor))
+        {
+            _windowColor = color;
+            _web.DefaultBackgroundColor = color;
+            _root.Background = new SolidColorBrush(color);
+        }
         return true;
     });
 
@@ -549,8 +659,8 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
             }
             else
             {
-                _web.DefaultBackgroundColor = Obsidian;
-                _root.Background = new SolidColorBrush(Obsidian);
+                _web.DefaultBackgroundColor = _windowColor;
+                _root.Background = new SolidColorBrush(_windowColor);
                 SystemBackdrop = null;
             }
             Log.Info("appearance", on ? "Mica backdrop on" : "Mica backdrop off");
@@ -561,8 +671,8 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
             Log.Warn("appearance", "Changing the window backdrop failed; staying opaque", ex: ex);
             try
             {
-                _web.DefaultBackgroundColor = Obsidian;
-                _root.Background = new SolidColorBrush(Obsidian);
+                _web.DefaultBackgroundColor = _windowColor;
+                _root.Background = new SolidColorBrush(_windowColor);
                 SystemBackdrop = null;
             }
             catch (Exception) { }
