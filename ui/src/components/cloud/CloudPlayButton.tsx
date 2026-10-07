@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronDown, CircleStop, ExternalLink, Info, Radio } from 'lucide-react';
@@ -8,16 +8,20 @@ import { clock, healthTone, playTypeLabel, preferredOption, sessionLeft, SERVICE
 import { exit, pick, spring } from '../../lib/motion';
 import { endCloudSession, launchCloud, useCloudActive, useCloudEnabled, useCloudMap, useCloudStore } from '../../state/cloud';
 import { useReducedMotion } from '../../state/store';
+import { useAllowedCloudServices, useCloudQueue } from '../../state/subs';
+import { queueText } from '../../lib/subs';
 import { CLOUD_SERVICE_MARK, CloudMark, CloudMeterView, XboxCloudTime } from './CloudBits';
 import { ServiceLogo } from '../ui/ServiceLogo';
 import './cloud.css';
 
 /** Loads the game's cloud options when cloud play is on and the map lists it; reloads on cloud changes. */
-export function useCloudGame(game: Game): CloudGame | null {
+export function useCloudGame(game: Game): (CloudGame & { hidden?: CloudOption['service'][] }) | null {
   const enabled = useCloudEnabled();
   const listed = !!useCloudMap()?.[game.id]?.length;
   const version = useCloudStore((s) => s.version);
   const [data, setData] = useState<CloudGame | null>(null);
+  // Track V: only the services you have (see useCloudMap); the menu says which were left out.
+  const allowed = useAllowedCloudServices();
   useEffect(() => {
     if (!enabled || !listed) {
       setData(null);
@@ -27,7 +31,11 @@ export function useCloudGame(game: Game): CloudGame | null {
     call<CloudGame>('cloud.forGame', { gameId: game.id }).then((d) => alive && setData(d)).catch(() => alive && setData(null));
     return () => { alive = false; };
   }, [enabled, listed, game.id, version]);
-  return data;
+  return useMemo(() => {
+    if (!data || !allowed) return data;
+    const hidden = [...new Set(data.options.filter((o) => !allowed.has(o.service)).map((o) => o.service))];
+    return hidden.length ? { ...data, options: data.options.filter((o) => allowed.has(o.service)), hidden } : data;
+  }, [data, allowed]);
 }
 
 /** A live "m:ss" for a running session. */
@@ -105,7 +113,7 @@ export function CloudPlayButton({ game }: { game: Game }) {
 }
 
 function CloudMenu({ id, anchor, open, onClose, data, active, elapsed, onStart }: {
-  id: string; anchor: React.RefObject<HTMLButtonElement | null>; open: boolean; onClose: () => void; data: CloudGame; active: CloudSession | null; elapsed: number;
+  id: string; anchor: React.RefObject<HTMLButtonElement | null>; open: boolean; onClose: () => void; data: CloudGame & { hidden?: CloudOption['service'][] }; active: CloudSession | null; elapsed: number;
   onStart: (o: CloudOption) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -224,6 +232,9 @@ function CloudMenu({ id, anchor, open, onClose, data, active, elapsed, onStart }
               </span>
             )}
             {surfaceNote && <span>{surfaceNote}</span>}
+            {!!data.hidden?.length && (
+              <span>{data.hidden.map((h) => SERVICE_SHORT[h]).join(' and ')} also {data.hidden.length > 1 ? 'list' : 'lists'} this game; it’s hidden because it isn’t in your subscriptions (Settings → Library & stores).</span>
+            )}
             <span>The vendor’s app or page shows the final answer on what you can play.</span>
           </div>
         </motion.div>
@@ -276,6 +287,9 @@ export function CloudSessionPill() {
   const elapsed = useElapsed(active);
   const reduce = useReducedMotion();
   const left = active ? sessionLeft(active) : null;
+  // Track V: what the GeForce NOW window says about the queue, when it says anything.
+  const queue = useCloudQueue();
+  const q = active?.state === 'waiting' && queue?.gameId === active.gameId ? queueText(queue) : null;
   return (
     <AnimatePresence>
       {active && (
@@ -291,7 +305,7 @@ export function CloudSessionPill() {
         >
           <span className="cloud-pillbar__dot" aria-hidden />
           <span className="cloud-pillbar__text">
-            <strong>{active.state === 'running' ? `${active.title} · ${clock(elapsed)}` : `${active.title} · waiting for the stream`}</strong>
+            <strong>{active.state === 'running' ? `${active.title} · ${clock(elapsed)}` : `${active.title} · ${q ?? 'waiting for the stream'}`}</strong>
             <span data-tone={left?.tone}>{left?.text ?? `${SERVICE_SHORT[active.service]} · ${active.manual ? 'press I’m done when you finish' : 'ends when the stream closes'}`}</span>
           </span>
           <button className="btn btn--sm btn--secondary" onClick={() => void endCloudSession()}>

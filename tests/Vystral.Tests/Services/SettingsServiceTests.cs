@@ -44,7 +44,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(1, all["immersive.scale"]!.GetValue<double>());
         Assert.Equal(0, all["immersive.safeArea"]!.GetValue<double>());
         Assert.False(all["immersive.tourDone"]!.GetValue<bool>());
-        Assert.Equal(88, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7) + Track H (1) + Track M (2) + Track L (4) + Track S (1) + Track P (2) + Track O (7) + Track T (7) + Track Y (5) + Track X (3)
+        Assert.Equal(97, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7) + Track H (1) + Track M (2) + Track L (4) + Track S (1) + Track P (2) + Track O (7) + Track T (7) + Track Y (5) + Track X (3) + Track V (9)
     }
 
     [Fact]

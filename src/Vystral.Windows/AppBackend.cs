@@ -115,6 +115,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterCloudHandlers();          // AppBackend.Cloud.cs: Xbox Cloud Gaming and GeForce NOW (opt-in), hours meter
         RegisterPlayDataHandlers();       // AppBackend.PlayData.cs: hardware history, energy estimate, controller battery history (Track Y)
         RegisterTrackXHandlers();         // AppBackend.TrackX.cs: new health issues on Home, layout compare, uninstall advisor, mods, save files
+        RegisterSubscriptionHandlers();   // AppBackend.Subscriptions.cs: your subscriptions, what they include, leaving soon, queue alerts (Track V)
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 
@@ -238,6 +239,7 @@ public sealed partial class AppBackend : IDisposable
         Sessions.Dispose();
         _liveTiles?.Dispose();
         _cloud?.Dispose();
+        DisposeSubscriptions(); // Track V
         _cloudHttp?.Dispose();
         _http.Dispose();
         _life.Dispose();

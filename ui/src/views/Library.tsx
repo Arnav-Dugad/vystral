@@ -27,10 +27,13 @@ import { closestToFinishing } from '../lib/timeToBeat';
 import { useTimeToBeatMap } from '../state/recap';
 import { useCloudMap, useCloudEnabled } from '../state/cloud';
 import { CloudBadge } from '../components/cloud/CloudBits';
+import { useSubsListed, useSubsMap } from '../state/subs';
+import { SubsBadge } from '../components/subs/SubsBits';
+import { ServiceLogo } from '../components/ui/ServiceLogo';
 import './library.css';
 
 type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status' | 'waiting' | 'finishing';
-type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'notinstalled' | 'missing' | 'hidden' | 'cloud' | `status:${GameStatus}`;
+type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'notinstalled' | 'missing' | 'hidden' | 'cloud' | 'subs' | `status:${GameStatus}`;
 
 const QUICK: { value: Quick; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -44,7 +47,7 @@ const QUICK: { value: Quick; label: string }[] = [
   { value: 'hidden', label: 'Hidden' },
 ];
 
-const isQuick = (v: string | undefined): v is Quick => !!v && (v === 'cloud' || QUICK.some((q) => q.value === v) || STATUSES.some((st) => `status:${st.value}` === v));
+const isQuick = (v: string | undefined): v is Quick => !!v && (v === 'cloud' || v === 'subs' || QUICK.some((q) => q.value === v) || STATUSES.some((st) => `status:${st.value}` === v));
 
 const VIEW_KEY = 'vystral.library.view';
 const STORE_ORDER: PlatformKey[] = ['steam', 'xbox', 'epic', 'gog', 'ea', 'ubisoft', 'battlenet', 'manual'];
@@ -88,6 +91,9 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
   // Track O: "Playable in the cloud" (only while cloud play is on).
   const cloudOn = useCloudEnabled();
   const cloudMap = useCloudMap();
+  // Track V: "In my subscriptions" (only while the public Game Pass lists are on).
+  const subsOn = useSubsListed();
+  const subsMap = useSubsMap();
 
   useEffect(() => {
     try { localStorage.setItem(VIEW_KEY, view); } catch { /* ignore */ }
@@ -111,6 +117,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
         case 'notinstalled': return !g.hidden && !isInstalled(g);
         case 'missing': return !g.hidden && isMissing(g);
         case 'cloud': return !g.hidden && !!cloudMap?.[g.id]?.length;
+        case 'subs': return !g.hidden && !!subsMap?.[g.id]?.length;
         default: return quick.startsWith('status:') ? !g.hidden && g.status === quick.slice(7) : true;
       }
     });
@@ -133,7 +140,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
       found = [...found].sort(cmp[sort]);
     }
     return found;
-  }, [games, collectionId, quick, parsed, sort, query, store, ttb, cloudMap]);
+  }, [games, collectionId, quick, parsed, sort, query, store, ttb, cloudMap, subsMap]);
 
   const title = collection ? collection.name : 'Library';
   const totalSize = useMemo(() => results.reduce((s, g) => s + (sizeOf(g) ?? 0), 0), [results]);
@@ -234,6 +241,11 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
             <Cloud size={13} aria-hidden /> Playable in the cloud
           </button>
         )}
+        {(subsOn || quick === 'subs') && (
+          <button className="chip" aria-pressed={quick === 'subs'} onClick={() => setQuick(quick === 'subs' ? 'all' : 'subs')}>
+            <ServiceLogo service="game-pass" size={14} decorative /> In my subscriptions
+          </button>
+        )}
         <span className="lib-quick__sep" aria-hidden style={{ width: 1, alignSelf: 'stretch', margin: '4px 4px', background: 'var(--line-strong)' }} />
         {STATUSES.map((st) => {
           const Icon = st.icon;
@@ -273,7 +285,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
         <EmptyState
           art={games.length === 0 ? 'constellation' : 'shelf'}
           icon={<Search size={32} />}
-          title={games.length === 0 ? 'No games yet' : collection && !text && quick === 'all' ? 'This collection is empty' : quick === 'cloud' && !text ? 'No cloud matches yet' : 'Nothing matches'}
+          title={games.length === 0 ? 'No games yet' : collection && !text && quick === 'all' ? 'This collection is empty' : quick === 'cloud' && !text ? 'No cloud matches yet' : quick === 'subs' && !text ? 'None of these are in your plans yet' : 'Nothing matches'}
           body={
             games.length === 0
               ? 'Rescan your stores or add a game yourself.'
@@ -281,7 +293,9 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
                 ? 'Add games from their right-click menu, or from the Collections section of a game’s page.'
                 : quick === 'cloud' && !text
                   ? cloudOn ? 'None of these games is on GeForce NOW or Xbox Cloud Gaming in your region, or the lists haven’t downloaded yet. Settings → Cloud play shows their status.' : 'Cloud play is off. Turn it on in Settings → Cloud play.'
-                  : 'Try fewer words, a different quick filter, or clear the filter.'
+                  : quick === 'subs' && !text
+                    ? subsOn ? 'VYSTRAL didn’t find these games in your plans’ public lists, or the lists are still downloading. Settings → Library & stores shows their status.' : 'Turn on “Show what my plans include” in Settings → Library & stores.'
+                    : 'Try fewer words, a different quick filter, or clear the filter.'
           }
           actions={text || quick !== 'all' || store ? <Button onClick={() => { setText(''); setQuick('all'); setStore(null); }}>Clear filters</Button> : undefined}
         />
@@ -452,6 +466,7 @@ function VirtualList({ games }: { games: Game[] }) {
                 <span className="vlist__thumb"><GameCover game={g} /></span>
                 <span className="truncate">{g.title}</span>
                 <CloudBadge gameId={g.id} />
+                <SubsBadge gameId={g.id} />
               </span>
               <span role="cell" className="vlist__stores">
                 {[...new Set(g.installations.map((i) => i.platform))].map((p) => <PlatformBadge key={p} platform={p} compact />)}

@@ -29,6 +29,7 @@ import { PLAY_DATA_DEFAULT_SETTINGS, decoratePace, playDataPreviewHandlers } fro
 import type { TimeToBeatMap } from './types';
 import { TRACK_X_DEFAULT_SETTINGS, trackXPreviewHandlers } from './preview.trackX';
 import type { ControllerLayout, HealthReport } from './types';
+import { SUBS_DEFAULT_SETTINGS, subsPreviewHandlers } from './preview.subs';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -81,6 +82,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_T_DEFAULT_SETTINGS,
   ...PLAY_DATA_DEFAULT_SETTINGS,
   ...TRACK_X_DEFAULT_SETTINGS,
+  ...SUBS_DEFAULT_SETTINGS, // Track V
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -497,6 +499,8 @@ export function createPreviewBackend() {
       healthCheck: () => handlers['health.check']({}) as HealthReport,
       controlsGet: (gameId) => handlers['controls.get']({ gameId }) as ControllerLayout,
     }),
+    // Track V: your subscriptions (fictional Game Pass lists; ?subs, ?subsPrice, ?leaving, ?subsAsk, ?subsNoData).
+    ...subsPreviewHandlers({ lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; } }),
   };
 
   return {

@@ -97,6 +97,15 @@
 - Session times are estimates. The GeForce NOW streamer process and the Xbox app's foreground time haven't been checked against real streams on this PC yet, and Edge's process model with `--user-data-dir` is assumed. A second launch while VYSTRAL's Edge window is still open from a previous VYSTRAL run can't be followed and waits for *I'm done*. Sessions are capped at the membership's session length (8 hours otherwise). The meter can't see play on other devices, rolled-over hours, top-ups or Founders' unlimited time.
 - The first Xbox catalogue download fetches about 35 MB of Microsoft Store product details (only package names and titles are kept), spread over about a minute; later refreshes fetch only new products.
 
+**Your subscriptions (Track V)**
+- VYSTRAL can't know what you really subscribe to; it uses what you tell it. A badge means the plan's public list includes the game, not that it's playable on your account or in your region today; Microsoft's app or Store page has the final answer.
+- The public lists are Microsoft Store products. EA Play and Ubisoft+ games you play through the EA app or Ubisoft Connect, and Game Pass games you own on Steam, match by name only and are labelled "likely". EA Play Pro and Ubisoft+ Premium include more than their public lists (the lists are EA Play's and Ubisoft+ Classics'). Humble Choice and Prime Gaming have no public list, so they get no badges.
+- The meaning of four arrays in Microsoft's subscriptions list (`nakupc`, `nakuconsole`, `xgpp`, `gtaplus`) is unconfirmed, so they're ignored.
+- "Leaving soon" has no dates of its own. The date shown comes from the Store listing's Game Pass offer and is labelled "around"; without one the notification comes as soon as the game is listed, which can be a couple of weeks early. Notifications are sent for games in your library only, once each.
+- Product names arrive over a few refreshes for big plans (Ultimate has about 1,500 products; 800 are looked up per refresh), so badges and the Home row fill in over the first day.
+- The value card counts only time VYSTRAL tracked on this PC this calendar month (play on consoles, phones and other PCs isn't seen), so cost per hour is an upper bound.
+- GeForce NOW queue alerts depend on the app's window title showing the queue, which is unverified; "Your stream is starting" (the stream process appearing) is the dependable alert. Queues in a browser window aren't read.
+
 **Immersive Mode (0.6)**
 - Voice-over uses Windows' installed voices through WebView2's Web Speech API. Which voices appear depends on the language packs installed (Settings › Time & language › Speech); WebView2 has been checked in Chromium with a stand-in speech engine, not yet with every Windows voice. It stays silent while a game starts or runs, like the other interface sounds.
 - The on-screen keyboard's letters aren't read out key by key; voice-over reads the search results count and the games you open.
