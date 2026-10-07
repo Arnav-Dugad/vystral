@@ -66,5 +66,152 @@
 
 @media (max-width: 1150px) {
   .overview { grid-template-columns: 1fr; }
-  .dhero__cover { display: none; }
+  .dhero__cover, .dhero__cover-slot { display: none; }
+}
+
+/* ===== Track Z: the fluid header =====
+   A sticky, zero-height layer (.ddock) holds a 72px bar: Back, the docked cover, the title and,
+   once docked, Play. Elements marked .dk animate with the page's scroll over 0 → --dk-end.
+   Choreography: the facts and actions dissolve first (30–55 %) while Play slides into the bar
+   (50–70 %), so there is always one Play on screen; the glass bar forms (40–85 %); the cover
+   rides the page, lifts, and flies into its slot (0–100 %); the title curves up and shrinks into
+   the bar, handing over to the bar's own title at the end. Lengths come from HeroDock's one-off
+   measurement (--dk-*). Modes on .detail: timeline (CSS scroll-driven, compositor), js (the same
+   keyframes scrubbed by --dock-p), reduced. */
+.detail { position: relative; }
+.dhero { overflow: clip; }
+.dhero__stage { position: absolute; inset: 0; z-index: -2; }
+.dhero__titlebox { justify-self: start; max-width: 100%; transform-origin: 0 0; }
+.dhero__titlecurve, .dhero__titlescale { transform-origin: 0 0; }
+.dhero__titlescale > .dhero__logo { display: block; }
+.dhero__meta { display: grid; gap: var(--s-3); justify-items: start; }
+.ddock__sentinel { position: absolute; left: 0; top: 0; width: 1px; height: 1px; pointer-events: none; visibility: hidden; }
+
+.ddock { position: sticky; top: 0; z-index: 30; height: 0; }
+.ddock__bar { position: absolute; left: 0; right: 0; top: 0; height: 72px; display: flex; align-items: center; gap: var(--s-4); padding: 0 var(--gutter); pointer-events: none; }
+.ddock__bar > .dhero__back, .ddock__play { pointer-events: auto; }
+.ddock[data-docked] .ddock__glass { pointer-events: auto; }
+.ddock__glass {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background:
+    radial-gradient(60% 140% at 12% 0%, oklch(from var(--dk-tint, var(--accent)) l c h / 0.2), transparent 70%),
+    linear-gradient(180deg, oklch(from var(--bg-0) l c h / 0.93), oklch(from var(--bg-0) l c h / 0.86));
+  backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: inset 0 -1px 0 var(--line), 0 18px 40px -26px oklch(0 0 0 / 0.75);
+}
+.ddock__slot { position: relative; flex: none; width: 32px; height: 48px; }
+.ddock__cover { position: absolute; left: 0; top: 0; width: var(--dk-cw, 150px); aspect-ratio: 2 / 3; transform-origin: 0 0; transform: scale(var(--dk-k, 0.2133)); opacity: 0; pointer-events: none; }
+.ddock__cover-art { position: absolute; inset: 0; border-radius: var(--r-lg); overflow: hidden; box-shadow: 0 0 0 1px oklch(1 0 0 / 0.12); }
+.ddock__cover-art .cover { height: 100%; }
+/* The lift: a deep, soft shadow that grows as the cover leaves the page. */
+.ddock__cover-lift { position: absolute; inset: 4% 6% -2%; border-radius: var(--r-lg); opacity: 0; box-shadow: 0 34px 70px -18px oklch(0 0 0 / 0.85), 0 10px 24px -10px oklch(0 0 0 / 0.6); }
+.ddock__title { flex: 1 1 auto; min-width: 0; font-size: var(--fs-lg); font-weight: var(--fw-semibold); line-height: 22px; letter-spacing: -0.01em; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform-origin: 0 50%; }
+.ddock__play { flex: none; margin-left: auto; }
+.ddock__play .pbtn { --pbtn-h: 44px; --pbtn-pad: 20px; --pbtn-r: var(--r-lg); font-size: var(--fs-md); }
+/* Focus never hides under the bar. */
+.main__scroll:has(> .detail) { scroll-padding-top: 88px; }
+
+/* Every .dk element runs linearly through its keyframes and holds both ends. */
+.detail:is([data-dock='timeline'], [data-dock='js']) .dk { animation-timing-function: linear; animation-fill-mode: both; }
+.detail:is([data-dock='timeline'], [data-dock='js']) .dhero__stage { animation-name: dk-stage; }
+.detail:is([data-dock='timeline'], [data-dock='js']) .dhero__titlebox { animation-name: dk-title-x; }
+.detail:is([data-dock='timeline'], [data-dock='js']) .dhero__titlecurve { animation-name: dk-title-y; }
+.detail:is([data-dock='timeline'], [data-dock='js']) .dhero__titlescale { animation-name: dk-title-scale; }
+.detail:is([data-dock='timeline'], [data-dock='js']) .dhero__meta { animation-name: dk-meta; }
+.detail:is([data-dock='timeline'], [data-dock='js']) .ddock__glass { animation-name: dk-glass; }
+.detail:is([data-dock='timeline'], [data-dock='js']) .ddock__title { animation-name: dk-bar-title; }
+.detail:is([data-dock='timeline'], [data-dock='js']) .ddock__play { animation-name: dk-play; }
+.detail:is([data-dock='timeline'], [data-dock='js'])[data-cover='fly'] .dhero__cover-slot { animation-name: dk-hero-cover; }
+.detail:is([data-dock='timeline'], [data-dock='js'])[data-cover='fly'] .ddock__cover { animation-name: dk-cover; }
+.detail:is([data-dock='timeline'], [data-dock='js'])[data-cover='fly'] .ddock__cover-lift { animation-name: dk-cover-lift; }
+.detail:is([data-dock='timeline'], [data-dock='js'])[data-cover='fade'] .ddock__cover { animation-name: dk-cover-fade; }
+
+/* Scroll-driven: the page scroller is the timeline; everything maps to 0 → --dk-end of scroll. */
+.main__scroll:has(> .detail[data-dock='timeline']) { scroll-timeline: --gd-scroll block; }
+.detail[data-dock='timeline'] .dk { animation-duration: auto; animation-timeline: --gd-scroll; animation-range: 0px var(--dk-end, 400px); }
+/* Scroll-linked, not time-based: it costs nothing until you scroll, so Performance Mode leaves it running. */
+:root[data-performance='true'] .detail[data-dock='timeline'] .dk { animation-play-state: running !important; }
+
+/* Fallback: the same keyframes, paused and scrubbed by HeroDock (rAF-throttled, transform/opacity only). */
+.detail[data-dock='js'] .dk { animation-duration: 1s; animation-play-state: paused; animation-delay: calc(var(--dock-p, 0) * -1s); }
+
+@keyframes dk-stage {
+  /* The art drifts at a third of the page's speed and dims as the bar takes over. */
+  from { transform: translateY(0px); opacity: 1; }
+  to { transform: translateY(calc(var(--dk-end, 400px) * 0.34)); opacity: 0.55; }
+}
+@keyframes dk-hero-cover {
+  0% { opacity: 1; }
+  0.6%, 100% { opacity: 0; }
+}
+@keyframes dk-cover {
+  /* Exactly on the hero cover (riding with the page) and lifting a little … */
+  0% { opacity: 0; transform: translate(var(--dk-cx0, 0px), var(--dk-cy0, 0px)) scale(1); }
+  0.6% { opacity: 1; }
+  22% { transform: translate(var(--dk-cxl, 0px), var(--dk-cyl, 0px)) scale(1.035); animation-timing-function: cubic-bezier(0.45, 0, 0.2, 1); }
+  /* … then flying into its slot in the bar. */
+  100% { opacity: 1; transform: translate(0px, 0px) scale(var(--dk-k, 0.2133)); }
+}
+@keyframes dk-cover-lift {
+  0% { opacity: 0; }
+  22% { opacity: 1; }
+  78% { opacity: 0.9; }
+  100% { opacity: 0.2; }
+}
+@keyframes dk-cover-fade {
+  0%, 80% { opacity: 0; transform: translateY(10px) scale(var(--dk-k, 0.2133)); }
+  100% { opacity: 1; transform: translateY(0px) scale(var(--dk-k, 0.2133)); }
+}
+/* The title's curve, on three layers: it rides up with the page and eases into the bar (Y,
+   ease-in compensation), drifts across late (X, ease-in-out), and shrinks steadily (scale). */
+@keyframes dk-title-x {
+  0% { transform: translateX(0px); animation-timing-function: cubic-bezier(0.55, 0, 0.45, 1); }
+  100% { transform: translateX(var(--dk-tx, 0px)); }
+}
+@keyframes dk-title-y {
+  0% { transform: translateY(0px); animation-timing-function: cubic-bezier(0.6, 0, 0.85, 0.45); }
+  100% { transform: translateY(var(--dk-ty, 0px)); }
+}
+@keyframes dk-title-scale {
+  0% { transform: scale(1); opacity: 1; animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1); }
+  82% { opacity: 1; }
+  100% { transform: scale(var(--dk-kt, 0.3)); opacity: 0; }
+}
+/* The facts and actions dissolve before the title passes over them (and stop taking clicks or focus). */
+@keyframes dk-meta {
+  0%, 30% { opacity: 1; transform: translateY(0px); visibility: visible; }
+  54.9% { visibility: visible; }
+  55%, 100% { opacity: 0; transform: translateY(-14px); visibility: hidden; }
+}
+@keyframes dk-glass {
+  0%, 40% { opacity: 0; }
+  85%, 100% { opacity: 1; }
+}
+@keyframes dk-bar-title {
+  0%, 82% { opacity: 0; transform: translateY(6px) scale(1.18); }
+  100% { opacity: 1; transform: translateY(0px) scale(1); }
+}
+@keyframes dk-play {
+  0%, 50% { opacity: 0; transform: translateX(28px) scale(0.94); }
+  70%, 100% { opacity: 1; transform: translateX(0px) scale(1); }
+}
+
+/* Light theme: over the light glass, Back's dark pill turns solid so its text keeps full contrast. */
+:root[data-theme='light'] .ddock[data-docked] .dhero__back { background: oklch(0.2 0.012 282 / 0.88); }
+
+/* Reduced motion: no scroll-linked motion at all; the bar fades in (150 ms) once docked. */
+.detail[data-dock='reduced'] .ddock__cover { transform: scale(var(--dk-k, 0.2133)); }
+
+/* High contrast: an opaque bar with a solid edge; no translucency or glow. */
+:root[data-theme='contrast'] .ddock__glass { background: oklch(0 0 0); backdrop-filter: none; box-shadow: inset 0 -2px 0 var(--line-strong); }
+:root[data-theme='contrast'] .ddock__cover-lift { display: none; }
+:root[data-theme='contrast'] .ddock__cover-art { box-shadow: 0 0 0 2px var(--line-strong); }
+:root[data-quality='low'] .ddock__glass { backdrop-filter: none; background: oklch(from var(--bg-0) l c h / 0.96); }
+@media (forced-colors: active) {
+  .ddock__glass { background: Canvas; backdrop-filter: none; box-shadow: none; border-bottom: 2px solid CanvasText; }
+  .ddock__title { color: CanvasText; }
+  .ddock__cover-lift { display: none; }
 }

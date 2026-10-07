@@ -11,6 +11,8 @@ import { HoldToConfirm } from '../../components/controller/HoldToConfirm';
 import { GameCover } from '../../components/game/GameCover';
 import { PadGlyph, PadHint } from '../../components/ui/primitives';
 import { greeting } from './rows';
+import { clockParts } from './screensaver';
+import { useSystemStatus } from './useSystemStatus';
 
 export type GuideAction = 'resume' | 'desktop' | 'display' | 'voice' | 'settings' | 'close';
 
@@ -47,6 +49,9 @@ export function Guide({ onAction, onClose, voiceState }: { onAction: (a: GuideAc
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const restore = useRef<HTMLElement | null>(null);
   const now = new Date();
+  // Track Z: 12- or 24-hour time as Windows' regional format says.
+  const status = useSystemStatus();
+  const time = clockParts(now, status?.clock24h == null ? null : !status.clock24h);
 
   useLayoutEffect(() => {
     restore.current ??= document.activeElement as HTMLElement | null;
@@ -146,7 +151,7 @@ export function Guide({ onAction, onClose, voiceState }: { onAction: (a: GuideAc
           <div className="imm-guide__when">
             <h2 id={`${uid}-title`} className="imm-guide__title">{greeting(now.getHours())}</h2>
             <span className="imm-guide__time num">
-              {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
+              {time.label} · {time.date}
             </span>
           </div>
         </header>

@@ -45,8 +45,11 @@ import {
 import {
   applyFilter, clampRow, colOf, focusGame, INITIAL_NAV, moveNav, pick as pickTile, switchTab as switchNavTab, type ImmTab, type NavState,
 } from './immersive/nav';
+import { isAutomatic, isMovableRow, mergeRowOrder, movableIds, parseRowOrder, serializeRowOrder, stepRow } from './immersive/rowOrder';
+import { RowOrderList } from './immersive/RowMover';
 import './immersive.css';
 import './immersive/immersive-t.css';
+import './immersive/immersive-z.css';
 
 /** Rows mounted around the focused one. Others are exact-height placeholders. */
 const WINDOW_BEFORE = 2;
@@ -55,12 +58,24 @@ const WINDOW_AFTER = 4;
 const FOCUS_SCALE = 1.06;
 /** Holding X this long opens the quick menu (a shorter press toggles Favorite). */
 const HOLD_X_MS = 420;
+/** Track Z: holding Y this long on a row header picks the row up (a shorter press still searches). */
+const HOLD_Y_MS = 420;
+/** Track Z: rows keep sliding into place this long after a move ends. */
+const SETTLE_MS = 650;
 /** Re-entering Immersive within this long returns to the same row and card (Track T). */
 const NAV_MEMORY_MS = 30 * 60_000;
 const ACTIVE_PHASES = ['starting', 'waiting', 'running'];
 const DOWNLOAD_PHASES: InstallProgress['phase'][] = ['queued', 'downloading', 'staging', 'paused'];
 
 type SearchFilter = 'all' | 'installed' | 'favorites' | 'unplayed';
+
+/** Track Z: a row picked up to move. `order` is the Home rows you can move, as they show now. */
+interface Moving {
+  rowId: string;
+  order: string[];
+  /** Picked up from its header (focus goes back there when it's dropped). */
+  fromHeader: boolean;
+}
 
 interface RingRect {
   x: number;
@@ -145,6 +160,13 @@ export function ImmersiveView() {
   const [tourDone, setTourDone] = useState<Set<TourStep>>(() => new Set());
   const [filterOrigin, setFilterOrigin] = useState<NavState | null>(null);
   const [flash, setFlash] = useState<{ label: string; n: number } | null>(null);
+  // Track Z: your own Home row order, the row header focus, and a row being moved.
+  const rowOrderSetting = settings?.['immersive.rowOrder'];
+  const savedOrder = useMemo(() => parseRowOrder(rowOrderSetting), [rowOrderSetting]);
+  const [header, setHeader] = useState(false);
+  const [moving, setMoving] = useState<Moving | null>(null);
+  const [settling, setSettling] = useState(false);
+  const [holdingY, setHoldingY] = useState(false);
 
   // Re-order rows when the part of the day changes (checked every few minutes).
   useEffect(() => {
@@ -178,8 +200,11 @@ export function ImmersiveView() {
   }, [downloadKey, gamesById, playingGame, playingPhase, playingStart]);
 
   const view = useMemo<{ rows: Row[]; jumps: Jump[] }>(
-    () => (nav.tab === 'home' ? { rows: homeRows(visible, collections, Date.now(), hour, live), jumps: [] } : libraryView(visible, nav.filter, sort, Date.now())),
-    [visible, collections, hour, nav.tab, nav.filter, live, sort],
+    () =>
+      nav.tab === 'home'
+        ? { rows: homeRows(visible, collections, Date.now(), hour, live, moving ? moving.order : savedOrder), jumps: [] }
+        : libraryView(visible, nav.filter, sort, Date.now()),
+    [visible, collections, hour, nav.tab, nav.filter, live, sort, moving, savedOrder],
   );
   const rows = view.rows;
   const row = clampRow(nav, rows);
@@ -189,6 +214,8 @@ export function ImmersiveView() {
   const focused = tileGame(tile);
   const focusedGame = tile && (tile.kind === 'game' || tile.kind === 'playing' || tile.kind === 'download') ? tile.game : null;
   const here = nav.tab === 'library' ? jumpAt(view.jumps, row, col) : null;
+  /** Track Z: focus is on the row's header (Left from its first card), where you can pick it up. */
+  const onHeader = header && !moving && nav.tab === 'home' && isMovableRow(current);
 
   useEffect(() => {
     if (focused) setFocusGame(focused.id);
@@ -271,7 +298,8 @@ export function ImmersiveView() {
 
   // ---------------------------------------------------------------- voice-over: the focused tile
   const spoken = useRef<{ row: string | null; tab: ImmTab | null; prefix: string; key: string }>({ row: null, tab: null, prefix: '', key: '' });
-  const overlayOpen = !!(panel || quick || search || couch || guide || voiceSheet || attract);
+  // Track Z: a row header or a row being moved says its own words (and the card is said again after).
+  const overlayOpen = !!(panel || quick || search || couch || guide || voiceSheet || attract || moving || onHeader);
   const speakNow = useRef({ tile, current });
   useLayoutEffect(() => {
     speakNow.current = { tile, current };
@@ -302,9 +330,9 @@ export function ImmersiveView() {
   }, [voiceOn, gliding, overlayOpen, tileKey, rowKey, nav.tab]);
 
   // ---------------------------------------------------------------- actions
-  const latest = useRef({ nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, guide, voiceSheet, attract, tourActive, filterOrigin, jumps: view.jumps });
+  const latest = useRef({ nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, guide, voiceSheet, attract, tourActive, filterOrigin, jumps: view.jumps, onHeader, moving, savedOrder });
   useLayoutEffect(() => {
-    latest.current = { nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, guide, voiceSheet, attract, tourActive, filterOrigin, jumps: view.jumps };
+    latest.current = { nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, guide, voiceSheet, attract, tourActive, filterOrigin, jumps: view.jumps, onHeader, moving, savedOrder };
   });
 
   // Remember where we were for the next visit.
@@ -344,6 +372,12 @@ export function ImmersiveView() {
       engaged.current = true;
       markTour('move');
       const nextRow = clampRow(r.state, L.rows);
+      // Track Z: on a header, Up/Down walk the headers (rows that can't move have none).
+      if (L.onHeader && r.effect === 'row') {
+        const nr = L.rows[nextRow];
+        if (!isMovableRow(nr)) setHeader(false);
+        else voiceOver.say(`${nr.title} row. Press A or hold Y to move it.`, 'focus');
+      }
       const nextGame = tileGame(L.rows[nextRow]?.tiles[colOf(r.state, L.rows, nextRow)]);
       if (r.effect === 'row') {
         haptic('tick');
@@ -354,6 +388,100 @@ export function ImmersiveView() {
       if (repeat) startGlide();
     },
     [markTour, reduce, spatial, startGlide],
+  );
+
+  // ---------------------------------------------------------------- Track Z: row headers and moving rows
+  const settleTimer = useRef<number | undefined>(undefined);
+  const settle = useCallback(() => {
+    setSettling(true);
+    window.clearTimeout(settleTimer.current);
+    settleTimer.current = window.setTimeout(() => setSettling(false), SETTLE_MS);
+  }, []);
+  useEffect(() => () => window.clearTimeout(settleTimer.current), []);
+
+  /** Left from a row's first card: focus its header. */
+  const enterHeader = useCallback(() => {
+    const L = latest.current;
+    const r = L.rows[L.row];
+    if (!r) return;
+    setHeader(true);
+    engaged.current = true;
+    haptic('tick');
+    sound.focus();
+    voiceOver.say(`${r.title} row. Press A or hold Y to move it.`, 'focus');
+  }, []);
+
+  /** Picks a Home row up (from its header, or the quick menu's Move row). */
+  const startMoving = useCallback(
+    (rowId: string, fromHeader: boolean) => {
+      const L = latest.current;
+      const order = movableIds(L.rows);
+      const i = order.indexOf(rowId);
+      if (L.nav.tab !== 'home' || i < 0 || order.length < 2) {
+        haptic('edge');
+        return;
+      }
+      const m: Moving = { rowId, order, fromHeader };
+      L.moving = m;
+      setNav((n) => ({ ...n, rowId }));
+      setMoving(m);
+      setHeader(fromHeader);
+      settle();
+      engaged.current = true;
+      sound.select();
+      haptic('confirm');
+      const title = L.rows.find((r) => r.id === rowId)?.title ?? 'Row';
+      voiceOver.say(sentence(`Moving ${title}`, `Row ${i + 1} of ${order.length}`, 'Up or down to move it, A to drop it, B to cancel'), 'nav');
+    },
+    [settle],
+  );
+
+  const stepMoving = useCallback(
+    (dir: -1 | 1) => {
+      const L = latest.current;
+      const m = L.moving;
+      if (!m) return;
+      const next = stepRow(m.order, m.rowId, dir);
+      if (!next) {
+        haptic('edge');
+        spatial('edge', L.row, L.row, L.focused);
+        return;
+      }
+      const nm = { ...m, order: next };
+      L.moving = nm;
+      setMoving(nm);
+      haptic('tick');
+      const to = next.indexOf(m.rowId);
+      spatial('row', to, m.order.indexOf(m.rowId), L.focused);
+      voiceOver.say(`Row ${to + 1} of ${next.length}`, 'nav');
+    },
+    [spatial],
+  );
+
+  /** A drops the row where it is (and remembers the order); B puts everything back. */
+  const dropRow = useCallback(
+    (commit: boolean) => {
+      const L = latest.current;
+      const m = L.moving;
+      if (!m) return;
+      if (commit) {
+        const auto = movableIds(homeRows(visible, collections, Date.now(), hour));
+        const value = isAutomatic(auto, m.order) ? '' : serializeRowOrder(mergeRowOrder(L.savedOrder, m.order));
+        if (value !== serializeRowOrder(L.savedOrder)) void setSetting('immersive.rowOrder', value);
+        sound.select();
+        haptic('confirm');
+        voiceOver.say(value ? 'Row order saved' : 'Rows are in their automatic order', 'nav');
+      } else {
+        sound.back();
+        haptic('tick');
+        voiceOver.say('Move cancelled', 'nav');
+      }
+      L.moving = null;
+      setMoving(null);
+      setHeader(m.fromHeader);
+      settle();
+    },
+    [visible, collections, hour, setSetting, settle],
   );
 
   /** LT/RT in All games: to the previous/next letter (or band). */
@@ -388,6 +516,7 @@ export function ImmersiveView() {
     (t?: ImmTab) => {
       setNav((n) => switchNavTab(n, t));
       setFilterOrigin(null);
+      setHeader(false);
       sound.select();
       haptic('tick');
       markTour('sections');
@@ -537,9 +666,14 @@ export function ImmersiveView() {
         case 'display':
           setCouch(true);
           return;
+        case 'moveRow': {
+          const r = latest.current.rows[latest.current.row];
+          if (r) startMoving(r.id, false);
+          return;
+        }
       }
     },
-    [quick, launchGame, openPage],
+    [quick, launchGame, openPage, startMoving],
   );
 
   const runGuide = useCallback(
@@ -578,6 +712,30 @@ export function ImmersiveView() {
     xTimer.current = null;
     setHoldingX(false);
   };
+  // Track Z: on a row header, Y is held to pick the row up; released early, it searches as usual.
+  const yTimer = useRef<number | null>(null);
+  const cancelHoldY = () => {
+    if (yTimer.current !== null) window.clearTimeout(yTimer.current);
+    yTimer.current = null;
+    setHoldingY(false);
+  };
+  const beginHoldY = () => {
+    if (yTimer.current !== null) return;
+    setHoldingY(true);
+    yTimer.current = window.setTimeout(() => {
+      yTimer.current = null;
+      setHoldingY(false);
+      const L = latest.current;
+      const r = L.rows[L.row];
+      if (L.onHeader && r) startMoving(r.id, true);
+    }, HOLD_Y_MS);
+  };
+  /** Y released: before the hold completed, that was a tap (search). */
+  const releaseY = () => {
+    if (yTimer.current === null) return;
+    cancelHoldY();
+    openSearch();
+  };
 
   const handle = (button: GamepadButton | string, repeat: boolean): boolean => {
     const L = latest.current;
@@ -591,10 +749,54 @@ export function ImmersiveView() {
     // Anything modal (game page, quick menu, search, display, guide, launch overlay, desktop dialogs) owns input.
     if (L.panel || L.quick || L.couch || L.search || L.guide || L.voiceSheet) return false;
     if (document.querySelector('[data-dialog-open], [data-nav-scope="overlay"]')) return false;
+    // Track Z: a row is picked up — it owns every button until it's dropped (A) or put back (B).
+    if (L.moving) {
+      switch (button) {
+        case 'Up': case 'ArrowUp': stepMoving(-1); return true;
+        case 'Down': case 'ArrowDown': stepMoving(1); return true;
+        case 'A': case 'Enter': case ' ': if (!repeat) dropRow(true); return true;
+        case 'B': case 'Escape': case 'Backspace': if (!repeat) dropRow(false); return true;
+        case 'F11':
+          if (!repeat) {
+            dropRow(false);
+            exitToDesktop();
+          }
+          return true;
+        default: return true;
+      }
+    }
+    if (L.onHeader) {
+      switch (button) {
+        case 'Right': case 'ArrowRight': case 'B': case 'Escape': case 'Backspace':
+          if (!repeat) {
+            setHeader(false);
+            sound.focus();
+            haptic('tick');
+          }
+          return true;
+        case 'Left': case 'ArrowLeft': haptic('edge'); return true;
+        case 'A': case 'Enter': case ' ': {
+          const r = L.rows[L.row];
+          if (!repeat && r) startMoving(r.id, true);
+          return true;
+        }
+        case 'Y': case 'y':
+          if (!repeat) beginHoldY();
+          return true;
+        case 'X': case 'x': haptic('edge'); return true;
+      }
+    }
     switch (button) {
       case 'Up': case 'ArrowUp': move(-1, 0, repeat); return true;
       case 'Down': case 'ArrowDown': move(1, 0, repeat); return true;
-      case 'Left': case 'ArrowLeft': move(0, -1, repeat); return true;
+      case 'Left': case 'ArrowLeft':
+        // Track Z: past a Home row's first card is its header (hold Y there to move the row).
+        if (!repeat && L.nav.tab === 'home' && L.col === 0 && isMovableRow(L.rows[L.row])) {
+          enterHeader();
+          return true;
+        }
+        move(0, -1, repeat);
+        return true;
       case 'Right': case 'ArrowRight': move(0, 1, repeat); return true;
       case 'LT': case 'RT': case 'PageUp': case 'PageDown': {
         const back = button === 'LT' || button === 'PageUp';
@@ -653,14 +855,19 @@ export function ImmersiveView() {
     }
   };
   const handleRef = useRef(handle);
+  const releaseYRef = useRef(releaseY);
   useLayoutEffect(() => {
     handleRef.current = handle;
+    releaseYRef.current = releaseY;
   });
 
   // Registered once, so overlays opened later (attract, game page, search, quick menu) always sit above it.
   useEffect(() => pushPadHandler((b, r) => handleRef.current(b, r)), []);
   useEffect(() => {
     // X released before the hold completed: that was a tap → Favorite.
+    const offY = on('gamepad.button', ({ button, pressed }) => {
+      if (button === 'Y' && !pressed) releaseYRef.current();
+    });
     const off = on('gamepad.button', ({ button, pressed }) => {
       if (button !== 'X' || pressed || xTimer.current === null) return;
       cancelHoldX();
@@ -670,11 +877,16 @@ export function ImmersiveView() {
         haptic('tick');
       }
     });
-    const offConn = on('gamepad.connection', () => cancelHoldX());
+    const offConn = on('gamepad.connection', () => {
+      cancelHoldX();
+      cancelHoldY();
+    });
     return () => {
       off();
+      offY();
       offConn();
       cancelHoldX();
+      cancelHoldY();
     };
   }, []);
   useEffect(() => {
@@ -683,8 +895,15 @@ export function ImmersiveView() {
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       if (handleRef.current(e.key, e.repeat)) e.preventDefault();
     };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'y' || e.key === 'Y') releaseYRef.current();
+    };
     addEventListener('keydown', onKey);
-    return () => removeEventListener('keydown', onKey);
+    addEventListener('keyup', onKeyUp);
+    return () => {
+      removeEventListener('keydown', onKey);
+      removeEventListener('keyup', onKeyUp);
+    };
   }, []);
 
   // ---------------------------------------------------------------- search filters
@@ -714,6 +933,7 @@ export function ImmersiveView() {
   const lean = useTransform(leanX, (v) => v * -4);
   const leanInfoY = useTransform(leanY, (v) => v * -2);
   const voiceState = !voiceOn ? 'Off' : settings?.['voiceover.captionsOnly'] ? 'Captions only' : 'On';
+  const movingRows = moving ? rows.filter(isMovableRow) : [];
   const primary = tile?.kind === 'playing' ? 'Return to game' : tile?.kind === 'tool' ? (tile.tool.type === 'sort' ? 'Change sort' : 'Show') : tile && tile.kind !== 'game' && tile.kind !== 'download' ? 'Browse' : 'Open';
 
   return (
@@ -724,6 +944,8 @@ export function ImmersiveView() {
         data-gliding={gliding || undefined}
         data-quick-open={!!quick || undefined}
         data-tab={nav.tab}
+        data-moving={moving ? true : undefined}
+        data-header={onHeader || undefined}
       >
         <HeroStage game={stageGame} tint={ringA} tint2={ringB} />
         <header className="imm__top">
@@ -764,7 +986,34 @@ export function ImmersiveView() {
         <motion.section className="imm__info" aria-live="polite" style={reduce ? ringVars : { ...ringVars, x: lean, y: leanInfoY }}>
           {/* Old and new info share one grid cell and crossfade, so fast browsing never blanks it. */}
           <AnimatePresence initial={false}>
-            {tile && (
+            {moving ? (
+              // Track Z: while a row is picked up, the info area shows the row order.
+              <motion.div
+                key="moving"
+                className="imm__info-item imm__info-item--moving"
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, filter: 'blur(4px)', transition: { duration: 0.18, ease: ease.in } }}
+                transition={pick(reduce, spring.panel)}
+              >
+                <RowOrderList rows={movingRows} liftedId={moving.rowId} />
+              </motion.div>
+            ) : onHeader && current ? (
+              <motion.div
+                key={`header-${current.id}`}
+                className="imm__info-item"
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, filter: 'blur(4px)', transition: { duration: 0.18, ease: ease.in } }}
+                transition={pick(reduce, spring.panel)}
+              >
+                <h1 className="imm__title imm__title--section">{current.title}</h1>
+                <div className="imm__meta">
+                  <span>{current.meta ?? plural(current.tiles.length, current.browse ? 'tile' : 'game')}</span>
+                  <span>{savedOrder.length ? 'In your row order' : 'Ordered by time of day'}</span>
+                </div>
+              </motion.div>
+            ) : tile && (
               <motion.div
                 key={tile.kind === 'tool' ? 'tools' : tile.key}
                 className="imm__info-item"
@@ -789,18 +1038,44 @@ export function ImmersiveView() {
               activeCol={col}
               cols={nav.cols}
               ringVars={ringVars}
-              ringHidden={!!panel || !!quick || !!guide}
+              ringHidden={!!panel || !!quick || !!guide || onHeader || !!moving}
               holding={holdingX}
               viewportRef={viewportRef}
               onRing={onRing}
-              onPick={(r, c) => setNav((n) => pickTile(n, rows, r, c))}
-              onOpen={openTile}
+              onPick={(r, c) => {
+                if (latest.current.moving) return;
+                setHeader(false);
+                setNav((n) => pickTile(n, rows, r, c));
+              }}
+              onOpen={(t) => !latest.current.moving && openTile(t)}
+              headerId={onHeader ? current?.id ?? null : null}
+              holdingY={holdingY}
+              liftedId={moving?.rowId ?? null}
+              flowing={!!moving || settling}
             />
           )}
           {nav.tab === 'library' && sort === 'az' && <JumpRail jumps={view.jumps} current={here} below={current?.kind === 'tools'} onJump={(j) => jump(1, false, j)} />}
           <JumpFlash flash={flash} />
         </section>
 
+        {moving ? (
+          // Track Z: moving a row — just what works right now.
+          <footer className="imm__hints" data-mode="moving">
+            <span className="imm__hint"><PadHint button="DpadV">Move row</PadHint></span>
+            <span className="imm__hint"><PadHint button="A">Drop it here</PadHint></span>
+            <span className="imm__hint"><PadHint button="B">Cancel</PadHint></span>
+          </footer>
+        ) : onHeader ? (
+          <footer className="imm__hints" data-mode="header">
+            <span className="imm__hint"><PadHint button="A">Move row</PadHint></span>
+            <span className="imm__hint"><PadHint button="Y">Hold to move row · tap to search</PadHint></span>
+            <span className="imm__hint"><PadHint button="DpadV">Other rows</PadHint></span>
+            <span className="imm__hint"><PadHint button="B">Back to games</PadHint></span>
+            <button type="button" className="imm__exit" onClick={openGuide} aria-label="Menu: desktop mode, display, voice-over, settings">
+              <PadHint button="Menu">Menu</PadHint>
+            </button>
+          </footer>
+        ) : (
         <footer className="imm__hints">
           <span className="imm__hint"><PadHint button="A">{primary}</PadHint></span>
           {focusedGame && <span className="imm__hint"><PadHint button="X">Favorite</PadHint></span>}
@@ -818,6 +1093,7 @@ export function ImmersiveView() {
             <PadHint button="Menu">Menu</PadHint>
           </button>
         </footer>
+        )}
 
         {/* Overlays read the palette colours from this scope (display: contents, so it adds no box). */}
         <div className="imm__scope" style={ringVars}>
@@ -835,7 +1111,16 @@ export function ImmersiveView() {
           )}
         </AnimatePresence>
         <AnimatePresence>
-          {quick && quickGame && <QuickMenu key={quick.id} game={quickGame} anchor={quick.anchor} onAction={runQuick} onClose={() => setQuick(null)} />}
+          {quick && quickGame && (
+            <QuickMenu
+              key={quick.id}
+              game={quickGame}
+              anchor={quick.anchor}
+              moveRow={nav.tab === 'home' && isMovableRow(current) && movableIds(rows).length > 1 ? current.title : undefined}
+              onAction={runQuick}
+              onClose={() => setQuick(null)}
+            />
+          )}
         </AnimatePresence>
         <AnimatePresence>{couch && <CouchSheet key="couch" onClose={() => setCouch(false)} />}</AnimatePresence>
         <AnimatePresence>{voiceSheet && <VoiceSheet key="voice" onClose={() => setVoiceSheet(false)} />}</AnimatePresence>
@@ -844,7 +1129,7 @@ export function ImmersiveView() {
           {search && <OnScreenKeyboard key="osk" games={searchGames} filters={oskFilters} onClose={() => setSearch(false)} onOpenGame={openFromSearch} />}
         </AnimatePresence>
         </div>
-        <AttractMode games={visible} active={attract} onActiveChange={setAttract} />
+        <AttractMode games={visible} active={attract} onActiveChange={setAttract} onOpen={openPage} />
         <CaptionBar className="imm-captions" />
       </div>
     </LayoutGroup>
@@ -995,7 +1280,7 @@ function tileText(t: Tile): string {
 }
 
 function RowsTrack({
-  rows, activeRow, activeCol, cols, ringVars, ringHidden, holding, viewportRef, onRing, onPick, onOpen,
+  rows, activeRow, activeCol, cols, ringVars, ringHidden, holding, viewportRef, onRing, onPick, onOpen, headerId, holdingY, liftedId, flowing,
 }: {
   rows: Row[];
   activeRow: number;
@@ -1008,6 +1293,14 @@ function RowsTrack({
   onRing: (r: RingRect) => void;
   onPick: (r: number, c: number) => void;
   onOpen: (t: Tile) => void;
+  /** Track Z: the row whose header has focus. */
+  headerId: string | null;
+  /** Track Z: Y is being held on that header (the hold fills). */
+  holdingY: boolean;
+  /** Track Z: the row picked up to move. */
+  liftedId: string | null;
+  /** Track Z: rows slide to their new places (while moving and just after). */
+  flowing: boolean;
 }) {
   const reduce = useReducedMotion();
   const probeRef = useRef<HTMLDivElement>(null);
@@ -1116,19 +1409,36 @@ function RowsTrack({
           const active = ri === activeRow;
           const mounted = ri >= from && ri < to;
           const focusCol = active ? activeCol : -1;
+          const isHeader = headerId === r.id;
+          const lifted = liftedId === r.id;
           return (
-            <div
+            <motion.div
               key={r.id}
+              layout={flowing ? 'position' : false}
+              transition={pick(reduce, spring.page)}
               className={`imm__row ${r.wide ? 'imm__row--wide' : ''} ${r.browse ? 'imm__row--browse' : ''} ${r.compact ? 'imm__row--tools' : ''} imm__row--${r.kind}`}
               data-active={active}
+              data-row-id={r.id}
+              data-lifted={lifted || undefined}
               aria-hidden={!mounted || undefined}
             >
-              <h2 className="imm__row-title" style={active ? ringVars : undefined}>
+              <h2 className="imm__row-title" style={active ? ringVars : undefined} data-header-focus={isHeader || undefined} data-holding={(isHeader && holdingY) || undefined}>
                 <span className="imm__row-name">{r.title}</span>
                 {r.meta && <span className="imm__row-meta">{r.meta}</span>}
-                {active && r.tiles.length > 1 && !r.compact && (
+                {active && r.tiles.length > 1 && !r.compact && !isHeader && !lifted && (
                   <span className="imm__row-count num" aria-hidden>
                     {activeCol + 1} / {r.tiles.length}
+                  </span>
+                )}
+                {isHeader && (
+                  <span className="imm__row-move" aria-hidden>
+                    <span className="imm__row-move-hold" />
+                    <PadHint button="Y">Hold to move</PadHint>
+                  </span>
+                )}
+                {lifted && (
+                  <span className="imm__row-move imm__row-move--lifted" aria-hidden>
+                    <PadHint button="DpadV">Moving</PadHint>
                   </span>
                 )}
               </h2>
@@ -1202,7 +1512,7 @@ function RowsTrack({
                   })}
                 </motion.div>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </motion.div>

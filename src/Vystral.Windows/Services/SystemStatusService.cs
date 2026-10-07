@@ -13,7 +13,8 @@ public sealed record NetworkDto(string Kind, int? Bars, bool Internet);
 /// <summary>One Xbox-compatible controller. Battery 0–1, null when wired or unknown.</summary>
 public sealed record ControllerDto(double? Battery, bool Charging, bool Wired);
 
-public sealed record SystemStatusDto(BatteryDto? Battery, NetworkDto Network, IReadOnlyList<ControllerDto> Controllers);
+/// <summary>Clock24h (Track Z): Windows' regional format shows 24-hour time; null when it can't be read.</summary>
+public sealed record SystemStatusDto(BatteryDto? Battery, NetworkDto Network, IReadOnlyList<ControllerDto> Controllers, bool? Clock24h = null);
 
 /// <summary>
 /// Track L: what the Immersive system bar shows — PC battery (Windows.System.Power), the internet
@@ -35,7 +36,7 @@ public sealed class SystemStatusService
             {
                 if (_cached is not null && DateTime.UtcNow - _cachedAt < CacheFor) return _cached;
             }
-            var value = new SystemStatusDto(ReadBattery(), ReadNetwork(), ReadControllers());
+            var value = new SystemStatusDto(ReadBattery(), ReadNetwork(), ReadControllers(), ReadClock24h());
             lock (_lock)
             {
                 _cached = value;
@@ -70,6 +71,47 @@ public sealed class SystemStatusService
     }
 
     public static string Kind(bool wlan, bool wwan) => wlan ? "wifi" : wwan ? "cellular" : "ethernet";
+
+    /// <summary>
+    /// Track Z: whether a .NET time pattern ("HH:mm", "h:mm tt", "H.mm", "tt hh:mm") is a 24-hour clock:
+    /// an 'H' outside quoted literals. Null for an empty pattern.
+    /// </summary>
+    public static bool? Is24Hour(string? pattern)
+    {
+        if (string.IsNullOrWhiteSpace(pattern)) return null;
+        char? quote = null;
+        for (var i = 0; i < pattern.Length; i++)
+        {
+            var c = pattern[i];
+            if (quote is { } q)
+            {
+                if (c == q) quote = null;
+                continue;
+            }
+            if (c == '\\') { i++; continue; }
+            if (c is '\'' or '"') { quote = c; continue; }
+            if (c == 'H') return true;
+            if (c == 'h') return false;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// The user's regional short-time format (Settings › Time &amp; language › Region, user overrides
+    /// included), as .NET read it when VYSTRAL started.
+    /// </summary>
+    private static bool? ReadClock24h()
+    {
+        try
+        {
+            return Is24Hour(System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortTimePattern);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("system", "Time format unavailable", ex: ex);
+            return null;
+        }
+    }
 
     private static BatteryDto? ReadBattery()
     {

@@ -142,6 +142,12 @@
 - **Achievement guide** works for Steam games whose achievements VYSTRAL already fetched with your key. Global rarity is Steam's figure at the last fetch. Revealing a hidden achievement shows the description Steam put in the schema, which for some games is empty or "Hidden".
 - **News** shows Steam community announcements only (not third-party news feeds), at most 8 posts per game. Formatting is simplified to paragraphs, headings, lists, quotes and code; tables, videos, embedded store widgets and inline styling are dropped, and links are plain text. "Updated since you last played" compares the post date with the last-played time VYSTRAL knows for the game (its own sessions or the store's record on this PC).
 
+**Immersive screensaver, row order and the game page header (0.7, Track Z)**
+- The clock's 12- or 24-hour format is read from Windows' regional format when VYSTRAL starts; changing it in Windows Settings applies after a restart. If it can't be read, the interface language's default is used.
+- Screensaver trailers use the same Steam micro-trailers as live tiles, so they follow the *Live tiles* setting too (off there means stills here). Battery saver is read from the PC's battery report; a desktop PC with Windows' energy saver on but no battery isn't detected as saving power.
+- Only Home rows can be moved. *Now playing* always leads and *Downloads* always follows *Continue playing*; the All games grid keeps its sort. A row that's empty when you save keeps its last saved place; a brand-new row (a new collection) starts right after the row it follows in the automatic order.
+- The game page header uses CSS scroll-driven animations (WebView2/Chromium 115+); the scripted fallback is exercised in tests with `?dockFallback`. In windows narrower than 1150 px the hero shows no cover, so the bar's cover simply fades in.
+
 **Platform**
 - UI tests run in Chromium against preview data. Tests against the real WebView2 are manual (`ui/scripts/cdp-shot.mjs`).
 - Display-scaling changes, monitor hot-plug, sleep/resume and controller hot-plug have not been tested yet.

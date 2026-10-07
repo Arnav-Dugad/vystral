@@ -1,0 +1,109 @@
+/* ===== Track Z: row headers, moving rows, the row order list =====
+   Left from a Home row's first card focuses its header; hold Y (or A) there to pick the row up.
+   While it's up it lifts on a plate with a deep shadow, the other rows dim and slide past it
+   (motion layout), and the info area lists the row order. */
+
+/* ----- Header focus: the row title becomes a pill in the palette colours ----- */
+.imm__row-title[data-header-focus] { position: relative; }
+.imm__row-title[data-header-focus] .imm__row-name {
+  padding: 0.28rem 0.85rem;
+  margin-left: -0.85rem;
+  border-radius: var(--r-pill);
+  background: oklch(from var(--ring, var(--accent)) l c h / 0.2);
+  box-shadow: 0 0 0 2px oklch(from var(--ring, var(--accent)) 0.86 c h / 0.9), 0 0 26px -4px oklch(from var(--ring, var(--accent)) l c h / 0.7);
+}
+.imm__row-title[data-header-focus] .imm__row-name::after { display: none; }
+.imm__row-move { position: relative; display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.4rem; padding: 0.2rem 0.65rem 0.2rem 0.3rem; border-radius: var(--r-pill); overflow: hidden; font-size: 0.8rem; font-weight: var(--fw-medium); color: oklch(0.92 0 0); background: oklch(0.12 0.01 282 / 0.55); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.12); }
+/* Holding Y fills the chip, like the quick menu's hold on the ring. */
+.imm__row-move-hold { position: absolute; inset: 0; z-index: -1; transform: scaleX(0); transform-origin: 0 50%; background: linear-gradient(90deg, oklch(from var(--ring, var(--accent)) l c h / 0.55), oklch(from var(--ring-2, var(--accent)) l c h / 0.3)); }
+.imm__row-move { isolation: isolate; }
+.imm__row-title[data-holding] .imm__row-move-hold { animation: imm-row-hold 420ms linear forwards; }
+@keyframes imm-row-hold { to { transform: scaleX(1); } }
+.imm__row-move--lifted { background: oklch(from var(--ring, var(--accent)) l c h / 0.3); box-shadow: inset 0 0 0 1px oklch(from var(--ring, var(--accent)) 0.85 c h / 0.6); }
+.imm[data-header] .imm__row[data-active='true'] .imm__card[data-focused='true'] .imm__card-frame { --s: 1; box-shadow: var(--shadow-2), 0 0 0 1px oklch(1 0 0 / 0.07); }
+
+/* ----- A row picked up: a lifted plate, the rest dimmed ----- */
+.imm[data-moving] .imm__row { opacity: 0.32; }
+.imm[data-moving] .imm__row[data-lifted] { opacity: 1; z-index: 2; }
+.imm__row[data-lifted]::before {
+  content: '';
+  position: absolute;
+  inset: -0.35rem -0.9rem 0.2rem;
+  z-index: -1;
+  border-radius: calc(var(--r-xl) * 1.2);
+  background: linear-gradient(180deg, oklch(from var(--ring, var(--accent)) 0.3 calc(c * 0.5) h / 0.42), oklch(0.1 0.01 282 / 0.5));
+  box-shadow:
+    0 0 0 1.5px oklch(from var(--ring, var(--accent)) 0.85 c h / 0.55),
+    0 40px 80px -30px oklch(0 0 0 / 0.95),
+    0 14px 30px -14px oklch(0 0 0 / 0.7);
+  animation: imm-lift 320ms var(--ease-emph) both;
+}
+@keyframes imm-lift { from { opacity: 0; transform: translateY(0.5rem) scale(0.985); } to { opacity: 1; transform: none; } }
+.imm__row[data-lifted] .imm__card-frame { --s: 1.03; box-shadow: 0 30px 60px -20px oklch(0 0 0 / 0.9); }
+.imm__row[data-lifted] .imm__row-title { transform: scale(1.04); }
+.imm[data-moving] .imm__row-count { display: none; }
+.imm[data-reduced='true'] .imm__row[data-lifted]::before { animation: none; }
+
+/* ----- The row order list (the info area while moving) ----- */
+.imm__info-item--moving { align-self: end; }
+.imm-move { display: grid; gap: 0.7rem; max-width: 28rem; }
+.imm-move__head { display: flex; align-items: baseline; gap: 1rem; }
+.imm-move__eyebrow { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: var(--fw-semibold); letter-spacing: 0.18em; text-transform: uppercase; color: oklch(from var(--ring, var(--accent)) 0.9 c h); }
+.imm-move__where { font-size: 0.85rem; color: oklch(0.8 0.01 282); }
+.imm-move__window {
+  position: relative;
+  height: min(calc(2.05rem * 5), max(4.1rem, calc(100cqh - 3.4rem)));
+  overflow: hidden;
+  mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+}
+/* The lifted row sits in the middle of the window; the list slides under it. */
+.imm-move__list { position: absolute; left: 0; right: 0; top: calc(50% - 1.025rem); margin: 0; padding: 0; list-style: none; }
+.imm-move__item { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 0.8rem; height: 2.05rem; padding: 0 0.8rem; border-radius: var(--r-md); font-size: 1rem; color: oklch(0.88 0.01 282); white-space: nowrap; }
+.imm-move__item[data-lifted] {
+  font-weight: var(--fw-semibold);
+  color: oklch(0.99 0 0);
+  background: oklch(from var(--ring, var(--accent)) l c h / 0.28);
+  box-shadow: inset 0 0 0 1.5px oklch(from var(--ring, var(--accent)) 0.86 c h / 0.75), 0 12px 30px -12px oklch(0 0 0 / 0.8);
+}
+.imm-move__n { width: 1.4rem; text-align: right; font-size: 0.8rem; color: oklch(0.7 0.01 282); }
+.imm-move__item[data-lifted] .imm-move__n { color: oklch(0.95 0 0); }
+.imm-move__name { overflow: hidden; text-overflow: ellipsis; }
+
+/* ----- Quick menu: Move row (Y), under the ring ----- */
+.imm-quick__move {
+  position: absolute;
+  left: 50%;
+  bottom: 5.4rem;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 48px;
+  padding: 0 1.1rem 0 0.95rem;
+  border-radius: var(--r-pill);
+  font-size: 0.92rem;
+  color: oklch(0.95 0 0);
+  background: oklch(0.14 0.012 282 / 0.72);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.14);
+  backdrop-filter: blur(14px);
+}
+.imm-quick__move:hover { background: oklch(0.2 0.014 282 / 0.82); }
+
+/* ----- Display sheet: the big clock and Reset row order ----- */
+.imm-couch__row:has(> .imm-couch__switch), .imm-couch__row:has(> .imm-couch__reset) { grid-template-columns: minmax(0, 1fr) auto; }
+.imm-couch__sub { display: block; margin-top: 0.15rem; font-size: 0.8rem; font-weight: var(--fw-regular); color: oklch(0.76 0.01 282); }
+.imm-couch__reset { justify-self: end; display: inline-flex; align-items: center; height: 2.2rem; padding: 0 1rem; border-radius: var(--r-pill); font-weight: var(--fw-medium); background: oklch(1 0 0 / 0.1); outline: none; }
+.imm-couch__reset:hover:not([aria-disabled]) { background: oklch(1 0 0 / 0.18); }
+.imm-couch__reset[aria-disabled] { color: oklch(0.74 0.01 282); background: transparent; box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.14); cursor: default; }
+.imm-couch__reset:focus-visible { box-shadow: 0 0 0 3px oklch(from var(--accent) 0.92 c h); }
+
+/* ----- High contrast: solid fills and strong edges ----- */
+:root[data-theme='contrast'] .imm__row-title[data-header-focus] .imm__row-name { background: oklch(0 0 0); box-shadow: 0 0 0 3px oklch(0.9 0.18 100); }
+:root[data-theme='contrast'] .imm__row[data-lifted]::before { background: oklch(0 0 0); box-shadow: 0 0 0 3px oklch(0.9 0.18 100); }
+:root[data-theme='contrast'] .imm-move__item[data-lifted] { background: oklch(0 0 0); box-shadow: inset 0 0 0 3px oklch(0.9 0.18 100); }
+:root[data-theme='contrast'] .imm-quick__move, :root[data-theme='contrast'] .imm__row-move { background: oklch(0 0 0); backdrop-filter: none; box-shadow: inset 0 0 0 2px oklch(1 0 0); }
+:root[data-theme='contrast'] .imm[data-moving] .imm__row { opacity: 0.5; }
+@media (forced-colors: active) {
+  .imm__row-title[data-header-focus] .imm__row-name, .imm-move__item[data-lifted] { outline: 3px solid Highlight; box-shadow: none; }
+  .imm__row[data-lifted]::before { border: 3px solid Highlight; box-shadow: none; }
+}

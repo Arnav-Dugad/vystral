@@ -23,6 +23,13 @@ export const TRACK_T_DEFAULT_SETTINGS: Pick<Settings, 'voiceover.enabled' | 'voi
   'immersive.librarySort': 'az',
 };
 
+/** Track Z: your own Home row order (automatic), the screensaver's big clock (off) and trailers (on). */
+export const TRACK_Z_DEFAULT_SETTINGS: Pick<Settings, 'immersive.rowOrder' | 'immersive.attractClock' | 'immersive.attractTrailers'> = {
+  'immersive.rowOrder': '',
+  'immersive.attractClock': false,
+  'immersive.attractTrailers': true,
+};
+
 declare global {
   interface Window {
     __vystralPreviewSystem?: { set(patch: Partial<SystemStatus>): void; calls: number };
@@ -37,6 +44,8 @@ export function immersivePreviewHandlers() {
     battery: params.has('nobattery') ? null : { percent: 76, charging: false, saver: false },
     network: params.has('offline') ? { kind: 'none', bars: null, internet: false } : { kind: 'wifi', bars: 3, internet: true },
     controllers: [{ battery: 0.62, charging: false, wired: false }],
+    // Track Z: `?clock24` / `?clock12` stand in for Windows' regional time format; otherwise the language default.
+    clock24h: params.has('clock24') ? true : params.has('clock12') ? false : null,
   };
   const hooks = {
     calls: 0,

@@ -33,3 +33,80 @@
 .attract__progress { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; transform-origin: 0 50%; background: linear-gradient(90deg, oklch(from var(--accent) l c h / 0.1), oklch(from var(--accent) 0.85 c h / 0.7)); animation: attract-progress linear both; }
 @keyframes attract-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 :root[data-reduced-motion='true'] .attract__progress, :root[data-reduced-motion='true'] .attract__loop { display: none; }
+
+/* ----- Track Z: rediscoveries, the wake hints, the big clock ----- */
+.attract__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+  font-size: 0.78rem;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: oklch(0.9 0.04 282);
+  text-shadow: 0 1px 12px oklch(0 0 0 / 0.7);
+}
+.attract__kicker::before { content: ''; width: 2.2rem; height: 1px; background: linear-gradient(90deg, transparent, oklch(0.95 0 0 / 0.8)); }
+.attract__sub { letter-spacing: 0.01em; }
+.attract__loop[data-paused] { transition: opacity 1.4s var(--ease-out); }
+.attract__wake { display: flex; align-items: center; gap: 1.6rem; animation: none; color: oklch(0.86 0 0); letter-spacing: normal; text-transform: none; }
+.attract__wake .pad-hint { font-size: 0.95rem; color: oklch(0.94 0 0); text-shadow: 0 1px 10px oklch(0 0 0 / 0.7); }
+.attract__wake-any { font-size: 0.8rem; letter-spacing: 0.16em; text-transform: uppercase; animation: attract-breathe 3.2s ease-in-out infinite; }
+:root[data-reduced-motion='true'] .attract__wake-any { animation: none; opacity: 0.75; }
+
+/* The big clock: light, wide-set digits centred on the screen, drifting a little every minute. */
+@property --clock-tint { syntax: '<color>'; inherits: true; initial-value: oklch(0.75 0.15 292); }
+.attract[data-clock] .attract__scrim {
+  background:
+    radial-gradient(70% 60% at 50% 48%, oklch(0.03 0.01 282 / 0.62), transparent 75%),
+    radial-gradient(120% 80% at 50% 120%, oklch(0.04 0.01 282 / 0.85), transparent 60%),
+    linear-gradient(180deg, oklch(0.04 0.01 282 / 0.55), oklch(0.04 0.01 282 / 0.35) 40%, oklch(0.04 0.01 282 / 0.8));
+}
+.attract[data-clock] .attract__caption { bottom: 3.6rem; max-width: 44vw; }
+.attract[data-clock] .attract__logo { max-height: 5.5rem; max-width: min(24vw, 380px); }
+.attract[data-clock] .attract__title { font-size: clamp(1.6rem, 2.4vw, 2.6rem); }
+.attract-clock { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; transition: --clock-tint 1.6s var(--ease-out); }
+.attract-clock__face { position: relative; display: grid; justify-items: center; gap: 1.1rem; transition: transform 9s cubic-bezier(0.45, 0, 0.25, 1); will-change: transform; }
+.attract-clock__time {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-start;
+  font-family: var(--font-ui);
+  font-size: clamp(7rem, 17vw, 21rem);
+  font-weight: 200;
+  line-height: 0.86;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+  color: oklch(0.985 0.004 282);
+  text-shadow: 0 0 60px oklch(from var(--clock-tint) l c h / 0.35), 0 8px 60px oklch(0 0 0 / 0.55);
+}
+.attract-clock__period { margin: 0.32em 0 0 0.22em; font-size: 0.15em; font-weight: 500; letter-spacing: 0.2em; color: oklch(0.9 0.02 282); }
+.attract-clock__date { font-size: clamp(0.95rem, 1.2vw, 1.4rem); font-weight: var(--fw-medium); letter-spacing: 0.32em; text-transform: uppercase; color: oklch(0.86 0.02 282); text-shadow: 0 1px 16px oklch(0 0 0 / 0.7); }
+/* The glow breathes slowly in the showcased game's colour. */
+.attract-clock__glow {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: 150%;
+  aspect-ratio: 2.2;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, oklch(from var(--clock-tint) l c h / 0.38), oklch(from var(--clock-tint) l c h / 0.12) 55%, transparent 100%);
+  filter: blur(18px);
+  animation: attract-clock-breathe 7s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes attract-clock-breathe {
+  0%, 100% { opacity: 0.5; transform: scale(0.94); }
+  50% { opacity: 0.95; transform: scale(1.05); }
+}
+:root[data-reduced-motion='true'] .attract-clock__glow, :root[data-quality='low'] .attract-clock__glow { animation: none; opacity: 0.7; }
+:root[data-reduced-motion='true'] .attract-clock__face { transition: none; }
+:root[data-theme='contrast'] .attract-clock__glow { display: none; }
+:root[data-theme='contrast'] .attract-clock__time, :root[data-theme='contrast'] .attract-clock__date { color: oklch(1 0 0); text-shadow: none; }
+:root[data-theme='contrast'] .attract[data-clock] .attract__scrim { background: oklch(0 0 0 / 0.78); }
+@media (forced-colors: active) {
+  .attract-clock__glow { display: none; }
+  .attract-clock__time, .attract-clock__date { color: CanvasText; }
+}

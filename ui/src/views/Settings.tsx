@@ -316,6 +316,14 @@ function Controller({ s }: { s: Settings }) {
           hint={`${s['immersive.attractMinutes']} minute${s['immersive.attractMinutes'] === 1 ? '' : 's'} without input`}
           control={<div style={{ width: 200 }}><Slider label="Screensaver delay in minutes" value={s['immersive.attractMinutes']} min={1} max={30} step={1} onChange={(v) => void useStore.getState().setSetting('immersive.attractMinutes', v)} /></div>}
         />
+        {/* Track Z: trailer loops and the big clock in the screensaver; your own Home row order. */}
+        <BoolRow s={s} k="immersive.attractTrailers" label="Trailers in the screensaver" hint="Silent trailer loops of games you haven't played in a while. Never with Data saver, Offline mode or Low quality, and paused on battery saver." />
+        <BoolRow s={s} k="immersive.attractClock" label="Big clock in the screensaver" hint="A large, quiet clock for TVs. It moves a little every minute so it can't burn in, and follows your Windows 12- or 24-hour format." />
+        <Row
+          label="Immersive Home row order"
+          hint={`${s['immersive.rowOrder'] ? 'Your own order.' : 'By time of day.'} In Immersive Mode, go left past a row’s first game and hold Y to move it.`}
+          control={<Button size="sm" disabled={!s['immersive.rowOrder']} onClick={() => void useStore.getState().setSetting('immersive.rowOrder', '')}>Reset row order</Button>}
+        />
         <Row label="Try Immersive Mode" control={<Button size="sm" icon={<Gamepad2 size={14} />} onClick={() => void setMode('immersive')}>Open</Button>} />
       </Group>
       <div className="pad-legend surface">

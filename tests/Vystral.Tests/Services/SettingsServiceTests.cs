@@ -44,7 +44,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(1, all["immersive.scale"]!.GetValue<double>());
         Assert.Equal(0, all["immersive.safeArea"]!.GetValue<double>());
         Assert.False(all["immersive.tourDone"]!.GetValue<bool>());
-        Assert.Equal(102, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7) + Track H (1) + Track M (2) + Track L (4) + Track S (1) + Track P (2) + Track O (7) + Track T (7) + Track Y (5) + Track X (3) + Track V (9) + Track U (1) + Track W (4)
+        Assert.Equal(105, all.Count); // 28 original + Track A/C (5) + Track B (10) + Track F (2) + Track E (1) + Track K (3) + Track I (7) + Track H (1) + Track M (2) + Track L (4) + Track S (1) + Track P (2) + Track O (7) + Track T (7) + Track Y (5) + Track X (3) + Track V (9) + Track U (1) + Track W (4) + Track Z (3)
     }
 
     [Fact]
@@ -157,6 +157,25 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.NotNull(_s.Set("voiceover.voice", JsonValue.Create("line\nbreak")));
         Assert.NotNull(_s.Set("voiceover.voice", JsonValue.Create(new string('a', 201))));
         Assert.Equal("Microsoft Zira - English (United States)", _s.GetString("voiceover.voice"));
+    }
+
+    [Fact]
+    public void Track_z_row_order_and_screensaver_settings_are_validated()
+    {
+        Assert.Equal("", _s.GetString("immersive.rowOrder"));
+        Assert.False(_s.GetAll()["immersive.attractClock"]!.GetValue<bool>());
+        Assert.True(_s.GetAll()["immersive.attractTrailers"]!.GetValue<bool>());
+        const string order = "favorites|continue|collection:0192f2a1b3c44d5e8f90a1b2c3d4e5f6|genres";
+        Assert.Null(_s.Set("immersive.rowOrder", JsonValue.Create(order)));
+        Assert.Equal(order, _s.GetString("immersive.rowOrder"));
+        Assert.NotNull(_s.Set("immersive.rowOrder", JsonValue.Create("continue|<script>")));
+        Assert.NotNull(_s.Set("immersive.rowOrder", JsonValue.Create("continue|picked\n")));
+        Assert.NotNull(_s.Set("immersive.rowOrder", JsonValue.Create("a b")));
+        Assert.NotNull(_s.Set("immersive.rowOrder", JsonValue.Create(new string('a', 2001))));
+        Assert.NotNull(_s.Set("immersive.rowOrder", J("[\"continue\"]")));
+        Assert.Equal(order, _s.GetString("immersive.rowOrder"));
+        Assert.Null(_s.Set("immersive.rowOrder", JsonValue.Create(""))); // Reset row order
+        Assert.Equal("", _s.GetString("immersive.rowOrder"));
     }
 
     [Theory]

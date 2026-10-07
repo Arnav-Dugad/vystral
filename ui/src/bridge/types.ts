@@ -1042,3 +1042,19 @@ export interface BridgeEvents {
 }
 
 export type * from './types.trackW';
+
+// ---------- Track Z: Immersive screensaver and row order (mirror of SettingsService / SystemStatusService) ----------
+
+export interface Settings {
+  /** Your own Home row order in Immersive: row ids joined by '|'; '' = automatic (by time of day). */
+  'immersive.rowOrder': string;
+  /** The screensaver shows a large clock (for TVs). Off by default. */
+  'immersive.attractClock': boolean;
+  /** The screensaver plays silent trailer loops (live-tile rules still apply). */
+  'immersive.attractTrailers': boolean;
+}
+
+export interface SystemStatus {
+  /** Windows' regional format uses a 24-hour clock (null/absent = unknown: use the interface language's default). */
+  clock24h?: boolean | null;
+}

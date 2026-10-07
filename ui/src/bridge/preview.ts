@@ -20,7 +20,7 @@ import { TRACKING_DEFAULT_SETTINGS, decorateTrackingSessions, trackingPreviewHan
 import { artPackPreviewHandlers } from './preview.artPacks';
 import type { DataSourcesStatus, UserArt } from './types';
 import { RECAP_DEFAULT_SETTINGS, recapPreviewHandlers } from './preview.recap';
-import { TRACK_L_DEFAULT_SETTINGS, TRACK_T_DEFAULT_SETTINGS, immersivePreviewHandlers, previewNowPlaying } from './preview.immersive';
+import { TRACK_L_DEFAULT_SETTINGS, TRACK_T_DEFAULT_SETTINGS, TRACK_Z_DEFAULT_SETTINGS, immersivePreviewHandlers, previewNowPlaying } from './preview.immersive';
 import { TRACK_P_DEFAULT_SETTINGS, previewFriendsOn, trackPPreviewHandlers } from './preview.trackP';
 import type { SteamApiStatus } from './types';
 import { healthPreviewHandlers } from './preview.health';
@@ -88,6 +88,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...SUBS_DEFAULT_SETTINGS, // Track V
   ...DISCOVER_DEFAULT_SETTINGS,
   ...TRACK_W_DEFAULT_SETTINGS,
+  ...TRACK_Z_DEFAULT_SETTINGS,
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
