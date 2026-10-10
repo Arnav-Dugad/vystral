@@ -55,7 +55,8 @@ export function useLibrarySelection(order: readonly string[]) {
       if ((e.target as HTMLElement).closest?.('[data-select-check]')) return false;
       if (e.ctrlKey || e.metaKey) setSel((s) => toggle(s, id));
       else if (e.shiftKey) setSel((s) => selectRange(s, orderRef.current, id));
-      else if (selectingRef.current) setSel((s) => toggle(s, id));
+      // While selecting, a plain click selects; Enter (a click with no pointer, detail 0) still opens the game.
+      else if (selectingRef.current && e.detail !== 0) setSel((s) => toggle(s, id));
       else return false;
       e.preventDefault();
       e.stopPropagation();
