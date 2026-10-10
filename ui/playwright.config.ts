@@ -9,8 +9,8 @@ export default defineConfig({
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.02, animations: 'disabled' } },
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
-  // GitHub's Windows runners have 4 cores; three workers keep the suite well inside the job limit.
-  workers: process.env.GITHUB_ACTIONS ? 3 : undefined,
+  // GitHub's 4-core Windows runners are overloaded with more than two browsers (CI shards the suite instead).
+  workers: process.env.GITHUB_ACTIONS ? 2 : undefined,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:5199',

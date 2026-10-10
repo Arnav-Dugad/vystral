@@ -11,7 +11,7 @@ permissions:
 jobs:
   build-and-test:
     runs-on: windows-latest
-    timeout-minutes: 75
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
 
@@ -36,21 +36,42 @@ jobs:
           npx vitest run
           npx vite build
 
-      - name: End-to-end, accessibility and visual tests (preview data)
+      - name: Build and test the native app
+        run: |
+          dotnet build Vystral.slnx -c Release -p:Platform=x64
+          dotnet test tests/Vystral.Tests -c Release
+
+  # The end-to-end suite (~300 tests against the preview backend) is split across three runners so each
+  # stays well inside its time limit; a 4-core runner is overloaded with more than two browsers at once.
+  e2e:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install UI dependencies
+        working-directory: ui
+        run: npm ci --no-audit --no-fund
+
+      - name: End-to-end, accessibility and visual tests (preview data), shard ${{ matrix.shard }} of 3
         working-directory: ui
         run: |
           npx playwright install --with-deps chromium
-          npx playwright test
-        continue-on-error: false
+          npx playwright test --shard=${{ matrix.shard }}/3
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: ui/playwright-report
-
-      - name: Build and test the native app
-        run: |
-          dotnet build Vystral.slnx -c Release -p:Platform=x64
-          dotnet test tests/Vystral.Tests -c Release
