@@ -4,6 +4,7 @@ import { CompatTile, PriceTile, RatingsTile, ReleaseTile, ReviewsTile, TtbTile }
 import { TileSkeleton } from './StatTile';
 import { openOnSteam, useInsightSettingsKey } from './GameInsights';
 import { useBridgeData } from './useBridgeData';
+import { storeText } from '../../../lib/money'; // Track D6: in the display currency
 import './insights.css';
 
 /**
@@ -39,7 +40,7 @@ export function DiscoverInsights({ d }: { d: DiscoverDetails }) {
         />
         {hasPrice ? (
           <PriceTile facts={f && f.status !== 'off' ? f : null} deals={deals.data} index={i++}
-            fallback={price ? { text: price.formatted, initial: price.initial, discount: price.discountPercent, comingSoon: price.comingSoon, free: price.free } : null} />
+            fallback={price ? { text: storeText(price.formatted, price.currency), initial: storeText(price.initial, price.currency), discount: price.discountPercent, comingSoon: price.comingSoon, free: price.free } : null} />
         ) : p && facts.loading ? <TileSkeleton wide label="Price" /> : null}
         {d.timeToBeat && <TtbTile ttb={d.timeToBeat} index={i++} />}
         {showReviews ? <ReviewsTile r={r!} onOpen={openOnSteam(p!)} index={i++} /> : p && reviews.loading ? <TileSkeleton label="Steam reviews" /> : null}

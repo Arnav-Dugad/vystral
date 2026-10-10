@@ -82,6 +82,7 @@ public sealed partial class AppBackend
     private void ConfirmStartWhenStable()
     {
         _uiReady = true;
+        StartHistoryOnReady(); // Track D6: the crash-free streak's own record (also in development builds)
         if (StartupProtection.StartedVersion is not { } version || _startup is null) return;
         _ = Task.Run(async () =>
         {
@@ -106,6 +107,7 @@ public sealed partial class AppBackend
     {
         // Track AA: after a failed self-check a clean exit doesn't clear the attempt either.
         if (StartupProtection.StartedVersion is { } version) _startup?.MarkCleanExit(version, _uiReady && !_selfCheckHardFailure);
+        StartHistoryOnCleanExit(); // Track D6
         _healthIo?.Dispose();
     }
 }

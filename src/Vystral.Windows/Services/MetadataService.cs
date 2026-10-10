@@ -80,8 +80,33 @@ public sealed partial class MetadataService(LibraryRepository repo, ArtworkServi
     private async Task<string> GetDetailsJsonAsync(string appId, CancellationToken ct)
     {
         await ThrottleAsync(ct);
-        return await http.GetStringAsync(
-            $"https://store.steampowered.com/api/appdetails?appids={Uri.EscapeDataString(appId)}&l=english", ct);
+        return await Reported(() => http.GetStringAsync(
+            $"https://store.steampowered.com/api/appdetails?appids={Uri.EscapeDataString(appId)}&l=english", ct), ct);
+    }
+
+    /// <summary>Track D6: these direct store requests report to the Steam store health row like the shared lane does.</summary>
+    private static async Task<string> Reported(Func<Task<string>> get, CancellationToken ct)
+    {
+        const string id = "steam.store";
+        ProviderHealthHub.Sent(id);
+        try
+        {
+            var body = await get();
+            ProviderHealthHub.Answered(id);
+            return body;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode is { } status)
+        {
+            if (status == HttpStatusCode.TooManyRequests || status == HttpStatusCode.Forbidden)
+                ProviderHealthHub.Failed(id, "Steam asked VYSTRAL to slow down; details are paused until the next run");
+            else ProviderHealthHub.Status(id, status, "Steam");
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+        {
+            ProviderHealthHub.Failed(id, ex);
+            throw;
+        }
     }
 
     private void CaptureTrailer(string gameId, string appId, string json)
@@ -123,8 +148,8 @@ public sealed partial class MetadataService(LibraryRepository repo, ArtworkServi
     private async Task<string?> FindExactSteamMatchAsync(string title, CancellationToken ct)
     {
         await ThrottleAsync(ct);
-        var json = await http.GetStringAsync(
-            $"https://store.steampowered.com/api/storesearch/?term={Uri.EscapeDataString(title)}&l=english&cc=US", ct);
+        var json = await Reported(() => http.GetStringAsync(
+            $"https://store.steampowered.com/api/storesearch/?term={Uri.EscapeDataString(title)}&l=english&cc=US", ct), ct);
         return PickExactMatch(title, json);
     }
 

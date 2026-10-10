@@ -6,6 +6,8 @@ import type { PlatformKey, ValueTimeline } from '../../bridge/types';
 import { formatRelative, PLATFORM_NAMES } from '../../lib/format';
 import { cumulativeValue, formatCents, SINCE_LABEL, storesIn, topValue, yearMarkers, type ValuePoint } from '../../lib/dataSources';
 import { useReducedMotion, useStore } from '../../state/store';
+import { useMoney } from '../../state/money'; // Track D6
+import { Price } from '../../components/ui/Price';
 import { Button, EmptyState, SectionHead, Segmented, Skeleton } from '../../components/ui/primitives';
 import { StoreLogo } from '../../components/ui/StoreLogo';
 import { StatTile } from '../perf/kit';
@@ -59,6 +61,13 @@ export function LibraryValue() {
   const points = useMemo(() => (data ? cumulativeValue(data.games, data.currency, store) : []), [data, store]);
   const top = useMemo(() => (data ? topValue(data.games, data.currency, 5, store) : []), [data, store]);
   const gamesById = useStore((s) => s.gamesById);
+  // Track D6: the whole chart in the chosen currency (one rate for the whole series, never a mix).
+  const money = useMoney();
+  const conv = useMemo(() => {
+    const r = money.series([1], data?.currency ?? null);
+    return { rate: r.values[0], currency: r.currency, approx: r.approx };
+  }, [money, data?.currency]);
+  const shownPoints = useMemo(() => (conv.approx ? points.map((p) => ({ ...p, cents: Math.round(p.cents * conv.rate) })) : points), [points, conv]);
 
   if (error) return <EmptyState icon={<Library size={32} />} title="Library value couldn’t be loaded" body={error} />;
   if (!data) return <div className="lv"><div className="vx-tiles"><Skeleton height={92} /><Skeleton height={92} /><Skeleton height={92} /></div><Skeleton height={300} /></div>;
@@ -74,7 +83,7 @@ export function LibraryValue() {
       <div className="lv-honest surface" role="note">
         <Info size={16} aria-hidden />
         <p>
-          <strong>Current price, not what you paid.</strong> Values are today’s Steam store prices{data.currency ? ` in ${data.currency}` : ''} ({data.country}).
+          <strong>Current price, not what you paid.</strong> Values are today’s Steam store prices{data.currency ? ` in ${data.currency}` : ''} ({data.country}){conv.approx ? `, shown in ${conv.currency} at the day’s exchange rate (approximate)` : ''}.
           Steam doesn’t share purchase dates, so each game is placed at the <em>earliest evidence</em> VYSTRAL has — its first tracked session, first Steam achievement,
           a last-played date from the store, or when VYSTRAL first saw it — and every date says which.
         </p>
@@ -94,18 +103,18 @@ export function LibraryValue() {
       </div>
 
       <div className="vx-tiles lv-tiles">
-        <StatTile icon={<Coins size={13} />} label="Current value" value={<span className="num">{data.currency ? formatCents(scopedTotal, data.currency) : '—'}</span>}
+        <StatTile icon={<Coins size={13} />} label="Current value" value={data.currency ? <Price amount={scopedTotal} currency={data.currency} minor /> : <span className="num">—</span>}
           sub={pricing ? 'Fetching current Steam prices…' : `${priced} of ${scoped.length} games priced`} unavailable={!data.currency} />
         <StatTile icon={<Library size={13} />} label="Games" value={<span className="num">{scoped.length.toLocaleString()}</span>} sub={store === 'all' ? 'Hidden games are left out' : PLATFORM_NAMES[store]} />
         <StatTile icon={<CalendarClock size={13} />} label="Earliest" value={<span>{oldest ? new Date(oldest.since).getFullYear() : '—'}</span>}
           sub={oldest ? `${oldest.title} · ${SINCE_LABEL[oldest.sinceSource].toLowerCase()}` : undefined} />
-        <StatTile icon={<Gem size={13} />} label="Most valuable" value={<span className="num">{top[0] ? formatCents(top[0].priceCents!, data.currency) : '—'}</span>} sub={top[0]?.title ?? 'No prices yet'} />
+        <StatTile icon={<Gem size={13} />} label="Most valuable" value={top[0] ? <Price amount={top[0].priceCents!} currency={data.currency} minor /> : <span className="num">—</span>} sub={top[0]?.title ?? 'No prices yet'} />
       </div>
 
       <section className="surface vx-card" aria-labelledby="lv-chart-title">
-        <SectionHead title={<span id="lv-chart-title">Library over time</span>} meta={data.currency ? `Cumulative current value · ${data.currency}` : 'Games over time (no prices yet)'} />
+        <SectionHead title={<span id="lv-chart-title">Library over time</span>} meta={data.currency ? `Cumulative current value · ${conv.currency ?? data.currency}${conv.approx ? ` (converted from ${data.currency}, approximate)` : ''}` : 'Games over time (no prices yet)'} />
         {points.length >= 2
-          ? <ValueChart points={points} currency={data.currency} titleOf={(id) => scoped.find((g) => g.gameId === id)?.title ?? gamesById.get(id)?.title ?? ''} />
+          ? <ValueChart points={shownPoints} currency={conv.currency ?? data.currency} titleOf={(id) => scoped.find((g) => g.gameId === id)?.title ?? gamesById.get(id)?.title ?? ''} />
           : <p className="lv-muted">Not enough history to draw yet.</p>}
       </section>
 
@@ -118,7 +127,7 @@ export function LibraryValue() {
                 <li key={g.gameId}>
                   <span className="lv-top__rank num" aria-hidden>{i + 1}</span>
                   <button className="lv-top__title" onClick={() => navigate({ name: 'game', id: g.gameId })}>{g.title}</button>
-                  <span className="num lv-top__price">{g.formatted ?? formatCents(g.priceCents!, g.currency)}</span>
+                  {g.formatted && g.currency === money.target ? <span className="num lv-top__price">{g.formatted}</span> : <Price className="lv-top__price" amount={g.priceCents!} currency={g.currency} minor />}
                   {g.regularCents != null && g.priceCents != null && g.regularCents > g.priceCents && (
                     <span className="lv-top__sale">on sale (usually {formatCents(g.regularCents, g.currency)})</span>
                   )}

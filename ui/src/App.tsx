@@ -1,4 +1,4 @@
-import { forwardRef, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { forwardRef, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion, useIsPresent } from 'motion/react';
 import { exit, pick, spring } from './lib/motion';
 import { startInput } from './lib/input';
@@ -31,6 +31,8 @@ import { DiscoverGameView } from './views/DiscoverGame';
 import { FieldKeyboardHost } from './components/controller/FieldKeyboard';
 import { Sparkles } from 'lucide-react';
 import { openSmartCollection, SmartCollectionHost } from './components/ai/SmartCollectionDialog'; // Track C5
+import { getMoneyContext, onMoneyContext } from './lib/money'; // Track D6
+import { ensureMoney } from './state/money';
 import './components/shell/shell.css';
 
 const SettingsView = lazy(() => import('./views/Settings').then((m) => ({ default: m.SettingsView })));
@@ -54,6 +56,14 @@ export default function App() {
   const mode = useStore((s) => s.window.mode);
   const reduce = useReducedMotion();
   const running = useGameRunning();
+  // Track D6: new exchange rates or another display currency re-render every price on screen.
+  useSyncExternalStore(onMoneyContext, getMoneyContext, getMoneyContext);
+  useEffect(() => {
+    if (!ready) return;
+    // Rates are read a few seconds after start (never in the first paint's way); the backend fetches at most daily.
+    const t = window.setTimeout(ensureMoney, 4000);
+    return () => window.clearTimeout(t);
+  }, [ready]);
   const [collapsed, setCollapsed] = useState(() => innerWidth < 1100);
 
   useEffect(() => {
@@ -250,7 +260,7 @@ function View({ route }: { route: Route }) {
     case 'moments': return <MomentsView />;
     case 'constellation': return <ConstellationView />;
     case 'assistant': return <AssistantView />;
-    case 'settings': return <SettingsView section={route.section} />;
+    case 'settings': return <SettingsView section={route.section} row={route.row} />;
     case 'storage': return <StorageStudioView />;
     case 'health': return <HealthView />;
     case 'discover': return <DiscoverView query={route.query} genre={route.genre} />;

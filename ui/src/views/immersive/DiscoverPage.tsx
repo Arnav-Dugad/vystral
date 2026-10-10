@@ -22,6 +22,7 @@ import { StoreLogo } from '../../components/ui/StoreLogo';
 import { ServiceLogo } from '../../components/ui/ServiceLogo';
 import { PadGlyph, PadHint } from '../../components/ui/primitives';
 import { pageSummary, type DiscoverItem } from './discoverRows';
+import { storeText } from '../../lib/money'; // Track D6: in the display currency
 import './immersive-discover.css';
 
 const KEY_DIRS: Record<string, Dir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
@@ -180,8 +181,8 @@ export function DiscoverPage({
   const stats = d ? [
     {
       icon: <Tag size={18} />, label: 'Steam price',
-      value: price?.free ? 'Free to play' : price?.formatted ?? (price?.comingSoon ? 'Not out yet' : d.steamAppId ? 'Not sold alone' : 'Not on Steam'),
-      hint: price?.discountPercent ? `−${price.discountPercent}% · was ${price.initial}` : null,
+      value: price?.free ? 'Free to play' : storeText(price?.formatted, price?.currency) ?? (price?.comingSoon ? 'Not out yet' : d.steamAppId ? 'Not sold alone' : 'Not on Steam'),
+      hint: price?.discountPercent ? `−${price.discountPercent}% · was ${storeText(price.initial, price.currency)}` : null,
     },
     {
       icon: <Hourglass size={18} />, label: 'Time to beat',

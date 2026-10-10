@@ -7,6 +7,8 @@ import type { AchievementProgress, Compat, Deals, Game, ReviewsSnapshot, Session
 import { DECK_LABEL, deckTone, formatHours } from '../../../lib/dataSources';
 import { formatBytes, formatDate, formatDuration, formatRelative, isInstalled, plural, sizeOf } from '../../../lib/format';
 import { formatMoney } from '../../../lib/wishlist';
+import { needsConversion } from '../../../lib/money';
+import { useMoneyContext } from '../../../state/money'; // Track D6
 import { compact, priceChart, pricePosition, releaseAge, reviewTone, trendText, weeklyPlay, type RatingRow } from '../../../lib/gamePage';
 import { playedSeconds, ttbProgress, TTB_HINT } from '../../../lib/timeToBeat';
 import type { TimeToBeat } from '../../../bridge/types';
@@ -227,6 +229,8 @@ export function PriceTile({ facts, deals, fallback, index }: {
   const id = useId();
   const [ref, width] = useWidth<HTMLDivElement>(360);
   const [active, setActive] = useState<number | null>(null);
+  // Track D6: every amount (the whole chart included) is shown in the chosen currency; the Steam row keeps the store's own text.
+  const moneyCtx = useMoneyContext();
   const sold = !!facts?.sold && facts.priceCents != null;
   const currency = facts?.currency ?? null;
   const quotes = deals?.quotes.filter((q) => q.offers.length || q.historicalLow != null) ?? [];
@@ -315,6 +319,7 @@ export function PriceTile({ facts, deals, fallback, index }: {
         {sold ? `Steam store price for ${facts!.country}${checked(facts!.fetchedAt)}` : fallback?.text ? 'Steam store price' : 'Steam store'}
         {chart ? ' · history: prices VYSTRAL saw on this PC' : ''}
         {quotes.length ? ` · deals and lowest ever from ${[...new Set(quotes.map((q) => (q.provider === 'itad' ? 'IsThereAnyDeal' : 'CheapShark')))].join(' and ')}${quotes.some((q) => q.currency && q.currency !== currency) ? ` (${[...new Set(quotes.map((q) => q.currency).filter(Boolean))].join(', ')})` : ''}` : ''}
+        {sold && needsConversion(currency, moneyCtx) ? ` · shown in ${moneyCtx.target} at the day’s exchange rate (approximate)` : ''}
         {facts?.stale ? ' · couldn’t refresh, showing the last price' : ''}
       </>}
     />

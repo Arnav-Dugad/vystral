@@ -1,0 +1,33 @@
+/* Track D6: Settings › About › Stability (crash-free streak). */
+.streak__card { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--s-5) var(--s-8); padding: var(--s-6); }
+.streak__hero { display: flex; gap: var(--s-4); align-items: flex-start; }
+.streak__badge {
+  display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: var(--r-lg);
+  color: var(--text-2); background: var(--bg-2); box-shadow: inset 0 0 0 1px var(--line);
+}
+.streak__badge[data-clean] { color: var(--ok); background: oklch(from var(--ok) l c h / 0.12); box-shadow: inset 0 0 0 1px oklch(from var(--ok) l c h / 0.35); }
+.streak__big { font-family: var(--font-display); font-size: var(--fs-3xl); line-height: 1.05; letter-spacing: var(--tracking-tight); color: var(--text-1); }
+.streak__big .num { font-family: inherit; }
+.streak__hero .srow__label { margin-top: 6px; }
+.streak__chart { margin: 0; display: grid; gap: 6px; align-content: end; }
+.streak__bars { display: flex; align-items: flex-end; gap: 3px; height: 72px; }
+.streak__bar {
+  flex: 1; min-width: 3px; border-radius: 3px 3px 1px 1px; background: oklch(from var(--accent) l c h / 0.55);
+  transform-origin: bottom; animation: streak-grow var(--dur-slow) var(--ease-out) both;
+}
+.streak__bar[data-unexpected] { background: var(--warn); }
+.streak__bar[data-failed] { background: var(--danger); }
+@keyframes streak-grow { from { transform: scaleY(0); } }
+:root[data-reduced-motion='true'] .streak__bar { animation: none; }
+.streak__axis { display: flex; justify-content: space-between; font-size: var(--fs-2xs); color: var(--text-3); }
+.streak__incidents { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: var(--s-4); }
+.streak__subhead { display: flex; align-items: center; gap: 6px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); margin-bottom: var(--s-2); }
+.streak__incidents ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.streak__incidents li { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: var(--text-2); }
+.streak__incidents li > svg { flex: none; color: var(--warn); }
+.streak__incidents li[data-kind='failedStart'] > svg { color: var(--danger); }
+.streak__incidents li[data-kind='rollback'] > svg { color: var(--info); }
+.streak__when { margin-left: auto; color: var(--text-3); white-space: nowrap; }
+html[data-theme='contrast'] .streak__bar { background: var(--text-2); }
+html[data-theme='contrast'] .streak__bar[data-failed] { background: var(--danger); }
+@media (max-width: 900px) { .streak__card { grid-template-columns: 1fr; } }

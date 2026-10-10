@@ -5,6 +5,7 @@
 import type {
   DiscoverResult, DiscoverSearch, DiscoverShelf, DiscoverSourceId, DiscoverSourceState, PlatformKey, StorePrice, WishlistItem,
 } from '../bridge/types';
+import { centsText, getMoneyContext } from './money';
 
 // ---------------- query ----------------
 
@@ -193,14 +194,12 @@ export function splitByLibrary(results: DiscoverResult[], shownLibraryIds: Reado
 
 export function formatStorePrice(p: StorePrice | null | undefined, locale?: string): { now: string; was: string | null; cut: number } | null {
   if (!p || !/^[A-Z]{3}$/.test(p.currency) || p.finalCents < 0) return null;
-  try {
-    const fmt = new Intl.NumberFormat(locale, { style: 'currency', currency: p.currency });
-    const cut = p.initialCents > p.finalCents && p.initialCents > 0 ? Math.round((1 - p.finalCents / p.initialCents) * 100) : 0;
-    if (p.finalCents === 0) return { now: 'Free', was: cut ? fmt.format(p.initialCents / 100) : null, cut };
-    return { now: fmt.format(p.finalCents / 100), was: cut > 0 ? fmt.format(p.initialCents / 100) : null, cut };
-  } catch {
-    return null;
-  }
+  // Track D6: in the currency chosen in Settings ("≈" when converted); an explicit locale formats exactly, as before.
+  const ctx = locale ? { ...getMoneyContext(), locale, target: p.currency } : getMoneyContext();
+  const fmt = (cents: number) => centsText(cents, p.currency, { ctx });
+  const cut = p.initialCents > p.finalCents && p.initialCents > 0 ? Math.round((1 - p.finalCents / p.initialCents) * 100) : 0;
+  if (p.finalCents === 0) return { now: 'Free', was: cut ? fmt(p.initialCents) : null, cut };
+  return { now: fmt(p.finalCents), was: cut > 0 ? fmt(p.initialCents) : null, cut };
 }
 
 // ---------------- sources ----------------

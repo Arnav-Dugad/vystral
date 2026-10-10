@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NewBadge } from '../../whatsnew/NewBadge';
 import { AlertTriangle, BellRing, CloudOff, Lock, RefreshCw, Timer } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { SubsStatus } from '../../bridge/types';
 import { formatRelative } from '../../lib/format';
-import { CURRENCIES, defaultCurrency, gamePassPlan, hasListPlan, PLAN } from '../../lib/subs';
+import { gamePassPlan, hasListPlan, PLAN } from '../../lib/subs';
+import { COMMON_CURRENCIES, currencyName, formatCurrency, isCurrencyCode, parseMoneyInput } from '../../lib/money';
+import { useMoney } from '../../state/money';
 import { saveSubscriptions, usePlans, useSubsStatus, useSubsStore } from '../../state/subs';
 import { useStore } from '../../state/store';
 import { Badge, Button, Slider, Toggle } from '../../components/ui/primitives';
@@ -33,9 +35,6 @@ export function SubscriptionsSettings() {
   const plans = usePlans();
   const status = useSubsStatus();
   const [busy, setBusy] = useState(false);
-  const [price, setPrice] = useState('');
-  const savedPrice = settings?.['subs.price'] ?? 0;
-  useEffect(() => setPrice(savedPrice > 0 ? String(savedPrice) : ''), [savedPrice]);
 
   if (!settings) return null;
   const gfn = settings['cloud.gfnPlan'];
@@ -55,13 +54,6 @@ export function SubscriptionsSettings() {
     } finally {
       setBusy(false);
     }
-  };
-
-  const commitPrice = () => {
-    const n = Number(price.replace(',', '.'));
-    const v = price.trim() === '' || !Number.isFinite(n) ? 0 : Math.min(1000, Math.max(0, Math.round(n * 100) / 100));
-    setPrice(v > 0 ? String(v) : '');
-    if (v !== savedPrice) void setSetting('subs.price', v);
   };
 
   const waiting = !!status?.nextRefreshAt && Date.parse(status.nextRefreshAt) > Date.now();
@@ -151,20 +143,7 @@ export function SubscriptionsSettings() {
             <Toggle id="subs-cloud-all" label="Cloud play: show every service" checked={settings['subs.cloudShowAll']} onChange={(v) => void setSetting('subs.cloudShowAll', v)} />
           </div>
         </div>
-        <div className="srow">
-          <div className="srow__text">
-            <label className="srow__label" htmlFor="subs-price">What you pay a month (optional)</label>
-            <div className="srow__hint">All your subscriptions together. Only used to show cost per hour on Home, worked out from the time VYSTRAL tracks. Leave it empty to hide it.</div>
-          </div>
-          <div className="srow__control subsset__price">
-            <input id="subs-price" className="input" inputMode="decimal" placeholder="0.00" value={price} aria-describedby="subs-price-cur"
-              onChange={(e) => setPrice(e.target.value.replace(/[^0-9.,]/g, '').slice(0, 8))} onBlur={commitPrice} onKeyDown={(e) => e.key === 'Enter' && commitPrice()} />
-            <select id="subs-price-cur" className="input" aria-label="Currency" value={settings['subs.currency'] || ''} onChange={(e) => void setSetting('subs.currency', e.target.value)}>
-              <option value="">{defaultCurrency()}</option>
-              {CURRENCIES.filter((c) => c !== defaultCurrency()).map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
+        <SubsPriceRow />
       </div>
     </section>
   );
@@ -204,5 +183,91 @@ export function CloudQueueAlertSettings() {
         )}
       </div>
     </section>
+  );
+}
+
+/** The most “what you pay a month” accepts (room for ₹, ¥, ₩, Rp): the same limit the setting has. */
+export const SUBS_PRICE_MAX = 10_000_000;
+
+/** What the field shows for a saved price: “1299”, “12.99” (no grouping, so it reads back exactly). */
+export function subsPriceText(v: number): string {
+  return v > 0 ? String(Math.round(v * 100) / 100) : '';
+}
+
+/**
+ * Settings → Your subscriptions → what you pay a month (Track D6 fix). The old field wiped the saved price when a
+ * thousands separator was typed (“1,299.00” → empty) and silently capped it at 1,000, which broke it in currencies with
+ * large numbers (₹, ¥, ₩). Now it reads any common way of writing a price, never saves something it couldn't read (it
+ * says so instead), and the currency defaults to the one chosen for the whole app.
+ */
+function SubsPriceRow() {
+  const settings = useStore((s) => s.settings);
+  const setSetting = useStore((s) => s.setSetting);
+  const money = useMoney();
+  const saved = settings?.['subs.price'] ?? 0;
+  const [text, setText] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  if (!settings) return null;
+  const chosen = settings['subs.currency'];
+  const paidIn = isCurrencyCode(chosen) ? chosen : money.target;
+  const shown = text ?? subsPriceText(saved);
+  const exact = (v: number) => formatCurrency(v, paidIn);
+
+  const commit = () => {
+    if (text == null) return;
+    const raw = text.trim();
+    if (raw === '') {
+      setText(null);
+      setProblem(null);
+      if (saved !== 0) void setSetting('subs.price', 0);
+      return;
+    }
+    const n = parseMoneyInput(raw);
+    if (n == null) {
+      setProblem('That doesn’t look like an amount. Type it like 12.99 or 1,299.');
+      return;
+    }
+    if (n > SUBS_PRICE_MAX) {
+      setProblem(`That’s more than VYSTRAL can use here (up to ${SUBS_PRICE_MAX.toLocaleString()}).`);
+      return;
+    }
+    const v = Math.round(n * 100) / 100;
+    setProblem(null);
+    setText(null);
+    if (v !== saved) void setSetting('subs.price', v);
+  };
+  const converted = saved > 0 && paidIn !== money.target ? money.of(saved, paidIn) : null;
+
+  return (
+    <div className="srow" data-row="subs-price">
+      <div className="srow__text">
+        <label className="srow__label" htmlFor="subs-price">What you pay a month (optional)</label>
+        <div className="srow__hint" id="subs-price-hint">
+          All your subscriptions together. Only used to show cost per hour on Home, worked out from the time VYSTRAL tracks. Leave it empty to hide it.
+        </div>
+        {problem ? (
+          <div className="srow__hint subsset__problem" role="alert" id="subs-price-problem">{problem}</div>
+        ) : saved > 0 ? (
+          <div className="srow__hint subsset__saved" data-testid="subs-price-saved">
+            Saved: {exact(saved)} a month{converted?.approx ? ` · shown on Home as ${converted.text}` : ''}
+          </div>
+        ) : null}
+      </div>
+      <div className="srow__control subsset__price">
+        <input id="subs-price" className="input" inputMode="decimal" placeholder="0.00" value={shown} autoComplete="off" spellCheck={false}
+          aria-invalid={problem ? true : undefined} aria-describedby={problem ? 'subs-price-hint subs-price-problem' : 'subs-price-hint'}
+          onChange={(e) => { setText(e.target.value.replace(/[^0-9.,\s  ']/g, '').slice(0, 16)); setProblem(null); }}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commit();
+            if (e.key === 'Escape' && text != null) { e.stopPropagation(); setText(null); setProblem(null); }
+          }} />
+        <select id="subs-price-cur" className="input" aria-label="Currency of that amount" value={isCurrencyCode(chosen) ? chosen : ''}
+          onChange={(e) => void setSetting('subs.currency', e.target.value)}>
+          <option value="">{money.target} · app currency</option>
+          {COMMON_CURRENCIES.filter((c) => c !== money.target).map((c) => <option key={c} value={c} title={currencyName(c)}>{c}</option>)}
+        </select>
+      </div>
+    </div>
   );
 }

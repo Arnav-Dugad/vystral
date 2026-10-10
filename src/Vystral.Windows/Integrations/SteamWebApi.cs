@@ -124,12 +124,14 @@ public sealed partial class SteamWebApiClient(HttpClient http, Func<string?> api
             // One limit for sending and reading the body (HttpClient.Timeout stops at the headers here).
             using var timeout = Services.RequestTimeouts.Link(ct, Services.RequestTimeouts.Json);
             HttpResponseMessage response;
+            Services.ProviderHealthHub.Sent(HealthId);
             try
             {
                 response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             }
             catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException && !ct.IsCancellationRequested)
             {
+                Services.ProviderHealthHub.Failed(HealthId, ex);
                 // Log only the endpoint name, never the query (it contains the key).
                 Log.Warn("steamapi", "Request failed", new { endpoint = Endpoint(pathAndQuery), error = ex.GetType().Name });
                 throw new SteamApiException(SteamApiOutcome.Unavailable, "VYSTRAL couldn’t reach Steam. Check your connection and try again.");
@@ -140,6 +142,7 @@ public sealed partial class SteamWebApiClient(HttpClient http, Func<string?> api
                 {
                     var wait = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromMinutes(1);
                     _blockedUntil = DateTime.UtcNow + (wait < TimeSpan.FromSeconds(5) ? TimeSpan.FromSeconds(5) : wait > TimeSpan.FromHours(1) ? TimeSpan.FromHours(1) : wait);
+                    Services.ProviderHealthHub.PausedUntil(HealthId, new DateTimeOffset(_blockedUntil, TimeSpan.Zero), "Steam asked VYSTRAL to slow down (HTTP 429)");
                     Log.Warn("steamapi", "Rate limited by Steam", new { endpoint = Endpoint(pathAndQuery), seconds = (int)wait.TotalSeconds });
                     throw new SteamApiException(SteamApiOutcome.RateLimited, "Steam asked VYSTRAL to slow down. Try again in a minute.");
                 }
@@ -149,10 +152,15 @@ public sealed partial class SteamWebApiClient(HttpClient http, Func<string?> api
                 try { body = await response.Content.ReadAsStringAsync(timeout.Token); }
                 catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException && !ct.IsCancellationRequested)
                 {
+                    Services.ProviderHealthHub.Failed(HealthId, ex);
                     Log.Warn("steamapi", "Reading the answer failed", new { endpoint = Endpoint(pathAndQuery), error = ex.GetType().Name });
                     throw new SteamApiException(SteamApiOutcome.Unavailable, "Steam stopped answering. Check your connection and try again.");
                 }
                 if (body.Length > 8 * 1024 * 1024) throw new SteamApiException(SteamApiOutcome.Malformed, "Steam sent an unexpectedly large response.");
+                // 400/404 are per-request answers (a game without stats), not the API failing; 403 is a refused key or a private profile.
+                if ((int)response.StatusCode is 400 or 404) Services.ProviderHealthHub.Answered(HealthId);
+                else if (response.StatusCode == HttpStatusCode.Forbidden) Services.ProviderHealthHub.Failed(HealthId, "Steam refused the request (HTTP 403): the key was rejected or a profile is private");
+                else Services.ProviderHealthHub.Status(HealthId, response.StatusCode, "Steam");
                 return (response.StatusCode, body);
             }
         }
@@ -161,6 +169,9 @@ public sealed partial class SteamWebApiClient(HttpClient http, Func<string?> api
             _gate.Release();
         }
     }
+
+    /// <summary>Track D6: the Data sources health row.</summary>
+    public const string HealthId = "steam.webapi";
 
     private static string Endpoint(string pathAndQuery) => pathAndQuery.Split('?')[0];
 

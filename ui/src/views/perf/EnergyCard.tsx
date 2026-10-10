@@ -5,6 +5,8 @@ import type { EnergyMethod, EnergyReport, Game } from '../../bridge/types';
 import { Badge, Button, SectionHead, Skeleton } from '../../components/ui/primitives';
 import { formatDuration, plural } from '../../lib/format';
 import { useReducedMotion, useStore } from '../../state/store';
+import { useMoneyContext } from '../../state/money';
+import { getMoneyContext, isCurrencyCode, money, type MoneyCtx } from '../../lib/money';
 import { DeviceName } from '../../components/ui/ServiceLogo';
 import { GameThumb, StatTile } from './kit';
 import { useElementWidth } from './hooks';
@@ -23,16 +25,15 @@ export function formatKWh(kWh: number): string {
   return `${kWh < 10 ? kWh.toFixed(2) : kWh < 100 ? kWh.toFixed(1) : Math.round(kWh).toLocaleString()} kWh`;
 }
 
-/** Cost in the chosen currency, or a plain number when none was chosen. */
-export function formatCost(kWh: number, price: number | null, currency: string | null): string | null {
+/**
+ * Cost in the app's display currency (Track D6). The price per kWh is in `energy.currency` ('' = the display currency);
+ * a price in another currency is converted and the cost marked "≈".
+ */
+export function formatCost(kWh: number, price: number | null, currency: string | null, ctx: MoneyCtx = getMoneyContext()): string | null {
   if (price == null || price <= 0) return null;
   const v = kWh * price;
-  try {
-    if (currency) return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: v < 10 ? 2 : 0 }).format(v);
-  } catch {
-    // An unknown currency code: fall back to a number.
-  }
-  return v.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: v < 10 ? 2 : 0 });
+  const code = isCurrencyCode(currency) ? currency : ctx.target;
+  return money(v, code, { ctx, digits: v < 10 ? 'auto' : 0 }).text;
 }
 
 function useEnergy(gameId: string | null) {
@@ -103,6 +104,7 @@ export function EnergyMethodPopover({ method, price, currency }: { method: Energ
  * cost at the user's price. Off: a short invitation. Always labelled as an estimate, with its method.
  */
 export function EnergyCard({ gameId }: { gameId: string | null }) {
+  useMoneyContext(); // Track D6: costs follow the display currency
   const { data, loading, error } = useEnergy(gameId);
   const set = useStore((s) => s.setSetting);
   const navigate = useStore((s) => s.navigate);
@@ -310,6 +312,7 @@ function MonthChart({ months, price, currency, reduce }: { months: { start: numb
 
 /** A stat tile for one session in the Performance detail, when the estimate is on and has that session. */
 export function SessionEnergyTile({ sessionId }: { sessionId: string }) {
+  useMoneyContext(); // Track D6
   const { data } = useEnergy(null);
   const s = data?.enabled ? data.sessionList.find((x) => x.sessionId === sessionId) : undefined;
   if (!s || !data) return null;

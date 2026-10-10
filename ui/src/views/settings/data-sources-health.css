@@ -1,0 +1,64 @@
+/* Track D6: Settings › Data sources (health at a glance). */
+.dsh__bar { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; justify-content: space-between; margin-top: var(--s-3); padding: var(--s-3) var(--s-4); }
+.dsh__summary { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.dsh__chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: var(--r-pill); background: var(--bg-2); color: var(--text-2); font-size: var(--fs-sm); box-shadow: inset 0 0 0 1px var(--line); }
+.dsh__chip[data-tone='ok'] svg { color: var(--ok); }
+.dsh__chip[data-tone='warn'] { color: var(--text-1); box-shadow: inset 0 0 0 1px oklch(from var(--warn) l c h / 0.5); }
+.dsh__chip[data-tone='warn'] svg { color: var(--warn); }
+.dsh__chip[data-tone='info'] svg { color: var(--info); }
+.dsh__actions { display: flex; gap: var(--s-2); }
+.dsh__offline { display: flex; align-items: center; gap: 8px; margin-top: var(--s-3); color: var(--text-2); font-size: var(--fs-sm); }
+.dsh__offline svg { color: var(--warn); flex: none; }
+.dsh__group { display: grid; gap: var(--s-2); margin-top: var(--s-5); }
+.dsh__grouphead { font-size: var(--fs-xs); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); }
+.dsh__list { list-style: none; margin: 0; padding: 0; overflow: hidden; }
+
+.dsh-row {
+  display: flex;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border-top: 1px solid var(--line);
+  animation: dsh-in var(--dur-base) var(--ease-out) both;
+}
+.dsh-row:first-child { border-top: 0; }
+@keyframes dsh-in { from { opacity: 0; transform: translateY(4px); } }
+:root[data-reduced-motion='true'] .dsh-row { animation: none; }
+@media (prefers-reduced-motion: reduce) { .dsh-row { animation: none; } }
+
+.dsh-row__mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.dsh-row[data-state='off'] .dsh-row__mark { color: var(--text-3); }
+.dsh-row__main { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.dsh-row__head { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+.dsh-row__name { font-weight: var(--fw-semibold); color: var(--text-1); }
+.dsh-row__optin { font-size: var(--fs-2xs); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); }
+.dsh-row__purpose { margin: 0; font-size: var(--fs-sm); color: var(--text-3); }
+.dsh-row__off { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font-size: var(--fs-sm); color: var(--text-2); }
+.dsh-row__when { color: var(--text-3); }
+
+.dsh-pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: var(--fw-medium); background: var(--bg-2); color: var(--text-2); box-shadow: inset 0 0 0 1px var(--line); }
+.dsh-pill[data-state='ok'] { color: var(--text-1); }
+.dsh-pill[data-state='ok'] svg { color: var(--ok); }
+.dsh-pill[data-state='error'] { color: var(--text-1); box-shadow: inset 0 0 0 1px oklch(from var(--danger) l c h / 0.55); }
+.dsh-pill[data-state='error'] svg { color: var(--danger); }
+.dsh-pill[data-state='backoff'] { color: var(--text-1); box-shadow: inset 0 0 0 1px oklch(from var(--warn) l c h / 0.55); }
+.dsh-pill[data-state='backoff'] svg { color: var(--warn); }
+
+.dsh-row__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); gap: var(--s-2) var(--s-5); margin: var(--s-2) 0 0; }
+.dsh-fact { min-width: 0; }
+.dsh-fact dt { display: flex; align-items: center; gap: 5px; font-size: var(--fs-2xs); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); }
+.dsh-fact dd { margin: 2px 0 0; font-size: var(--fs-sm); color: var(--text-2); overflow-wrap: anywhere; }
+.dsh-fact[data-tone='danger'] dd { color: var(--text-1); }
+.dsh-fact[data-tone='danger'] dt svg { color: var(--danger); }
+.dsh-fact[data-tone='warn'] dt svg { color: var(--warn); }
+
+html[data-theme='contrast'] .dsh-pill, html[data-theme='contrast'] .dsh__chip { box-shadow: inset 0 0 0 1px var(--text-1); }

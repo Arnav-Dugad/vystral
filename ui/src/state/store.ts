@@ -25,7 +25,7 @@ export type Route =
   | { name: 'discoverGame'; key: string; title?: string }
   /** Track W: the Steam wishlist. */
   | { name: 'wishlist' }
-  | { name: 'settings'; section?: string };
+  | { name: 'settings'; section?: string; /** Track D6: a row to scroll to and highlight (see views/settings/settingsIndex.ts). */ row?: string };
 
 export interface Toast {
   id: number;

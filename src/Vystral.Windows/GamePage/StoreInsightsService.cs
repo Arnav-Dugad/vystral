@@ -123,6 +123,9 @@ public sealed class StoreInsightsService
     }
 
     /// <summary>The store page's reviews section, built natively from a validated appid.</summary>
+    /// <summary>Track D6: forgets the cached review summaries (re-downloaded when a game page opens). Store facts stay: they hold the price history VYSTRAL recorded.</summary>
+    public void ClearReviews() => _reviews.Clear();
+
     public static Uri? ReviewsUrl(string? appId) => GamePageIds.IsAppId(appId) ? new Uri($"https://store.steampowered.com/app/{appId}/#app_reviews_hash") : null;
 
     // ---------- Store facts and price history ----------

@@ -156,7 +156,7 @@ public sealed class SettingsService
         new BoolDef("subs.catalog", false),
         new BoolDef("subs.cloudShowAll", false),
         new BoolDef("subs.leavingNotify", true),
-        new NumberDef("subs.price", 0, 0, 1000),
+        new NumberDef("subs.price", 0, 0, 10_000_000), // Track D6: room for currencies with large numbers (₹, ¥, ₩, Rp)
         new StringDef("subs.currency", "", 3, @"^([A-Z]{3})?\z"),
         new BoolDef("cloud.queueAlerts", true),
         new NumberDef("cloud.queueAlertAt", 5, 1, 50),
@@ -205,6 +205,8 @@ public sealed class SettingsService
         new BoolDef("dataSources.epicFreeGames", false),
         new BoolDef("dataSources.protondb", false),
         new BoolDef("dataSources.gogCatalog", false),
+        // Track D6: the currency every price is shown in (ISO 4217; '' = the Windows region's currency).
+        new StringDef("app.currency", "", 3, @"^([A-Z]{3})?\z"),
     ];
 
     private const string CloudModelPattern = @"^([A-Za-z0-9][A-Za-z0-9._:/\-]{0,119})?\z";

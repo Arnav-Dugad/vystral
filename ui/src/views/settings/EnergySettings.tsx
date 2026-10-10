@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import type { SettingKey } from '../../bridge/types';
 import { Toggle } from '../../components/ui/primitives';
 import { useStore } from '../../state/store';
+import { useMoneyContext } from '../../state/money'; // Track D6
 
 /** A number field that saves on blur or Enter, within its setting's range; empty means 0. */
 function NumberRow({ k, label, hint, min, max, step, unit, placeholder }: {
@@ -58,6 +59,7 @@ export function EnergySettings() {
   const currency = useStore((s) => s.settings?.['energy.currency'] ?? '');
   const set = useStore((s) => s.setSetting);
   const [cur, setCur] = useState<string | null>(null);
+  const display = useMoneyContext().target; // Track D6
   const curInvalid = cur != null && cur !== '' && !/^[A-Za-z]{3}$/.test(cur);
   return (
     <section className="sgroup">
@@ -89,7 +91,7 @@ export function EnergySettings() {
             <div className="srow">
               <div className="srow__text">
                 <label className="srow__label" htmlFor="energy.currency">Currency</label>
-                <div className="srow__hint" id="energy.currency-hint">{curInvalid ? 'Use a three-letter code such as EUR, GBP or USD.' : 'Three-letter code (EUR, GBP, USD…). Empty shows a plain number.'}</div>
+                <div className="srow__hint" id="energy.currency-hint">{curInvalid ? 'Use a three-letter code such as EUR, GBP or USD.' : `The currency of that price, as a three-letter code. Empty: your display currency (${display}). Costs are shown in ${display}.`}</div>
               </div>
               <div className="srow__control">
                 <input
@@ -98,7 +100,7 @@ export function EnergySettings() {
                   maxLength={3}
                   autoCapitalize="characters"
                   spellCheck={false}
-                  placeholder="EUR"
+                  placeholder={display}
                   value={cur ?? currency}
                   aria-invalid={curInvalid || undefined}
                   aria-describedby="energy.currency-hint"

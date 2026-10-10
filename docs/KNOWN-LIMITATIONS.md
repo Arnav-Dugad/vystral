@@ -206,3 +206,9 @@
 - YouTube trailers (opt-in) have no colour-follow for the Living Canvas (the frame is cross-origin) and no pause-on-pointer-leave; they stop on their own when the video ends. The frame-navigation rule was verified in tests, not yet in the real WebView2 (the lead's after-merge check).
 - The Epic free-games feed, ProtonDB and GOG's catalogue are undocumented public endpoints: if they change, their rows say *unavailable* and nothing else is affected.
 
+**Currency, data sources health, caches and stability (v0.9, Track D6)**
+- Converted prices are approximate: they use the day's central-bank reference rate, while stores set their own regional prices (often lower or higher than a straight conversion). Only a store's own price in your currency is exact; the price country for Steam is still chosen in Data sources.
+- A store's preformatted price text (Discover pages without store facts, Steam's own wishlist text) is converted only when VYSTRAL can read the number from it; otherwise it's shown as the store wrote it. Native Windows notifications keep the store's own price text.
+- *Requests today* counts requests that went through VYSTRAL's shared lanes (data sources, cloud catalogues, subscriptions, cloud AI, the Steam Web API and Steam store details). Artwork and trailer downloads, update checks and Ollama aren't listed. Discover's own store-shelf back-off isn't shown as a pause.
+- The crash-free streak starts counting with this version: earlier starts weren't recorded, so the first days say "since VYSTRAL began keeping count". An unexpected close (crash, forced end, power cut) is listed but doesn't reset the streak; only a start that never reached a working window does.
+- Clearing *Wishlist details* keeps your wishlist, its price history and sent alerts; clearing *Prices and deals* keeps the price history on game pages (store facts are never cleared).

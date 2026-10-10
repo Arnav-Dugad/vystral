@@ -1,0 +1,14 @@
+/* Track D6: Settings › Data & recovery › Caches. */
+.cachev__total { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-4) var(--s-5); background: oklch(from var(--accent) l c h / 0.05); }
+.cachev__total > svg { color: var(--accent-text); flex: none; }
+.cachev__promise { display: flex; align-items: center; gap: 6px; }
+.cachev__promise svg { color: var(--ok); flex: none; }
+.cachev-row { align-items: flex-start; }
+.cachev-row__icon { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: var(--r-md); background: var(--bg-2); color: var(--text-2); box-shadow: inset 0 0 0 1px var(--line); }
+.cachev-row[data-empty] .cachev-row__icon { color: var(--text-3); }
+.cachev-row__stats { display: flex; flex-wrap: wrap; gap: 4px var(--s-3); margin-top: 6px; font-size: var(--fs-xs); color: var(--text-2); }
+.cachev-row[data-empty] .cachev-row__stats { color: var(--text-3); }
+.cachev-row__bar { display: block; height: 3px; margin-top: 8px; border-radius: var(--r-pill); background: var(--bg-3); overflow: hidden; max-width: 320px; }
+.cachev-row__bar > span { display: block; height: 100%; background: var(--accent); transform-origin: left; transition: transform var(--dur-slow) var(--ease-out); }
+.cachev-row .srow__control { align-self: center; }
+html[data-theme='contrast'] .cachev-row__bar > span { background: var(--text-1); }

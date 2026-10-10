@@ -7,7 +7,8 @@ import {
 import { call, errorMessage } from '../bridge/bridge';
 import type { Deals, DiscoverDetails, DiscoverLink } from '../bridge/types';
 import { noteText, SOURCE_NAMES } from '../lib/discover';
-import { formatMoney } from '../lib/dataSources';
+import { useMoney } from '../state/money'; // Track D6
+import { Price } from '../components/ui/Price';
 import { formatDate, formatRelative, PLATFORM_NAMES } from '../lib/format';
 import { ease, spring } from '../lib/motion';
 import { captureFlight, useFlightLanding } from '../lib/flight';
@@ -368,6 +369,7 @@ function CloudRow({ d }: { d: DiscoverDetails }) {
 }
 
 function DealsCard({ itemKey }: { itemKey: string }) {
+  const money = useMoney(); // Track D6: every price in the chosen currency
   const settingsKey = useStore((s) => `${s.settings?.['dataSources.cheapshark']}${s.settings?.['privacy.localOnly']}${s.settings?.['dataSources.priceCountry']}`);
   const [data, setData] = useState<Deals | null>(null);
   const [failed, setFailed] = useState(false);
@@ -401,13 +403,13 @@ function DealsCard({ itemKey }: { itemKey: string }) {
               <div className="gx-quote__best">
                 <div>
                   <span className="caps">Best price now</span>
-                  <div className="gx-quote__price num">{formatMoney(best.price, q.currency)}</div>
+                  <div className="gx-quote__price num"><Price amount={best.price} currency={q.currency} /></div>
                   <span className="gx-quote__shop">at {best.shop}{best.cut > 0 ? ` · −${best.cut}%` : ''}</span>
                 </div>
                 {q.historicalLow != null && (
                   <div className="gx-quote__low">
                     <span className="caps"><TrendingDown size={12} aria-hidden /> Lowest ever</span>
-                    <div className="num">{formatMoney(q.historicalLow, q.currency)}</div>
+                    <div className="num"><Price amount={q.historicalLow} currency={q.currency} /></div>
                     {q.historicalLowAt && <span className="gx-quote__shop">{formatDate(q.historicalLowAt)}</span>}
                   </div>
                 )}
@@ -418,10 +420,10 @@ function DealsCard({ itemKey }: { itemKey: string }) {
                 {q.offers.slice(0, 5).map((o) => (
                   <li key={o.id}>
                     <button className="gx-offer" onClick={openExternal('discover.openOffer', { key: itemKey, offerId: o.id })}
-                      aria-label={`${o.shop}: ${formatMoney(o.price, q.currency)}${o.cut ? `, ${o.cut}% off` : ''}. Opens in your browser.`}>
+                      aria-label={`${o.shop}: ${money.label(o.price, q.currency)}${o.cut ? `, ${o.cut}% off` : ''}. Opens in your browser.`}>
                       <span>{o.shop}</span>
                       {o.cut > 0 && <Badge tone="ok">−{o.cut}%</Badge>}
-                      <span className="num">{formatMoney(o.price, q.currency)}</span>
+                      <Price amount={o.price} currency={q.currency} />
                       <ExternalLink size={12} aria-hidden />
                     </button>
                   </li>
@@ -430,7 +432,7 @@ function DealsCard({ itemKey }: { itemKey: string }) {
             )}
             <p className="gx-attrib">
               Prices from <button className="gx-link" onClick={openExternal('dataSources.openLink', { provider: q.provider, link: 'home' })}>{q.provider === 'itad' ? 'IsThereAnyDeal.com' : 'CheapShark.com'} <ExternalLink size={11} aria-hidden /></button>
-              {q.currency && ` · ${q.currency}`}
+              {q.currency && (q.currency === money.target ? ` · ${q.currency}` : ` · ${q.currency}, shown in ${money.target} (approximate)`)}
               {q.fetched && ` · as of ${formatRelative(q.fetched).toLowerCase()}`}
               {q.stale && ' · couldn’t refresh, showing the last prices'}
             </p>
