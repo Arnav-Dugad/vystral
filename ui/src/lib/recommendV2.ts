@@ -33,7 +33,7 @@ const DISMISS_HALF_LIFE_DAYS = 180;
 /** Played in the last two days: you're already playing it, no need to suggest it. */
 const ALREADY_PLAYING_DAYS = 2;
 /** MMR: 1 = pure relevance, 0 = pure variety. */
-export const MMR_LAMBDA = 0.72;
+export const MMR_LAMBDA = 0.6;
 
 // ------------------------------------------------------------------------------------------------ inputs
 
@@ -162,7 +162,7 @@ const WEAK_TAGS = new Set([
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
 const ROMAN = /\s+(?:i{1,3}|iv|v|vi{1,3}|ix|x)$/;
-const EDITION_WORDS = /\s+(?:remastered|remaster|remake|definitive|deluxe|goty|game of the year|complete|ultimate|enhanced|anniversary|hd|redux|reloaded|directors cut|edition)\b.*$/;
+const EDITION_WORDS = /\s+(?:remastered|remaster|remake|definitive|deluxe|premium|gold|standard|collectors|goty|game of the year|complete|ultimate|enhanced|anniversary|hd|redux|reloaded|directors cut|edition)\b.*$/;
 
 /**
  * A series key from a title: "Kingsfall Remastered" and "Kingsfall II: Ashes" both give "kingsfall". Subtitles,
@@ -404,6 +404,14 @@ export function spanWords(seconds: number): string {
   return `about ${Math.floor(halves)}${halves % 1 ? '½' : ''} hours`;
 }
 
+/** "90-minute", "1-hour", "2-hour", "2½-hour" (for "your usual 2-hour sessions"). */
+export function spanAdjective(seconds: number): string {
+  const m = Math.round(seconds / 60);
+  if (m < 55) return `${Math.max(5, Math.round(m / 5) * 5)}-minute`;
+  const halves = Math.max(1, Math.round(seconds / 1800) / 2);
+  return `${Math.floor(halves)}${halves % 1 ? '½' : ''}-hour`;
+}
+
 // ------------------------------------------------------------------------------------------------ scoring
 
 /** Weighted cosine of a candidate's features against the profile, and the features that matched best. */
@@ -547,10 +555,10 @@ export function scoreLibraryGame(g: Game, profile: TasteProfile, signals: RecSig
       const sittings = remaining / Math.max(600, window.seconds);
       if (sittings <= 1.15) {
         score += 0.45;
-        reasons.push({ code: 'finishTonight', text: `You could finish it in the ${spanWords(window.seconds)} you usually have on ${window.label}`, weight: 0.45 });
+        reasons.push({ code: 'finishTonight', text: `Short enough to finish in your usual ${spanWords(window.seconds).replace(/^about /, '')} on ${window.label}`, weight: 0.45 });
       } else if (sittings <= 6) {
         score += 0.25;
-        reasons.push({ code: 'timeFit', text: `About ${Math.ceil(sittings)} of your usual ${spanWords(window.seconds).replace(/^about /, '')} sessions to finish`, weight: 0.25 });
+        reasons.push({ code: 'timeFit', text: `About ${Math.ceil(sittings)} of your usual ${spanAdjective(window.seconds)} sessions to finish`, weight: 0.25 });
       } else if (sittings > 40 && window.seconds < 3600) {
         score -= 0.15;
       }
@@ -748,6 +756,8 @@ export function diversify<T extends Pick<Recommendation, 'score' | 'features'>>(
 // ------------------------------------------------------------------------------------------------ explanations
 
 const PRIMARY: ReadonlySet<ReasonCode> = new Set(['seed', 'wishlist', 'plan', 'friends', 'free', 'lapsed', 'inProgress', 'backlog', 'unplayed', 'taste', 'watching', 'favorite', 'rated', 'sale']);
+/** Reasons about this one game beat the general "you love Racing" when they're strong enough to lead. */
+const SPECIFIC: ReadonlySet<ReasonCode> = new Set(['seed', 'wishlist', 'plan', 'friends', 'free', 'lapsed', 'inProgress', 'watching']);
 const SECONDARY: ReadonlySet<ReasonCode> = new Set(['finishTonight', 'timeFit', 'friends', 'cloud', 'installed', 'taste', 'sale', 'free', 'controller', 'new']);
 
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
@@ -759,13 +769,20 @@ const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
  */
 export function explain(reasons: readonly Reason[], ctx: { kind: 'library' | 'discover'; never: boolean }): string {
   const positive = reasons.filter((r) => r.weight > 0);
-  const primary = positive.find((r) => PRIMARY.has(r.code)) ?? positive[0];
+  // A game you've never played is introduced as such; otherwise its most specific strong reason leads.
+  const primary = (ctx.never ? positive.find((r) => r.code === 'unplayed' || r.code === 'backlog') : undefined)
+    ?? positive.find((r) => SPECIFIC.has(r.code) && r.weight >= 0.3)
+    ?? positive.find((r) => PRIMARY.has(r.code))
+    ?? positive[0];
   if (!primary) return ctx.kind === 'library' ? (ctx.never ? 'Never played yet' : 'From your library') : 'Something new to try';
   let text = primary.text;
-  // An unplayed game says why it fits you, when it does.
   const taste = positive.find((r) => r.code === 'taste');
-  if ((primary.code === 'unplayed' || primary.code === 'backlog') && taste && taste.weight >= 0.25) text = `${primary.text}, and ${lowerFirst(taste.text)}`;
-  else {
+  if (primary.code === 'unplayed' || primary.code === 'backlog') {
+    // An unplayed game says why it's worth starting now: friends, the time it takes, or how it fits your taste.
+    const support = positive.find((r) => r.code === 'friends') ?? positive.find((r) => r.code === 'finishTonight')
+      ?? (taste && taste.weight >= 0.25 ? taste : undefined) ?? positive.find((r) => r.code === 'timeFit' || r.code === 'cloud');
+    if (support) text = support === taste ? `${primary.text}, and ${lowerFirst(support.text)}` : `${primary.text} · ${lowerFirst(support.text)}`;
+  } else {
     const support = positive.find((r) => r !== primary && SECONDARY.has(r.code) && r.weight >= (r.code === 'installed' ? 0 : 0.1) &&
       !(r.code === 'taste' && primary.code === 'seed') && !(r.code === 'installed' && positive.some((x) => x.code === 'finishTonight' || x.code === 'timeFit')));
     const best = positive.find((r) => (r.code === 'finishTonight' || r.code === 'timeFit') && r !== primary) ?? support;
