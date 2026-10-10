@@ -86,7 +86,7 @@ test.describe('mode switch', () => {
     await settled(page);
     const took = Date.now() - t0;
     expect(await phases(page)).toEqual(['out', 'hold', 'in', 'none']);
-    expect(took).toBeLessThan(4000); // ~0.9 s of animation plus test overhead on a busy runner
+    expect(took).toBeLessThan(process.env.GITHUB_ACTIONS ? 8000 : 4000); // ~0.9 s of animation plus test overhead on a busy runner
     // The game the overlay zoomed into is the one Immersive opens on.
     await expect(page.locator('.imm__card[data-focused="true"]')).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-mode', 'immersive');

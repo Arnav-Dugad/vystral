@@ -41,7 +41,7 @@ jobs:
           dotnet build Vystral.slnx -c Release -p:Platform=x64
           dotnet test tests/Vystral.Tests -c Release
 
-  # The end-to-end suite (~300 tests against the preview backend) is split across three runners so each
+  # The end-to-end suite (~300 tests against the preview backend) is split across four runners so each
   # stays well inside its time limit; a 4-core runner is overloaded with more than two browsers at once.
   e2e:
     runs-on: windows-latest
@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
 
@@ -63,11 +63,11 @@ jobs:
         working-directory: ui
         run: npm ci --no-audit --no-fund
 
-      - name: End-to-end, accessibility and visual tests (preview data), shard ${{ matrix.shard }} of 3
+      - name: End-to-end, accessibility and visual tests (preview data), shard ${{ matrix.shard }} of 4
         working-directory: ui
         run: |
           npx playwright install --with-deps chromium
-          npx playwright test --shard=${{ matrix.shard }}/3
+          npx playwright test --shard=${{ matrix.shard }}/4
 
       - name: Upload Playwright report
         if: failure()
