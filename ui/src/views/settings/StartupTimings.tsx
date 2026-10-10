@@ -85,7 +85,7 @@ export function StartupTimings() {
             <div>
               <dt>Usual start</dt>
               <dd>{formatStartup(summary.median)}</dd>
-              <span className="st__sub">Median of the earlier starts</span>
+              <dd className="st__sub">Median of the earlier starts</dd>
             </div>
             <div>
               <dt>Last start</dt>
@@ -93,12 +93,12 @@ export function StartupTimings() {
                 {summary.regression && <AlertTriangle size={16} aria-hidden className="st__warn-icon" />}
                 {formatStartup(summary.latestMs)}
               </dd>
-              <span className="st__sub">{summary.latest ? fmtWhen(summary.latest.at) : ''}</span>
+              <dd className="st__sub">{summary.latest ? fmtWhen(summary.latest.at) : ''}</dd>
             </div>
             <div>
               <dt>Fastest</dt>
               <dd>{formatStartup(summary.fastestMs)}</dd>
-              <span className="st__sub">of these {state.runs.length}</span>
+              <dd className="st__sub">of these {state.runs.length}</dd>
             </div>
           </dl>
 
