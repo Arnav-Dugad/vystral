@@ -1,0 +1,14 @@
+[
+  {"id": 72, "name": "Portal 2", "first_release_date": 1303171200, "game_type": 0, "cover": {"id": 1, "image_id": "co1rs4"},
+   "external_games": [{"id": 1, "external_game_source": 1, "uid": "620"}, {"id": 2, "external_game_source": 5, "uid": "1207658767"}]},
+  {"id": 71, "name": "Portal", "first_release_date": 1191888000, "game_type": 0, "cover": {"id": 2, "image_id": "co1x7d"},
+   "external_games": [{"id": 3, "external_game_source": 1, "uid": "400"}]},
+  {"id": 9999, "name": "Portal: Upcoming", "game_type": 0},
+  {"id": 555, "name": "Portal Stories: Mel", "first_release_date": 1435881600, "game_type": 4, "cover": {"id": 3, "image_id": "../evil"},
+   "external_games": [{"id": 4, "external_game_source": 1, "uid": "317400x"}]},
+  {"id": 556, "name": "Portal Remastered", "first_release_date": 1700000000, "game_type": 9, "external_games": "not an array"},
+  {"id": 71, "name": "Portal (duplicate)", "first_release_date": 1191888000, "game_type": 0},
+  {"id": -3, "name": "Negative id"},
+  {"id": 557, "name": "", "game_type": 0},
+  {"id": 558, "name": "Far future", "first_release_date": 99999999999, "game_type": 0}
+]
