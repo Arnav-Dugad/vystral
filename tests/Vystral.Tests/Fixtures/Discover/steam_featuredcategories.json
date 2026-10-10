@@ -1,0 +1,36 @@
+{"0":{"id":"cat_spotlight","name":"Spotlights","items":[{"name":"WEEKEND DEAL","header_image":"https:\/\/shared.akamai.steamstatic.com\/store_item_assets\/steam\/spotlights\/b46ef0a6ea5e317092be259f\/95671242bbb94f202f8faf54171b1f9b06790b7c\/vertical_capsule_english.png?t=1789678694","body":"Offer ends %1$s.","url":"https:\/\/store.steampowered.com\/app\/305620"}]},
+"6":{"id":"cat_dailydeal","name":"Daily Deal","items":[{"id":436780,"type":0,"discounted":true,"currency":"USD","original_price":2999,"final_price":2099,"discount_percent":30,"name":"Tavern Keeper","header_image":"https:\/\/shared.akamai.steamstatic.com\/store_item_assets\/steam\/apps\/436780\/55f4b5f3e37fca3624a966699eaf196692eb715b\/header_alt_assets_1.jpg?t=1791434713","purchase_package":91778}]},
+"specials":{"id":"cat_specials","name":"Specials","items":[
+ {"id":2254990,"type":0,"name":"Permafrost","discounted":true,"discount_percent":20,"original_price":2499,"final_price":1999,"currency":"USD","large_capsule_image":"https:\/\/shared.akamai.steamstatic.com\/store_item_assets\/steam\/apps\/2254990\/322d6c88c579a5ebad51c3dba9d1255b9ec3399a\/capsule_616x353.jpg?t=1791608052","small_capsule_image":"https:\/\/shared.akamai.steamstatic.com\/store_item_assets\/steam\/apps\/2254990\/024db5584cd87b23dd37229e049378f2d4828bdb\/capsule_184x69.jpg?t=1791608052","windows_available":true,"mac_available":false,"linux_available":false,"streamingvideo_available":false,"discount_expiration":1792774837,"header_image":"https:\/\/shared.akamai.steamstatic.com\/store_item_assets\/steam\/apps\/2254990\/693eff202c061aaecba330b44d76485a672bea97\/header.jpg?t=1791608052"},
+ {"id":1808500,"type":0,"name":"ARC Raiders","discounted":true,"discount_percent":50,"original_price":3999,"final_price":1999,"currency":"USD","windows_available":true,"header_image":"https:\/\/evil.example.com\/header.jpg"},
+ {"id":1623730,"type":0,"name":"Palworld","discounted":true,"discount_percent":30,"original_price":2999,"final_price":2099,"currency":"USD","windows_available":true},
+ {"id":3240220,"type":0,"name":"Grand Theft Auto V Enhanced","discounted":true,"discount_percent":67,"original_price":5999,"final_price":1979,"currency":"USD","windows_available":true},
+ {"id":2781620,"type":0,"name":"Risk of Rain 2: Alloyed Collective","discounted":true,"discount_percent":35,"original_price":1499,"final_price":974,"currency":"USD","windows_available":true},
+ {"id":12345,"type":1,"name":"A Bundle Package","discounted":true,"discount_percent":10,"original_price":1000,"final_price":900,"currency":"USD"},
+ {"id":"12x","type":0,"name":"Broken id","final_price":100,"currency":"USD"}
+]},
+"coming_soon":{"id":"cat_comingsoon","name":"Coming Soon","items":[
+ {"id":4843280,"type":0,"name":"Nova Warp","discounted":false,"discount_percent":0,"original_price":null,"final_price":0,"currency":"USD","windows_available":true,"mac_available":true,"linux_available":true},
+ {"id":3627560,"type":0,"name":"Bounty Hunter Horrors","discounted":false,"discount_percent":0,"original_price":null,"final_price":0,"currency":"USD","windows_available":true},
+ {"id":5332620,"type":0,"name":"Phantom Fleet","discounted":false,"discount_percent":0,"original_price":null,"final_price":0,"currency":"USD","windows_available":true},
+ {"id":5114480,"type":0,"name":"The Cup Demo","discounted":false,"discount_percent":0,"original_price":null,"final_price":0,"currency":"USD","windows_available":true}
+]},
+"top_sellers":{"id":"cat_topsellers","name":"Top Sellers","items":[
+ {"id":4165890,"type":0,"name":"Steam Frame","discounted":false,"discount_percent":0,"original_price":null,"final_price":105900,"currency":"USD","windows_available":true},
+ {"id":4165890,"type":0,"name":"Steam Frame","discounted":false,"discount_percent":0,"original_price":null,"final_price":105900,"currency":"USD","windows_available":true},
+ {"id":4078430,"type":0,"name":"STAR WARS: Galactic Racer™","discounted":false,"discount_percent":0,"original_price":null,"final_price":5999,"currency":"USD","windows_available":true},
+ {"id":3055670,"type":0,"name":"Risk of Rain 2: Hallowed Concepts","discounted":false,"discount_percent":0,"original_price":null,"final_price":1499,"currency":"USD","windows_available":true},
+ {"id":3010850,"type":0,"name":"Gears of War: E-Day","discounted":false,"discount_percent":0,"original_price":null,"final_price":6999,"currency":"USD","windows_available":true},
+ {"id":1551980,"type":0,"name":"Clive Barker's Hellraiser: Revival","discounted":false,"discount_percent":0,"original_price":null,"final_price":3999,"currency":"USD","windows_available":true},
+ {"id":1867240,"type":0,"name":"WARDOGS","discounted":false,"discount_percent":0,"original_price":null,"final_price":3999,"currency":"USD","windows_available":true},
+ {"id":620,"type":0,"name":"Portal 2","discounted":false,"discount_percent":0,"original_price":null,"final_price":999,"currency":"USD","windows_available":true,"mac_available":true,"linux_available":true}
+]},
+"new_releases":{"id":"cat_newreleases","name":"New Releases","items":[
+ {"id":4185150,"type":0,"name":"Space Tanks","discounted":false,"discount_percent":0,"original_price":null,"final_price":499,"currency":"USD","windows_available":true},
+ {"id":4711830,"type":0,"name":"Evenin' Shift","discounted":false,"discount_percent":0,"original_price":null,"final_price":0,"currency":"USD","windows_available":true},
+ {"id":9990001,"type":0,"name":"Unrated Island","discounted":false,"discount_percent":0,"original_price":null,"final_price":0,"currency":"USD","windows_available":true},
+ {"id":5133950,"type":0,"name":"MUSIC BAND SIMULATOR:TOGETHER","discounted":false,"discount_percent":0,"original_price":null,"final_price":299,"currency":"USD","windows_available":true},
+ {"id":5176690,"type":0,"name":"Bar Keeper","discounted":false,"discount_percent":0,"original_price":null,"final_price":539,"currency":"USD","windows_available":true},
+ {"id":5113440,"type":0,"name":"PAPERHEAD Soundtrack","discounted":false,"discount_percent":0,"original_price":null,"final_price":719,"currency":"USD","windows_available":true}
+]},
+"genres":{"id":"cat_genres","name":"Genres"},"trailerslideshow":{"id":"cat_trailerslideshow","name":"Trailer TV"},"status":1}

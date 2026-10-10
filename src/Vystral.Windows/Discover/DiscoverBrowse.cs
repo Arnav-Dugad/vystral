@@ -143,7 +143,7 @@ public sealed partial class DiscoverService
         if (_repo.GetProviderCache(FeaturedCacheProvider, country) is not { } row) return null;
         try
         {
-            return JsonSerializer.Deserialize<FeaturedBody>(row.Body, CacheJson) is { Shelves: not null } body ? (body, row.Fetched, row.Fresh) : null;
+            return JsonSerializer.Deserialize<FeaturedBody>(row.Body, CacheJson) is { Shelves: not null } body ? (body, row.Fetched, row.Fresh && Now() - row.Fetched < FeaturedTtl) : null;
         }
         catch (JsonException)
         {
@@ -353,7 +353,7 @@ public sealed partial class DiscoverService
         if (_repo.GetProviderCache(SimilarCacheProvider, $"{source}:{gameId}") is not { } row) return null;
         try
         {
-            return JsonSerializer.Deserialize<SimilarBody>(row.Body, CacheJson) is { Hits: not null } body && body.Source == source ? (body, row.Fetched, row.Fresh) : null;
+            return JsonSerializer.Deserialize<SimilarBody>(row.Body, CacheJson) is { Hits: not null } body && body.Source == source ? (body, row.Fetched, row.Fresh && Now() - row.Fetched < (body.Hits.Count == 0 ? SimilarMissTtl : SimilarTtl)) : null;
         }
         catch (JsonException)
         {
