@@ -1,6 +1,4 @@
 // @vitest-environment jsdom
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { SETTINGS_INDEX } from '../views/settings/settingsIndex';
 import { findSettingsRow, rowId, rowSlug, searchSettings, sectionsMatching } from './settingsSearch';
@@ -49,14 +47,14 @@ describe('settings search', () => {
 });
 
 describe('the index', () => {
-  const root = join(__dirname, '..');
-  const sources = [
-    join(root, 'views', 'Settings.tsx'),
-    ...readdirSync(join(root, 'views', 'settings')).filter((f) => f.endsWith('.tsx')).map((f) => join(root, 'views', 'settings', f)),
-    join(root, 'components', 'ai', 'AiProvidersSettings.tsx'),
-    join(root, 'components', 'controller', 'BatteryHistoryCard.tsx'),
-  ];
-  const text = sources.map((f) => readFileSync(f, 'utf8')).join('\n').replace(/&amp;/g, '&');
+  // The settings pages' source, as text (vite's raw import: no Node types needed).
+  const files = {
+    ...import.meta.glob('../views/settings/*.tsx', { query: '?raw', import: 'default', eager: true }),
+    ...import.meta.glob(['../views/Settings.tsx', '../components/ai/AiProvidersSettings.tsx', '../components/controller/BatteryHistoryCard.tsx'], { query: '?raw', import: 'default', eager: true }),
+  } as Record<string, string>;
+  const text = Object.values(files).join('\n').replace(/&amp;/g, '&');
+
+  it('reads the settings sources', () => expect(Object.keys(files).length).toBeGreaterThan(20));
 
   it('only names real sections, and every row id is unique within its section', () => {
     const seen = new Set<string>();

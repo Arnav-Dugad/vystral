@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  centsText, convertAmount, convertSeries, formatCurrency, getMoneyContext, money, moneyLabel, moneyText, needsConversion, parseMoneyInput, regionCurrency,
+  centsText, convertAmount, convertSeries, formatCurrency, getMoneyContext, money, moneyLabel, moneyText, needsConversion, parseMoneyInput, regionCurrency, storeText,
   setMoneyContext, sumInto, type FxTable, type MoneyCtx,
 } from './money';
 import { formatMoney as dsMoney } from './dataSources';
@@ -111,6 +111,17 @@ describe('the older helpers go through the same formatter', () => {
     expect(formatCost(10, 0.3, 'EUR', INR)).toBe('≈ ₹325');
     expect(formatCost(2, 4, '', INR)).toBe('₹8.00');
     expect(formatCost(2, null, 'EUR', INR)).toBeNull();
+  });
+});
+
+describe('store-formatted prices', () => {
+  it('keeps the store’s text in the display currency and converts the rest', () => {
+    expect(storeText('₹ 1,299', 'INR', { ctx: INR })).toBe('₹ 1,299');
+    expect(storeText('$14.99', 'USD', { ctx: INR })).toBe('≈ ₹1,451');
+    expect(storeText('13,39€', 'EUR', { ctx: USD })).toBe('≈ $15.00');
+    expect(storeText('R$ 99', 'BRL', { ctx: INR })).toBe('R$ 99'); // no rate
+    expect(storeText(null, 'USD', { ctx: INR })).toBeNull();
+    expect(storeText('Free', 'USD', { ctx: INR })).toBe('Free');
   });
 });
 

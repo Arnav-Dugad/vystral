@@ -180,6 +180,28 @@ Before you type, Discover is a storefront: featured picks, *Because you played �
 
 Keys live only in Windows Credential Manager (`VYSTRAL/AI-<Provider>`). A key is saved only after the provider's models list accepts it; *Test* makes one tiny generation with the chosen model. Each provider also needs its own *Send data to …* opt-in, and *Which AI powers AI features* picks local AI or one provider. If the chosen provider fails, local AI is tried when it's on; otherwise each feature shows VYSTRAL's own deterministic answer. Requests: one lane per provider, ≥ 1 s apart, ≤ 30 per 10 minutes and 400 a day, 60 s each, 2 MB answers, no redirects, nothing in Offline mode or safe mode. What each feature sends is listed in PRIVACY.md and in Settings.
 
+## Exchange rates and the app currency (Track D6)
+
+| Source | Access | Used for | Cache |
+|---|---|---|---|
+| **Frankfurter** (`api.frankfurter.dev/v2/rates?base=EUR`) | Keyless, open source; blended daily reference rates from the European Central Bank and other central banks | Showing every price in the currency chosen in Settings › Appearance › Currency (`app.currency`, empty = the Windows region's currency) | `cache\fx\rates.json`; refreshed at most daily (1 h wait after a failure), used as-is offline |
+
+The answer is untrusted: only ISO-shaped codes, finite rates between 10⁻⁷ and 10⁹ and date-shaped dates are kept, at most 400 rates from a ≤ 256 KB answer, and the base is the one most rows agree on (`Vystral.Core.Money.FxRates`). The v1 object shape is read too. The request goes through the same polite lane as other data sources (HTTPS, size cap, `Retry-After`).
+
+In the interface every price goes through `ui/src/lib/money.ts` (`money()`, `<Price>`, `useMoney()`): a price already in the chosen currency (the store's own regional price) is shown exactly; anything else is converted and marked "≈", with "converted from $14.99" in its tooltip and spoken text; without a rate the original price is shown. Charts convert the whole series with one rate (`convertSeries`), totals add up only through rates (`sumInto`), and a store's preformatted text is converted only when it can be read (`storeText`).
+
+## Provider health (Track D6; Settings › Data sources)
+
+Every outbound provider reports to one registry, `Vystral.Core.Providers.ProviderHealthRegistry` (process-wide instance: `ProviderHealthHub.Registry`). The page shows, per provider: on/off and why (setting, opt-in, missing key, Offline mode), the last answer, the last problem in plain words, any pause it asked for (429 / `Retry-After`), requests today (local day, saved in `maintenance\provider-health.json` so a restart keeps the count) and when its cache last changed. The registry never sees URLs, keys or bodies.
+
+- **Lanes report by themselves.** `ProviderTransport` (every data source, cloud catalogues, subscriptions, cloud AI) and `SteamWebApiClient` call `Sent` before a request and `Answered` / `Failed` / `PausedUntil` after it. A lane's name maps to a row with `ProviderHealthHub.IdForLane` (`steamdeck` and `workshop` → `steam.store`, `cloud.gfn` → `gfn.catalog`, `cloud.xbox` / `subs.gamepass` → `gamepass.catalog`, `cloud.msstore` / `subs.msstore` → `msstore`; anything else is its own lower-cased name).
+- **Clients with their own HttpClient** (e.g. `MetadataService`) call `ProviderHealthHub.Sent(id)` and then `Answered(id)`, `Failed(id, ex)` or `Status(id, code, name)`.
+- **A new provider (e.g. Track D4):** name its lane with a lower-case id (letters, digits, dots, dashes), then add one `reg.Register(new ProviderDescriptor(id, name, group, logo, purpose), availability, cacheUpdated)` line in `AppBackend.TrackD6.cs` → `RegisterProviderHealth`. `availability` returns `ProviderAvailability.On(optIn)` or `.Off("Needs your … key")`; `cacheUpdated` returns the cache's newest time or null. `logo` is a `ServiceLogo` id from `ui/src/lib/serviceMarks.ts` (or `"steam"`, or null for a plain icon). Reports for an id nobody registered are kept and appear once it is registered.
+
+## Caches (Track D6; Settings › Data & recovery › Caches)
+
+The page lists art, thumbnails and avatars, trailer loops, news, prices and deals, AI answers, Discover, community tags, friends' recent games, wishlist details, subscription and cloud catalogues, game-page details, save and mod lookups, exchange rates and the start-up snapshot, each with its size on disk (or rows), item count and age. The page names a cache only by id; files are deleted only by `Vystral.Core.Files.CacheJanitor`, which works from a fixed allow-list of locations under the data folder, refuses anything that resolves outside it or passes through a junction or symbolic link, never follows links while walking, and deletes only plain files. Database caches are cleared with cache-only queries (`provider_cache` rows for prices/deals/Discover, `cloud_catalog` and `cloud_products`). Artwork keeps the art you picked and art packs; wishlist keeps its recorded price history and sent alerts; subscriptions keep which "leaving soon" alerts were sent; store facts (with VYSTRAL's own price history) are never cleared. Clearing waits while a game runs.
+
 ## Adding a store
 
 Implement `IPlatformAdapter` (see `SteamAdapter` for the reference pattern), keep it read-only and tolerant of malformed data, add fixture tests using `TempDir` and `FakeRegistry`, register it in `AdapterCatalog`, and add its launch scheme to `LaunchValidator`.

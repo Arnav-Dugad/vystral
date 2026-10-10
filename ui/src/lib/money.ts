@@ -199,6 +199,18 @@ export function money(amount: number, from: string | null | undefined, opts: Mon
   };
 }
 
+/**
+ * A store's own formatted price ("$19.99", "19,99€", "₹ 1,299") in the chosen currency: as it is when it's already in
+ * that currency (or can't be read or converted), else converted and marked "≈".
+ */
+export function storeText(text: string | null | undefined, currency: string | null | undefined, opts: { ctx?: MoneyCtx } = {}): string | null {
+  if (!text) return text ?? null;
+  const ctx = opts.ctx ?? getMoneyContext();
+  if (!isCurrencyCode(currency) || currency === ctx.target || !needsConversion(currency, ctx)) return text;
+  const n = parseMoneyInput(text);
+  return n == null ? text : money(n, currency, { ctx }).text;
+}
+
 /** Just the text: "₹1,299" or "≈ ₹1,299". */
 export const moneyText = (amount: number, from: string | null | undefined, opts?: MoneyOptions): string => money(amount, from, opts).text;
 

@@ -137,6 +137,17 @@ One WebGL2 fragment shader (`components/shell/LivingCanvas.tsx`):
 - **Subscriptions (v0.7, Track V):** Game Pass wears the Xbox sphere, EA Play the EA mark, Ubisoft+ the Ubisoft mark, Humble Choice Simple Icons' `humblebundle`, Prime Gaming a plain gift icon (no licensed Amazon mark). The picker (`components/subs/SubsPicker`) is one card per service with its tiers as pill chips (`aria-pressed`, one tier per service), a round tick that springs in, and an accent ring on chosen cards; High contrast swaps the glow for a 3px accent-text ring. Library cards get a small `subs-badge` (mark + plan name, amber "• Leaving" when Game Pass lists the game as leaving); game pages get glass pills under the install status. The Home row reuses the shelf track with 2:3 poster tiles (a drawn gradient tile with the title when no poster is cached) and a corner flag (New in your plan · Popular · Leaves around …).
 - Adding one: copy the drawing from the pinned Simple Icons version, add its slug to THIRD-PARTY-NOTICES, and `lib/serviceMarks.test.ts` checks the path parses, stays on the grid, has a sane viewBox and is credited.
 
+## Prices (0.9, Track D6)
+
+Every price goes through `lib/money.ts` and is shown in the currency chosen in Settings › Appearance › Currency. Use `<Price amount currency minor? strike?>` (`components/ui/Price.tsx`) for a price on screen, `useMoney().text()` for one inside a sentence, and `convertSeries` for charts (one rate for the whole series; a chart never mixes currencies).
+- **Exact** when the store priced it in that currency: plain tabular figures.
+- **Converted**: "≈ ₹1,451" — a lighter ≈ (70% opacity, regular weight), a dotted underline that says "hover for the original", the tooltip "About ₹1,451, converted from $14.99 at 9 Oct rates", and the spoken text "about ₹1,451, converted from $14.99". Converted amounts round to whole units from 100 up. Struck-through regular prices use the same rule.
+- **No rate**: the original price, exact, never relabelled. A chart's unit and a card's source line say when values were converted.
+
+## Settings search and jump (0.9, Track D6)
+
+The search field in Settings is a combobox; results replace the section content while it's open (label with matched words underlined in the accent, hint, and the path *Section › Group*). ↑/↓ move, Enter opens, Esc clears. Opening a result (or a deep link `{ name: 'settings', section, row }`) switches section, scrolls the row to the centre, focuses its control and draws a ring on a pseudo-element that pulses twice (2 × 1.1 s, opacity only); reduced motion shows it still for 2 s, High contrast uses the 3 px yellow ring. Rows are found by `data-row="…"` or their visible label (`views/settings/settingsIndex.ts`).
+
 ## Live tiles
 
 Home tiles (`components/game/LiveTile.tsx`, rules in `lib/liveTiles.ts`) play Steam's silent ~8 s micro-trailer over the cover while the tile is ≥50% on screen: muted, looped, crossfading in over 650 ms from a 1.02 scale. **Two at most**: a hovered/focused tile always gets a slot, what already plays keeps playing (no flicker), then the least recently played in reading order; after 24 s a tile hands over to one that's waiting and rests 40 s. Hover-out pauses. Nothing plays with the setting off, Data saver (incl. metered), Offline mode, reduced motion, Low quality, safe mode, a hidden window or a running game. Tiles without a loop (or without a turn) get a slow 14 s Ken Burns on the **hovered** tile only, so the page stays calm. Videos are unmounted after fading out, so idle Home holds no decoders.

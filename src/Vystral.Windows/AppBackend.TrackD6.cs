@@ -46,6 +46,12 @@ public sealed partial class AppBackend
 
         RegisterProviderHealth();
         LoadProviderHealth();
+        // Settings › Privacy › Network health: one row for the exchange-rate service (a tiny keyless request).
+        _health?.Register(new Services.NetworkHealth.HealthProbe
+        {
+            Id = "fx.rates", Label = "Exchange rates (Frankfurter)", Purpose = "Prices in your currency",
+            Url = new Uri("https://api.frankfurter.dev/v2/rates?base=EUR&quotes=USD"), Method = HttpMethod.Get,
+        });
         _healthSaveTimer = new Timer(_ => SaveProviderHealth(), null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2));
 
         // ---- Currency ----
