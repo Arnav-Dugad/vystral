@@ -41,6 +41,11 @@
 .pf-rig__name { font-weight: var(--fw-semibold); color: var(--text-1); line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .pf-rig__detail { font-size: var(--fs-xs); color: var(--text-3); }
 .pf-rig__loading { display: grid; gap: var(--s-3); }
+/* When the rig card spans the band (medium widths), the two devices sit side by side. */
+@media (max-width: 1180px) and (min-width: 761px) {
+  .pf-rig { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s-5); }
+  .pf-rig .pf-band__title, .pf-rig__loading { grid-column: 1 / -1; }
+}
 .pf-rig__loading span { height: 42px; border-radius: 12px; background: var(--bg-2); }
 
 /* recent health */
