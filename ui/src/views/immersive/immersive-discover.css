@@ -28,7 +28,7 @@
     radial-gradient(120% 80% at 50% 0%, oklch(from var(--ring, var(--accent)) 0.45 c h / 0.55), transparent 70%),
     linear-gradient(180deg, oklch(0.2 0.03 282), oklch(0.13 0.015 282));
 }
-.imm-dsearch__art { position: absolute; inset: 0; opacity: 0.32; filter: saturate(0.9) blur(1px); }
+.imm-dsearch__art { position: absolute; inset: -8%; opacity: 0.3; filter: saturate(1.1) blur(14px); }
 .imm-dsearch__art .cover { height: 100%; }
 .imm-dsearch[data-idea]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, oklch(0.08 0.01 282 / 0.15), oklch(0.08 0.01 282 / 0.8)); }
 .imm-dsearch__face { position: relative; z-index: 1; display: grid; justify-items: center; gap: 0.7rem; padding: 0.9rem; text-align: center; }
@@ -43,7 +43,7 @@
 .imm-dsearch__label { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; text-wrap: balance; }
 .imm-dsearch__label strong { display: block; font-weight: 600; }
 .imm-dsearch[data-idea] .imm-dsearch__label { font-family: var(--font-ui); font-size: 0.85rem; font-weight: var(--fw-medium); color: oklch(0.86 0.01 282); }
-.imm-dsearch[data-idea] .imm-dsearch__label strong { margin-top: 0.15rem; font-family: var(--font-display); font-size: 1.1rem; color: oklch(0.98 0 0); }
+.imm-dsearch[data-idea] .imm-dsearch__label strong { margin-top: 0.15rem; font-family: var(--font-display); font-size: 1rem; color: oklch(0.98 0 0); overflow-wrap: anywhere; hyphens: auto; }
 .imm-dsearch__glyph { --pad-glyph-size: 1.6em; opacity: 0.9; }
 
 /* Status cards: searching (a soft shimmer), nothing found, offline, search off, show more. */

@@ -1405,8 +1405,8 @@ function tileText(t: Tile): string {
     case 'genre': return t.genre;
     case 'tool': return '';
     case 'discover': return t.item.title;
-    case 'search': return t.query ? `More ${t.label}` : t.label;
-    case 'note': return t.busy ? '' : t.title;
+    // The faces of search and status cards already say it.
+    case 'search': case 'note': return '';
   }
 }
 

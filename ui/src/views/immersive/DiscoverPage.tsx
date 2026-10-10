@@ -13,7 +13,7 @@ import { pushPadHandler } from '../../lib/input';
 import { ease, pick, spring } from '../../lib/motion';
 import { moveFocus, type Dir } from '../../lib/spatial';
 import { sound } from '../../lib/sound';
-import { sentence, voiceOver } from '../../lib/voiceover';
+import { voiceOver } from '../../lib/voiceover';
 import { useDiscoverImage } from '../../state/discover';
 import { useReducedMotion, useStore } from '../../state/store';
 import { DiscoverCover, pseudoGame } from '../../components/discover/DiscoverBits';
@@ -21,25 +21,12 @@ import { HeroTrailer } from '../../components/game/HeroTrailer';
 import { StoreLogo } from '../../components/ui/StoreLogo';
 import { ServiceLogo } from '../../components/ui/ServiceLogo';
 import { PadGlyph, PadHint } from '../../components/ui/primitives';
-import type { DiscoverItem } from './discoverRows';
+import { pageSummary, type DiscoverItem } from './discoverRows';
 import './immersive-discover.css';
 
 const KEY_DIRS: Record<string, Dir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
 
 type Load = { kind: 'loading' } | { kind: 'error'; code: string; message: string } | { kind: 'done'; d: DiscoverDetails };
-
-/** The words a page says when it opens (and the focus line under the title). Exported for tests. */
-export function pageSummary(d: DiscoverDetails, watching: boolean): string {
-  const price = d.price?.free ? 'Free to play' : d.price?.formatted ? `${d.price.formatted} on Steam${d.price.discountPercent ? `, ${d.price.discountPercent} percent off` : ''}` : d.price?.comingSoon ? 'Not out yet' : null;
-  const ttb = hoursLabel(d.timeToBeat?.hastilySeconds) ?? hoursLabel(d.timeToBeat?.normallySeconds);
-  return sentence(
-    d.title,
-    d.libraryGameId ? 'In your library' : 'Not in your library',
-    price,
-    ttb ? `About ${ttb.replace(' h', ' hours').replace(' min', ' minutes')} to beat` : null,
-    watching ? 'Watching. Press Y to stop watching' : 'Press Y to watch it',
-  );
-}
 
 /**
  * Track C6: the Immersive page for a game you don't own — hero art and its trailer (live-tile rules), price, time to

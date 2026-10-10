@@ -7,7 +7,7 @@ import { useReducedMotion, useStore } from '../../state/store';
 import { openReplay } from '../../state/recap';
 import { IconButton, Skeleton } from '../../components/ui/primitives';
 import { GameThumb } from '../perf/kit';
-import { gameTitle, shortDate } from '../perf/text';
+import { gameTitle, shortDate, timeOfDay } from '../perf/text';
 import { computeRecords, improvedSince, RECORD_IDS, scoresOf, type PersonalRecord, type RecordId, type Records } from './records';
 import { recordText } from './recordText';
 import './records.css';
@@ -53,6 +53,8 @@ function writeSeen(records: Records) {
 function whenText(id: RecordId, r: PersonalRecord): string {
   if (id === 'streak' && r.until != null) return `${shortDate(r.at)} – ${shortDate(r.until, true)}`;
   if ((id === 'bestWeek' || id === 'varietyWeek') && r.until != null) return `Week of ${shortDate(r.at, true)}`;
+  // The badge's value is already the date: say the time instead.
+  if (id === 'first') return `At ${timeOfDay(r.at)}`;
   return shortDate(r.at, true);
 }
 

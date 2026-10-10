@@ -4,8 +4,9 @@
  * bridge methods answered (discover.search, discover.watching) plus the opt-in Steam wishlist when it's already
  * loaded; nothing here asks the network for anything.
  */
-import type { DiscoverResult, DiscoverSearch, DiscoverWatch, Game, PlatformKey, WishlistItem } from '../../bridge/types';
-import { formatStorePrice } from '../../lib/discover';
+import type { DiscoverDetails, DiscoverResult, DiscoverSearch, DiscoverWatch, Game, PlatformKey, WishlistItem } from '../../bridge/types';
+import { formatStorePrice, hoursLabel } from '../../lib/discover';
+import { sentence } from '../../lib/voiceover';
 import { formatDate, plural } from '../../lib/format';
 import { playedSeconds, type Row, type Tile } from './rows';
 
@@ -166,12 +167,12 @@ export function discoverRows(input: DiscoverInput): Row[] {
       const tiles: Tile[] = rest.map((r) => ({ kind: 'discover', key: `res-${r.key}`, item: fromResult(r, watchingKeys) }));
       if (error) tiles.push(note('error', 'The search didn’t finish', error, 'retry'));
       else if (busy && tiles.length === 0) for (let i = 0; i < 4; i++) tiles.push(note(`pending-${i}`, 'Searching…', 'Asking Steam and the game databases.', null, true));
-      else if (search?.done && tiles.length === 0) tiles.push(note('none', `Nothing found for “${query}”`, nothingBody(search), 'search'));
+      else if (search?.done && tiles.length === 0) tiles.push(note('none', 'Nothing found', nothingBody(query, search), 'search'));
       else if (search?.done && search.hasMore) tiles.push(note('more', loadingMore ? 'Loading more…' : 'Show more results', 'Ask the sources for the next page.', 'more', loadingMore));
       const shown = rest.length;
       rows.push({
         id: 'disc-results', kind: 'discover', title: `Results for “${query}”`,
-        meta: busy ? (shown ? `${plural(shown, 'game')} so far · searching…` : 'Searching…') : error ? 'Search failed' : plural(shown, 'game'),
+        meta: busy ? (shown ? `${plural(shown, 'game')} so far · searching…` : 'Searching…') : error ? 'Search failed' : shown ? plural(shown, 'game') : 'Nothing found',
         tiles,
       });
     }
@@ -209,10 +210,10 @@ export function discoverRows(input: DiscoverInput): Row[] {
   return rows;
 }
 
-function nothingBody(search: DiscoverSearch): string {
+function nothingBody(query: string, search: DiscoverSearch): string {
   const failed = search.sources.filter((s) => s.state === 'failed').map((s) => s.name);
-  if (failed.length) return `${failed.join(' and ')} couldn’t answer, and the others found nothing. Try again in a moment, or with fewer words.`;
-  return 'Check the spelling, or try fewer words. Press A to search again.';
+  if (failed.length) return `${failed.join(' and ')} couldn’t answer, and the others found nothing for “${query}”. Try again in a moment, or with fewer words.`;
+  return `No other game called “${query}” was found. Check the spelling, or try fewer words.`;
 }
 
 /** What voice-over says for a Discover card. */
@@ -226,4 +227,17 @@ export function discoverItemSpeech(it: DiscoverItem): string {
     'Not in your library',
   ].filter(Boolean);
   return parts.join('. ');
+}
+
+/** The words a page says when it opens (and the focus line under the title). Exported for tests. */
+export function pageSummary(d: DiscoverDetails, watching: boolean): string {
+  const price = d.price?.free ? 'Free to play' : d.price?.formatted ? `${d.price.formatted} on Steam${d.price.discountPercent ? `, ${d.price.discountPercent} percent off` : ''}` : d.price?.comingSoon ? 'Not out yet' : null;
+  const ttb = hoursLabel(d.timeToBeat?.hastilySeconds) ?? hoursLabel(d.timeToBeat?.normallySeconds);
+  return sentence(
+    d.title,
+    d.libraryGameId ? 'In your library' : 'Not in your library',
+    price,
+    ttb ? `About ${ttb.replace(' h', ' hours').replace(' min', ' minutes')} to beat` : null,
+    watching ? 'Watching. Press Y to stop watching' : 'Press Y to watch it',
+  );
 }
