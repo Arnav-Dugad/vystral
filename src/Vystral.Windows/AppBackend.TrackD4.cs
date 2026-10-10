@@ -74,6 +74,7 @@ public sealed partial class AppBackend
         {
             if (key is "*" or IdentityResolverService.SettingKey or "dataSources.wikidata" or "dataSources.gogCatalog")
             {
+                _identity.InvalidateAll();
                 _events.Emit("identity.changed", new { gameId = (string?)null });
                 _events.Emit("tags.changed", new { done = 0 });
             }

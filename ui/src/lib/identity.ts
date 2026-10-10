@@ -105,6 +105,8 @@ export function identitySummary(identity: ResolvedIdentity): string {
     case 'none':
       return 'No matching Steam page was found.';
     default:
-      return identity.reason === 'off' ? 'Matching across stores is turned off.' : 'Not checked yet.';
+      return identity.reason === 'off' ? 'Matching across stores is turned off.'
+        : identity.reason === 'offline' ? 'Not checked yet: Offline mode is on.'
+        : 'Not checked yet. Matching uses Wikidata, the Steam store, IGDB, RAWG and the GOG catalogue — whichever are turned on in Data sources.';
   }
 }

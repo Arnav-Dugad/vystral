@@ -266,6 +266,21 @@ public sealed class IdentityResolverServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task With_every_source_off_nothing_is_asked_or_remembered()
+    {
+        var gameId = XboxGame();
+        _settings.Set("dataSources.wikidata", JsonValue.Create(false));
+        _settings.Set("library.fetchMetadata", JsonValue.Create(false));
+        var dto = await _svc.GetAsync(gameId, true, false, CancellationToken.None);
+        Assert.Equal("notChecked", dto.Status);
+        Assert.Empty(_sent);
+        Assert.Null(_t.Repo.GetProviderCache(IdentityResolverService.CacheProvider, gameId));
+        // Turning a source on looks the game up straight away.
+        _settings.Set("dataSources.wikidata", JsonValue.Create(true));
+        Assert.Equal(["wikidata"], (await _svc.GetAsync(gameId, true, false, CancellationToken.None)).Asked);
+    }
+
+    [Fact]
     public async Task Turning_matching_off_stops_using_matches_but_keeps_your_choices()
     {
         var gameId = XboxGame();

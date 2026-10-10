@@ -158,8 +158,13 @@ public sealed partial class IdentityResolverService
                 entry = CachedEntry(game);
                 if (entry is null || refresh || IsStale(gameId))
                 {
-                    entry = await CollectAsync(game, ct);
-                    Save(game, entry);
+                    var found = await CollectAsync(game, ct);
+                    // Nothing could be asked (every source is off): keep no answer, so turning a source on looks it up at once.
+                    if (found.Asked.Count > 0)
+                    {
+                        Save(game, found);
+                        entry = found;
+                    }
                 }
             }
             finally
@@ -233,6 +238,9 @@ public sealed partial class IdentityResolverService
         var json = await SteamGetAsync($"https://store.steampowered.com/api/storesearch/?term={Uri.EscapeDataString(q)}&l=english&cc={_sources.Country}", ct);
         return DiscoverParsers.ParseSteamSearch(json).Take(10).Select(h => new SteamSearchHitDto(h.SourceId, h.Title)).ToList();
     }
+
+    /// <summary>Forgets every remembered answer (a matching setting changed).</summary>
+    public void InvalidateAll() => _memory.Clear();
 
     public void Invalidate(string gameId)
     {
@@ -413,7 +421,7 @@ public sealed partial class IdentityResolverService
                 "matched" => "matched",
                 "suggested" => "suggested",
                 "conflict" => "conflict",
-                _ => entry is null ? "notChecked" : "none",
+                _ => entry is null || entry.Asked.Count == 0 ? "notChecked" : "none",
             };
         var checkedAt = _repo.GetProviderCache(CacheProvider, game.GameId)?.Fetched.ToString("O");
         return new ResolvedIdentityDto(game.GameId, status, steam is null ? null : Dto(steam), ids.Select(Dto).ToList(),
