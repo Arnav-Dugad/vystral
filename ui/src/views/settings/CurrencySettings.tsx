@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, CloudOff, Coins, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CloudOff, RefreshCw } from 'lucide-react';
 import { COMMON_CURRENCIES, currencyName, currencySymbol, isCurrencyCode, money } from '../../lib/money';
 import { formatRelative } from '../../lib/format';
 import { displayCurrency, useMoney, useMoneyStore } from '../../state/money';
@@ -57,7 +57,7 @@ export function CurrencySettings() {
         <div className="srow" data-row="currency">
           <div className="srow__text">
             <label className="srow__label" htmlFor="app.currency">Show prices in</label>
-            <div className="srow__hint">“Windows region” follows the region set in Windows ({currencyName(region)}).</div>
+            <div className="srow__hint">“Windows region” follows the region set in Windows: {currencyName(region)}.</div>
           </div>
           <div className="srow__control">
             <select id="app.currency" className="input cur-select" value={isCurrencyCode(setting) ? setting : ''} onChange={(e) => void set('app.currency', e.target.value)}>
@@ -70,7 +70,6 @@ export function CurrencySettings() {
         </div>
 
         <div className="srow cur-rates" data-row="exchange-rates">
-          <Coins size={18} aria-hidden className="cur-rates__icon" />
           <div className="srow__text" aria-live="polite">
             <div className="srow__label">{rateLine}</div>
             <div className="srow__hint">

@@ -3,7 +3,7 @@ import { AlertTriangle, History, RotateCcw, ShieldCheck, Sparkles, XCircle } fro
 import { call } from '../../bridge/bridge';
 import type { StreakSummary } from '../../bridge/types';
 import { formatDate } from '../../lib/format';
-import { streakHeadline, streakSub } from '../../lib/streak';
+import { streakHeadline, streakSentence, streakSub } from '../../lib/streak';
 import { useReducedMotion } from '../../state/store';
 import './crash-free.css';
 
@@ -32,8 +32,8 @@ export function CrashFreeStreak() {
             <Sparkles size={18} />
           </span>
           <div>
-            <div className="streak__big"><span className="num">{s.days}</span> {s.days === 1 ? 'day' : 'days'}</div>
-            <div className="srow__label">{streakHeadline(s)}</div>
+            {s.startsCounted > 0 && <div className="streak__big" aria-hidden><span className="num">{s.days.toLocaleString()}</span> {s.days === 1 ? 'day' : 'days'}</div>}
+            <div className="srow__label"><span className="visually-hidden">{streakSentence(s)}</span><span aria-hidden>{streakHeadline(s)}</span></div>
             <div className="srow__hint">{streakSub(s)}</div>
           </div>
         </div>

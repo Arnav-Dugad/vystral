@@ -1,3 +1,4 @@
 /* Track D6: a converted price — a dotted underline says "approximate; hover for the original". */
 .price--approx[title] { text-decoration: underline dotted oklch(from currentColor l c h / 0.45); text-underline-offset: 3px; cursor: help; }
 s.price--approx[title] { text-decoration: line-through; }
+.price__approx { margin-right: 0.18em; font-weight: var(--fw-regular); opacity: 0.7; }

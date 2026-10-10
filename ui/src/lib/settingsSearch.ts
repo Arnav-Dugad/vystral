@@ -21,8 +21,10 @@ export function rowSlug(label: string): string {
 
 export const rowId = (e: SettingsEntry) => e.row ?? rowSlug(e.label);
 
+const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 function wordStarts(text: string, term: string): boolean {
-  return new RegExp(`(^|[^a-z0-9])${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(text);
+  return new RegExp(`(^|[^a-z0-9])${esc(term)}`).test(text);
 }
 
 /**
@@ -49,7 +51,9 @@ export function searchSettings(index: SettingsEntry[], query: string, limit = 30
     }
     const marks: [number, number][] = [];
     for (const t of terms) {
-      const i = label.indexOf(t);
+      // Highlight where a word starts with the term; inside a word only for longer terms (never the "a" in "What").
+      const m = new RegExp(`(^|[^a-z0-9])(${esc(t)})`).exec(label);
+      const i = m ? m.index + m[1].length : t.length >= 3 ? label.indexOf(t) : -1;
       if (i >= 0) marks.push([i, i + t.length]);
     }
     hits.push({ entry, row: rowId(entry), score: score - order * 0.001, marks: merge(marks) });

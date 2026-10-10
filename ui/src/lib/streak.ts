@@ -2,11 +2,17 @@
 import type { StreakSummary } from '../bridge/types';
 import { formatDate } from './format';
 
-/** "42 days without a failed start" / "No failed starts yet" / "Counting starts from today". */
+/** The words under the big number ("42 days"): "without a failed start", or what today looks like. */
 export function streakHeadline(s: Pick<StreakSummary, 'days' | 'failedStarts' | 'startsCounted' | 'sinceHistoryBegan'>): string {
   if (s.startsCounted === 0) return 'Counting starts from today';
-  if (s.days === 0) return s.failedStarts > 0 ? 'A start failed today' : 'No failed starts so far today';
-  return `${s.days.toLocaleString()} ${s.days === 1 ? 'day' : 'days'} without a failed start`;
+  if (s.days === 0) return s.failedStarts > 0 && !s.sinceHistoryBegan ? 'A start failed today' : 'No failed starts so far';
+  return 'without a failed start';
+}
+
+/** "42 days without a failed start" in one sentence (for the screen-reader summary and What's new). */
+export function streakSentence(s: Pick<StreakSummary, 'days' | 'failedStarts' | 'startsCounted' | 'sinceHistoryBegan'>): string {
+  const h = streakHeadline(s);
+  return s.days > 0 ? `${s.days.toLocaleString()} ${s.days === 1 ? 'day' : 'days'} ${h}` : h;
 }
 
 /** Where the number comes from, honestly. */

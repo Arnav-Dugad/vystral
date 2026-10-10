@@ -32,7 +32,7 @@ export function Price({ amount, currency, minor, digits, className = '', style, 
     >
       {plain ? v.text : (
         <>
-          <span aria-hidden>{v.text}</span>
+          <span aria-hidden>{v.approx ? <><span className="price__approx">≈</span>{v.text.replace(/^≈\s*/, '')}</> : v.text}</span>
           <span className="visually-hidden">{spoken}</span>
         </>
       )}

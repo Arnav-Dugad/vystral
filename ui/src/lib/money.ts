@@ -52,15 +52,15 @@ export const isCurrencyCode = (c: unknown): c is string => typeof c === 'string'
 
 // ---------------- the current context (set by state/money.ts) ----------------
 
-let current: MoneyCtx = { target: regionCurrency(), fx: null };
+let current: MoneyCtx | null = null; // created on first use (the region table below must exist first)
 const listeners = new Set<() => void>();
 
 export function getMoneyContext(): MoneyCtx {
-  return current;
+  return (current ??= { target: regionCurrency(), fx: null });
 }
 
 export function setMoneyContext(next: MoneyCtx): void {
-  if (next.target === current.target && next.fx === current.fx && next.locale === current.locale) return;
+  if (next.target === getMoneyContext().target && next.fx === getMoneyContext().fx && next.locale === getMoneyContext().locale) return;
   current = { ...next, target: isCurrencyCode(next.target) ? next.target : regionCurrency(next.locale) };
   for (const l of listeners) l();
 }
@@ -84,7 +84,7 @@ export function convertAmount(amount: number, from: string | null | undefined, t
 }
 
 /** True when a price in `from` would be shown converted (and can be). */
-export function needsConversion(from: string | null | undefined, ctx: MoneyCtx = current): boolean {
+export function needsConversion(from: string | null | undefined, ctx: MoneyCtx = getMoneyContext()): boolean {
   return isCurrencyCode(from) && from !== ctx.target && convertAmount(1, from, ctx.target, ctx.fx) != null;
 }
 
@@ -92,7 +92,7 @@ export function needsConversion(from: string | null | undefined, ctx: MoneyCtx =
  * A whole series in one currency, for a chart: every value converted to the chosen currency, or — when that isn't
  * possible — every value left in its own currency. Never a mix.
  */
-export function convertSeries(values: number[], from: string | null | undefined, ctx: MoneyCtx = current): { values: number[]; currency: string | null; approx: boolean } {
+export function convertSeries(values: number[], from: string | null | undefined, ctx: MoneyCtx = getMoneyContext()): { values: number[]; currency: string | null; approx: boolean } {
   if (!isCurrencyCode(from)) return { values, currency: null, approx: false };
   if (from === ctx.target) return { values, currency: from, approx: false };
   const rate = convertAmount(1, from, ctx.target, ctx.fx);
@@ -104,7 +104,7 @@ export function convertSeries(values: number[], from: string | null | undefined,
  * Totals kept per currency, added up in the chosen currency. Totals that can't be converted (no rate) stay apart, so
  * nothing is ever added across currencies without a rate. `approx` is true when any part was converted.
  */
-export function sumInto<T extends { currency: string; total: number; games: number }>(totals: T[], ctx: MoneyCtx = current):
+export function sumInto<T extends { currency: string; total: number; games: number }>(totals: T[], ctx: MoneyCtx = getMoneyContext()):
   { total: number; games: number; currency: string; approx: boolean; apart: T[] } | null {
   let total = 0;
   let games = 0;
@@ -164,10 +164,10 @@ function minorDigits(currency: string, locale?: string): number {
   }
 }
 
-function rateDate(fx: FxTable | null): string {
+function rateDate(fx: FxTable | null, locale?: string): string {
   if (!fx?.date || !/^\d{4}-\d{2}-\d{2}$/.test(fx.date)) return '';
   const d = new Date(`${fx.date}T12:00:00Z`);
-  return Number.isNaN(d.getTime()) ? '' : ` at ${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' })} rates`;
+  return Number.isNaN(d.getTime()) ? '' : ` at ${d.toLocaleDateString(locale, { day: "numeric", month: "short", timeZone: "UTC" })} rates`;
 }
 
 export interface MoneyOptions {
@@ -180,7 +180,7 @@ export interface MoneyOptions {
 
 /** The price in the chosen currency, with everything needed to label it honestly. */
 export function money(amount: number, from: string | null | undefined, opts: MoneyOptions = {}): Money {
-  const ctx = opts.ctx ?? current;
+  const ctx = opts.ctx ?? getMoneyContext();
   const major = opts.minor ? amount / 100 : amount;
   const own = isCurrencyCode(from) ? from : null;
   if (!Number.isFinite(major)) return { text: '—', approx: false, value: NaN, currency: own, original: null, note: null };
@@ -195,7 +195,7 @@ export function money(amount: number, from: string | null | undefined, opts: Mon
     value: converted,
     currency: ctx.target,
     original: exact,
-    note: `About ${shown}, converted from ${exact}${rateDate(ctx.fx)}`,
+    note: `About ${shown}, converted from ${exact}${rateDate(ctx.fx, ctx.locale)}`,
   };
 }
 
