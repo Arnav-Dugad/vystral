@@ -1,0 +1,147 @@
+/* =====================================================================================
+   Track C6 — Immersive Discover: cards for games you don't own, the search card, status
+   cards, and the Discover game page with its "open in browser" confirmation.
+   ===================================================================================== */
+
+/* ----- Cards ----- */
+.imm-dcard { position: absolute; inset: 0; }
+.imm-dcard .dcover, .imm-dcard .cover { height: 100%; }
+.imm-dcard__flags { position: absolute; top: 0.55rem; left: 0.55rem; display: flex; gap: 0.35rem; }
+.imm-dcard__flag {
+  display: inline-flex; align-items: center; gap: 0.3rem; height: 1.6rem; padding: 0 0.45rem; border-radius: var(--r-pill);
+  font-size: 0.7rem; font-weight: var(--fw-semibold); color: oklch(0.96 0 0);
+  background: oklch(0.1 0.01 282 / 0.72); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.12); backdrop-filter: blur(8px);
+}
+.imm-dcard__price {
+  position: absolute; right: 0.55rem; bottom: 0.55rem; display: inline-flex; align-items: center; gap: 0.35rem;
+  height: 1.75rem; padding: 0 0.55rem; border-radius: var(--r-pill);
+  font-size: 0.78rem; font-weight: var(--fw-semibold); color: oklch(0.97 0 0);
+  background: oklch(0.1 0.01 282 / 0.78); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.12); backdrop-filter: blur(8px);
+}
+.imm-dcard__price[data-sale] { box-shadow: inset 0 0 0 1px oklch(0.78 0.14 158 / 0.55); }
+.imm-dcard__cut { color: oklch(0.86 0.14 158); }
+
+/* The search card: a lens over the dusk, or a suggested search over the art of the game it comes from. */
+.imm-dsearch {
+  position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 0%, oklch(from var(--ring, var(--accent)) 0.45 c h / 0.55), transparent 70%),
+    linear-gradient(180deg, oklch(0.2 0.03 282), oklch(0.13 0.015 282));
+}
+.imm-dsearch__art { position: absolute; inset: -8%; opacity: 0.3; filter: saturate(1.1) blur(14px); }
+.imm-dsearch__art .cover { height: 100%; }
+.imm-dsearch[data-idea]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, oklch(0.08 0.01 282 / 0.15), oklch(0.08 0.01 282 / 0.8)); }
+.imm-dsearch__face { position: relative; z-index: 1; display: grid; justify-items: center; gap: 0.7rem; padding: 0.9rem; text-align: center; }
+.imm-dsearch__icon {
+  width: 3.4rem; height: 3.4rem; border-radius: 50%; display: grid; place-items: center;
+  background: oklch(1 0 0 / 0.1); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.18), 0 10px 30px -12px oklch(0 0 0 / 0.8);
+  color: oklch(0.96 0.02 282);
+}
+.imm-dsearch__icon svg { width: 1.6rem; height: 1.6rem; }
+.imm__card[data-focused='true'] .imm-dsearch__icon { animation: imm-dsearch-breathe 2.4s ease-in-out infinite; }
+@keyframes imm-dsearch-breathe { 50% { transform: scale(1.06); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.3), 0 0 0 8px oklch(1 0 0 / 0.04); } }
+.imm-dsearch__label { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; text-wrap: balance; }
+.imm-dsearch__label strong { display: block; font-weight: 600; }
+.imm-dsearch[data-idea] .imm-dsearch__label { font-family: var(--font-ui); font-size: 0.85rem; font-weight: var(--fw-medium); color: oklch(0.86 0.01 282); }
+.imm-dsearch[data-idea] .imm-dsearch__label strong { margin-top: 0.15rem; font-family: var(--font-display); font-size: 1rem; color: oklch(0.98 0 0); overflow-wrap: anywhere; hyphens: auto; }
+.imm-dsearch__glyph { --pad-glyph-size: 1.6em; opacity: 0.9; }
+
+/* Status cards: searching (a soft shimmer), nothing found, offline, search off, show more. */
+.imm-dnote {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 0.75rem; padding: 1rem; text-align: center;
+  background: linear-gradient(180deg, oklch(0.19 0.016 282), oklch(0.14 0.014 282));
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.06);
+}
+.imm-dnote__icon { width: 2.8rem; height: 2.8rem; border-radius: 50%; display: grid; place-items: center; background: oklch(1 0 0 / 0.07); color: oklch(0.88 0.02 282); }
+.imm-dnote__icon svg { width: 1.3rem; height: 1.3rem; }
+.imm-dnote__title { font-size: 0.92rem; font-weight: var(--fw-semibold); line-height: 1.25; color: oklch(0.92 0 0); text-wrap: balance; }
+.imm-dnote[data-busy] { background: oklch(0.17 0.014 282); }
+.imm-dnote[data-busy]::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, oklch(1 0 0 / 0.06) 50%, transparent 70%);
+  background-size: 250% 100%;
+  animation: imm-dnote-shimmer 1.6s linear infinite;
+}
+@keyframes imm-dnote-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.imm-dnote__spin { animation: imm-dnote-spin 1s linear infinite; }
+@keyframes imm-dnote-spin { to { transform: rotate(360deg); } }
+
+/* ----- Info area ----- */
+.imm-dinfo__kicker {
+  display: inline-flex; align-items: center; gap: 0.45rem; margin-bottom: 0.5rem;
+  font-size: 0.78rem; font-weight: var(--fw-semibold); letter-spacing: var(--tracking-caps); text-transform: uppercase;
+  color: oklch(from var(--ring, var(--accent)) 0.86 min(c, 0.12) h);
+  text-shadow: 0 1px 8px oklch(0 0 0 / 0.6);
+}
+.imm-dinfo__watch { color: oklch(0.88 0.12 158); }
+.imm-dinfo__body { -webkit-line-clamp: 3; }
+
+/* ----- Discover game page ----- */
+.imm-dpage__card:focus { outline: none; }
+.imm-dpage__bg { opacity: 0.42; }
+.imm-dpage__bg .dcover, .imm-dpage__bg .cover { height: 100%; }
+.imm-dpage__bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.imm-panel__cover .dcover, .imm-panel__cover .cover { height: 100%; }
+.imm-dpage .imm-dinfo__kicker { margin-bottom: 0; }
+.imm-dpage__content { display: grid; gap: 1.1rem; align-content: start; }
+.imm-dpage .imm-panel__stat { grid-template-rows: auto auto auto; }
+.imm-dpage__stat-hint { grid-column: 2; font-size: 0.72rem; color: oklch(0.74 0.01 282); line-height: 1.35; }
+.imm-dpage__watch[aria-pressed='true']:not(.imm-btn--primary) { background: oklch(0.78 0.14 158 / 0.18); box-shadow: inset 0 0 0 1px oklch(0.78 0.14 158 / 0.5); }
+.imm-dpage__watch-icon { display: inline-grid; }
+.imm-dpage__glyph { --pad-glyph-size: 1.25em; margin-left: 0.15rem; display: inline-flex; opacity: 0.85; }
+.imm-dpage__h { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.5rem 0.8rem; margin: 0 0 0.6rem; font-size: 0.95rem; font-weight: var(--fw-semibold); }
+.imm-dpage__h svg { align-self: center; }
+.imm-dpage__h-note { font-size: 0.78rem; font-weight: var(--fw-regular); color: oklch(0.74 0.01 282); }
+.imm-dpage__links { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.imm-dpage__link { height: 2.9rem; padding: 0 1.1rem; font-size: 0.95rem; }
+.imm-dpage__link--info { color: oklch(0.84 0.01 282); }
+.imm-dpage__ext { opacity: 0.7; }
+.imm-dpage__desc { -webkit-line-clamp: 5; }
+.imm-dpage__chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.imm-dpage__chip { display: inline-flex; align-items: center; gap: 0.45rem; height: 2.1rem; padding: 0 0.8rem; border-radius: var(--r-pill); font-size: 0.82rem; background: oklch(1 0 0 / 0.06); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08); }
+.imm-dpage__chip[data-warn] { box-shadow: inset 0 0 0 1px oklch(0.83 0.14 80 / 0.5); color: oklch(0.9 0.1 80); }
+.imm-dpage__credits { font-size: 0.74rem; color: oklch(0.7 0.01 282); line-height: 1.5; max-width: 70ch; }
+.imm-dpage__error { display: grid; gap: 0.8rem; }
+
+.imm-dpage__skeleton { border-radius: var(--r-lg); background: oklch(1 0 0 / 0.06); min-height: 4.2rem; position: relative; overflow: hidden; }
+.imm-dpage__skeleton::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, oklch(1 0 0 / 0.07) 50%, transparent 70%);
+  background-size: 250% 100%; animation: imm-dnote-shimmer 1.6s linear infinite;
+}
+.imm-dpage__skeleton--line { min-height: 1.1rem; margin-top: 0.9rem; border-radius: var(--r-pill); }
+.imm-dpage__loading { display: grid; }
+
+/* The confirmation before anything opens in the browser. */
+.imm-dconfirm {
+  position: fixed; left: 50%; top: 50%; z-index: 70; translate: -50% -50%;
+  width: min(34rem, 88vw); display: grid; justify-items: center; gap: 0.9rem; padding: 2rem 2.2rem 1.8rem; text-align: center;
+  border-radius: var(--r-2xl);
+  background: oklch(0.15 0.014 282 / 0.97);
+  box-shadow: var(--shadow-3), inset 0 1px 0 oklch(1 0 0 / 0.08), 0 0 0 1px oklch(1 0 0 / 0.12), 0 0 0 100vmax oklch(0.02 0.01 282 / 0.45);
+}
+.imm-dconfirm__icon { width: 3.6rem; height: 3.6rem; border-radius: 50%; display: grid; place-items: center; background: oklch(1 0 0 / 0.08); }
+.imm-dconfirm__title { font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.imm-dconfirm__body { color: oklch(0.82 0.01 282); line-height: 1.5; max-width: 40ch; }
+.imm-dconfirm__actions { display: flex; gap: 0.8rem; margin-top: 0.4rem; }
+
+/* Reduced motion: no shimmer, spin or breathing. */
+.imm[data-reduced='true'] :is(.imm-dnote[data-busy]::before, .imm-dpage__skeleton::after),
+:root[data-reduced-motion='true'] :is(.imm-dnote[data-busy]::before, .imm-dpage__skeleton::after) { animation: none; display: none; }
+:root[data-reduced-motion='true'] :is(.imm-dnote__spin, .imm__card[data-focused='true'] .imm-dsearch__icon) { animation: none; }
+
+/* High contrast: solid black, white edges, the yellow accent. */
+:root[data-theme='contrast'] :is(.imm-dcard__flag, .imm-dcard__price) { background: #000; box-shadow: 0 0 0 2px #fff; backdrop-filter: none; }
+:root[data-theme='contrast'] .imm-dcard__cut { color: oklch(0.9 0.18 100); }
+:root[data-theme='contrast'] :is(.imm-dsearch, .imm-dnote) { background: #000; box-shadow: inset 0 0 0 2px #fff; }
+:root[data-theme='contrast'] .imm-dsearch__art { display: none; }
+:root[data-theme='contrast'] :is(.imm-dsearch__icon, .imm-dnote__icon) { background: #000; box-shadow: 0 0 0 2px #fff; color: #fff; animation: none; }
+:root[data-theme='contrast'] .imm-dinfo__kicker { color: oklch(0.9 0.18 100); text-shadow: none; }
+:root[data-theme='contrast'] :is(.imm-dpage__chip, .imm-dconfirm__icon) { background: #000; box-shadow: 0 0 0 2px #fff; }
+:root[data-theme='contrast'] .imm-dconfirm { background: #000; box-shadow: 0 0 0 2px #fff, 0 0 0 100vmax oklch(0 0 0 / 0.7); }
+:root[data-theme='contrast'] .imm-dpage__watch[aria-pressed='true']:not(.imm-btn--primary) { background: #000; box-shadow: 0 0 0 2px oklch(0.9 0.18 100); }
+
+@media (forced-colors: active) {
+  :is(.imm-dcard__flag, .imm-dcard__price, .imm-dpage__chip, .imm-dconfirm) { border: 1px solid CanvasText; background: Canvas; color: CanvasText; forced-color-adjust: none; }
+  :is(.imm-dsearch, .imm-dnote) { background: Canvas; border: 1px solid CanvasText; }
+}

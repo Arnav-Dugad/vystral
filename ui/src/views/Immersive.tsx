@@ -43,10 +43,14 @@ import {
   type Jump, type LibraryFilter, type LibrarySort, type LiveState, type Row, type Tile,
 } from './immersive/rows';
 import {
-  applyFilter, clampRow, colOf, focusGame, INITIAL_NAV, moveNav, pick as pickTile, switchTab as switchNavTab, type ImmTab, type NavState,
+  applyFilter, clampRow, colOf, focusGame, IMM_TABS, INITIAL_NAV, moveNav, pick as pickTile, switchTab as switchNavTab, TAB_LABEL, tabBeside, type ImmTab, type NavState,
 } from './immersive/nav';
 import { isAutomatic, isMovableRow, mergeRowOrder, movableIds, parseRowOrder, serializeRowOrder, stepRow } from './immersive/rowOrder';
 import { RowOrderList } from './immersive/RowMover';
+import { useImmDiscover } from './immersive/useImmDiscover';
+import { DiscoverFace, DiscoverInfo, NoteFace, SearchFace, useDiscoverStage } from './immersive/DiscoverTiles';
+import { DiscoverPage } from './immersive/DiscoverPage';
+import type { DiscoverItem } from './immersive/discoverRows';
 import './immersive.css';
 import './immersive/immersive-t.css';
 import './immersive/immersive-z.css';
@@ -167,6 +171,11 @@ export function ImmersiveView() {
   const [moving, setMoving] = useState<Moving | null>(null);
   const [settling, setSettling] = useState(false);
   const [holdingY, setHoldingY] = useState(false);
+  // Track C6: Discover — games you don't own. Nothing is asked for until the section is first opened.
+  const [discoverOpened, setDiscoverOpened] = useState(false);
+  const disc = useImmDiscover(visible, discoverOpened || nav.tab === 'discover');
+  const [dpanel, setDpanel] = useState<DiscoverItem | null>(null);
+  const [searchMode, setSearchMode] = useState<'library' | 'discover'>('library');
 
   // Re-order rows when the part of the day changes (checked every few minutes).
   useEffect(() => {
@@ -203,8 +212,10 @@ export function ImmersiveView() {
     () =>
       nav.tab === 'home'
         ? { rows: homeRows(visible, collections, Date.now(), hour, live, moving ? moving.order : savedOrder), jumps: [] }
-        : libraryView(visible, nav.filter, sort, Date.now()),
-    [visible, collections, hour, nav.tab, nav.filter, live, sort, moving, savedOrder],
+        : nav.tab === 'discover'
+          ? { rows: disc.rows, jumps: [] }
+          : libraryView(visible, nav.filter, sort, Date.now()),
+    [visible, collections, hour, nav.tab, nav.filter, live, sort, moving, savedOrder, disc.rows],
   );
   const rows = view.rows;
   const row = clampRow(nav, rows);
@@ -229,7 +240,12 @@ export function ImmersiveView() {
     const t = window.setTimeout(() => setLagged(focused), 160);
     return () => window.clearTimeout(t);
   }, [focused, gliding]);
-  const stageGame = gliding ? lagged : focused;
+  // Track C6: a Discover card has no library game; the stage shows a stand-in carrying its art.
+  const discoverStage = useDiscoverStage(tile);
+  const visual = focused ?? discoverStage;
+  const stageGame = gliding ? lagged : visual;
+  const discoverTile = tile && (tile.kind === 'discover' || tile.kind === 'search' || tile.kind === 'note') ? tile : null;
+  const focusedItem = tile?.kind === 'discover' ? tile.item : null;
 
   // The ring and the stage glow take the focused game's palette (accent + its second colour).
   const [palette, setPalette] = useState<{ id: string; a: string; b: string } | null>(null);
@@ -249,7 +265,7 @@ export function ImmersiveView() {
       window.clearTimeout(t);
     };
   }, [focused]);
-  const fallbackHue = focused ? titleHue(focused.title) : 292;
+  const fallbackHue = visual ? titleHue(visual.title) : 292;
   const ringA = palette && focused && palette.id === focused.id ? palette.a : `oklch(0.75 0.15 ${fallbackHue})`;
   const ringB = palette && focused && palette.id === focused.id ? palette.b : `oklch(0.7 0.14 ${(fallbackHue + 40) % 360})`;
   // The palette colours go only on the few elements that use them: setting them on the Immersive
@@ -299,7 +315,7 @@ export function ImmersiveView() {
   // ---------------------------------------------------------------- voice-over: the focused tile
   const spoken = useRef<{ row: string | null; tab: ImmTab | null; prefix: string; key: string }>({ row: null, tab: null, prefix: '', key: '' });
   // Track Z: a row header or a row being moved says its own words (and the card is said again after).
-  const overlayOpen = !!(panel || quick || search || couch || guide || voiceSheet || attract || moving || onHeader);
+  const overlayOpen = !!(panel || dpanel || quick || search || couch || guide || voiceSheet || attract || moving || onHeader);
   const speakNow = useRef({ tile, current });
   useLayoutEffect(() => {
     speakNow.current = { tile, current };
@@ -321,7 +337,7 @@ export function ImmersiveView() {
     s.key = key;
     const tabChanged = s.tab !== nav.tab;
     const rowChanged = s.row !== current.id;
-    const prefix = [tabChanged && s.tab !== null ? (nav.tab === 'home' ? 'Home' : 'All games') : '', s.prefix].filter(Boolean).join('. ');
+    const prefix = [tabChanged && s.tab !== null ? TAB_LABEL[nav.tab] : '', s.prefix].filter(Boolean).join('. ');
     s.tab = nav.tab;
     s.row = current.id;
     s.prefix = '';
@@ -330,9 +346,9 @@ export function ImmersiveView() {
   }, [voiceOn, gliding, overlayOpen, tileKey, rowKey, nav.tab]);
 
   // ---------------------------------------------------------------- actions
-  const latest = useRef({ nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, guide, voiceSheet, attract, tourActive, filterOrigin, jumps: view.jumps, onHeader, moving, savedOrder });
+  const latest = useRef({ nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, guide, voiceSheet, attract, tourActive, filterOrigin, jumps: view.jumps, onHeader, moving, savedOrder, dpanel, visual, focusedItem });
   useLayoutEffect(() => {
-    latest.current = { nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, guide, voiceSheet, attract, tourActive, filterOrigin, jumps: view.jumps, onHeader, moving, savedOrder };
+    latest.current = { nav, rows, row, col, tile, focused, focusedGame, panel, search, quick, couch, guide, voiceSheet, attract, tourActive, filterOrigin, jumps: view.jumps, onHeader, moving, savedOrder, dpanel, visual, focusedItem };
   });
 
   // Remember where we were for the next visit.
@@ -346,7 +362,7 @@ export function ImmersiveView() {
   const startGlide = useCallback(() => {
     const L = latest.current;
     // The stage holds the game it showed when the glide began.
-    if (!glidingRef.current) setLagged(L.focused);
+    if (!glidingRef.current) setLagged(L.visual);
     glidingRef.current = true;
     setGliding(true);
     window.clearTimeout(glideTimer.current);
@@ -514,6 +530,7 @@ export function ImmersiveView() {
 
   const switchTab = useCallback(
     (t?: ImmTab) => {
+      if (t === 'discover') setDiscoverOpened(true);
       setNav((n) => switchNavTab(n, t));
       setFilterOrigin(null);
       setHeader(false);
@@ -533,6 +550,47 @@ export function ImmersiveView() {
       markTour('search');
     },
     [markTour],
+  );
+
+  const openSearch = useCallback(() => {
+    // In Discover, the keyboard searches every store; elsewhere, your library.
+    setSearchMode(latest.current.nav.tab === 'discover' ? 'discover' : 'library');
+    setSearch(true);
+    sound.select();
+    markTour('search');
+  }, [markTour]);
+
+  /** Track C6: a Discover card opens its page; X (or Y on the page) watches it. */
+  const openDiscover = useCallback((item: DiscoverItem) => {
+    setDpanel(item);
+    engaged.current = true;
+    sound.select();
+    haptic('tick');
+  }, []);
+
+  const toggleWatch = useCallback(
+    async (item: DiscoverItem) => {
+      const on = !disc.watchingKeys.has(item.key);
+      const r = await disc.setWatching(item.key, item.title, on);
+      if (r === null) haptic('error');
+      else {
+        haptic('confirm');
+        sound.select();
+      }
+    },
+    [disc],
+  );
+
+  /** Track C6: runs a Discover search and puts focus on its results. */
+  const runDiscoverSearch = useCallback(
+    (text: string) => {
+      disc.setQuery(text);
+      setNav((n) => ({ ...n, tab: 'discover', row: 1, rowId: 'disc-results', cols: { ...n.cols, 'disc-results': 0, 'disc-owned': 0 } }));
+      setDiscoverOpened(true);
+      engaged.current = true;
+      voiceOver.say(`Searching for ${text}`, 'nav');
+    },
+    [disc],
   );
 
   const applyTool = useCallback(
@@ -568,6 +626,28 @@ export function ImmersiveView() {
           sound.select();
           return returnToGame(t.game);
         case 'tool': return applyTool(t);
+        // Track C6: Discover.
+        case 'discover': return openDiscover(t.item);
+        case 'search':
+          if (t.query) {
+            sound.select();
+            haptic('tick');
+            return runDiscoverSearch(t.query);
+          }
+          return openSearch();
+        case 'note':
+          switch (t.action) {
+            case 'turnOn':
+              sound.select();
+              haptic('confirm');
+              void setSetting('discover.searchOnline', true);
+              voiceOver.say('Searching stores is on', 'notice');
+              return;
+            case 'retry': sound.select(); return disc.retry();
+            case 'more': sound.select(); haptic('tick'); return disc.loadMore();
+            case 'search': return openSearch();
+            default: haptic('edge'); return;
+          }
         case 'store': case 'genre': {
           const filter: LibraryFilter = t.kind === 'store' ? { kind: 'store', platform: t.platform } : { kind: 'genre', genre: t.genre };
           setFilterOrigin(latest.current.nav);
@@ -577,7 +657,7 @@ export function ImmersiveView() {
         }
       }
     },
-    [openPage, applyTool],
+    [openPage, applyTool, openDiscover, runDiscoverSearch, openSearch, setSetting, disc],
   );
 
   const clearFilter = useCallback(() => {
@@ -601,11 +681,6 @@ export function ImmersiveView() {
     markTour('quick');
   }, [markTour]);
 
-  const openSearch = useCallback(() => {
-    setSearch(true);
-    sound.select();
-    markTour('search');
-  }, [markTour]);
 
   const openGuide = useCallback(() => {
     setGuide(true);
@@ -746,8 +821,13 @@ export function ImmersiveView() {
       sound.back();
       return true;
     }
+    if (L.dpanel && button === 'Escape') {
+      setDpanel(null);
+      sound.back();
+      return true;
+    }
     // Anything modal (game page, quick menu, search, display, guide, launch overlay, desktop dialogs) owns input.
-    if (L.panel || L.quick || L.couch || L.search || L.guide || L.voiceSheet) return false;
+    if (L.panel || L.dpanel || L.quick || L.couch || L.search || L.guide || L.voiceSheet) return false;
     if (document.querySelector('[data-dialog-open], [data-nav-scope="overlay"]')) return false;
     // Track Z: a row is picked up — it owns every button until it's dropped (A) or put back (B).
     if (L.moving) {
@@ -813,13 +893,22 @@ export function ImmersiveView() {
       case 'A': case 'Enter': case ' ':
         if (!repeat) openTile(L.tile);
         return true;
-      case 'LB': case 'RB': case 'q': case 'e':
-        if (!repeat) switchTab();
+      case 'LB': case 'RB': case 'q': case 'e': {
+        if (repeat) return true;
+        const next = tabBeside(L.nav.tab, button === 'LB' || button === 'q' ? -1 : 1);
+        if (next) switchTab(next);
+        else haptic('edge');
         return true;
+      }
       case 'Y': case 'y':
         if (!repeat) openSearch();
         return true;
       case 'X':
+        // Track C6: on a game you don't own, X watches it (or stops).
+        if (L.focusedItem) {
+          if (!repeat) void toggleWatch(L.focusedItem);
+          return true;
+        }
         // Controller: a tap toggles Favorite (on release), holding opens the quick menu.
         if (repeat || xTimer.current !== null) return true;
         if (!L.focusedGame) {
@@ -834,7 +923,8 @@ export function ImmersiveView() {
         }, HOLD_X_MS);
         return true;
       case 'x':
-        if (!repeat && L.focusedGame) void toggleFavorite(L.focusedGame);
+        if (!repeat && L.focusedItem) void toggleWatch(L.focusedItem);
+        else if (!repeat && L.focusedGame) void toggleFavorite(L.focusedGame);
         return true;
       case 'View': case 'm': case 'ContextMenu':
         if (!repeat) openQuick();
@@ -930,11 +1020,21 @@ export function ImmersiveView() {
   );
 
   const quickGame = useStore((s) => (quick ? s.gamesById.get(quick.id) ?? null : null));
+  const oskSubmit = useMemo(
+    () => (searchMode === 'discover' ? { initial: disc.query ?? '', onSubmit: (text: string) => { setSearch(false); runDiscoverSearch(text); } } : undefined),
+    [searchMode, disc.query, runDiscoverSearch],
+  );
+  const watchingFocused = !!focusedItem && disc.watchingKeys.has(focusedItem.key);
   const lean = useTransform(leanX, (v) => v * -4);
   const leanInfoY = useTransform(leanY, (v) => v * -2);
   const voiceState = !voiceOn ? 'Off' : settings?.['voiceover.captionsOnly'] ? 'Captions only' : 'On';
   const movingRows = moving ? rows.filter(isMovableRow) : [];
-  const primary = tile?.kind === 'playing' ? 'Return to game' : tile?.kind === 'tool' ? (tile.tool.type === 'sort' ? 'Change sort' : 'Show') : tile && tile.kind !== 'game' && tile.kind !== 'download' ? 'Browse' : 'Open';
+  const primary = tile?.kind === 'playing' ? 'Return to game'
+    : tile?.kind === 'tool' ? (tile.tool.type === 'sort' ? 'Change sort' : 'Show')
+    : tile?.kind === 'discover' ? 'Details'
+    : tile?.kind === 'search' ? (tile.query ? 'Search' : 'Type')
+    : tile?.kind === 'note' ? NOTE_PRIMARY[tile.action ?? 'none']
+    : tile && tile.kind !== 'game' && tile.kind !== 'download' ? 'Browse' : 'Open';
 
   return (
     <LayoutGroup>
@@ -952,9 +1052,9 @@ export function ImmersiveView() {
           <img src="./vystral-mark.svg" alt="" className="imm__mark" />
           <nav className="imm__tabs" aria-label="Sections">
             <PadGlyph button="LB" />
-            {(['home', 'library'] as ImmTab[]).map((t) => (
+            {IMM_TABS.map((t) => (
               <button key={t} className="imm__tab" aria-current={nav.tab === t ? 'page' : undefined} onClick={() => t !== nav.tab && switchTab(t)}>
-                {t === 'home' ? 'Home' : 'All games'}
+                {TAB_LABEL[t]}
                 {nav.tab === t && <motion.span layoutId="imm-tab" className="imm__tab-bar" transition={pick(reduce, spring.focus)} />}
               </button>
             ))}
@@ -1022,7 +1122,7 @@ export function ImmersiveView() {
                 exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, filter: 'blur(4px)', transition: { duration: 0.18, ease: ease.in } }}
                 transition={pick(reduce, spring.panel)}
               >
-                <TileInfo tile={tile} row={current} sort={sort} />
+                {discoverTile ? <DiscoverInfo tile={discoverTile} watching={watchingFocused} /> : <TileInfo tile={tile} row={current} sort={sort} />}
               </motion.div>
             )}
           </AnimatePresence>
@@ -1038,7 +1138,8 @@ export function ImmersiveView() {
               activeCol={col}
               cols={nav.cols}
               ringVars={ringVars}
-              ringHidden={!!panel || !!quick || !!guide || onHeader || !!moving}
+              ringHidden={!!panel || !!dpanel || !!quick || !!guide || onHeader || !!moving}
+              watching={disc.watchingKeys}
               holding={holdingX}
               viewportRef={viewportRef}
               onRing={onRing}
@@ -1079,11 +1180,14 @@ export function ImmersiveView() {
         <footer className="imm__hints">
           <span className="imm__hint"><PadHint button="A">{primary}</PadHint></span>
           {focusedGame && <span className="imm__hint"><PadHint button="X">Favorite</PadHint></span>}
-          <button type="button" className="imm__hint imm__hint--btn" onClick={openQuick} disabled={!focusedGame}>
-            <PadHint button="View">Quick menu</PadHint>
-          </button>
+          {focusedItem && <span className="imm__hint"><PadHint button="X">{watchingFocused ? 'Stop watching' : 'Watch'}</PadHint></span>}
+          {nav.tab !== 'discover' && (
+            <button type="button" className="imm__hint imm__hint--btn" onClick={openQuick} disabled={!focusedGame}>
+              <PadHint button="View">Quick menu</PadHint>
+            </button>
+          )}
           <button type="button" className="imm__hint imm__hint--btn" onClick={openSearch}>
-            <PadHint button="Y">Search</PadHint>
+            <PadHint button="Y">{nav.tab === 'discover' ? 'Search any game' : 'Search'}</PadHint>
           </button>
           <span className="imm__hint"><PadHint button={['LB', 'RB']}>Sections</PadHint></span>
           {nav.tab === 'library' && view.jumps.length > 1 && (
@@ -1111,6 +1215,21 @@ export function ImmersiveView() {
           )}
         </AnimatePresence>
         <AnimatePresence>
+          {dpanel && (
+            <DiscoverPage
+              key={dpanel.key}
+              item={dpanel}
+              watching={disc.watchingKeys.has(dpanel.key)}
+              onWatch={(on) => disc.setWatching(dpanel.key, dpanel.title, on)}
+              onOpenGame={(g) => {
+                setDpanel(null);
+                openPage(g);
+              }}
+              onClose={() => setDpanel(null)}
+            />
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
           {quick && quickGame && (
             <QuickMenu
               key={quick.id}
@@ -1126,7 +1245,16 @@ export function ImmersiveView() {
         <AnimatePresence>{voiceSheet && <VoiceSheet key="voice" onClose={() => setVoiceSheet(false)} />}</AnimatePresence>
         <AnimatePresence>{guide && <Guide key="guide" voiceState={voiceState} onAction={runGuide} onClose={() => setGuide(false)} />}</AnimatePresence>
         <AnimatePresence>
-          {search && <OnScreenKeyboard key="osk" games={searchGames} filters={oskFilters} onClose={() => setSearch(false)} onOpenGame={openFromSearch} />}
+          {search && (
+            <OnScreenKeyboard
+              key="osk"
+              games={oskSubmit ? visible : searchGames}
+              filters={oskSubmit ? undefined : oskFilters}
+              submit={oskSubmit}
+              onClose={() => setSearch(false)}
+              onOpenGame={openFromSearch}
+            />
+          )}
         </AnimatePresence>
         </div>
         <AttractMode games={visible} active={attract} onActiveChange={setAttract} onOpen={openPage} />
@@ -1276,11 +1404,17 @@ function tileText(t: Tile): string {
     case 'store': return PLATFORM_NAMES[t.platform];
     case 'genre': return t.genre;
     case 'tool': return '';
+    case 'discover': return t.item.title;
+    // The faces of search and status cards already say it.
+    case 'search': case 'note': return '';
   }
 }
 
+/** Track C6: what A does on a Discover status card. */
+const NOTE_PRIMARY: Record<string, string> = { turnOn: 'Turn on', retry: 'Try again', more: 'Show more', search: 'Search again', none: 'Open' };
+
 function RowsTrack({
-  rows, activeRow, activeCol, cols, ringVars, ringHidden, holding, viewportRef, onRing, onPick, onOpen, headerId, holdingY, liftedId, flowing,
+  rows, activeRow, activeCol, cols, ringVars, ringHidden, holding, viewportRef, onRing, onPick, onOpen, headerId, holdingY, liftedId, flowing, watching,
 }: {
   rows: Row[];
   activeRow: number;
@@ -1301,6 +1435,8 @@ function RowsTrack({
   liftedId: string | null;
   /** Track Z: rows slide to their new places (while moving and just after). */
   flowing: boolean;
+  /** Track C6: Discover keys on your Watching list. */
+  watching: ReadonlySet<string>;
 }) {
   const reduce = useReducedMotion();
   const probeRef = useRef<HTMLDivElement>(null);
@@ -1502,6 +1638,12 @@ function RowsTrack({
                             <PlayingFace tile={t} />
                           ) : t.kind === 'download' ? (
                             <DownloadFace tile={t} />
+                          ) : t.kind === 'discover' ? (
+                            <DiscoverFace tile={t} watching={watching.has(t.item.key)} />
+                          ) : t.kind === 'search' ? (
+                            <SearchFace tile={t} />
+                          ) : t.kind === 'note' ? (
+                            <NoteFace tile={t} />
                           ) : (
                             <BrowseFace tile={t} />
                           )}

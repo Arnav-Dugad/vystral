@@ -30,6 +30,7 @@ import { NewBadge } from '../whatsnew/NewBadge';
 import { openReplay } from '../state/recap';
 import { RollUp } from '../components/ui/RollUp';
 import { PlayInsights } from './journal/PlayInsights';
+import { RecordsPanel } from './journal/RecordsPanel';
 import './journal.css';
 
 const RANGE_OPTIONS: { value: Range; label: string }[] = [
@@ -54,7 +55,7 @@ function storePlaytime(game: Game | undefined): { minutes: number; store: string
   return best;
 }
 
-export type JournalTab = 'sessions' | 'achievements' | 'value';
+export type JournalTab = 'sessions' | 'achievements' | 'value' | 'records';
 
 export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab; day?: number } = {}) {
   const { status, sessions: rawSessions, error, reload, loadedAt: now } = useTrackedSessions();
@@ -199,6 +200,8 @@ export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab
           { value: 'sessions', label: 'Sessions' },
           { value: 'achievements', label: <><Trophy size={14} aria-hidden style={{ marginRight: 6, verticalAlign: '-2px' }} />Achievements<NewBadge k="journal.achievements" /></> },
           { value: 'value', label: <>Library value<NewBadge k="journal.value" /></> },
+          // Track C6: personal records as collectible badges.
+          { value: 'records', label: <><Medal size={14} aria-hidden style={{ marginRight: 6, verticalAlign: '-2px' }} />Records</> },
         ]}
       />
 
@@ -212,6 +215,17 @@ export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab
       {tab === 'value' && (
         <div role="tabpanel" {...tabPanelProps('journal', 'value')} className="jr-panel">
           <LibraryValue />
+        </div>
+      )}
+
+      {tab === 'records' && (
+        <div role="tabpanel" {...tabPanelProps('journal', 'records')} className="jr-panel">
+          {status === 'error' && !hasHistory ? (
+            <EmptyState art="none" icon={<Medal size={34} />} title="Your records couldn’t be loaded" body={error ?? 'Something went wrong while reading your sessions.'}
+              actions={<Button icon={<RefreshCw size={16} />} onClick={() => void reload()}>Try again</Button>} />
+          ) : (
+            <RecordsPanel sessions={rawSessions} status={status} gamesById={gamesById} />
+          )}
         </div>
       )}
 

@@ -15,7 +15,7 @@ export function nextTourStep(done: ReadonlySet<TourStep>): TourStep | null {
 
 const COPY: Record<TourStep, { title: string; body: React.ReactNode }> = {
   move: { title: 'Look around', body: <>Move with the <PadGlyph button="Dpad" /> D-pad, the <PadGlyph button="LS" /> left stick or the arrow keys.</> },
-  sections: { title: 'Switch sections', body: <>Press <PadGlyph button="LB" /> <PadGlyph button="RB" /> (or Q / E) for Home and All games.</> },
+  sections: { title: 'Switch sections', body: <>Press <PadGlyph button="LB" /> <PadGlyph button="RB" /> (or Q / E) for Home, All games and Discover.</> },
   quick: { title: 'Quick actions', body: <>Hold <PadGlyph button="X" /> or press <PadGlyph button="View" /> (or M) on a game: play, favourite, status, store page.</> },
   search: { title: 'Find anything', body: <>Press <PadGlyph button="Y" /> to search, <PadGlyph button="A" /> to open a game.</> },
 };
