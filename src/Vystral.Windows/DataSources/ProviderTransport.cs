@@ -44,6 +44,8 @@ public sealed class ProviderTransport(HttpClient http, string provider, string d
     private DateTime _blockedUntil = DateTime.MinValue;
 
     public string Provider { get; } = provider;
+    /// <summary>Track D6: the Data sources health row this lane reports to.</summary>
+    private readonly string _health = ProviderHealthHub.IdForLane(provider);
     public string DisplayName { get; } = displayName;
     public TimeSpan MinSpacing { get; } = minSpacing;
 
@@ -74,12 +76,14 @@ public sealed class ProviderTransport(HttpClient http, string provider, string d
             // One limit for sending and reading the body (HttpClient.Timeout stops at the headers here).
             using var timeout = Services.RequestTimeouts.Link(ct, RequestTimeout);
             HttpResponseMessage response;
+            ProviderHealthHub.Sent(_health);
             try
             {
                 response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             }
             catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException && !ct.IsCancellationRequested)
             {
+                ProviderHealthHub.Failed(_health, ex);
                 Log.Warn("datasource", "Request failed", new { provider = Provider, path, error = ex.GetType().Name });
                 throw new DataSourceException(DataSourceOutcome.Unavailable, $"VYSTRAL couldn’t reach {DisplayName}. Check your connection and try again.");
             }
@@ -91,20 +95,29 @@ public sealed class ProviderTransport(HttpClient http, string provider, string d
                                ?? (response.Headers.RetryAfter?.Date is { } at ? at - DateTimeOffset.UtcNow : (TimeSpan?)null)
                                ?? TimeSpan.FromMinutes(1);
                     _blockedUntil = DateTime.UtcNow + Clamp(wait);
+                    ProviderHealthHub.PausedUntil(_health, new DateTimeOffset(_blockedUntil, TimeSpan.Zero), $"{DisplayName} asked VYSTRAL to slow down (HTTP 429)");
                     Log.Warn("datasource", "Rate limited", new { provider = Provider, path, seconds = (int)Clamp(wait).TotalSeconds });
                     throw new DataSourceException(DataSourceOutcome.RateLimited, $"{DisplayName} asked VYSTRAL to slow down. Try again in a little while.");
                 }
                 if (response.Content.Headers.ContentLength > maxBytes)
+                {
+                    ProviderHealthHub.Failed(_health, $"{DisplayName} sent an answer larger than VYSTRAL accepts");
                     throw new DataSourceException(DataSourceOutcome.Malformed, $"{DisplayName} sent an unexpectedly large answer.");
+                }
                 string? body;
                 try { body = await ReadCappedAsync(response.Content, maxBytes, timeout.Token); }
                 catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException && !ct.IsCancellationRequested)
                 {
+                    ProviderHealthHub.Failed(_health, ex);
                     Log.Warn("datasource", "Reading the answer failed", new { provider = Provider, path, error = ex.GetType().Name });
                     throw new DataSourceException(DataSourceOutcome.Unavailable, $"{DisplayName} stopped answering. Check your connection and try again.");
                 }
                 if (body is null)
+                {
+                    ProviderHealthHub.Failed(_health, $"{DisplayName} sent an answer larger than VYSTRAL accepts");
                     throw new DataSourceException(DataSourceOutcome.Malformed, $"{DisplayName} sent an unexpectedly large answer.");
+                }
+                ProviderHealthHub.Status(_health, response.StatusCode, DisplayName);
                 if ((int)response.StatusCode >= 500)
                 {
                     Log.Warn("datasource", "Server error", new { provider = Provider, path, status = (int)response.StatusCode });

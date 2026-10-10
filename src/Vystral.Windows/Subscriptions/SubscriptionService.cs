@@ -500,7 +500,7 @@ public sealed class SubscriptionService
         var sessions = _repo.ObservedSessionsEndedAfter(monthStart,
                 [SessionSources.Tracked, SessionSources.Detected, SessionSources.Background, SessionSources.CloudGfn, SessionSources.CloudXbox], 4000)
             .Select(s => new ValueSession(s.GameId, s.Source, s.Start, s.DurationSeconds)).ToList();
-        var price = Math.Clamp(_settings.GetNumber(PriceSetting), 0, 1000);
+        var price = Math.Clamp(_settings.GetNumber(PriceSetting), 0, 10_000_000);
         var r = SubscriptionValue.Compute(sessions, map, plans, gfnMember, monthStart, now, price);
         var titles = r.Top.Select(t => new SubsValueGameDto(t.GameId, _repo.GetGame(t.GameId)?.Title ?? "", t.Seconds)).Where(t => t.Title.Length > 0).ToList();
         var rows = r.Plans.Select(p => new SubsValuePlanDto(p.Plan,
@@ -541,6 +541,34 @@ public sealed class SubscriptionService
             ok?.ToString("O"), NextAllowed(market)?.ToString("O"), failedLast ? c.Error : null, counts,
             leavingInPlans, map.Values.Count(b => b.Any(x => x.Leaving)), pending, _refreshing);
     }
+
+    /// <summary>
+    /// Track D6: forgets the downloaded Game Pass lists and Store names (the next refresh downloads them again). Which
+    /// "leaving soon" notifications were already sent is kept, so nobody is told twice. Your plans live in settings.
+    /// </summary>
+    public void ClearDownloaded()
+    {
+        Update(c =>
+        {
+            c.Market = null;
+            c.ListsAt = null;
+            c.Lists = [];
+            c.Leaving = [];
+            c.Recent = [];
+            c.Popular = [];
+            c.Products = [];
+            c.FailAt = null;
+            c.Failures = 0;
+            c.Error = null;
+        });
+        Save();
+        Invalidate();
+        _events.Emit("subs.changed", Status());
+    }
+
+    /// <summary>When the lists were last downloaded (for the cache viewer).</summary>
+    public DateTimeOffset? ListsDownloadedAt =>
+        Cache.ListsAt is { } at && DateTimeOffset.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var t) ? t : null;
 
     /// <summary>The settings or library changed: matches depend on plans and games.</summary>
     public void Invalidate()

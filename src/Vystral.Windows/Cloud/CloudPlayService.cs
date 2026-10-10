@@ -656,6 +656,22 @@ public sealed class CloudPlayService : IDisposable
         }
     }
 
+    /// <summary>Track D6: forgets the downloaded catalogues so the next refresh fetches them again (the cache viewer).</summary>
+    public void ClearDownloaded()
+    {
+        _repo.ClearCloudCatalogs();
+        foreach (var svc in new[] { CloudServices.GeForceNow, CloudServices.Xbox })
+        {
+            _repo.SetInternalValue(OkKey(svc), null);
+            _repo.SetInternalValue(FailKey(svc), null);
+        }
+        lock (_lock)
+        {
+            _matches = null;
+            _statusCache = null;
+        }
+    }
+
     /// <summary>The settings changed: matches depend on the market and the services switched on.</summary>
     public void Invalidate()
     {

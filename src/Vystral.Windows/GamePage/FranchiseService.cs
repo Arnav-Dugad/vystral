@@ -66,6 +66,13 @@ public sealed class FranchiseService
         _groups = new GamePageCache<FranchiseGroupEntry>(Path.Combine(folder, "igdb-series.json"), MaxGroups, 8 * 1024 * 1024, e => e.Fetched, ValidateGroups);
     }
 
+    /// <summary>Track D6: forgets the cached IGDB series (re-downloaded when a game page opens).</summary>
+    public void ClearCache()
+    {
+        _games.Clear();
+        _groups.Clear();
+    }
+
     private bool LocalOnly => _settings.GetBool("privacy.localOnly");
 
     /// <summary>Why IGDB can't be asked right now, or null when it can.</summary>

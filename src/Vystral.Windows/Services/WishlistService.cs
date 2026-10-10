@@ -556,6 +556,47 @@ public sealed class WishlistService
         }
     }
 
+    /// <summary>
+    /// Track D6 (cache viewer): forgets what was downloaded for the wishlist — store facts, header pictures (their files
+    /// are cleared with the thumbnails) and lowest prices — so the next sync fetches them again. The price history
+    /// VYSTRAL recorded and which alerts were already sent are kept: Steam can't give those back.
+    /// </summary>
+    public void ClearDownloaded()
+    {
+        lock (_lock)
+        {
+            if (!_loaded)
+            {
+                _cache = Validate(JsonFileCache.Read<WishlistCache>(_file, MaxCacheBytes));
+                _loaded = true;
+            }
+            if (_cache is null) return;
+            _cache.Fetched = null;
+            foreach (var i in _cache.Items)
+            {
+                i.HeaderFile = null;
+                i.StoreFetched = null;
+                i.LowFetched = null;
+            }
+            JsonFileCache.Write(_file, _cache);
+        }
+        _lastAttempt = DateTimeOffset.MinValue;
+        _retryAt = DateTimeOffset.MinValue;
+    }
+
+    /// <summary>When the wishlist was last synced (for the cache viewer).</summary>
+    public DateTimeOffset? LastSynced
+    {
+        get
+        {
+            lock (_lock)
+            {
+                if (!_loaded) return null;
+                return _cache?.Fetched;
+            }
+        }
+    }
+
     /// <summary>Removes the cached wishlist (feature turned off, key removed).</summary>
     public void Forget()
     {
