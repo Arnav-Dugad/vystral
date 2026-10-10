@@ -12,6 +12,9 @@ public sealed record DiscoverImageParams(string Key, string Kind);
 public sealed record DiscoverLinkParams(string Key, string Link);
 public sealed record DiscoverOfferParams(string Key, string OfferId);
 public sealed record DiscoverWatchParams(string Key, bool On);
+// Track C3 parameter records.
+public sealed record DiscoverRefreshParams(bool? Refresh);
+public sealed record DiscoverGenreParams(string Genre, int? Page);
 
 /// <summary>
 /// Track U: universal game search (Steam store search, IGDB, RAWG, Wikidata) and pages for games that aren't in the
@@ -32,7 +35,7 @@ public sealed partial class AppBackend
 
         Settings.Changed += key =>
         {
-            if (key is DiscoverService.SearchSetting or "privacy.localOnly" or "library.fetchMetadata" or "dataSources.wikidata" or "dataSaver.enabled" or "*")
+            if (key is DiscoverService.SearchSetting or DiscoverService.StoreShelvesSetting or "privacy.localOnly" or "library.fetchMetadata" or "dataSources.wikidata" or "dataSaver.enabled" or "*")
                 _events.Emit("discover.changed", _discover.Status());
         };
 
@@ -70,6 +73,14 @@ public sealed partial class AppBackend
             var url = _discover.OfferUrl(RequireDiscoverKey(p.Key), RequireOption(p.OfferId)) ?? throw new BridgeException("notFound", "That deal is no longer listed. Refresh the prices.");
             _shell.OpenUri(new Uri(url));
             return Task.FromResult<object?>(true);
+        });
+        // Track C3: browse shelves before anything is typed (Steam's store lists opt-in; "Because you played"; genres).
+        Dispatcher.Register<DiscoverRefreshParams>("discover.featured", async (p, ct) => await _discover.FeaturedAsync(p.Refresh ?? false, ct));
+        Dispatcher.Register<DiscoverRefreshParams>("discover.similar", async (p, ct) => await _discover.SimilarAsync(p.Refresh ?? false, ct));
+        Dispatcher.Register<DiscoverGenreParams>("discover.genre", async (p, ct) =>
+        {
+            var genre = p.Genre is not null && DiscoverGenres.ById.ContainsKey(p.Genre) ? p.Genre : throw new BridgeException("invalid", "Unknown genre.");
+            return await _discover.GenreAsync(genre, Math.Clamp(p.Page ?? 0, 0, DiscoverService.MaxPages - 1), ct);
         });
         Dispatcher.Register("discover.watching", _ => Task.FromResult<object?>(_discover.Watching()));
         Dispatcher.Register<DiscoverWatchParams>("discover.watch", (p, _) =>

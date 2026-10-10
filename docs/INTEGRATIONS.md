@@ -137,6 +137,23 @@ Find any game, owned or not, from the command bar (Ctrl+K, a *Not in your librar
 - **Where to get it** links are built natively from validated IDs: Steam, GOG (`gog.com/en/<path>`), Epic (`store.epicgames.com/p/<slug>`), Microsoft Store (`apps.microsoft.com/detail/<ID>`), plus IGDB/RAWG/Wikidata pages. They open in the browser; nothing is bought, installed or launched.
 - **Watching** is a local list (`ui-state/discover-watching.json`); it doesn't sync with Steam's wishlist and checks prices only when you open a page.
 
+### Discover browse shelves (Track C3, 0.8)
+
+Before you type, Discover is a storefront: featured picks, *Because you played …*, *From your wishlist, on sale*, Steam's store shelves, and genre and tag browsing. Code: `src/Vystral.Windows/Discover/DiscoverBrowse*.cs`, `ui/src/components/discover/`. Bridge (additive): `discover.featured({ refresh })`, `discover.similar({ refresh })`, `discover.genre({ genre, page })`.
+
+| Shelf | Requests | Gate and limits |
+|---|---|---|
+| Trending, Deals, New releases, Coming soon | `store.steampowered.com/api/featuredcategories/?cc=<price country>&l=english` (undocumented, used by Steam's own pages: **grey**), then `api.steampowered.com/IStoreBrowseService/GetItems/v1` (keyless; ≤ 50 apps per request) to confirm each app is a game (type 0), visible, and not one Steam hides by default (content descriptors 3 and 4), with its release date and hashed art | **Opt-in**: *Steam store shelves in Discover* (`discover.storeShelves`, off). One refresh per 3 h per price country, a manual refresh at most every 5 min, a back-off of 15 min doubling to 6 h after errors; the last good copy is kept in the database cache (`provider_cache`, `discover-featured`) and shown as stale; Steam's polite lane; answers ≤ 3 MB, 40 items per section |
+| Free to play | `api.steampowered.com/IStoreQueryService/Query/v1` (keyless): released games, free only, Steam's popularity order, 40 at most | Same opt-in and refresh as above (one request per refresh) |
+| Genres and tags | The same store query with one Steam tag (`tagids_must_match`), 24 per page; without the opt-in, IGDB's genres, themes or game modes (`where genres = (id) & total_rating_count > 20`, most-rated first) with your key | 19 fixed genres and tags (`DiscoverGenres`; every Steam tag ID was checked against the store query on 2026-10-10). Pages cached in memory 6 h |
+| Because you played … | IGDB: each seed's IGDB ID (matched enrichment, else `external_games` by Steam app ID, remembered 30 days), one `games` query for `similar_games`, then those games (≤ 40 per request). Without IGDB, with the opt-in on: the seed's Steam tags (GetItems) and a store query on its two most telling tags (broad ones like *Singleplayer* skipped) | *Search stores and game databases* must be on. Seeds: the two games played most recently (45 days) and then the most played (≥ 1 h; VYSTRAL's sessions or the store's playtime), four at most. Each seed's list is cached a week (a day when empty) in `provider_cache` (`discover-similar`) |
+| From your wishlist, on sale | None: Track W's wishlist data (`wishlist.get`) | Only with the wishlist on |
+
+- **Ownership** is checked every time the shelves are built, never cached: Steam app ID against the library (games and Steam copies), IGDB ID against matched IGDB enrichment, else an exact normalized title whose years agree (the search's merger). Owned games are left out of *Because you played*, marked *In your library* elsewhere.
+- **Cached rows are re-validated** when read (app IDs, keys, image hosts, prices), since the cache lives in the database.
+- **Game pages:** every card, Watching item, wishlist item and hero slide opens the VYSTRAL page: your own when you own it (found by Steam app ID too), else the Discover page (`discoverGame`, `steam-<appid>`). The Steam store stays a secondary action on the Wishlist.
+- **Search results** fold editions (“… Deluxe Edition”, “GOTY”, “Director's Cut”) and add-ons (an extra whose title starts with the game's) under the base game when it's in the list (`groupEditions`); nothing is dropped.
+
 ## Adding a store
 
 Implement `IPlatformAdapter` (see `SteamAdapter` for the reference pattern), keep it read-only and tolerant of malformed data, add fixture tests using `TempDir` and `FakeRegistry`, register it in `AdapterCatalog`, and add its launch scheme to `LaunchValidator`.

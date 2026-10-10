@@ -5,8 +5,10 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { call, errorMessage, on } from '../bridge/bridge';
-import type { DiscoverChannel, DiscoverImage, DiscoverSearch, DiscoverStatus, DiscoverWatch } from '../bridge/types';
-import { cleanQuery, isNewer } from '../lib/discover';
+import type {
+  DiscoverChannel, DiscoverGenrePage, DiscoverImage, DiscoverResult, DiscoverSearch, DiscoverStatus, DiscoverWatch, Wishlist,
+} from '../bridge/types';
+import { cleanQuery, isNewer, wishlistOnSale } from '../lib/discover';
 import { settingsSettled, useStore } from './store';
 
 export interface DiscoverSearchState {
@@ -107,6 +109,129 @@ export function useWatching(): DiscoverWatch[] | null {
     return () => { live = false; off(); };
   }, []);
   return list;
+}
+
+// ---------------- Track C3: browse shelves ----------------
+
+export interface BrowseState<T> {
+  data: T | null;
+  error: string | null;
+  loading: boolean;
+  /** Ask again, past the cache (the native side still rate-limits). */
+  refresh: () => void;
+}
+
+/**
+ * One browse answer (discover.featured or discover.similar), asked again when a setting that gates it changes.
+ * Only the newest answer counts, so a slow earlier request can't bring back an old state.
+ */
+export function useDiscoverShelves<T>(method: 'discover.featured' | 'discover.similar'): BrowseState<T> {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const seq = useRef(0);
+  const gates = useStore((s) => `${s.settings?.['discover.storeShelves']}|${s.settings?.['discover.searchOnline']}|${s.settings?.['privacy.localOnly']}|${s.settings?.['dataSaver.enabled']}`);
+
+  const ask = useCallback((refresh: boolean) => {
+    const mine = ++seq.current;
+    setLoading(true);
+    setError(null);
+    settingsSettled()
+      .then(() => call<T>(method, { refresh }, 90_000))
+      .then((d) => { if (mine === seq.current) setData(d); })
+      .catch((err) => { if (mine === seq.current) setError(errorMessage(err)); })
+      .finally(() => { if (mine === seq.current) setLoading(false); });
+  }, [method]);
+
+  useEffect(() => {
+    ask(false);
+    return () => { seq.current++; };
+  }, [ask, gates]);
+
+  // A key connected in Settings → Data sources changes what "Because you played" can use.
+  useEffect(() => (method === 'discover.similar' ? on('dataSources.changed', () => ask(false)) : undefined), [method, ask]);
+
+  return { data, error, loading, refresh: useCallback(() => ask(true), [ask]) };
+}
+
+export interface GenreState {
+  page: DiscoverGenrePage | null;
+  results: DiscoverResult[];
+  error: string | null;
+  loading: boolean;
+  loadMore: () => void;
+  retry: () => void;
+}
+
+/** A genre's games, page by page (each page is cached natively). */
+export function useDiscoverGenre(genre: string | null): GenreState {
+  const [page, setPage] = useState<DiscoverGenrePage | null>(null);
+  const [results, setResults] = useState<DiscoverResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const seq = useRef(0);
+  const gates = useStore((s) => `${s.settings?.['discover.storeShelves']}|${s.settings?.['discover.searchOnline']}|${s.settings?.['privacy.localOnly']}`);
+
+  const fetchPage = useCallback((n: number) => {
+    if (!genre) return;
+    const mine = ++seq.current;
+    setLoading(true);
+    setError(null);
+    settingsSettled()
+      .then(() => call<DiscoverGenrePage>('discover.genre', { genre, page: n }, 90_000))
+      .then((p) => {
+        if (mine !== seq.current) return;
+        setPage(p);
+        setResults((prev) => {
+          const base = n === 0 ? [] : prev;
+          const keys = new Set(base.map((r) => r.key));
+          return [...base, ...p.results.filter((r) => !keys.has(r.key))];
+        });
+      })
+      .catch((err) => { if (mine === seq.current) setError(errorMessage(err)); })
+      .finally(() => { if (mine === seq.current) setLoading(false); });
+  }, [genre]);
+
+  useEffect(() => {
+    setPage(null);
+    setResults([]);
+    if (genre) fetchPage(0);
+    return () => { seq.current++; };
+  }, [genre, fetchPage, gates]);
+
+  const loadMore = useCallback(() => {
+    if (!page || !page.hasMore || loading) return;
+    fetchPage(page.page + 1);
+  }, [page, loading, fetchPage]);
+
+  /** Ask again for the page that failed (the first one when nothing is shown yet). */
+  const retry = useCallback(() => fetchPage(results.length && page ? page.page : 0), [fetchPage, results.length, page]);
+
+  return { page, results, error, loading, loadMore, retry };
+}
+
+/** Wishlist games on sale, when the Steam wishlist is on (Track W's data; nothing is asked when it's off). */
+export function useWishlistSale(): { items: DiscoverResult[]; loading: boolean; enabled: boolean } {
+  const enabled = useStore((s) => !!s.settings?.['wishlist.sync']);
+  const [items, setItems] = useState<DiscoverResult[]>([]);
+  const [loading, setLoading] = useState(enabled);
+  useEffect(() => {
+    if (!enabled) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+    let live = true;
+    const load = () => call<Wishlist>('wishlist.get')
+      .then((w) => { if (live) setItems(w.status === 'ok' ? wishlistOnSale(w.items) : []); })
+      .catch(() => { if (live) setItems([]); })
+      .finally(() => { if (live) setLoading(false); });
+    setLoading(true);
+    void load();
+    const off = on('wishlist.changed', () => void load());
+    return () => { live = false; off(); };
+  }, [enabled]);
+  return { items, loading, enabled };
 }
 
 // ---------------- images ----------------

@@ -26,6 +26,7 @@ export function DataSourcesSettings() {
   const enrichment = useStore((s) => s.settings?.['dataSources.enrichment'] ?? true);
   const storePrices = useStore((s) => s.settings?.['dataSources.storePrices'] ?? true);
   const searchOnline = useStore((s) => s.settings?.['discover.searchOnline'] ?? true); // Track U
+  const storeShelves = useStore((s) => s.settings?.['discover.storeShelves'] ?? false); // Track C3
   const country = useStore((s) => s.settings?.['dataSources.priceCountry'] ?? 'US');
   const setSetting = useStore((s) => s.setSetting);
   const [status, setStatus] = useState<DataSourcesStatus | null>(null);
@@ -77,6 +78,13 @@ export function DataSourcesSettings() {
             <div className="srow__hint">The command bar and Discover also send what you type to Steam’s store search and Wikidata (and IGDB and RAWG when connected) to find games that aren’t in your library. Your library itself is always searched on this PC.</div>
           </div>
           <div className="srow__control"><Toggle id="dsrc-discover-toggle" label="Search stores and game databases" checked={searchOnline} onChange={(v) => void setSetting('discover.searchOnline', v)} /></div>
+        </div>
+        <div className="srow" id="dsrc-store-shelves">
+          <div className="srow__text">
+            <label className="srow__label" htmlFor="dsrc-store-shelves-toggle">Steam store shelves in Discover</label>
+            <div className="srow__hint">Trending, deals, new releases, coming soon, free to play and genres, from Steam’s public store lists for your price country. Asked at most every few hours, only while this is on; nothing about you is sent.</div>
+          </div>
+          <div className="srow__control"><Toggle id="dsrc-store-shelves-toggle" label="Steam store shelves in Discover" checked={storeShelves} onChange={(v) => void setSetting('discover.storeShelves', v)} /></div>
         </div>
         <div className="srow">
           <div className="srow__text">

@@ -1,0 +1,12 @@
+{"response":{"metadata":{"total_matching_records":18945,"start":0,"count":8},"ids":[{"appid":730},{"appid":570},{"appid":2767030},{"appid":9990002},{"appid":1172470},{"appid":438100},{"appid":5000001},{"appid":230410}],"store_items":[
+{"item_type":0,"id":730,"success":1,"visible":true,"name":"Counter-Strike 2","appid":730,"type":0,"is_free":true,"content_descriptorids":[2,5],"tagids":[1663,1774,3859,3878,19],
+ "assets":{"asset_url_format":"steam/apps/730/${FILENAME}?t=1789251637","library_capsule":"145d58f9f8ffa48e6333b1dc3dd2ad7e9bf2b2b4/library_capsule.jpg","library_hero":"0f3eb5d09fe82771cc01c87cd6d12fb1f38d6069/library_hero.jpg"},"release":{"steam_release_date":1345507200}},
+{"item_type":0,"id":570,"success":1,"visible":true,"name":"Dota 2","appid":570,"type":0,"is_free":true,"tagids":[1718,9],"release":{"steam_release_date":1373241600}},
+{"item_type":0,"id":2767030,"success":1,"visible":true,"name":"Marvel Rivals","appid":2767030,"type":0,"is_free":true,"tagids":[1774,1685],"release":{"steam_release_date":1733443200}},
+{"item_type":0,"id":9990002,"success":1,"visible":true,"name":"Unrated Free Thing","appid":9990002,"type":0,"is_free":true,"content_descriptorids":[3],"release":{"steam_release_date":1733443200}},
+{"item_type":0,"id":1172470,"success":1,"visible":true,"name":"Apex Legends™","appid":1172470,"type":0,"is_free":true,"tagids":[1774,1662],"release":{"steam_release_date":1604620800}},
+{"item_type":0,"id":438100,"success":1,"visible":true,"name":"VRChat","appid":438100,"type":0,"is_free":true,"tagids":[597,3810],"release":{"steam_release_date":1485820800}},
+{"item_type":0,"id":5000001,"success":1,"visible":true,"name":"Some Free Cosmetic Pack","appid":5000001,"type":4,"is_free":true,"release":{"steam_release_date":1733443200}},
+{"item_type":0,"id":230410,"success":1,"visible":true,"name":"Warframe","appid":230410,"type":0,"is_free":true,"tagids":[1685,3942],"release":{"steam_release_date":1364860800},
+ "best_purchase_option":{"packageid":1,"purchase_option_name":"Warframe","final_price_in_cents":"0","formatted_final_price":"Free To Play","discount_pct":0}}
+]}}

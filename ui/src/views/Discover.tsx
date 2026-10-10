@@ -1,27 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, CloudOff, Compass, Eye, KeyRound, Loader2, Search, Settings2, SlidersHorizontal, X } from 'lucide-react';
-import { call, errorMessage } from '../bridge/bridge';
-import type { DiscoverSourceState, DiscoverStatus, DiscoverWatch, PlatformKey } from '../bridge/types';
+import { AlertTriangle, CloudOff, Compass, Loader2, Search, Settings2, SlidersHorizontal, X } from 'lucide-react';
+import type { DiscoverSourceState, DiscoverStatus, PlatformKey } from '../bridge/types';
 import {
-  activeFilterCount, applyFilters, DECADE_LABEL, filterOptions, NO_FILTERS, PLATFORM_GROUP_LABEL, sourceLine, splitByLibrary,
+  activeFilterCount, applyFilters, DECADE_LABEL, filterOptions, groupEditions, NO_FILTERS, PLATFORM_GROUP_LABEL, sourceLine, splitByLibrary,
   type Decade, type DiscoverFilters, type PlatformGroup,
 } from '../lib/discover';
-import { formatDate, PLATFORM_NAMES, plural } from '../lib/format';
+import { PLATFORM_NAMES, plural } from '../lib/format';
 import { searchGames } from '../lib/search';
-import { useDiscoverSearch, useDiscoverStatus, useWatching } from '../state/discover';
+import { useDiscoverSearch, useDiscoverStatus } from '../state/discover';
 import { useStore } from '../state/store';
 import { Badge, Button, EmptyState, IconButton, SectionHead, Toggle } from '../components/ui/primitives';
 import { StoreLogo } from '../components/ui/StoreLogo';
 import { ServiceLogo } from '../components/ui/ServiceLogo';
 import { GameCard } from '../components/game/GameCard';
-import { DiscoverCover, openResult, ResultCard, ResultSkeletons } from '../components/discover/DiscoverBits';
+import { ResultCard, ResultSkeletons } from '../components/discover/DiscoverBits';
+import { DiscoverBrowse, DiscoverGenreView, ResultGroupCell } from '../components/discover/DiscoverBrowse';
 import './discover-page.css';
 
 /**
  * Track U: search every connected source for any game, owned or not. Your library comes first ("In your library"),
  * then everything Steam's store search, IGDB, RAWG and Wikidata found, merged into one result per game.
+ * Track C3: before you type, a storefront to browse (featured picks, "Because you played", wishlist deals, Steam's
+ * shelves, genres and tags); editions and add-ons fold under their game in results.
  */
-export function DiscoverView({ query: initial }: { query?: string }) {
+export function DiscoverView({ query: initial, genre }: { query?: string; genre?: string }) {
   const [text, setText] = useState(initial ?? '');
   const [filters, setFilters] = useState<DiscoverFilters>(NO_FILTERS);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +50,7 @@ export function DiscoverView({ query: initial }: { query?: string }) {
   const { owned, rest } = useMemo(() => splitByLibrary(remote, localIds), [remote, localIds]);
   const options = useMemo(() => filterOptions(rest), [rest]);
   const shown = useMemo(() => applyFilters(rest, filters), [rest, filters]);
+  const groups = useMemo(() => groupEditions(shown), [shown]);
   const hiddenByFilters = rest.length - shown.length;
   const unavailable = status?.reason ?? online.search?.reason ?? null;
 
@@ -56,7 +59,7 @@ export function DiscoverView({ query: initial }: { query?: string }) {
       <header className="disc-head">
         <div>
           <h1 className="disc-head__title"><Compass size={28} aria-hidden /> Discover</h1>
-          <p className="disc-head__sub">Find any game, owned or not. Your library comes first, then Steam, IGDB, RAWG and Wikidata, merged into one result per game.</p>
+          <p className="disc-head__sub">Find your next game. Browse what’s new and games like the ones you play, or search everything: your library first, then Steam, IGDB, RAWG and Wikidata, merged into one result per game.</p>
         </div>
         {status?.preview && <Badge tone="warn">Preview · fictional results</Badge>}
       </header>
@@ -88,7 +91,7 @@ export function DiscoverView({ query: initial }: { query?: string }) {
         <OffState />
       ) : null}
 
-      {!q && <StartState status={status} />}
+      {!q && (genre ? <DiscoverGenreView genre={genre} /> : <DiscoverBrowse status={status} />)}
 
       {q && (
         <>
@@ -110,7 +113,7 @@ export function DiscoverView({ query: initial }: { query?: string }) {
               />
               {rest.length > 0 && <FilterBar filters={filters} onChange={setFilters} options={options} />}
               <div className="dgrid" aria-live="polite" aria-relevant="additions">
-                {shown.map((r, i) => <div key={r.key} className="dgrid__cell" style={{ ['--i' as string]: i % 24 }}><ResultCard r={r} query={q} /></div>)}
+                {groups.map((g, i) => <ResultGroupCell key={g.base.key} group={g} query={q} index={i} />)}
                 {(online.busy && rest.length === 0) && <ResultSkeletons count={12} />}
                 {online.loadingMore && <ResultSkeletons count={6} />}
               </div>
@@ -254,65 +257,6 @@ function OffState() {
         <p>Only your library is searched. Turn it on to also ask Steam’s store search, Wikidata and, with your own keys, IGDB and RAWG.</p>
       </div>
       <Button size="sm" variant="primary" onClick={() => void setSetting('discover.searchOnline', true)}>Turn on</Button>
-    </div>
-  );
-}
-
-/** Nothing typed yet: what you're watching, and how to get more results. */
-function StartState({ status }: { status: DiscoverStatus | null }) {
-  const watching = useWatching();
-  const navigate = useStore((s) => s.navigate);
-  const missingKeys = status?.sources.filter((s) => s.reason === 'noKey') ?? [];
-  return (
-    <div className="disc-start">
-      {watching && watching.length > 0 && (
-        <section className="disc-section" aria-labelledby="disc-watching">
-          <SectionHead title={<span id="disc-watching"><Eye size={18} aria-hidden /> Watching</span>} meta={plural(watching.length, 'game')} />
-          <div className="dgrid">
-            {watching.map((w, i) => <WatchCard key={w.key} w={w} i={i} />)}
-          </div>
-        </section>
-      )}
-      {(!watching || watching.length === 0) && (
-        <EmptyState
-          art="constellation"
-          icon={<Compass size={32} />}
-          title="Search for any game"
-          body="Type a name above. You’ll see games you own first, then everything the connected sources know, with prices, time to beat and where to get it. Nothing is installed or launched from here."
-        />
-      )}
-      {missingKeys.length > 0 && status?.reason == null && (
-        <div className="disc-banner disc-banner--soft surface">
-          <KeyRound size={20} aria-hidden />
-          <div>
-            <strong>Get more results with {missingKeys.map((s) => s.name).join(' and ')}</strong>
-            <p>Steam and Wikidata work without a key. Connect your own free {missingKeys.map((s) => s.name).join(' or ')} key for more games, console releases{missingKeys.some((s) => s.id === 'igdb') ? ', time to beat' : ''} and fuller details.</p>
-          </div>
-          <Button size="sm" icon={<Settings2 size={14} />} onClick={() => navigate({ name: 'settings', section: 'library' })}>Connect sources</Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function WatchCard({ w, i }: { w: DiscoverWatch; i: number }) {
-  const coverRef = useRef<HTMLDivElement>(null);
-  const toast = useStore((s) => s.toast);
-  const remove = async () => {
-    try { await call('discover.watch', { key: w.key, on: false }); }
-    catch (err) { toast({ tone: 'warning', title: 'Couldn’t update Watching', body: errorMessage(err) }); }
-  };
-  return (
-    <div className="dwatch" style={{ ['--i' as string]: i }}>
-      <button className="dcard" aria-label={`${w.title}${w.year ? `, ${w.year}` : ''}. Watching since ${formatDate(w.addedAt)}.`}
-        onClick={() => openResult({ key: w.key, title: w.title, libraryGameId: null }, coverRef.current)}>
-        <div className="dcard__cover" ref={coverRef}><DiscoverCover itemKey={w.key} title={w.title} known={w.cover} /></div>
-        <div className="dcard__body">
-          <div className="dcard__title">{w.title}</div>
-          <div className="dcard__meta">{w.priceWhenAdded ? <span>{w.priceWhenAdded} when added</span> : <span>Since {formatDate(w.addedAt)}</span>}</div>
-        </div>
-      </button>
-      <IconButton label={`Stop watching ${w.title}`} size="sm" className="dwatch__remove" onClick={() => void remove()}><X size={14} /></IconButton>
     </div>
   );
 }

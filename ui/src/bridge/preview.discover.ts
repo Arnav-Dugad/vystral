@@ -5,10 +5,11 @@
  *
  * Switches: `?discover` (or `?discover=<text>`) opens the Discover page; `?discoverSlow` makes sources answer slowly
  * (to see the shimmer); `?discoverNoKeys` acts as if IGDB isn't connected; `?discoverFail` makes Wikidata ask to slow down.
+ * Track C3: `?discoverStore` turns Steam's store shelves on; `?discoverStoreFail` makes them fail with nothing saved.
  */
 import type {
-  Deals, DiscoverChannel, DiscoverDetails, DiscoverResult, DiscoverSearch, DiscoverSourceId, DiscoverSourceState, DiscoverStatus, DiscoverWatch,
-  Game, PlatformKey, Settings,
+  Deals, DiscoverChannel, DiscoverDetails, DiscoverFeatured, DiscoverGenrePage, DiscoverResult, DiscoverSearch, DiscoverShelf, DiscoverSimilar,
+  DiscoverSourceId, DiscoverSourceState, DiscoverStatus, DiscoverWatch, Game, PlatformKey, Settings,
 } from './types';
 import { BridgeError } from './bridge';
 import { placeholderArt } from './preview.dataSources';
@@ -22,7 +23,12 @@ interface Ctx {
   timers: number[];
 }
 
-export const DISCOVER_DEFAULT_SETTINGS = { 'discover.searchOnline': true } satisfies Partial<Settings>;
+export const DISCOVER_DEFAULT_SETTINGS = { 'discover.searchOnline': true, 'discover.storeShelves': false } satisfies Partial<Settings>;
+
+/** Track C3: `?discoverStore` starts with Steam's store shelves on. */
+export function previewDiscoverSettings(params: URLSearchParams): Partial<Settings> {
+  return params.has('discoverStore') ? { 'discover.storeShelves': true } : {};
+}
 
 interface Entry {
   title: string;
@@ -41,6 +47,10 @@ interface Entry {
   antiCheat?: string;
   gfn?: boolean;
   xbox?: boolean;
+  /** Track C3: free to play. */
+  free?: boolean;
+  /** Track C3: not out yet; its release date as precise as the store says (yyyy-MM-dd, yyyy-MM). */
+  soon?: string;
 }
 
 const E = (title: string, year: number, genres: string[], stores: PlatformKey[], platforms: string[], sources: DiscoverSourceId[], dev: string, blurb: string, extra: Partial<Entry> = {}): Entry =>
@@ -91,6 +101,26 @@ const CATALOGUE: Entry[] = [
   E('Vault of the Violet Star', 2009, ['Action'], ['steam'], ['PC'], ['steam', 'igdb'], 'Hyperthread', 'A heist in a vault orbiting a dying star.', { steam: 9000038, price: [499, 499] }),
   E('Dawn of the Paper Kings', 2024, ['Strategy', 'Casual'], ['steam', 'epic'], ['PC'], ALL, 'Fold Games', 'Fold an army, unfold an empire.', { steam: 9000039, price: [1999, 1999] }),
   E('Velvet Orbit Season Pass', 2022, ['Simulation'], ['xbox'], ['PC'], ['igdb'], 'Gravity Well', 'Extra wings for your orbital hotel.', { kind: 'extra' }),
+  // Track C3: editions and add-ons (grouped under their game in results), free games and games coming soon.
+  E('Starfall Tactics II Deluxe Edition', 2025, ['Strategy', 'Space'], ['steam'], ['PC'], ['steam', 'igdb'], 'Meridian Labs', 'The game, the artbook and three extra fleets.', { steam: 9000041, price: [3999, 4999] }),
+  E('Starfall Tactics II: Void Armada', 2025, ['Strategy', 'Space'], ['steam'], ['PC'], ['steam', 'igdb'], 'Meridian Labs', 'A new faction and twelve missions.', { steam: 9000042, price: [999, 999], kind: 'extra' }),
+  E('Skyward Rally', 2024, ['Racing', 'Sports'], ['steam'], ['PC', 'Xbox Series X|S'], ALL, 'Torque Collective', 'Free-to-play rally on floating islands.', { steam: 9000043, free: true, deck: 'playable' }),
+  E('Ember League', 2023, ['Action', 'Strategy'], ['steam', 'epic'], ['PC'], ALL, 'Hyperthread', 'Five against five, every match a new map.', { steam: 9000044, free: true, antiCheat: 'Easy Anti-Cheat' }),
+  E('Pocket Constellations', 2022, ['Puzzle', 'Casual'], ['steam'], ['PC', 'Mac'], ALL, 'Bloom', 'Draw the night sky, one free puzzle a day.', { steam: 9000045, free: true }),
+  E('Harbor of Lost Signals', 2027, ['Adventure', 'Horror'], ['steam'], ['PC'], ALL, 'Coldwave', 'A radio station that only plays tomorrow’s news.', { steam: 9000046, soon: `${new Date().getFullYear() + 1}-03` }),
+  E('Tidewright', 2027, ['Simulation', 'Strategy'], ['steam'], ['PC'], ALL, 'Low Tide', 'Build a city that floats when the sea rises.', { steam: 9000047, soon: `${new Date().getFullYear() + 1}-05-14` }),
+  // Track W's fictional wishlist (same app IDs), so wishlist games open their pages in the preview too.
+  E('Aurora Vanguard', 2025, ['Action', 'Sci-fi'], ['steam'], ['PC'], ['steam'], 'Northwind', 'Fly the last escort of a fleet that forgot its way home.', { steam: 2480010, price: [2999, 5999] }),
+  E('Lantern Shore', 2026, ['Adventure', 'Indie'], ['steam'], ['PC'], ['steam'], 'Quiet Owl', 'A seaside mystery told by lamplight.', { steam: 2480020, price: [2499, 2499] }),
+  E('Halcyon Depths', 2026, ['Survival', 'Adventure'], ['steam'], ['PC'], ['steam'], 'Coldwave', 'Dive deeper than the light goes.', { steam: 2480030 }),
+  E('Saltwind Chronicle', 2024, ['RPG', 'Fantasy'], ['steam'], ['PC'], ['steam'], 'Low Tide', 'A sailing saga across salt-white seas.', { steam: 2480040, price: [1599, 3999] }),
+  E('Ironbloom', 2026, ['Strategy', 'Simulation'], ['steam'], ['PC'], ['steam'], 'Gravity Well', 'Grow a forest of steel.', { steam: 2480050, price: [1999, 1999] }),
+  E('Paper Lanterns II', 2027, ['Puzzle', 'Adventure'], ['steam'], ['PC'], ['steam'], 'Fold Games', 'Light the way through a folded city.', { steam: 2480060 }),
+  E('Starward Couriers', 2022, ['Simulation', 'Space'], ['steam'], ['PC'], ['steam'], 'Prism Lane', 'Deliver parcels between stars, on time, mostly.', { steam: 2480070, price: [374, 1499] }),
+  E('Glacier Run', 2026, ['Racing', 'Sports'], ['steam'], ['PC'], ['steam'], 'Tundra Kin', 'Free-to-play racing down melting glaciers.', { steam: 2480080, free: true }),
+  E('Mirewood', 2026, ['RPG', 'Horror'], ['steam'], ['PC'], ['steam'], 'Thornhill', 'A swamp that remembers every step.', { steam: 2480090 }),
+  E('Vesper Protocol', 2026, ['Action', 'Shooter'], ['steam'], ['PC'], ['steam'], 'Hyperthread', 'A heist thriller at the edge of the night.', { steam: 2480100, price: [2799, 3499] }),
+  E('Clockwork Pilgrim', 2019, ['Platformer', 'Adventure'], ['steam'], ['PC'], ['steam'], 'Spark Theory', 'Wind the pilgrim and walk the world.', { steam: 2480110, price: [999, 999] }),
 ];
 
 const keyOf = (e: Entry) => (e.steam ? `steam-${e.steam}` : `igdb-${700000 + CATALOGUE.indexOf(e)}`);
@@ -165,6 +195,94 @@ export function discoverPreviewHandlers(ctx: Ctx): Record<string, (p: any) => un
       reason: st['privacy.localOnly'] ? 'offline' : !st['discover.searchOnline'] ? 'off' : null, preview: true,
       sources: (['steam', 'igdb', 'rawg', 'wikidata'] as DiscoverSourceId[]).map((id) => ({ id, name: NAMES[id], state: gate(id) ? 'unavailable' : 'ready', reason: gate(id) })),
     };
+  };
+
+  // ---------------- Track C3: browse shelves ----------------
+
+  const storeFail = params.has('discoverStoreFail');
+  let featuredSeen = false;
+  const thisYear = new Date().getFullYear();
+  const later = <T,>(make: () => T, ms: number) => new Promise<T>((resolve, reject) => {
+    ctx.timers.push(window.setTimeout(() => { try { resolve(make()); } catch (err) { reject(err); } }, ms * slow));
+  });
+  const isTwin = (e: Entry) => !!e.steam && e.steam >= 2480000 && e.steam < 2490000; // Track W's wishlist games
+  const browseResult = (e: Entry): DiscoverResult => ({
+    ...toResult(e, e.sources, ''), sources: ['steam'], score: 0,
+    price: e.free ? null : toResult(e, e.sources, '').price,
+    free: !!e.free, comingSoon: !!e.soon || e.year > thisYear, releaseDate: e.soon ?? null,
+  });
+  const shelf = (id: string, title: string, reason: string, list: Entry[]): DiscoverShelf | null =>
+    list.length >= 3 ? { id, kind: 'store', title, reason, source: 'steam', seed: null, items: list.slice(0, 18).map(browseResult) } : null;
+  const steamGames = () => CATALOGUE.filter((e) => e.steam && e.kind !== 'extra' && !isTwin(e) && !/edition$/i.test(e.title));
+  const spin = (e: Entry) => (e.title.length * 7 + (e.steam ?? 0)) % 13;
+
+  const featured = (): DiscoverFeatured => {
+    const games = steamGames();
+    const shelves = [
+      shelf('trending', 'Trending on Steam', 'Steam’s top sellers right now', games.filter((e) => e.price && !e.soon && e.year <= thisYear).sort((a, b) => spin(a) - spin(b) || a.title.localeCompare(b.title))),
+      shelf('specials', 'Deals on Steam', 'Steam’s featured discounts', games.filter((e) => e.price && e.price[0] < e.price[1])),
+      shelf('newReleases', 'New releases', 'Just out on Steam', games.filter((e) => !e.soon && e.year >= thisYear - 1 && e.year <= thisYear)),
+      shelf('comingSoon', 'Coming soon', 'Soon on Steam', games.filter((e) => e.soon || e.year > thisYear)),
+      shelf('free', 'Free to play', 'Popular free games on Steam', games.filter((e) => e.free)),
+    ].filter((s): s is DiscoverShelf => !!s);
+    return { state: 'ready', reason: null, fetched: new Date(Date.now() - 40 * 60_000).toISOString(), stale: false, shelves };
+  };
+
+  const seedsOf = () => {
+    const now = Date.now();
+    const played = ctx.lib.games.filter((g) => !g.hidden);
+    const recent = played.filter((g) => g.lastTrackedPlay && now - Date.parse(g.lastTrackedPlay) < 45 * 86_400_000)
+      .sort((a, b) => Date.parse(b.lastTrackedPlay!) - Date.parse(a.lastTrackedPlay!)).slice(0, 2);
+    const most = played.filter((g) => g.trackedSeconds >= 3600 && !recent.includes(g)).sort((a, b) => b.trackedSeconds - a.trackedSeconds).slice(0, 4 - recent.length);
+    return [...recent.map((g) => ({ g, why: 'recent' as const })), ...most.map((g) => ({ g, why: 'mostPlayed' as const }))];
+  };
+
+  const similar = (): DiscoverSimilar => {
+    const st = ctx.settings();
+    const seeds = seedsOf();
+    if (!seeds.length) return { state: 'noSeeds', source: null, reason: null, fetched: null, stale: false, shelves: [] };
+    const source = !noKeys ? 'igdb' : st['discover.storeShelves'] ? 'steam' : null;
+    if (!source) return { state: 'noSource', source: null, reason: null, fetched: null, stale: false, shelves: [] };
+    if (!st['discover.searchOnline'] && !st['privacy.localOnly']) return { state: 'off', source, reason: 'off', fetched: null, stale: false, shelves: [] };
+    const shown = new Set<string>();
+    const shelves: DiscoverShelf[] = [];
+    for (const { g, why } of seeds) {
+      const genres = g.genres.map((x) => x.toLowerCase());
+      const items = CATALOGUE.filter((e) => e.kind !== 'extra' && !isTwin(e) && !libraryIdOf(e) && !/edition$/i.test(e.title) && !shown.has(keyOf(e)) &&
+        e.genres.some((x) => genres.includes(x.toLowerCase()))).slice(0, 12);
+      if (items.length < 3) continue;
+      items.forEach((e) => shown.add(keyOf(e)));
+      const basis = g.genres.slice(0, 2).join(', ');
+      shelves.push({
+        id: `because:${g.id}`, kind: 'because', title: `Because you played ${g.title}`, source,
+        reason: source === 'igdb' ? 'Similar games, according to IGDB' : `Shares Steam tags: ${basis}`,
+        seed: { gameId: g.id, title: g.title, why }, items: items.map((e) => ({ ...browseResult(e), sources: source === 'igdb' ? ['igdb'] : ['steam'] })),
+      });
+    }
+    const offline = st['privacy.localOnly'];
+    return { state: offline ? 'offline' : 'ready', source, reason: offline ? 'offline' : null, fetched: new Date(Date.now() - 2 * 86_400_000).toISOString(), stale: offline, shelves };
+  };
+
+  const GENRE_MATCH: Record<string, [string, string[]]> = {
+    action: ['Action', ['action']], adventure: ['Adventure', ['adventure']], rpg: ['RPG', ['rpg']], strategy: ['Strategy', ['strategy']],
+    shooter: ['Shooter', ['shooter']], racing: ['Racing', ['racing']], sports: ['Sports', ['sports']], simulation: ['Simulation', ['simulation']],
+    puzzle: ['Puzzle', ['puzzle']], platformer: ['Platformer', ['platformer']], fighting: ['Fighting', ['fighting']], indie: ['Indie', ['indie']],
+    'open-world': ['Open world', ['survival', 'adventure']], 'co-op': ['Co-op', ['sports', 'racing']], horror: ['Horror', ['horror']],
+    survival: ['Survival', ['survival']], 'sci-fi': ['Sci-fi', ['sci-fi', 'space']], fantasy: ['Fantasy', ['fantasy']], sandbox: ['Sandbox', ['simulation', 'casual']],
+  };
+
+  const genre = (p: { genre: string; page?: number }): DiscoverGenrePage => {
+    const m = GENRE_MATCH[p?.genre];
+    if (!m) throw new BridgeError('invalid', 'Unknown genre.');
+    const st = ctx.settings();
+    const source = st['discover.storeShelves'] ? 'steam' : !noKeys ? 'igdb' : null;
+    const base = { genre: p.genre, label: m[0], source, reason: null, page: 0, hasMore: false, results: [] as DiscoverResult[] } satisfies Partial<DiscoverGenrePage>;
+    if (!source) return { ...base, state: 'noSource' };
+    if (st['privacy.localOnly']) return { ...base, state: 'offline', reason: 'offline' };
+    if (source === 'igdb' && !st['discover.searchOnline']) return { ...base, state: 'off', reason: 'off' };
+    const list = CATALOGUE.filter((e) => e.kind !== 'extra' && !/edition$/i.test(e.title) && (source === 'igdb' || e.steam) &&
+      e.genres.some((x) => m[1].includes(x.toLowerCase())));
+    return { ...base, state: 'ready', results: list.map((e) => ({ ...browseResult(e), sources: [source === 'igdb' ? 'igdb' : 'steam'] })) };
   };
 
   const entryOf = (key: string) => {
@@ -243,7 +361,8 @@ export function discoverPreviewHandlers(ctx: Ctx): Record<string, (p: any) => un
         key: p.key, title: e.title, year: e.year, releaseDate: `${e.year}-0${(e.title.length % 9) + 1}-1${e.title.length % 9}`, description: `${e.blurb} (Preview data: a fictional game.)`,
         descriptionSource: e.steam ? 'steam' : 'igdb', genres: e.genres, developers: [e.dev], publishers: [e.dev], platforms: e.platforms, stores: e.stores,
         steamAppId: e.steam ? String(e.steam) : null, libraryGameId: libraryIdOf(e),
-        price: final != null && initial != null ? { formatted: money(final), initial: money(initial), discountPercent: Math.round((1 - final / initial) * 100), currency: 'USD', free: false, comingSoon: false, country: 'US' }
+        price: e.free ? { formatted: null, initial: null, discountPercent: 0, currency: null, free: true, comingSoon: false, country: 'US' }
+          : final != null && initial != null ? { formatted: money(final), initial: money(initial), discountPercent: Math.round((1 - final / initial) * 100), currency: 'USD', free: false, comingSoon: false, country: 'US' }
           : e.year > new Date().getFullYear() ? { formatted: null, initial: null, discountPercent: 0, currency: null, free: false, comingSoon: true, country: 'US' } : null,
         timeToBeat: igdb && e.ttb ? { hastilySeconds: e.ttb[0] * 3600, normallySeconds: e.ttb[1] * 3600, completelySeconds: e.ttb[2] * 3600, count: 120 + e.title.length * 7 } : null,
         metacritic: e.steam && e.price ? 70 + (e.title.length % 25) : null, rating: igdb ? 72 + (e.title.length % 20) : null, ratingCount: igdb ? 300 + e.title.length * 11 : 0,
@@ -277,6 +396,16 @@ export function discoverPreviewHandlers(ctx: Ctx): Record<string, (p: any) => un
       };
     },
     'discover.openOffer': () => true,
+    'discover.featured': () => later((): DiscoverFeatured => {
+      const st = ctx.settings();
+      if (!st['discover.storeShelves']) return { state: 'off', reason: null, fetched: null, stale: false, shelves: [] };
+      if (st['privacy.localOnly']) return featuredSeen ? { ...featured(), state: 'offline', reason: 'offline', stale: true } : { state: 'offline', reason: 'offline', fetched: null, stale: false, shelves: [] };
+      if (storeFail) return { state: 'failed', reason: 'unavailable', fetched: null, stale: false, shelves: [] };
+      featuredSeen = true;
+      return featured();
+    }, 450),
+    'discover.similar': () => later(similar, 650),
+    'discover.genre': (p: { genre: string; page?: number }) => later(() => genre(p), 380),
     'discover.watching': () => [...watching],
     'discover.watch': (p: { key: string; on: boolean }) => {
       const e = entryOf(p.key);

@@ -1,0 +1,8 @@
+[
+{"id":103281,"name":"Forza Horizon 5","slug":"forza-horizon-5","first_release_date":1636070400,"cover":{"id":1,"image_id":"co3ofx"},"platforms":[{"id":6,"name":"PC (Microsoft Windows)"}],"genres":[{"id":10,"name":"Racing"}],"external_games":[{"id":1,"uid":"1551360","external_game_source":1}],"total_rating_count":420,"game_type":0},
+{"id":1020,"name":"Grand Theft Auto V","slug":"grand-theft-auto-v","first_release_date":1379376000,"cover":{"id":2,"image_id":"co2lbd"},"genres":[{"id":31,"name":"Adventure"}],"external_games":[{"id":2,"uid":"271590","external_game_source":1}],"total_rating_count":3000,"game_type":0},
+{"id":7346,"name":"The Legend of Zelda: Breath of the Wild","slug":"the-legend-of-zelda-breath-of-the-wild","first_release_date":1488499200,"genres":[{"id":31,"name":"Adventure"}],"total_rating_count":2500,"game_type":0},
+{"id":19560,"name":"The Crew 2","slug":"the-crew-2","first_release_date":1530230400,"genres":[{"id":10,"name":"Racing"}],"external_games":[{"id":3,"uid":"646910","external_game_source":1}],"total_rating_count":200,"game_type":0},
+{"id":26758,"name":"Forza Horizon 4: Fortune Island","slug":"forza-horizon-4-fortune-island","first_release_date":1544486400,"genres":[{"id":10,"name":"Racing"}],"total_rating_count":40,"game_type":1},
+{"id":1942,"name":"The Witcher 3: Wild Hunt","slug":"the-witcher-3-wild-hunt","first_release_date":1431993600,"genres":[{"id":12,"name":"Role-playing (RPG)"}],"external_games":[{"id":4,"uid":"292030","external_game_source":1}],"total_rating_count":4000,"game_type":0}
+]

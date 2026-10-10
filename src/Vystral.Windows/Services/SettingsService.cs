@@ -162,6 +162,8 @@ public sealed class SettingsService
         new NumberDef("cloud.queueAlertAt", 5, 1, 50),
         // Track U: universal search also asks Steam's store search, Wikidata and (with your keys) IGDB and RAWG as you type.
         new BoolDef("discover.searchOnline", true),
+        // Track C3: Discover's Steam store shelves (trending, deals, new, coming soon, free to play; genre browsing). Opt-in: undocumented store lists.
+        new BoolDef("discover.storeShelves", false),
         // Track W: wishlist sync (opt-in), its notifications, friends' recent games on game pages (opt-in), news and patch notes.
         new BoolDef("wishlist.sync", false),
         new BoolDef("notifications.wishlist", true),

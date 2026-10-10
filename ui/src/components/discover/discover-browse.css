@@ -1,0 +1,269 @@
+/* Track C3: Discover 2.0 — the browse storefront (hero, shelves, genres, invites, edition groups). Tokens only. */
+
+.disc-browse { display: grid; gap: var(--s-8); align-content: start; min-width: 0; }
+
+/* ---------- shelves ---------- */
+
+.dshelf { display: grid; gap: var(--s-3); min-width: 0; }
+.dshelf__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-4); }
+.dshelf__titles { display: grid; gap: 4px; min-width: 0; }
+.dshelf__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+.dshelf__title svg { color: var(--accent-text); flex: none; }
+.dshelf__reason { color: var(--text-3); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.dshelf__tools { display: flex; gap: 4px; align-items: center; flex: none; }
+.dshelf__tools .icon-btn[aria-disabled='true'],
+.dshelf__tools .icon-btn[aria-disabled='true']:hover { opacity: 0.4; cursor: default; background: none; color: inherit; }
+.dshelf__track { grid-auto-columns: clamp(146px, 11.5vw, 196px); padding-bottom: 6px; }
+.dshelf__track > .dcard--skeleton { min-width: 0; }
+.dshelf__track .shelf__item > .dcard { width: 100%; }
+.dshelf--loading { opacity: 0; animation: dshelf-wait 240ms var(--ease-out) 320ms both; }
+.dshelf__reason-skel { margin-top: 2px; }
+@keyframes dshelf-wait { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- hero carousel ---------- */
+
+.dhero {
+  position: relative;
+  aspect-ratio: 21 / 8;
+  min-height: 280px;
+  max-height: 420px;
+  width: 100%;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--bg-2);
+  box-shadow: var(--shadow-3), 0 0 0 1px var(--line);
+}
+.dhero--loading { opacity: 0; animation: dshelf-wait 240ms var(--ease-out) 320ms both; }
+.dhero__skel { position: absolute; inset: 0; width: 100%; }
+.dhero__stage { position: absolute; inset: 0; }
+.dhero__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 700ms var(--ease-out);
+}
+.dhero__slide[data-active] { opacity: 1; z-index: 1; }
+.dhero__art { position: absolute; inset: 0; }
+.dhero__art .dcover, .dhero__art .cover { height: 100%; }
+.dhero__art .cover__img { object-position: center 30%; }
+/* A slow drift on the shown slide only (transform only; reduced motion and Performance mode stop it). */
+.dhero__art { transform: scale(1.06); transition: transform 9s linear; }
+.dhero__slide[data-active] .dhero__art { transform: scale(1); }
+.dhero__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, oklch(from var(--bg-0) l c h / 0.92) 0%, oklch(from var(--bg-0) l c h / 0.62) 38%, transparent 72%),
+    linear-gradient(0deg, oklch(from var(--bg-0) l c h / 0.85) 0%, transparent 55%);
+  pointer-events: none;
+}
+.dhero__copy {
+  position: absolute;
+  left: clamp(20px, 3.4vw, 48px);
+  bottom: clamp(22px, 3.2vw, 44px);
+  right: 30%;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  z-index: 2;
+}
+.dhero__eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--accent-text);
+  text-shadow: 0 1px 12px oklch(0 0 0 / 0.5);
+}
+.dhero__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.2vw, 3rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text-1);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 24px oklch(0 0 0 / 0.45);
+}
+.dhero__facts { color: var(--text-2); font-size: var(--fs-md); }
+.dhero__actions { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; margin-top: 6px; }
+.dhero__price { display: inline-flex; align-items: baseline; gap: 8px; color: var(--text-1); font-size: var(--fs-lg); }
+.dhero__price s { color: var(--text-3); font-size: var(--fs-sm); }
+.dhero__price svg { align-self: center; color: var(--ok); }
+.dhero__cut { color: var(--text-on-accent); background: var(--ok); border-radius: var(--r-xs); padding: 1px 6px; font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
+.dhero__controls {
+  position: absolute;
+  right: clamp(14px, 2vw, 24px);
+  bottom: clamp(14px, 2vw, 24px);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  background: var(--glass-strong);
+  box-shadow: var(--inner-hi), 0 0 0 1px var(--line);
+  backdrop-filter: blur(14px);
+}
+.dhero__dots { display: flex; align-items: center; gap: 2px; padding: 0 4px; }
+.dhero__dot {
+  position: relative;
+  width: 22px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+}
+.dhero__dot::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: var(--text-3);
+  transition: width 260ms var(--ease-out), background 200ms var(--ease-out);
+}
+.dhero__dot:hover::before { background: var(--text-1); }
+.dhero__dot[aria-current='true'] { width: 34px; }
+.dhero__dot[aria-current='true']::before { width: 26px; background: oklch(from var(--text-1) l c h / 0.35); }
+.dhero__dot-fill {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 26px;
+  height: 7px;
+  margin-top: -3.5px;
+  border-radius: var(--r-pill);
+  background: var(--text-1);
+  transform-origin: left center;
+  transform: scaleX(0);
+  opacity: 0;
+}
+.dhero__dot[aria-current='true'] .dhero__dot-fill { opacity: 1; transform: scaleX(1); }
+.dhero__dot[aria-current='true'] .dhero__dot-fill[data-run] { animation: dhero-run var(--hero-ms, 8s) linear both; }
+@keyframes dhero-run { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (max-width: 1100px) {
+  .dhero__copy { right: 18px; }
+  .dhero { aspect-ratio: 16 / 8; }
+}
+
+/* ---------- genres and tags ---------- */
+
+.disc-genres { display: grid; gap: 8px; }
+.disc-genres__row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.disc-genres__label { width: 64px; color: var(--text-3); font-size: var(--fs-2xs); }
+.dchip--tag { color: var(--text-3); }
+.disc-genre-head { display: flex; align-items: baseline; gap: var(--s-4); flex-wrap: wrap; }
+.disc-genre-head__title { font-family: var(--font-display); font-size: var(--fs-2xl); font-weight: 600; letter-spacing: -0.02em; }
+.disc-genre-head__title:focus { outline: none; }
+.disc-genre-head .btn { margin-left: auto; }
+
+/* ---------- invites, notes ---------- */
+
+.disc-invite {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  padding: var(--s-5) var(--s-6);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  isolation: isolate;
+}
+.disc-invite::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 140% at 0% 0%, var(--accent-ghost), transparent 60%);
+  pointer-events: none;
+}
+.disc-invite__art {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, 30px);
+  gap: 6px;
+  color: var(--accent-text);
+}
+.disc-invite__art svg { width: 30px; height: 30px; padding: 6px; border-radius: var(--r-sm); background: var(--accent-ghost); }
+.disc-invite__text { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.disc-invite__text strong { font-size: var(--fs-lg); }
+.disc-invite__text p { color: var(--text-2); font-size: var(--fs-sm); max-width: 78ch; }
+.disc-banner__actions { display: flex; gap: 6px; flex-wrap: wrap; flex: none; }
+.disc-stale { display: flex; align-items: center; gap: 8px; color: var(--text-3); font-size: var(--fs-sm); margin-top: calc(-1 * var(--s-4)); }
+.disc-stale > svg { flex: none; }
+.disc-credit { color: var(--text-3); font-size: var(--fs-xs); margin-top: calc(-1 * var(--s-4)); }
+
+@media (max-width: 900px) {
+  .disc-invite { flex-wrap: wrap; }
+  .disc-invite__art { display: none; }
+}
+
+/* ---------- editions and add-ons under their game ---------- */
+
+.dgroup { position: relative; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.dgroup > .dcard { width: 100%; }
+.dgroup__toggle {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  background: oklch(from var(--bg-2) l c h / 0.7);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: background 160ms var(--ease-out), color 160ms var(--ease-out);
+}
+.dgroup__toggle:hover { color: var(--text-1); background: var(--bg-3); }
+.dgroup__toggle[aria-expanded='true'] { color: var(--text-1); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.dgroup__list { list-style: none; margin: 0; padding: 4px; display: grid; gap: 2px; border-radius: var(--r-md); background: var(--bg-1); box-shadow: 0 0 0 1px var(--line); }
+.dgroup__item {
+  display: grid;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+}
+.dgroup__item:hover, .dgroup__item:focus-visible { background: var(--bg-3); }
+.dgroup__name { font-size: var(--fs-sm); color: var(--text-1); overflow-wrap: anywhere; }
+.dgroup__kind { font-size: var(--fs-2xs); color: var(--text-3); }
+
+/* ---------- cards: release and price details ---------- */
+
+.dcard__release { color: var(--text-2); white-space: nowrap; }
+.dcard__soon { background: oklch(from var(--info) l c h / 0.9); color: var(--text-on-accent); }
+.dcard__price[data-free] { background: oklch(from var(--ok) l c h / 0.9); color: var(--text-on-accent); backdrop-filter: none; }
+
+/* ---------- High contrast, low quality ---------- */
+
+:root[data-theme='contrast'] .dhero { box-shadow: 0 0 0 1px CanvasText; }
+:root[data-theme='contrast'] .dhero__scrim { background: linear-gradient(90deg, Canvas 0%, Canvas 45%, transparent 80%); }
+:root[data-theme='contrast'] .dhero__title, :root[data-theme='contrast'] .dhero__eyebrow { text-shadow: none; }
+:root[data-theme='contrast'] .dhero__controls, :root[data-theme='contrast'] .disc-invite, :root[data-theme='contrast'] .dgroup__toggle,
+:root[data-theme='contrast'] .dgroup__list {
+  background: Canvas; box-shadow: 0 0 0 1px CanvasText; backdrop-filter: none;
+}
+:root[data-theme='contrast'] .dhero__dot::before, :root[data-theme='contrast'] .dhero__dot-fill { background: CanvasText; }
+:root[data-theme='contrast'] .disc-invite::before { display: none; }
+:root[data-theme='contrast'] .dcard__soon, :root[data-theme='contrast'] .dcard__price[data-free] { background: Canvas; color: CanvasText; box-shadow: 0 0 0 1px CanvasText; }
+:root[data-quality='low'] .dhero__controls { backdrop-filter: none; }
+:root[data-quality='low'] .dhero__art { transition: none; transform: none; }
+:root[data-reduced-motion='true'] .dhero__art { transform: none; }
+@media (forced-colors: active) {
+  .dhero__scrim { background: Canvas; opacity: 0.85; }
+  .dhero__dot::before, .dhero__dot-fill { background: CanvasText; forced-color-adjust: none; }
+}

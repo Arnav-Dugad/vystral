@@ -1,0 +1,12 @@
+{"response":{"metadata":{"total_matching_records":4473,"start":0,"count":5},"store_items":[
+{"item_type":0,"id":4078430,"success":1,"visible":true,"name":"STAR WARS: Galactic Racer™","appid":4078430,"type":0,"tagids":[699,3942,19],"release":{"steam_release_date":1791277112},
+ "best_purchase_option":{"packageid":1429815,"purchase_option_name":"STAR WARS: Galactic Racer™","final_price_in_cents":"5999","formatted_final_price":"$59.99","hide_discount_pct_for_compliance":false}},
+{"item_type":0,"id":2486820,"success":1,"visible":true,"name":"Sonic Racing: CrossWorlds","appid":2486820,"type":0,"tagids":[699,1685],"release":{"steam_release_date":1758240000},
+ "best_purchase_option":{"packageid":2,"final_price_in_cents":"2799","original_price_in_cents":"3999","discount_pct":30,"formatted_final_price":"$27.99"}},
+{"item_type":0,"id":266410,"success":1,"visible":true,"name":"iRacing","appid":266410,"type":0,"tagids":[699,599],"release":{"steam_release_date":1400000000},
+ "best_purchase_option":{"packageid":3,"final_price_in_cents":"1159","formatted_final_price":"$11.59"}},
+{"item_type":0,"id":1551360,"success":1,"visible":true,"name":"Forza Horizon 5","appid":1551360,"type":0,"tagids":[699,1695,1685],"release":{"steam_release_date":1636416000},
+ "best_purchase_option":{"packageid":4,"final_price_in_cents":"5999","formatted_final_price":"$59.99"}},
+{"item_type":0,"id":1293830,"success":1,"visible":true,"name":"Forza Horizon 4","appid":1293830,"type":0,"tagids":[699,1695],"release":{"steam_release_date":1615248000},
+ "best_purchase_option":{"packageid":5,"final_price_in_cents":"5999","formatted_final_price":"$59.99"}}
+]}}
