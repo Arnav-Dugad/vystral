@@ -130,7 +130,7 @@ public sealed class AiSpecTests
         var spec = V("""{"metric":"sessions","groupBy":"weekday","from":"2026-08-01","to":"2026-08-31"}""")!;
         var r = JournalQuery.Execute(spec, Sessions, Games, [], Utc);
         Assert.Equal(7, r.Rows.Count);
-        Assert.Equal("Mon", r.Rows[0].Label);
+        Assert.Equal("Monday", r.Rows[0].Label);
         Assert.Equal(2, r.Rows[0].Value); // 3 and 10 August 2026 were Mondays
         Assert.Equal("column", r.Chart);
         var months = JournalQuery.Execute(V("""{"groupBy":"month","from":"2026-07-01","to":"2026-09-30"}""")!, Sessions, Games, [], Utc);

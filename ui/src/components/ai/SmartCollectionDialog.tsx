@@ -5,7 +5,7 @@ import type { SmartFilter, SmartFilterAnswer } from '../../bridge/types';
 import { parseQuery } from '../../lib/search';
 import { describeSmartFilter, matchesSmartFilter, missingTtbCount, smartFilterFromQuery } from '../../lib/smartFilter';
 import { plural } from '../../lib/format';
-import { useAiFeatureOn, useAiStatus } from '../../state/ai';
+import { useAiFeatureOn, useAiStatus, useAiStore } from '../../state/ai';
 import { useTimeToBeatMap } from '../../state/recap';
 import { useSubsMap } from '../../state/subs';
 import { useStore } from '../../state/store';
@@ -14,6 +14,20 @@ import { Dialog } from '../ui/Dialog';
 import { GameCover } from '../game/GameCover';
 import { AiByline, AiNote, WhatWasSent } from './AiBits';
 import './ai.css';
+
+/** Opens the dialog from anywhere (the New collection dialog, the command bar…). */
+export const openSmartCollection = (sentence?: string) => window.dispatchEvent(new CustomEvent('vystral:new-smart-collection', { detail: sentence ?? '' }));
+
+/** Mounted once by the app shell. */
+export function SmartCollectionHost() {
+  const [state, setState] = useState<{ open: boolean; initial: string }>({ open: false, initial: '' });
+  useEffect(() => {
+    const h = (e: Event) => setState({ open: true, initial: typeof (e as CustomEvent).detail === 'string' ? (e as CustomEvent<string>).detail.slice(0, 200) : '' });
+    addEventListener('vystral:new-smart-collection', h);
+    return () => removeEventListener('vystral:new-smart-collection', h);
+  }, []);
+  return <SmartCollectionDialog open={state.open} initial={state.initial} onClose={() => setState((s) => ({ ...s, open: false }))} />;
+}
 
 const EXAMPLES = ['Cosy games under 20 hours I haven’t finished', 'Installed racing games', 'RPGs I haven’t played in 6 months', 'Never played indie games'];
 
@@ -65,7 +79,9 @@ export function SmartCollectionDialog({ open, onClose, initial }: { open: boolea
     setBusy('build');
     try {
       let next: Built;
-      if (useAi) {
+      // The AI status may still be loading right after start: read it first rather than guess.
+      const st = useAiStore.getState().status ?? (await useAiStore.getState().refresh(), useAiStore.getState().status);
+      if (st?.active.ready && featureOn) {
         const r = await call<SmartFilterAnswer>('aix.smartFilter', { sentence: s }, 150_000);
         next = r.filter
           ? { filter: r.filter, name: r.name ?? s.slice(0, 40), aiLabel: r.aiLabel, note: r.dropped.length ? `Left out (not genres in your library): ${r.dropped.join(', ')}.` : r.note, sent: r.sent, leftover: '', cloud: r.engine.cloud }

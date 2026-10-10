@@ -184,7 +184,7 @@ export function smartFilterFromQuery(parsed: ParsedQuery, sentence: string): { f
   if (f.maxSizeBytes != null) raw.sizeMaxGb = Math.round((f.maxSizeBytes / 1e9) * 10) / 10;
   if (f.minSizeBytes != null) raw.sizeMinGb = Math.round((f.minSizeBytes / 1e9) * 10) / 10;
   // "unfinished" / "haven't finished" / "not beaten": the parser has no word for it, so read it here.
-  const unfinished = /\b(unfinished|not finished|(?:i )?haven'?t finished|(?:i )?have not finished|not beaten|(?:i )?haven'?t beaten)\b/i;
+  const unfinished = /\b(unfinished|not finished|(?:i )?haven['’]?t finished|(?:i )?have not finished|not beaten|(?:i )?haven['’]?t beaten)\b/i;
   if (unfinished.test(sentence)) raw.statusNone = ['beaten', 'completed'];
   const hours = /\b(?:under|less than|shorter than|below)\s+(\d{1,3})\s*(?:h|hrs?|hours?)\b/i;
   const ttb = sentence.match(hours);

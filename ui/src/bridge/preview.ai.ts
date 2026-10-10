@@ -73,7 +73,7 @@ const FEATURES: Omit<AiFeature, 'enabled'>[] = [
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const dur = (s: number) => {
   if (s < 60) return 'under a minute';
-  const m = Math.round(s / 60), h = Math.floor(m / 60), mm = m % 60;
+  const m = Math.floor(s / 60), h = Math.floor(m / 60), mm = m % 60;
   return h === 0 ? `${mm} min` : mm === 0 ? `${h} h` : `${h} h ${mm} min`;
 };
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -174,7 +174,7 @@ export function aiCloudPreviewHandlers(ctx: {
         case 'genre': return (g.genres.length ? g.genres : ['Unknown genre']).map((n) => [n.toLowerCase(), n, null]);
         case 'platform': { const p = g.installations.find((i) => i.id === x.installationId)?.platform ?? g.installations[0]?.platform ?? 'manual'; return [[p, PLATFORM_NAME[p], null]]; }
         case 'month': return [[ymd(d).slice(0, 7), d.toLocaleString('en', { month: 'short', year: 'numeric' }), null]];
-        case 'weekday': return [[String((d.getDay() + 6) % 7), d.toLocaleString('en', { weekday: 'short' }), null]];
+        case 'weekday': return [[String((d.getDay() + 6) % 7), d.toLocaleString('en', { weekday: 'long' }), null]];
         case 'hour': return [[String(d.getHours()).padStart(2, '0'), hourLabel(d.getHours()), null]];
         case 'day': return [[ymd(d), d.toLocaleString('en', { month: 'short', day: 'numeric' }), null]];
         default: return [['all', 'Total', null]];
@@ -193,7 +193,7 @@ export function aiCloudPreviewHandlers(ctx: {
     }
     let rows: JournalRow[] = [...groups].map(([key, v]) => ({ key, label: v.label, value: Math.round(measure(v.items) * 100) / 100, gameId: v.gameId }));
     const time = ['month', 'weekday', 'hour', 'day'].includes(spec.groupBy);
-    if (spec.groupBy === 'weekday') rows = Array.from({ length: 7 }, (_, i) => rows.find((r) => r.key === String(i)) ?? { key: String(i), label: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i], value: 0, gameId: null });
+    if (spec.groupBy === 'weekday') rows = Array.from({ length: 7 }, (_, i) => rows.find((r) => r.key === String(i)) ?? { key: String(i), label: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][i], value: 0, gameId: null });
     else if (spec.groupBy === 'hour') rows = Array.from({ length: 24 }, (_, h) => rows.find((r) => r.key === String(h).padStart(2, '0')) ?? { key: String(h).padStart(2, '0'), label: hourLabel(h), value: 0, gameId: null });
     else if (time) rows.sort((a, b) => a.key.localeCompare(b.key));
     else rows = rows.sort((a, b) => (spec.sort === 'asc' ? a.value - b.value : b.value - a.value) || a.label.localeCompare(b.label)).slice(0, spec.limit);
@@ -430,7 +430,7 @@ export function aiCloudPreviewHandlers(ctx: {
       for (const g of known) if (t.includes(g.toLowerCase())) raw.genresAny = [...new Set([...(raw.genresAny as string[] ?? []), g])];
       const hours = t.match(/under (\d{1,3}) ?(h|hours?)/);
       if (hours) raw.ttbMaxHours = Number(hours[1]);
-      if (/(haven'?t|not) (finished|beaten)|unfinished/.test(t)) raw.statusNone = ['beaten', 'completed'];
+      if (/(haven['’]?t|not) (finished|beaten)|unfinished/.test(t)) raw.statusNone = ['beaten', 'completed'];
       if (/\binstalled\b/.test(t)) raw.installed = !/not installed/.test(t);
       if (/never played|unplayed/.test(t)) raw.neverPlayed = true;
       const filter = parseSmartFilter(raw);

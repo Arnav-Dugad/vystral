@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { create } from 'zustand';
 import { call, on } from '../bridge/bridge';
 import type { AiCloudStatus, AiFeatureId, Settings } from '../bridge/types';
-import { useStore } from './store';
+import { settingsSettled, useStore } from './store';
 
 interface AiState {
   status: AiCloudStatus | null;
@@ -43,7 +43,9 @@ function start() {
     const next = AI_KEYS(st.settings);
     if (next !== last) {
       last = next;
-      void useAiStore.getState().refresh();
+      // Settings are shown optimistically: ask once the change has been saved, so the answer reflects it.
+      // (One microtask later, so the save that caused this change is already counted as in flight.)
+      void Promise.resolve().then(settingsSettled).then(() => useAiStore.getState().refresh());
     }
   });
   void useAiStore.getState().refresh();

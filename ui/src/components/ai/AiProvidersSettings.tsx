@@ -331,7 +331,7 @@ function ProviderCard({ p, status }: { p: CloudAiProviderStatus; status: AiCloud
   );
 }
 
-function ConnectForm({ p, disabled, busy, onConnect }: { p: CloudAiProviderStatus; disabled: boolean; busy: boolean; onConnect: (key: string, baseUrl?: string) => Promise<unknown> }) {
+function ConnectForm({ p, disabled, busy, onConnect }: { p: CloudAiProviderStatus; disabled: boolean; busy: boolean; onConnect: (key: string, baseUrl?: string) => Promise<CloudAiAction | null> }) {
   const [key, setKey] = useState('');
   const [url, setUrl] = useState('');
   const keyId = useId();
@@ -344,7 +344,8 @@ function ConnectForm({ p, disabled, busy, onConnect }: { p: CloudAiProviderStatu
       className="ai-connect"
       onSubmit={(e) => {
         e.preventDefault();
-        if (ready && !busy) void onConnect(key.trim(), p.id === 'compatible' ? url.trim() : undefined).then(() => setKey(''));
+        // The pasted key is cleared once it's saved; a rejected key stays so it can be corrected.
+        if (ready && !busy) void onConnect(key.trim(), p.id === 'compatible' ? url.trim() : undefined).then((r) => r?.result.outcome === 'ok' && setKey(''));
       }}
     >
       {p.id === 'compatible' && (
@@ -359,7 +360,7 @@ function ConnectForm({ p, disabled, busy, onConnect }: { p: CloudAiProviderStatu
             onChange={(e) => setUrl(e.target.value)}
             spellCheck={false}
             autoComplete="off"
-            disabled={disabled}
+            disabled={disabled || busy}
             aria-invalid={url.length > 0 && !urlOk ? true : undefined}
           />
           {url.length > 0 && !urlOk && <span className="ai-connect__err">Use an https:// address without a password, “?” or “#”.</span>}
@@ -376,7 +377,7 @@ function ConnectForm({ p, disabled, busy, onConnect }: { p: CloudAiProviderStatu
           onChange={(e) => setKey(e.target.value)}
           spellCheck={false}
           autoComplete="off"
-          disabled={disabled}
+          disabled={disabled || busy}
           aria-describedby={hintId}
         />
         <Button size="sm" variant="primary" type="submit" loading={busy} disabled={disabled || !ready}>Save key</Button>

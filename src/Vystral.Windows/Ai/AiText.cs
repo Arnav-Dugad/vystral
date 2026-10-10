@@ -83,11 +83,14 @@ public static partial class AiText
     [GeneratedRegex(@"\s+")]
     private static partial Regex Spaces();
 
-    /// <summary>"12 h 30 min", "45 min", "under a minute" — the same wording the facts use, so models can quote it.</summary>
+    /// <summary>
+    /// "12 h 30 min", "45 min", "under a minute" — the same wording the facts use, so models can quote it. Minutes are
+    /// truncated, like the interface's own durations, so the sentence and the chart always show the same numbers.
+    /// </summary>
     public static string Duration(double seconds)
     {
         if (seconds < 60) return "under a minute";
-        var minutes = (long)Math.Round(seconds / 60);
+        var minutes = (long)Math.Floor(seconds / 60);
         var h = minutes / 60;
         var m = minutes % 60;
         return h == 0 ? $"{m} min" : m == 0 ? $"{h} h" : $"{h} h {m} min";

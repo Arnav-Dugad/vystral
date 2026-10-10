@@ -211,7 +211,7 @@ public static class JournalQuery
             "genre" => (x.G.Genres.Count == 0 ? ["Unknown genre"] : x.G.Genres).Select(gn => (gn.ToLowerInvariant(), gn, (string?)null, x)),
             "platform" => [(x.Platform, PlatformName(x.Platform), null, x)],
             "month" => [(x.Local.ToString("yyyy-MM", CultureInfo.InvariantCulture), x.Local.ToString("MMM yyyy", CultureInfo.InvariantCulture), null, x)],
-            "weekday" => [(WeekdayKey(x.Local), x.Local.ToString("ddd", CultureInfo.InvariantCulture), null, x)],
+            "weekday" => [(WeekdayKey(x.Local), x.Local.ToString("dddd", CultureInfo.InvariantCulture), null, x)],
             "hour" => [(x.Local.Hour.ToString("00", CultureInfo.InvariantCulture), HourLabel(x.Local.Hour), null, x)],
             "day" => [(x.Local.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), x.Local.ToString("MMM d", CultureInfo.InvariantCulture), null, x)],
             _ => [("all", "Total", null, x)],
@@ -266,7 +266,7 @@ public static class JournalQuery
         {
             case "weekday":
                 return Enumerable.Range(0, 7).Select(i => Get(i.ToString(CultureInfo.InvariantCulture),
-                    new DateTime(2024, 1, 1).AddDays(i).ToString("ddd", CultureInfo.InvariantCulture))).ToList(); // 2024-01-01 was a Monday
+                    new DateTime(2024, 1, 1).AddDays(i).ToString("dddd", CultureInfo.InvariantCulture))).ToList(); // 2024-01-01 was a Monday
             case "hour":
                 return Enumerable.Range(0, 24).Select(h => Get(h.ToString("00", CultureInfo.InvariantCulture), HourLabel(h))).ToList();
             case "month":

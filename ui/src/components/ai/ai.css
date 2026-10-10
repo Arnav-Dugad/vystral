@@ -31,7 +31,7 @@
 .ai-set__notice > svg { color: var(--warn); flex: none; margin-top: 2px; }
 .ai-set__notice > div { display: grid; gap: 2px; font-size: var(--fs-sm); color: var(--text-2); }
 .ai-set__notice strong { color: var(--text-1); }
-.ai-choice { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 168px), 1fr)); gap: var(--s-3); }
+.ai-choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: var(--s-3); }
 .ai-choice__item {
   position: relative; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 8px; align-items: center;
   padding: 12px 14px; border: 0; text-align: left; color: var(--text-1); cursor: pointer;
@@ -236,3 +236,6 @@
 /* ---------- Library: smart collection header, duplicate rows ---------- */
 .lib-head__smart { display: flex; align-items: center; gap: 6px; margin-top: 2px; color: var(--accent-text); }
 .dup-row > .ai-dup { grid-column: 1 / -1; }
+.ai-smart-offer { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; font-size: var(--fs-xs); color: var(--text-3); }
+.ai-smart-offer > svg { color: var(--accent-text); }
+.ai-link { padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; font-weight: var(--fw-semibold); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }

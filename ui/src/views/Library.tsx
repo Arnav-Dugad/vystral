@@ -32,7 +32,6 @@ import { SubsBadge } from '../components/subs/SubsBits';
 import { ServiceLogo } from '../components/ui/ServiceLogo';
 import './library.css';
 // Track C5: smart collections (a rule stored on the collection, evaluated live) and duplicate explanations.
-import { SmartCollectionDialog } from '../components/ai/SmartCollectionDialog';
 import { DuplicateWhy } from '../components/ai/DuplicateWhy';
 import { describeSmartFilter, matchesSmartFilter, parseSmartFilter } from '../lib/smartFilter';
 
@@ -82,7 +81,6 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [packsOpen, setPacksOpen] = useState(false);
-  const [smartOpen, setSmartOpen] = useState(false); // Track C5
   // Track N: filter by store (the chips' marks draw themselves on hover/focus).
   const [store, setStore] = useState<PlatformKey | null>(null);
   const stores = useMemo(() => {
@@ -183,7 +181,6 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
               Review {plural(duplicates.length, 'possible duplicate')}
             </Button>
           )}
-          {!collection && <Button size="sm" variant="ghost" icon={<Sparkles size={14} />} onClick={() => setSmartOpen(true)}>Smart collection</Button>}
           <Button size="sm" variant="ghost" icon={<Wand2 size={14} />} onClick={() => setPacksOpen(true)}>Art packs</Button>
           {!collection && <Button size="sm" variant="ghost" icon={<HeartPulse size={14} />} onClick={() => useStore.getState().navigate({ name: 'health' })}>Library health<NewBadge k="library.health" /></Button>}
           <Button size="sm" icon={<FilePlus2 size={14} />} onClick={() => void addManualGame()}>Add a game</Button>
@@ -331,7 +328,6 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
       )}
 
       <DuplicatesDialog open={dupOpen} onClose={() => setDupOpen(false)} />
-      <SmartCollectionDialog open={smartOpen} onClose={() => setSmartOpen(false)} />
       <ArtPacksDialog
         open={packsOpen}
         onClose={() => setPacksOpen(false)}
