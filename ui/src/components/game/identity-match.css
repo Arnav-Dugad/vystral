@@ -1,0 +1,82 @@
+/* Track D4: the "Matched IDs" card and the "Which Steam game is this?" dialog. */
+.idm { display: grid; gap: var(--s-3); padding: var(--s-4) var(--s-5); margin-top: var(--s-4); }
+.idm__head { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.idm__head h3 { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: var(--fs-md); font-weight: var(--fw-semibold); }
+.idm__head h3 svg { color: var(--accent-text); }
+.idm__spacer { flex: 1; }
+.idm__summary { margin: 0; color: var(--text-2); font-size: var(--fs-sm); line-height: 1.5; max-width: 72ch; }
+.idm__muted { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--text-3); font-size: var(--fs-xs); line-height: 1.5; }
+
+.idm__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.idm__row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1.2fr) minmax(0, 1.6fr) auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 10px var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.idm__row[data-status='suggested'], .idm__row[data-status='conflict'] { box-shadow: inset 0 0 0 1px oklch(from var(--warn) l c h / 0.35); }
+.idm__kind { font-size: var(--fs-2xs); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); }
+.idm__value { display: grid; min-width: 0; }
+.idm__name { color: var(--text-1); font-size: var(--fs-sm); font-weight: var(--fw-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.idm__id { color: var(--text-3); font-size: var(--fs-xs); font-family: var(--font-mono); }
+.idm__how { display: grid; gap: 2px; min-width: 0; }
+.idm__conf { justify-self: start; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--text-2); }
+.idm__conf[data-level='certain'], .idm__conf[data-level='high'], .idm__conf[data-level='good'] { color: var(--ok); }
+.idm__conf[data-level='medium'] { color: var(--warn); }
+:root[data-theme='light'] .idm__conf[data-level='certain'],
+:root[data-theme='light'] .idm__conf[data-level='high'],
+:root[data-theme='light'] .idm__conf[data-level='good'] { color: oklch(from var(--ok) 0.42 c h); }
+:root[data-theme='light'] .idm__conf[data-level='medium'] { color: oklch(from var(--warn) 0.42 c h); }
+.idm__via { color: var(--text-3); font-size: var(--fs-xs); line-height: 1.4; }
+.idm__actions { display: inline-flex; gap: 4px; }
+.idm__foot { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .idm__row { grid-template-columns: 1fr auto; }
+  .idm__kind { grid-column: 1 / -1; }
+  .idm__how { grid-column: 1 / -1; }
+}
+
+.idm-search { display: flex; gap: var(--s-2); margin: var(--s-3) 0; }
+.idm-search .input { flex: 1; }
+.idm-choices { display: grid; gap: 6px; max-height: min(52vh, 420px); overflow: auto; padding: 2px; }
+.idm-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 10px var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: pointer;
+  transition: box-shadow 160ms var(--ease-out, ease), background 160ms var(--ease-out, ease);
+}
+.idm-choice:hover { background: var(--bg-3); }
+.idm-choice[data-selected] { box-shadow: inset 0 0 0 1.5px var(--accent-line); background: var(--accent-ghost); }
+.idm-choice input { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.idm-choice:focus-within { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.idm-choice__text { display: grid; gap: 2px; min-width: 0; }
+.idm-choice__name { color: var(--text-1); font-size: var(--fs-sm); font-weight: var(--fw-medium); }
+
+/* The line above "At a glance" when Steam data is shown for a matched Steam app. */
+.gi-matched {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 var(--s-3);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.gi-matched svg { color: var(--accent-text); flex: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .idm-choice { transition: none; }
+}
+@media (forced-colors: active) {
+  .idm__row, .idm-choice { border: 1px solid CanvasText; box-shadow: none; }
+  .idm-choice[data-selected] { border: 2px solid Highlight; }
+}

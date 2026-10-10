@@ -36,6 +36,7 @@ import type { AchievementsResult } from './types';
 import { MAINTENANCE_DEFAULT_SETTINGS, maintenancePreviewHandlers } from './preview.maintenance';
 import { decorateLibraryCorrectness, libraryCorrectnessPreviewHandlers } from './preview.libraryCorrectness';
 import { GAME_PAGE_DEFAULT_SETTINGS, gamePagePreviewHandlers } from './preview.gamePage';
+import { TRACK_D4_DEFAULT_SETTINGS, identityPreviewHandlers } from './preview.identity'; // Track D4
 import type { Deals, DiscoverDetails } from './types';
 import { AI_CLOUD_DEFAULT_SETTINGS, aiCloudPreviewHandlers, previewAiSettings } from './preview.ai'; // Track C5
 import { parseSmartFilter } from '../lib/smartFilter';
@@ -100,6 +101,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...MAINTENANCE_DEFAULT_SETTINGS, // Track AA
   ...GAME_PAGE_DEFAULT_SETTINGS, // Track C4
   ...AI_CLOUD_DEFAULT_SETTINGS, // Track C5
+  ...TRACK_D4_DEFAULT_SETTINGS(), // Track D4
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -556,6 +558,9 @@ export function createPreviewBackend() {
     }),
     // Track C2: rig summary, startup history (?startupSlow, ?startupNone, ?noRig), caption width (?caption=px).
     ...trackC2PreviewHandlers({ insightSamples: insight['sessions.insightSamples'] }),
+    // Track D4: cross-store identity (Circuit Apex matched, Velvet Orbit suggested, Kingsfall Remastered disputed; ?identity=off),
+    // trailers from other sources (?youtube), free games (?freebies) and ProtonDB (?protondb). Overrides 'trailer.get'.
+    ...identityPreviewHandlers({ lib, emit: () => emit, settings: () => settings }),
   };
   const slowLibrary = Math.min(10_000, Number(params.get('slowLibrary') ?? 0) || 0);
 

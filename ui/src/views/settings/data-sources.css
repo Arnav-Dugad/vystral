@@ -129,3 +129,11 @@
 .dsrc-connect__field input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--text-1); letter-spacing: 0.03em; }
 .dsrc-connect__field input:focus-visible { outline: none; box-shadow: none; }
 .dsrc-connect__submit { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+
+/* Track D4: "What this means" disclosure under Allow YouTube trailers. */
+.dsrc__why { display: inline-flex; align-items: center; gap: 4px; padding: 0; color: var(--accent-text); font: inherit; font-weight: var(--fw-medium); border-radius: var(--r-xs); }
+.dsrc__why:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.dsrc__why svg { transition: transform var(--dur-fast) var(--ease-out); }
+.dsrc__whytext { margin-top: var(--s-2); line-height: 1.55; }
+.dsrc__whytext > svg { vertical-align: -2px; color: var(--warn); }
+@media (prefers-reduced-motion: reduce) { .dsrc__why svg { transition: none; } }

@@ -16,6 +16,7 @@ import type {
   Settings, StoreFacts,
 } from './types';
 import { placeholderArt } from './preview.dataSources';
+import { previewSteamAppFor } from './preview.identity';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -93,7 +94,7 @@ export function gamePagePreviewHandlers(ctx: Ctx) {
   const appIdOf = (p: { gameId?: string; key?: string; appId?: string | null }): string | null => {
     if (p.gameId) {
       const g = find(p.gameId);
-      return g ? steamAppOf(g) : null;
+      return g ? steamAppOf(g) ?? previewSteamAppFor(g, ctx.settings())?.appId ?? null : null; // Track D4: matched Steam apps too
     }
     return p.appId ?? (p.key?.startsWith('steam-') ? p.key.slice(6) : null);
   };
