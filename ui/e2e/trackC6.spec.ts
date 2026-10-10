@@ -50,7 +50,7 @@ const activeRow = (page: Page) => page.locator('.imm__row[data-active="true"]');
 
 test.describe('Immersive Discover', () => {
   test('keyboard: search any game, open its page, watch it with Y, and it shows on Watching', async ({ page }) => {
-    test.setTimeout(90_000); // three axe passes on a busy runner
+    test.setTimeout(process.env.GITHUB_ACTIONS ? 300_000 : 90_000); // three axe passes over Immersive are slow on a shared runner
     const errors = await open(page);
     await enter(page);
 
