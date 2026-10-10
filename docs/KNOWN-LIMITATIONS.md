@@ -12,6 +12,11 @@
 - EA: `origin2://` launch is used with the installer content ID; some titles may need launching from the EA app if it rejects the ID. Entries without a content ID are skipped.
 - Battle.net: classic titles (Diablo II, Warcraft III) aren't detected. Launch arguments for Battle.net have not been verified on a live install.
 - Xbox: the WinRT discovery path is unit-tested below the API boundary, but no Game Pass game was installed on the development machine for a live end-to-end test.
+- Xbox "last played" without a VYSTRAL session is an **estimate**: the newest write time in the game's own data folders (cloud saves, local state, temp and cache). A game that writes nothing while running shows no date; Windows maintenance in those folders could move the date a little. It's always labelled "estimated from save data", and a session VYSTRAL tracked wins.
+- Xbox install sizes are measured in the background after a scan (file sizes only, reparse points skipped) and only again when the package version changes. Until the first measurement finishes, Storage Studio doesn't show the game.
+- Windows doesn't say locally whether an Xbox game came with Game Pass or was bought, so VYSTRAL doesn't show either.
+- A Steam game that was installed, refunded and uninstalled *before* the next owned-games sync, and wasn't in the previous owned list, shows as "Missing" rather than "No longer owned" (there's no record that it was ever owned).
+- "No longer owned" is decided only after a complete owned-games answer from Steam and never on the first answer for an account. A sudden drop of more than 10 games and 20% of the library is treated as a Steam hiccup and ignored (it's logged in the audit log).
 - Epic, GOG, Ubisoft and Battle.net were not installed on the development machine; their adapters are verified with fixture-based tests modelled on real files (and Playnite's long-standing parsers).
 
 **Performance data**

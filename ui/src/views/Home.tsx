@@ -154,7 +154,11 @@ function Hero({ game }: { game: Game }) {
         {game.art.logo ? <HeroLogo src={game.art.logo} alt={game.title} /> : <h1 className="hero__title">{game.title}</h1>}
         <div className="hero__meta">
           {platforms.map((p) => <PlatformBadge key={p} platform={p} />)}
-          {lp.at && <span><Clock3 size={13} aria-hidden /> Played {formatRelative(lp.at).toLowerCase()}</span>}
+          {lp.at && (
+            <span title={lp.source === 'estimated' ? 'Estimated from when the game last wrote its save data' : undefined}>
+              <Clock3 size={13} aria-hidden /> Played {formatRelative(lp.at).toLowerCase()}{lp.source === 'estimated' ? ' (estimated)' : ''}
+            </span>
+          )}
           {game.trackedSeconds > 0 && <span>{formatDuration(game.trackedSeconds)} tracked</span>}
           {imported != null && imported.minutes > 0 && <span title="Reported by the store">{formatDuration(imported.minutes * 60)} in {PLATFORM_NAMES[imported.platform]}</span>}
         </div>

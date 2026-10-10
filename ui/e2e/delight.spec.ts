@@ -15,6 +15,16 @@ async function open(page: Page, query = '') {
 
 const nav = (page: Page, name: string | RegExp) => page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name }).click();
 
+/**
+ * Track C1: Continue playing now starts with the hero's game; in the preview its first two cards aren't Steam games
+ * (no clip), so scroll the row a little to bring Steam tiles fully on screen.
+ */
+async function showSteamTiles(page: Page) {
+  const track = page.locator('.shelf__track--landscape').first();
+  await expect(track).toBeVisible();
+  await track.evaluate((el) => el.scrollTo({ left: 780, behavior: 'instant' }));
+}
+
 async function seriousViolations(page: Page) {
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
   const results = await new AxeBuilder({ page }).exclude('.living-canvas').analyze();
@@ -83,6 +93,7 @@ test.describe('live tiles', () => {
 
   test('only tiles at least half on screen play, two at most, muted, and they stop when scrolled away', async ({ page }) => {
     await open(page);
+    await showSteamTiles(page);
     const playing = page.locator('.live-layer[data-playing]');
     await expect(playing.first()).toBeVisible({ timeout: 10_000 });
     const check = async () =>
@@ -124,6 +135,7 @@ test.describe('live tiles', () => {
     await expect(page.locator('video.live-layer__video')).toHaveCount(0);
 
     await open(page);
+    await showSteamTiles(page);
     await expect(page.locator('.live-layer[data-playing]').first()).toBeVisible({ timeout: 10_000 });
     await nav(page, 'Settings');
     await page.getByRole('button', { name: 'Privacy' }).click();

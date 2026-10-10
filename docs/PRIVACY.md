@@ -32,6 +32,7 @@ Export your journal from Settings → Data. Delete tracked history there too (th
 
 - Store manifests and registry entries describing installed games (read-only).
 - Steam's local "last played" and playtime records for the most recently signed-in account.
+- For Xbox and Microsoft Store games: the package's own manifest and localized name (through Windows' `SHLoadIndirectString`), the sizes of the files in its install folder (to show its size; file contents are never opened), and the newest file *write time* in its data folders under `%LOCALAPPDATA%\Packages\<package>` (`SystemAppData\wgs`, `LocalState`, `TempState`, `AC`) as an estimated "last played". Only dates and sizes are read, never the saves themselves.
 - With Moments on: images and videos in Steam's screenshot folders, Xbox Game Bar captures and folders you add.
 - While a game you launched runs, if enabled: system CPU/GPU/memory load and GPU temperature (read-only counters).
 - Names and paths of running processes, to detect when your game starts and stops.

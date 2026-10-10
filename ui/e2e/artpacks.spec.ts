@@ -207,6 +207,11 @@ test.describe('live-tile director', () => {
 
   test('analyses a clip once, then loops its best two seconds', async ({ page }) => {
     const { errors, external } = await open(page);
+    // Track C1: Continue playing now starts with the hero's game; in the preview its first two cards aren't Steam
+    // games (no clip), so scroll the row a little to bring Steam tiles fully on screen.
+    const track = page.locator('.shelf__track--landscape').first();
+    await expect(track).toBeVisible();
+    await track.evaluate((el) => el.scrollTo({ left: 780, behavior: 'instant' }));
     const directed = page.locator('.live-layer[data-director="segment"]').first();
     await expect(directed).toBeAttached({ timeout: 25_000 });
     const start = Number(await directed.getAttribute('data-loop-start'));
