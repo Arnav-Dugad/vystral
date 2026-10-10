@@ -38,7 +38,19 @@ export interface WishlistItem {
   /** The VYSTRAL game when it's already in the library. */
   gameId: string | null;
   pricedAt: string | null;
+  /** Track D2: portrait cover (Steam's 600×900 library capsule, hero capsule or SteamGridDB) through the art host, or null. */
+  cover?: string | null;
+  /** Track D2: how precisely the release date is known. Older answers lack it (see lib/wishlistCalendar `releaseOf`). */
+  releasePrecision?: ReleasePrecision;
+  /** Track D2: first and last calendar day of the release window (yyyy-MM-dd); null for `tba`. */
+  releaseFrom?: string | null;
+  releaseTo?: string | null;
+  /** Track D2: honest wording for a vague date ("Q1 2027", "Summer 2027", "To be announced"); null for an exact day. */
+  releaseLabel?: string | null;
 }
+
+/** Track D2: an exact day, part of a year, or no date yet. */
+export type ReleasePrecision = 'day' | 'month' | 'quarter' | 'half' | 'season' | 'year' | 'tba';
 
 export type WishlistStatus =
   | 'ok' | 'empty' | 'off' | 'notConnected' | 'noAccount' | 'offline' | 'invalidKey' | 'unavailable' | 'rateLimited' | 'notLoaded';

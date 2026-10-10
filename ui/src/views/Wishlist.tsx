@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  AlertTriangle, CalendarClock, CloudOff, ExternalLink, Gift, KeyRound, Library, RefreshCw, Search, ShieldAlert, Sparkles, TrendingDown, UserX,
+  AlertTriangle, CalendarClock, CalendarDays, CloudOff, ExternalLink, Gift, KeyRound, Library, List, RefreshCw, Search, ShieldAlert, Sparkles, TrendingDown, UserX,
 } from 'lucide-react';
 import { call, errorMessage, on } from '../bridge/bridge';
 import type { Wishlist, WishlistItem, WishlistRefreshResult } from '../bridge/types';
@@ -14,6 +14,7 @@ import {
 import { useReducedMotion, useStore } from '../state/store';
 import { Badge, Button, EmptyState, IconButton, Segmented, Skeleton } from '../components/ui/primitives';
 import { PriceSparkline } from './wishlist/PriceSparkline';
+import { Poster, WishlistCalendar } from './wishlist/WishlistCalendar';
 import { openSteamApp } from '../components/discover/DiscoverBits';
 import './wishlist/wishlist.css';
 
@@ -34,6 +35,18 @@ function readSort(): WishlistSort {
     return SORTS.some((s) => s.value === v) ? (v as WishlistSort) : 'priority';
   } catch {
     return 'priority';
+  }
+}
+
+/** Track D2: the release calendar is the page; the card list is the "Show as list" alternative (remembered per PC). */
+type WishlistView = 'calendar' | 'list';
+const VIEW_KEY = 'vystral.wishlist.view';
+
+function readView(): WishlistView {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'calendar';
+  } catch {
+    return 'calendar';
   }
 }
 
@@ -93,7 +106,7 @@ export function WishlistView() {
         <div className="wish__head-text">
           <span className="caps wish__eyebrow"><Gift size={13} aria-hidden /> Steam</span>
           <h1 className="wish__title">Wishlist</h1>
-          <p className="wish__lede">Games you’ve wishlisted on Steam, with today’s price, the lowest price ever and when they come out.</p>
+          <p className="wish__lede">Your Steam wishlist as a release calendar: what’s out, what’s coming, today’s price and the lowest price ever.</p>
         </div>
         {data && data.status !== 'off' && data.status !== 'notConnected' && (
           <div className="wish__tools">
@@ -184,8 +197,14 @@ function WishlistList({ data }: { data: Wishlist }) {
     setSortState(s);
     try { localStorage.setItem(SORT_KEY, s); } catch { /* remembered for this visit only */ }
   };
+  const [view, setViewState] = useState<WishlistView>(readView);
+  const setView = (v: WishlistView) => {
+    setViewState(v);
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* remembered for this visit only */ }
+  };
   const summary = useMemo(() => wishlistSummary(data.items), [data.items]);
-  const list = useMemo(() => sortWishlist(filterWishlist(data.items, filter, query), sort), [data.items, filter, query, sort]);
+  const matching = useMemo(() => filterWishlist(data.items, filter, query), [data.items, filter, query]);
+  const list = useMemo(() => sortWishlist(matching, sort), [matching, sort]);
   const steamLabel = `Steam (${data.country} store)`;
 
   return (
@@ -203,20 +222,28 @@ function WishlistList({ data }: { data: Wishlist }) {
       <div className="wish__toolbar">
         <Segmented label="Show" value={filter} onChange={setFilter}
           options={[{ value: 'all', label: 'All' }, { value: 'sale', label: 'On sale' }, { value: 'lowest', label: 'Lowest ever' }, { value: 'upcoming', label: 'Coming soon' }]} />
-        <label className="wish__sort">
-          <span className="caps">Sort</span>
-          <select className="input" value={sort} onChange={(e) => setSort(e.target.value as WishlistSort)} aria-label="Sort wishlist">
-            {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
-        </label>
+        {view === 'list' && (
+          <label className="wish__sort">
+            <span className="caps">Sort</span>
+            <select className="input" value={sort} onChange={(e) => setSort(e.target.value as WishlistSort)} aria-label="Sort wishlist">
+              {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </label>
+        )}
         <label className="wish__search">
           <Search size={15} aria-hidden />
           <input type="search" value={query} placeholder="Search your wishlist" aria-label="Search your wishlist" maxLength={80} onChange={(e) => setQuery(e.target.value)} />
         </label>
+        <Button size="sm" variant="ghost" icon={view === 'calendar' ? <List size={15} /> : <CalendarDays size={15} />}
+          onClick={() => setView(view === 'calendar' ? 'list' : 'calendar')}>
+          {view === 'calendar' ? 'Show as list' : 'Show as calendar'}
+        </Button>
       </div>
 
       {list.length === 0 ? (
         <p className="wish__empty">{query ? `Nothing on your wishlist matches “${query}”.` : 'Nothing here right now.'}</p>
+      ) : view === 'calendar' ? (
+        <WishlistCalendar items={matching} filtered={filter !== 'all' || query.trim().length > 0} />
       ) : (
         <ul className="wish__list" aria-label={`${list.length} wishlisted ${list.length === 1 ? 'game' : 'games'}`}>
           {list.map((item, i) => <WishCard key={item.appId} item={item} index={i} />)}
@@ -263,7 +290,8 @@ function WishCard({ item, index }: { item: WishlistItem; index: number }) {
     >
       {/* The art opens the page too; it's skipped by Tab (the title button right after it is the same action). */}
       <button type="button" className="wish-card__art wish-card__open" ref={artRef} tabIndex={-1} aria-hidden onClick={openPage}>
-        {item.header ? <img src={item.header} alt="" loading="lazy" decoding="async" draggable={false} /> : <span className="wish-card__art-blank" aria-hidden><Gift size={22} /></span>}
+        {/* Track D2: the header, else the cover, else VYSTRAL's own titled poster (never a blank gift icon). */}
+        <Poster item={item} wide />
         {badge === 'today' && <span className="wish-card__ribbon"><Sparkles size={13} aria-hidden /> Released!</span>}
         {item.discount > 0 && <span className="wish-card__cut num">−{item.discount}%</span>}
       </button>
@@ -321,6 +349,14 @@ function WishlistSkeleton({ label = 'Loading your wishlist' }: { label?: string 
   return (
     <div className="wish__skeleton" aria-busy="true" aria-label={label}>
       {label !== 'Loading your wishlist' && <p className="wish__note" role="status"><RefreshCw size={14} className="wish__spin" aria-hidden /> {label} This can take a minute for a long wishlist.</p>}
+      {readView() === 'calendar' ? (
+        <div className="wcal-skeleton" aria-hidden>
+          <Skeleton height={58} radius={20} />
+          <div className="wcal-skeleton__grid">
+            {Array.from({ length: 35 }, (_, i) => <Skeleton key={i} height={96} radius={10} />)}
+          </div>
+        </div>
+      ) : (
       <div className="wish__list">
         {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="wish-card surface">
@@ -334,6 +370,7 @@ function WishlistSkeleton({ label = 'Loading your wishlist' }: { label?: string 
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

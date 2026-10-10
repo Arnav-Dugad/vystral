@@ -14,7 +14,8 @@ public sealed partial class ArtworkService
     private const long MaxThumbBytes = 3 * 1024 * 1024;
 
     /// <summary>Caches one preview image and returns its cache-relative path (or null when it isn't a safe image).</summary>
-    public async Task<string?> CacheThumbAsync(string url, string folder, CancellationToken ct)
+    /// <param name="minBytes">Track D2: smaller images are treated as missing (Steam's flat grey stand-in covers, see <see cref="IsPlaceholder"/>).</param>
+    public async Task<string?> CacheThumbAsync(string url, string folder, CancellationToken ct, long minBytes = 0)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return null;
         if (folder.Length is 0 or > 20 || !folder.All(char.IsAsciiLetterLower)) return null;
@@ -22,7 +23,7 @@ public sealed partial class ArtworkService
         foreach (var ext in new[] { ".jpg", ".png", ".webp" })
             if (File.Exists(Path.Combine(paths.ArtCache, baseName + ext))) return (baseName + ext).Replace('\\', '/');
         var bytes = await FetchImageAsync(uri, MaxThumbBytes, ct);
-        if (bytes is null) return null;
+        if (bytes is null || bytes.Length < minBytes) return null;
         var relative = baseName + Extension(bytes);
         var dest = Path.Combine(paths.ArtCache, relative);
         Directory.CreateDirectory(Path.GetDirectoryName(dest)!);

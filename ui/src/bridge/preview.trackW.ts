@@ -3,7 +3,8 @@
  * is fictional; images are drawn locally as SVG data URIs (preview never touches the network).
  *
  * URL switches:
- * - `?wishlist` turns the (opt-in) wishlist on with a dozen fictional games; `?wishlist=empty` has none;
+ * - `?wishlist` turns the (opt-in) wishlist on with 22 fictional games (exact days, a month, a quarter, a season,
+ *   years and no date, for the Track D2 release calendar); `?wishlist=empty` has none;
  *   `?wishlist=loading` is still on its first refresh; `?wishlist=invalid` simulates a rejected key.
  * - `?friendsHistory` turns friends' recent games on (Nebula Drift has three friends); `?friendsHistory=loading`
  *   is the first, slow round.
@@ -12,7 +13,7 @@
  * - `?achGuide` pins a current goal on Nebula Drift (the guide itself works on every Steam game).
  */
 import type {
-  AchievementGuide, AchievementsResult, FriendPlayed, FriendsHistory, Game, GuideAchievement, NewsBlock, NewsFeed, NewsPost, Settings,
+  AchievementGuide, AchievementsResult, FriendPlayed, FriendsHistory, Game, GuideAchievement, NewsBlock, NewsFeed, NewsPost, ReleasePrecision, Settings,
   SteamApiStatus, Wishlist, WishlistItem, WishlistPoint, WishlistRefreshResult,
 } from './types';
 import { BridgeError } from './bridge';
@@ -71,7 +72,14 @@ interface Seed {
   appId: string; name: string; hue: number; priority: number; addedDaysAgo: number;
   release?: number; comingSoon?: boolean; releaseText?: string; free?: boolean; notSold?: boolean;
   regular?: number; price?: number; low?: number; lowSource?: 'itad' | 'cheapshark'; sales?: [number, number, number][]; owned?: string;
+  /** Track D2: a vague date relative to this year (Y) and month (M, 0-based): the window the native parser would give. */
+  vague?: (Y: number, M: number) => { p: ReleasePrecision; from?: [number, number, number]; to?: [number, number, number]; label: string };
+  /** Track D2: no art at all (shows VYSTRAL's own generated poster). */
+  noArt?: boolean;
 }
+
+const iso = (y: number, m: number, d: number) => { const t = new Date(y, m, d); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
+const monthName = (y: number, m: number) => new Date(y, m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
 const SEEDS: Seed[] = [
   { appId: '2480010', name: 'Aurora Vanguard', hue: 205, priority: 1, addedDaysAgo: 220, release: -420, regular: 5999, price: 2999, low: 2999, lowSource: 'itad', sales: [[180, 4199, 14], [60, 3599, 10], [3, 2999, 99]] },
@@ -79,13 +87,32 @@ const SEEDS: Seed[] = [
   { appId: '2480030', name: 'Halcyon Depths', hue: 260, priority: 3, addedDaysAgo: 90, release: 3, comingSoon: true, releaseText: undefined },
   { appId: '2480040', name: 'Saltwind Chronicle', hue: 165, priority: 4, addedDaysAgo: 380, release: -900, regular: 3999, price: 1599, low: 1199, lowSource: 'itad', sales: [[300, 1999, 14], [200, 1199, 7], [120, 1999, 10], [8, 1599, 99]] },
   { appId: '2480050', name: 'Ironbloom', hue: 120, priority: 5, addedDaysAgo: 30, release: -60, regular: 1999, price: 1999, low: 1499, lowSource: 'itad', sales: [[40, 1499, 7]] },
-  { appId: '2480060', name: 'Paper Lanterns II', hue: 330, priority: 6, addedDaysAgo: 12, comingSoon: true, releaseText: 'Q2 2027' },
+  { appId: '2480060', name: 'Paper Lanterns II', hue: 330, priority: 6, addedDaysAgo: 12, comingSoon: true,
+    vague: (Y) => ({ p: 'quarter', from: [Y + 1, 3, 1], to: [Y + 1, 5, 30], label: `Q2 ${Y + 1}` }) },
   { appId: '2480070', name: 'Starward Couriers', hue: 285, priority: 7, addedDaysAgo: 400, release: -1600, regular: 1499, price: 374, low: 374, lowSource: 'itad', sales: [[700, 749, 14], [365, 599, 10], [180, 449, 7], [2, 374, 99]] },
   { appId: '2480080', name: 'Glacier Run', hue: 190, priority: 8, addedDaysAgo: 75, release: -30, free: true },
   { appId: '2480090', name: 'Mirewood', hue: 95, priority: 9, addedDaysAgo: 50, release: 41, comingSoon: true, notSold: true },
   { appId: '2480100', name: 'Vesper Protocol', hue: 15, priority: 0, addedDaysAgo: 5, release: -12, regular: 3499, price: 2799, low: 2449, lowSource: 'itad', sales: [[10, 2799, 99]] },
   { appId: '2480110', name: 'Clockwork Pilgrim', hue: 50, priority: 10, addedDaysAgo: 600, release: -2400, regular: 999, price: 999, low: 199, lowSource: 'itad', sales: [[900, 299, 7], [500, 199, 3], [200, 249, 7]] },
   { appId: '2480120', name: 'Deep Field', hue: 230, priority: 11, addedDaysAgo: 700, release: -800, regular: 2999, price: 2999, low: 1499, lowSource: 'itad', owned: 'Deep Field' },
+  // Track D2: the shapes Steam really sends for upcoming games, for the release calendar.
+  { appId: '2480130', name: 'Quiet Orbit', hue: 250, priority: 12, addedDaysAgo: 40, release: 18, comingSoon: true, regular: 3999, price: 3599, low: 3599, lowSource: 'itad', sales: [[2, 3599, 99]] },
+  { appId: '2480140', name: 'Velvet Circuit', hue: 340, priority: 13, addedDaysAgo: 22, release: 11, comingSoon: true, notSold: true },
+  { appId: '2480150', name: 'Granite Saga', hue: 25, priority: 14, addedDaysAgo: 160, release: -5, regular: 4999, price: 4999, low: 4999, lowSource: 'itad', sales: [] },
+  { appId: '2480160', name: 'Kite Season', hue: 180, priority: 15, addedDaysAgo: 18, comingSoon: true,
+    vague: (Y, M) => ({ p: 'month', from: [Y, M + 2, 1], to: [Y, M + 3, 0], label: monthName(Y, M + 2) }) },
+  { appId: '2480170', name: 'Tidebreaker', hue: 200, priority: 16, addedDaysAgo: 64, comingSoon: true,
+    vague: (Y) => ({ p: 'season', from: [Y, 8, 1], to: [Y, 11, 31], label: `Late ${Y}` }) },
+  { appId: '2480180', name: 'Ember Atlas', hue: 12, priority: 17, addedDaysAgo: 90, comingSoon: true,
+    vague: (Y) => ({ p: 'year', from: [Y + 1, 0, 1], to: [Y + 1, 11, 31], label: `${Y + 1}` }) },
+  { appId: '2480190', name: 'Northwind Relay', hue: 210, priority: 18, addedDaysAgo: 33, comingSoon: true,
+    vague: (Y) => ({ p: 'season', from: [Y + 1, 5, 1], to: [Y + 1, 7, 31], label: `Summer ${Y + 1}` }) },
+  { appId: '2480200', name: 'Lumen Drift', hue: 300, priority: 19, addedDaysAgo: 8, comingSoon: true,
+    vague: (Y) => ({ p: 'year', from: [Y + 2, 0, 1], to: [Y + 2, 11, 31], label: `${Y + 2}` }) },
+  { appId: '2480210', name: 'Hollow Choir', hue: 270, priority: 20, addedDaysAgo: 3, comingSoon: true, noArt: true,
+    vague: () => ({ p: 'tba', label: 'To be announced' }) },
+  { appId: '2480220', name: 'Moonlit Ferry', hue: 60, priority: 21, addedDaysAgo: 120, comingSoon: true,
+    vague: () => ({ p: 'tba', label: 'Coming soon' }) },
 ];
 
 export function trackWPreviewHandlers(ctx: Ctx): Record<string, (p: any) => unknown> {
@@ -113,9 +140,17 @@ export function trackWPreviewHandlers(ctx: Ctx): Record<string, (p: any) => unkn
     const releaseMs = s.release == null ? null : s.release === 0 ? new Date(new Date(now).setHours(9, 0, 0, 0)).getTime() : now + s.release * DAY;
     const priced = !s.free && !s.notSold && s.price != null;
     const regular = s.regular ?? null;
+    const today = new Date(now);
+    const v = s.vague?.(today.getFullYear(), today.getMonth());
+    const releaseDay = releaseMs == null ? null : (() => { const d = new Date(releaseMs); return iso(d.getFullYear(), d.getMonth(), d.getDate()); })();
     return {
       appId: s.appId, name: s.name, priority: s.priority, added: new Date(now - s.addedDaysAgo * DAY).toISOString(),
-      releaseDate: releaseMs == null ? null : new Date(releaseMs).toISOString(), comingSoon: s.comingSoon ?? false, releaseText: s.releaseText ?? null,
+      releaseDate: releaseMs == null ? null : new Date(releaseMs).toISOString(), comingSoon: s.comingSoon ?? false, releaseText: v?.label ?? s.releaseText ?? null,
+      // Track D2: the precision fields the native parser adds (WishlistRelease).
+      releasePrecision: v ? v.p : releaseDay ? 'day' : 'tba',
+      releaseFrom: v?.from ? iso(...v.from) : releaseDay, releaseTo: v?.to ? iso(...v.to) : releaseDay,
+      releaseLabel: v?.label ?? null,
+      cover: s.noArt ? null : art(s.name, s.hue, 600, 900),
       isFree: s.free ?? false,
       priceCents: priced ? s.price! : null, regularCents: priced ? regular : null,
       discount: priced && regular ? Math.round((1 - s.price! / regular) * 100) : 0,
@@ -123,7 +158,7 @@ export function trackWPreviewHandlers(ctx: Ctx): Record<string, (p: any) => unkn
       lowestCents: s.low ?? null, lowestCurrency: s.low != null ? 'USD' : null, lowestSource: s.lowSource ?? null,
       lowestAt: s.low != null ? new Date(now - 30 * DAY).toISOString() : null,
       history: priced && regular ? history(regular, s.sales ?? [], Math.min(s.addedDaysAgo, 360), now) : [],
-      header: art(s.name, s.hue), gameId: owned?.id ?? null, pricedAt: new Date(fetchedAt).toISOString(),
+      header: s.noArt ? null : art(s.name, s.hue), gameId: owned?.id ?? null, pricedAt: new Date(fetchedAt).toISOString(),
     };
   });
 
