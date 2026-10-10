@@ -33,6 +33,8 @@ cd ui; npm run dev            # http://localhost:5173  (?games=5000 for a big li
                               # Track AA: ?firstpaint (start from the saved Home snapshot), ?slowLibrary=1500,
                               # ?selfCheckFail, ?selfCheckNone, ?compactBusy
                               # Track C2: ?caption=220 (caption-button width), ?startupSlow, ?startupNone, ?noRig
+                              # Track D1: ?bulk (two collections for bulk actions), ?bulkFail, ?noVersions, ?timeline
+                              #   (Nebula Drift: an update between two measured sessions); ?mods adds mods to the timeline
 
 # Full app
 cd ui; npm run build; cd ..
