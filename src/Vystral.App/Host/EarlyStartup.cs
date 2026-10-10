@@ -90,7 +90,7 @@ internal sealed class DeferredHost : IHostShell, IEventSink
     public void Minimize() => W.Minimize();
     public void ToggleMaximize() => W.ToggleMaximize();
     public void Close() => W.Close();
-    public void SetDragRegions(IReadOnlyList<DragRect> regions) => W.SetDragRegions(regions);
+    public void SetDragRegions(IReadOnlyList<DragRect> regions, IReadOnlyList<DragRect>? passthrough = null) => W.SetDragRegions(regions, passthrough);
     public void SetCaptionTheme(bool dark) => W.SetCaptionTheme(dark);
     public void SetPulseVisible(bool visible) => W.SetPulseVisible(visible);
     public void OpenFolder(string path) => W.OpenFolder(path);

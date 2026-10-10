@@ -394,6 +394,8 @@ test.describe('v0.3 data & insight', () => {
   test('performance shows driver changes and background apps, and an app can be hidden', async ({ page }) => {
     await open(page);
     await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Performance' }).click();
+    // Track C2: driver changes and background apps live on the System tab.
+    await page.getByRole('tab', { name: 'System' }).click();
     await expect(page.getByRole('heading', { name: /GPU driver changes/ })).toBeVisible();
     await expect(page.getByText(/572\.16/).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: /Background apps/ })).toBeVisible();

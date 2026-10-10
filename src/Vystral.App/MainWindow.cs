@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.UI;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -53,6 +54,9 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
     private readonly Task<CoreWebView2Environment>? _envTask;
     private global::Windows.UI.Color _windowColor = Obsidian;
     private string? _firstPaintScriptId;
+    // Track C2: the caption-button inset is pushed to the interface whenever it can change.
+    private WindowStateDto? _lastWindowState;
+    private DispatcherQueueTimer? _insetRecheck;
 
     internal MainWindow(bool safeMode, AppNotifications notifications, EarlyStartup startup)
     {
@@ -103,8 +107,20 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         _backend.InsightHost = new InsightHost(this, hwnd, _hotkey, notifications);
         _backend.ClipboardHost = new ClipboardHost(this); // Track M: "Copy image" on session replay cards
 
-        Activated += (_, e) => _gamepad.SetWindowActive(e.WindowActivationState != WindowActivationState.Deactivated);
+        Activated += (_, e) =>
+        {
+            _gamepad.SetWindowActive(e.WindowActivationState != WindowActivationState.Deactivated);
+            // The insets are only reliable once the window is shown; activation is the earliest sure point.
+            if (e.WindowActivationState != WindowActivationState.Deactivated) PushWindowState();
+        };
         AppWindow.Changed += OnAppWindowChanged;
+        // Track C2: DPI (moving to another monitor, changing the scale) and theme changes move or restyle the caption buttons.
+        _root.Loaded += (_, _) =>
+        {
+            if (_root.XamlRoot is { } xr) xr.Changed += (_, _) => PushWindowState();
+            PushWindowState();
+        };
+        _root.ActualThemeChanged += (_, _) => PushWindowState();
         AppWindow.Closing += OnClosing;
 
         _ = InitializeWebViewAsync();
@@ -213,6 +229,9 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
                 }
                 if (!nav.IsSuccess) return;
                 _pageLoaded = true;
+                // Track C2: a (re)loaded page starts from the store's default inset; always tell it the real one.
+                _lastWindowState = null;
+                PushWindowState();
                 if (_pendingRoute is { } route)
                 {
                     _pendingRoute = null;
@@ -545,7 +564,7 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         // Restored while suspended for a game (taskbar, Alt+Tab, a second launch): wake the interface, never show a blank window.
         if (!minimized && _suspended) ResumeUi();
         if (!_suspended) _web.Visibility = minimized ? Visibility.Collapsed : Visibility.Visible;
-        if (!minimized) Emit("window.state", GetWindowState());
+        if (!minimized) PushWindowState();
         // Summoned during a game and minimized again: go back to Performance Mode.
         if (minimized && !_suspended && _backend.IsGameActive && _backend.Settings.GetBool("launch.minimizeOnStart"))
             _ = SuspendUiAsync();
@@ -578,11 +597,44 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
 
     public WindowStateDto GetWindowState() => OnUi(() =>
     {
-        var scale = _root.XamlRoot?.RasterizationScale ?? 1.0;
+        var scale = CaptionInsets.Scale(_root.XamlRoot?.RasterizationScale ?? 1.0);
         var maximized = AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized };
-        return new WindowStateDto(_immersive ? "immersive" : "desktop", maximized, _immersive,
-            AppWindow.TitleBar.RightInset / scale, scale);
+        // Track C2: RightInset/LeftInset are physical pixels and read 0 before the window is shown; CaptionInsets falls back.
+        var captions = !_immersive && AppWindow.Presenter is OverlappedPresenter;
+        var (right, left) = CaptionInsets.Compute(AppWindow.TitleBar.RightInset, AppWindow.TitleBar.LeftInset, scale, captions);
+        return new WindowStateDto(_immersive ? "immersive" : "desktop", maximized, _immersive, right, scale, left);
     });
+
+    /// <summary>
+    /// Track C2: sends the window state (with the caption-button insets) to the interface when it changed, then checks
+    /// once more a moment later: after a maximize, restore or DPI change Windows can lay the caption buttons out a
+    /// little after the size change is reported.
+    /// </summary>
+    private void PushWindowState()
+    {
+        if (_closing || !DispatcherQueue.HasThreadAccess) return;
+        EmitWindowStateIfChanged();
+        if (_insetRecheck is null)
+        {
+            _insetRecheck = DispatcherQueue.CreateTimer();
+            _insetRecheck.Interval = TimeSpan.FromMilliseconds(320);
+            _insetRecheck.IsRepeating = false;
+            _insetRecheck.Tick += (_, _) => EmitWindowStateIfChanged();
+        }
+        _insetRecheck.Stop();
+        _insetRecheck.Start();
+    }
+
+    private void EmitWindowStateIfChanged()
+    {
+        if (_closing || AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized }) return;
+        WindowStateDto state;
+        try { state = GetWindowState(); }
+        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException) { return; }
+        if (state == _lastWindowState) return;
+        _lastWindowState = state;
+        Emit("window.state", state);
+    }
 
     public void SetMode(string mode) => OnUi(() =>
     {
@@ -590,6 +642,7 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         AppWindow.SetPresenter(_immersive ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Overlapped);
         if (_immersive) SetDragRegions([]);
         _appearance?.SetImmersive(_immersive);
+        PushWindowState();
         return true;
     });
 
@@ -606,13 +659,16 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
 
     public new void Close() => OnUi(() => { base.Close(); return true; });
 
-    public void SetDragRegions(IReadOnlyList<DragRect> regions) => OnUi(() =>
+    public void SetDragRegions(IReadOnlyList<DragRect> regions, IReadOnlyList<DragRect>? passthrough = null) => OnUi(() =>
     {
-        var scale = _root.XamlRoot?.RasterizationScale ?? 1.0;
-        var rects = _immersive ? [] : regions.Select(r => new RectInt32(
+        var scale = CaptionInsets.Scale(_root.XamlRoot?.RasterizationScale ?? 1.0);
+        RectInt32[] Physical(IReadOnlyList<DragRect>? list) => _immersive || list is null ? [] : list.Select(r => new RectInt32(
             (int)Math.Round(r.X * scale), (int)Math.Round(r.Y * scale),
             (int)Math.Round(r.Width * scale), (int)Math.Round(r.Height * scale))).ToArray();
-        InputNonClientPointerSource.GetForWindowId(AppWindow.Id).SetRegionRects(NonClientRegionKind.Caption, rects);
+        var source = InputNonClientPointerSource.GetForWindowId(AppWindow.Id);
+        source.SetRegionRects(NonClientRegionKind.Caption, Physical(regions));
+        // Track C2: the title bar's buttons are passthrough, so a caption region can never swallow their clicks.
+        source.SetRegionRects(NonClientRegionKind.Passthrough, Physical(passthrough));
         return true;
     });
 
@@ -632,6 +688,7 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
         tb.ButtonPressedForegroundColor = C(palette.Foreground);
         // Mica takes its tint from the content's theme, so it follows VYSTRAL's theme rather than Windows'.
         if (_root is not null) _root.RequestedTheme = dark ? ElementTheme.Dark : ElementTheme.Light; // null during construction
+        if (_root is not null && _web is not null) PushWindowState(); // Track C2: the caption area follows the theme
         // Track AA: keep the colour under the page in step with a theme change (only visible while the page repaints).
         var color = dark ? (_windowColor.Equals(LightWindow) ? Obsidian : _windowColor) : LightWindow;
         if (_root is not null && _web is not null && SystemBackdrop is null && !color.Equals(_windowColor))

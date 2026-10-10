@@ -149,6 +149,7 @@ test.describe('session replay', () => {
   test('plays a replay card and saves and copies it as a 1920×1080 PNG through the bridge', async ({ page }) => {
     const { errors, external } = await open(page);
     await nav(page, 'Performance');
+    await page.getByRole('tab', { name: 'Sessions' }).click(); // Track C2: one session in depth is on the Sessions tab
     await page.getByRole('button', { name: 'Replay', exact: true }).first().click();
     const dialog = page.getByRole('dialog', { name: /^Replay · / });
     await expect(dialog).toBeVisible();

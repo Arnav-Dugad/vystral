@@ -4,7 +4,8 @@ namespace Vystral.Windows.Bridge;
 
 public sealed record DragRect(double X, double Y, double Width, double Height);
 
-public sealed record WindowStateDto(string Mode, bool Maximized, bool Fullscreen, double CaptionInsetRight, double Scale);
+/// <summary>Window state for the interface. Caption insets are in DIP (Track C2 added the left one, for right-to-left layouts).</summary>
+public sealed record WindowStateDto(string Mode, bool Maximized, bool Fullscreen, double CaptionInsetRight, double Scale, double CaptionInsetLeft = 0);
 
 /// <summary>
 /// Native window and OS-dialog operations implemented by the WinUI shell. Pickers are the only
@@ -22,7 +23,8 @@ public interface IHostShell
     void Minimize();
     void ToggleMaximize();
     void Close();
-    void SetDragRegions(IReadOnlyList<DragRect> regions);
+    /// <summary>Caption (drag) rectangles, and the title bar's own buttons as passthrough rectangles so they always get clicks.</summary>
+    void SetDragRegions(IReadOnlyList<DragRect> regions, IReadOnlyList<DragRect>? passthrough = null);
     void SetCaptionTheme(bool dark);
     void SetPulseVisible(bool visible);
     void OpenFolder(string path);

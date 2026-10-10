@@ -1,0 +1,13 @@
+/* Track C2: the shared categorical chart slots, loaded with the Performance page too (the Journal's play-insights.css
+   defines the same values; whichever loads first wins, and they are identical). Six fixed slots validated with the
+   dataviz validator for both themes (adjacent CVD ΔE ≥ 8.4, normal-vision ≥ 19.3). Used in fixed order, never cycled:
+   on the Performance page CPU 1, GPU 2, GPU temperature 3, VRAM 4, RAM 5, frame rate 6; two-series charts use 1 and 2. */
+:root {
+  --viz-1: #3987e5; --viz-2: #d95926; --viz-3: #199e70; --viz-4: #c98500; --viz-5: #d55181; --viz-6: #9085e9;
+  --viz-other: oklch(0.52 0.012 282);
+}
+:root[data-theme='light'] {
+  --viz-1: #2a78d6; --viz-2: #eb6834; --viz-3: #1baf7a; --viz-4: #eda100; --viz-5: #e87ba4; --viz-6: #4a3aa7;
+  --viz-other: oklch(0.72 0.01 282);
+}
+:root[data-theme='contrast'] { --viz-other: #8a8a8a; }

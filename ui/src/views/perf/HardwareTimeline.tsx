@@ -130,7 +130,7 @@ function TimelineBody({ data, gameId }: { data: HardwareHistory; gameId: string 
       el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
       el.classList.add('hw-flash');
       window.setTimeout(() => el.classList.remove('hw-flash'), 1400);
-    } else navigate({ name: 'performance' });
+    } else navigate({ name: 'performance', tab: 'system' }); // Track C2: the comparison is on the System tab
   };
 
   return (

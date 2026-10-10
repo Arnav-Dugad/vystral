@@ -246,7 +246,7 @@ function View({ route }: { route: Route }) {
     case 'library': return <LibraryView collectionId={route.collectionId} quick={route.quick} />;
     case 'game': return <GameDetailView id={route.id} />;
     case 'journal': return <JournalView tab={route.tab} day={route.day} />;
-    case 'performance': return <PerformanceView sessionId={route.sessionId} />;
+    case 'performance': return <PerformanceView sessionId={route.sessionId} tab={route.tab} />;
     case 'moments': return <MomentsView />;
     case 'constellation': return <ConstellationView />;
     case 'assistant': return <AssistantView />;

@@ -112,6 +112,7 @@ test.describe('Performance play data', () => {
   test('hardware timeline links driver changes to the FPS comparison; energy and battery charts; axe', async ({ page }) => {
     const { errors } = await open(page, '?energy&reduced');
     await nav(page, /Performance/);
+    await page.getByRole('tab', { name: 'System' }).click(); // Track C2: hardware, energy and battery are on the System tab
 
     const hw = section(page, /Hardware history/);
     await expect(hw).toBeVisible();
@@ -141,6 +142,7 @@ test.describe('Performance play data', () => {
     await expect(battery).toContainText('left at your usual rate');
 
     // The selected session's estimate sits with its stat tiles.
+    await page.getByRole('tab', { name: 'Sessions' }).click(); // Track C2: on the Sessions tab
     await expect(page.locator('.pf-tiles').getByText('Energy (est.)')).toBeVisible();
 
     await noSeriousViolations(page, '.pf');
@@ -150,6 +152,7 @@ test.describe('Performance play data', () => {
   test('energy is off by default and turns on from the card', async ({ page }) => {
     await open(page);
     await nav(page, /Performance/);
+    await page.getByRole('tab', { name: 'System' }).click(); // Track C2: energy is on the System tab
     const energy = section(page, /^Energy/);
     await expect(energy).toContainText('Off');
     await energy.getByRole('button', { name: 'Turn on energy estimate' }).click();
@@ -194,6 +197,7 @@ test.describe('controller battery and energy settings', () => {
     await noSeriousViolations(page, '.settings__content');
 
     await nav(page, /Performance/);
+    await page.getByRole('tab', { name: 'System' }).click(); // Track C2: energy is on the System tab
     await section(page, /^Energy/).getByRole('button', { name: 'How it’s estimated' }).click();
     await expect(page.getByRole('dialog', { name: 'How the energy estimate works' })).toContainText('You entered 420 W');
   });

@@ -186,3 +186,7 @@
 - The series timeline needs IGDB. It lists main games, standalone expansions, remakes, remasters and expanded editions (not DLC, ports or bundles), at most 80; very large franchises are cut there. Owned games without a Steam app ID are matched by exact title only, so a differently named edition may show as "Discover".
 - IGDB's `collections`/`franchises` queries and the review date-range behaviour were checked against IGDB's documentation and a live Steam request respectively; the IGDB part hasn't been run against the real service with a key in this build.
 
+**Performance page and title bar (v0.8, Track C2)**
+- The startup chart in Settings › About reads the local logs, which are kept for 7 days, so it shows at most the starts of the last week (up to 20). A start that never reached "ready" isn't shown.
+- Session health ("smooth", "some hitches", "rough") needs frame-rate capture; without it a session is "FPS not measured", whatever its CPU or temperature figures. Sharp-drop markers come from two-second samples, so a single hitch shorter than that can be averaged away.
+- The title bar reserves the caption buttons' width reported by Windows; until the window has reported it (a fraction of a second after start), it assumes Windows 11's 138 px. The real-app check at 100/125/150% scaling, maximized and restored, is still to be done after merging (the scaling maths and the layout are covered by tests).

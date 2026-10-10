@@ -30,7 +30,7 @@ public sealed record SessionIdParams(string SessionId);
 public sealed record SettingParams(string Key, JsonElement Value);
 public sealed record PlatformToggleParams(string Platform, bool Enabled);
 public sealed record ModeParams(string Mode);
-public sealed record DragRegionsParams(IReadOnlyList<DragRect> Regions);
+public sealed record DragRegionsParams(IReadOnlyList<DragRect> Regions, IReadOnlyList<DragRect>? Passthrough = null);
 public sealed record ExternalParams(string Url);
 public sealed record PulseParams(bool Visible);
 public sealed record FlagValueParams(bool Value);
@@ -85,9 +85,9 @@ public sealed partial class AppBackend
         Dispatcher.Register("window.close", _ => { _shell.Close(); return Task.FromResult<object?>(true); });
         Dispatcher.Register<DragRegionsParams>("window.dragRegions", (p, _) =>
         {
-            if (p.Regions.Count > 16 || p.Regions.Any(r => r.Width < 0 || r.Height < 0 || r.Width > 20000 || r.Height > 400))
+            if (!CaptionInsets.ValidRegions(p.Regions, p.Passthrough))
                 throw new BridgeException("invalid", "Invalid drag regions.");
-            _shell.SetDragRegions(p.Regions);
+            _shell.SetDragRegions(p.Regions, p.Passthrough);
             return Task.FromResult<object?>(true);
         });
         Dispatcher.Register<FlagValueParams>("window.captionTheme", (p, _) =>

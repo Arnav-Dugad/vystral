@@ -219,6 +219,8 @@ export interface WindowState {
   fullscreen: boolean;
   captionInsetRight: number;
   scale: number;
+  /** Track C2: caption buttons on the left (right-to-left Windows). Absent from older hosts. */
+  captionInsetLeft?: number;
 }
 
 export interface Settings {

@@ -30,23 +30,23 @@ export interface MetricDef {
 
 export const METRICS: readonly MetricDef[] = [
   {
-    key: 'cpu', label: 'CPU usage', short: 'CPU', unit: '%', scale: 1, avgKey: 'cpuAvg', maxKey: 'cpuMax', kind: 'percent', color: 'var(--accent)',
+    key: 'cpu', label: 'CPU usage', short: 'CPU', unit: '%', scale: 1, avgKey: 'cpuAvg', maxKey: 'cpuMax', kind: 'percent', color: 'var(--viz-1)',
     unavailable: 'CPU usage wasn’t recorded for this session.', unavailableShort: 'Not recorded',
   },
   {
-    key: 'gpu', label: 'GPU usage', short: 'GPU', unit: '%', scale: 1, avgKey: 'gpuAvg', maxKey: 'gpuMax', kind: 'percent', color: 'var(--accent-2)',
+    key: 'gpu', label: 'GPU usage', short: 'GPU', unit: '%', scale: 1, avgKey: 'gpuAvg', maxKey: 'gpuMax', kind: 'percent', color: 'var(--viz-2)',
     unavailable: 'GPU usage wasn’t available. It needs a graphics driver that exposes Windows GPU performance counters.', unavailableShort: 'Not reported by the driver',
   },
   {
-    key: 'gpuTempC', label: 'GPU temperature', short: 'GPU temp', unit: '°C', scale: 1, avgKey: 'gpuTempAvgC', maxKey: 'gpuTempMaxC', kind: 'temp', color: 'var(--warn)',
+    key: 'gpuTempC', label: 'GPU temperature', short: 'GPU temp', unit: '°C', scale: 1, avgKey: 'gpuTempAvgC', maxKey: 'gpuTempMaxC', kind: 'temp', color: 'var(--viz-3)',
     unavailable: 'GPU temperature needs an NVIDIA graphics card and driver. Other GPUs don’t report it to VYSTRAL.', unavailableShort: 'Needs an NVIDIA driver',
   },
   {
-    key: 'gpuMemMb', label: 'VRAM', short: 'VRAM', unit: 'GB', scale: 1 / 1024, avgKey: 'gpuMemAvgMb', maxKey: 'gpuMemMaxMb', kind: 'memory', color: 'var(--info)',
+    key: 'gpuMemMb', label: 'VRAM', short: 'VRAM', unit: 'GB', scale: 1 / 1024, avgKey: 'gpuMemAvgMb', maxKey: 'gpuMemMaxMb', kind: 'memory', color: 'var(--viz-4)',
     unavailable: 'Dedicated GPU memory wasn’t reported for this session.', unavailableShort: 'Not reported',
   },
   {
-    key: 'ramMb', label: 'System memory', short: 'RAM', unit: 'GB', scale: 1 / 1024, avgKey: 'ramAvgMb', maxKey: 'ramMaxMb', kind: 'memory', color: 'var(--accent-hi)',
+    key: 'ramMb', label: 'System memory', short: 'RAM', unit: 'GB', scale: 1 / 1024, avgKey: 'ramAvgMb', maxKey: 'ramMaxMb', kind: 'memory', color: 'var(--viz-5)',
     unavailable: 'System memory use wasn’t recorded for this session.', unavailableShort: 'Not recorded',
   },
 ];

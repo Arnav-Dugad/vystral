@@ -6,10 +6,14 @@ import { IconButton, Kbd } from '../ui/primitives';
 import { UpdatePill } from './UpdateCenter';
 import { NowPlaying } from './NowPlaying';
 import { NotificationBell } from './NotificationCenter';
+import { applyCaptionInsets, captionInsets } from '../../lib/captionInsets';
 
 /**
  * Custom title bar. Empty areas are reported to the native window as caption (drag) regions;
- * the system draws the minimize/maximize/close buttons in the reserved space on the right.
+ * the system draws the minimize/maximize/close buttons in the reserved space on the right. Track C2: that space
+ * comes from `--caption-inset-right` (the native caption-button inset, never less than the buttons' width when it
+ * isn't known yet) plus a small gap, and every button in the bar is reported as a passthrough region so its clicks
+ * always arrive.
  */
 export function TitleBar() {
   const back = useStore((s) => s.back.length > 0);
@@ -18,12 +22,17 @@ export function TitleBar() {
   const goForward = useStore((s) => s.goForward);
   const openCommand = useStore((s) => s.setCommandOpen);
   const native = useStore((s) => s.native);
-  const inset = useStore((s) => s.window.captionInsetRight);
+  const win = useStore((s) => s.window);
+  const { right: inset, left: insetLeft } = captionInsets(win, native);
   const scan = useStore((s) => s.scan);
   const scanLibrary = useStore((s) => s.scanLibrary);
   const setMode = useStore((s) => s.setMode);
   const barRef = useRef<HTMLDivElement>(null);
   const [, force] = useState(0);
+
+  useEffect(() => {
+    applyCaptionInsets({ right: inset, left: insetLeft });
+  }, [inset, insetLeft]);
 
   useEffect(() => {
     const bar = barRef.current;
@@ -32,22 +41,29 @@ export function TitleBar() {
     const report = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        const regions = [...bar.querySelectorAll<HTMLElement>('[data-drag]')].map((el) => {
+        const rect = (el: Element) => {
           const r = el.getBoundingClientRect();
           return { x: r.left, y: r.top, width: r.width, height: r.height };
-        });
-        void call('window.dragRegions', { regions }).catch(() => {});
+        };
+        const visible = (r: { width: number; height: number }) => r.width > 0 && r.height > 0;
+        const regions = [...bar.querySelectorAll<HTMLElement>('[data-drag]')].map(rect).filter(visible).slice(0, 16);
+        const passthrough = [...bar.querySelectorAll<HTMLElement>('button, a[href], input, select, [data-passthrough]')].map(rect).filter(visible).slice(0, 32);
+        void call('window.dragRegions', { regions, passthrough }).catch(() => {});
       });
     };
     const ro = new ResizeObserver(report);
     ro.observe(bar);
-    bar.querySelectorAll('[data-drag]').forEach((el) => ro.observe(el));
+    bar.querySelectorAll('[data-drag], .titlebar__right').forEach((el) => ro.observe(el));
+    // Buttons that appear or go (Now playing, the update pill) move the others without resizing a drag area.
+    const mo = new MutationObserver(report);
+    mo.observe(bar, { childList: true, subtree: true });
     report();
     return () => {
       ro.disconnect();
+      mo.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [native, inset]);
+  }, [native, inset, insetLeft]);
 
   useEffect(() => {
     const t = window.setTimeout(() => force((n) => n + 1), 400);
@@ -86,7 +102,7 @@ export function TitleBar() {
           <Gamepad2 size={16} />
         </IconButton>
       </div>
-      <div className="titlebar__drag titlebar__caption-space" data-drag style={{ width: Math.max(12, inset + 8) }} />
+      <div className="titlebar__drag titlebar__caption-space" data-drag data-inset={inset} aria-hidden />
     </header>
   );
 }
