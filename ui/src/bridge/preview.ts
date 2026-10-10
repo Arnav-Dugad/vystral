@@ -34,6 +34,8 @@ import { DISCOVER_DEFAULT_SETTINGS, discoverPreviewHandlers } from './preview.di
 import { TRACK_W_DEFAULT_SETTINGS, previewTrackWSettings, trackWPreviewHandlers } from './preview.trackW';
 import type { AchievementsResult } from './types';
 import { MAINTENANCE_DEFAULT_SETTINGS, maintenancePreviewHandlers } from './preview.maintenance';
+import { GAME_PAGE_DEFAULT_SETTINGS, gamePagePreviewHandlers } from './preview.gamePage';
+import type { Deals, DiscoverDetails } from './types';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -91,6 +93,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_W_DEFAULT_SETTINGS,
   ...TRACK_Z_DEFAULT_SETTINGS,
   ...MAINTENANCE_DEFAULT_SETTINGS, // Track AA
+  ...GAME_PAGE_DEFAULT_SETTINGS, // Track C4
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -520,6 +523,12 @@ export function createPreviewBackend() {
     }),
     // Track AA: first-paint snapshot (?firstpaint, ?slowLibrary=ms), after-update self-check (?selfCheckFail, ?selfCheckNone), compaction (?compactBusy).
     ...maintenancePreviewHandlers({ emit: () => emit, settings: () => settings, timers }),
+    // Track C4: review snapshot (?reviews), community tags (?tags), franchise timeline (?franchise), store facts, achievement progress.
+    ...gamePagePreviewHandlers({
+      lib, emit: () => emit, settings: () => settings, timers,
+      deals: (gameId) => handlers['deals.get']({ gameId }) as Deals,
+      discoverDetails: (key) => { try { return handlers['discover.details']({ key }) as DiscoverDetails; } catch { return null; } },
+    }),
   };
   const slowLibrary = Math.min(10_000, Number(params.get('slowLibrary') ?? 0) || 0);
 

@@ -15,6 +15,7 @@ import { BackdropHint } from '../components/shell/SystemBackdrop';
 import { useSystemAppearance } from '../state/systemAppearance';
 import { SteamWebApiSettings } from './settings/SteamWebApiSettings';
 import { SteamExtrasSettings } from './settings/SteamExtrasSettings'; // Track W
+import { GamePageSettings } from './settings/GamePageSettings'; // Track C4
 import { FpsCaptureSettings } from './settings/FpsCaptureSettings';
 import { WindowsIntegrationSettings } from './settings/WindowsIntegrationSettings';
 import { DataSaverSettings } from './settings/DataSaverSettings';
@@ -106,7 +107,7 @@ export function SettingsView({ section }: { section?: string }) {
         </nav>
         <div className="settings__content">
           {active === 'appearance' && <><Appearance s={settings} /><LiveTilesSettings /></>}
-          {active === 'library' && <><LibrarySection s={settings} /><SubscriptionsSettings /><HealthSettings /><SteamWebApiSettings /><SteamExtrasSettings /><DataSourcesSettings /><TimeToBeatSettings /><ArtPacksSettings /></>}
+          {active === 'library' && <><LibrarySection s={settings} /><SubscriptionsSettings /><HealthSettings /><SteamWebApiSettings /><SteamExtrasSettings /><GamePageSettings /><DataSourcesSettings /><TimeToBeatSettings /><ArtPacksSettings /></>}
           {active === 'cloud' && <><CloudSettings /><CloudQueueAlertSettings /></>}
           {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /><EnergySettings /><AntiCheatNotesSettings /></>}
           {active === 'controller' && <><Controller s={settings} /><BatteryHistoryCard variant="settings" /><ImmersiveSettings /><SoundSettings /></>}

@@ -31,6 +31,11 @@ import { useSubsListed, useSubsMap } from '../state/subs';
 import { SubsBadge } from '../components/subs/SubsBits';
 import { ServiceLogo } from '../components/ui/ServiceLogo';
 import './library.css';
+// Track C4: Steam community tags as filters (chips, a tag picker, and "tagged …" / "#…" in the filter text).
+import { TagFilter } from '../components/library/TagFilter';
+import { useLibraryTags } from '../state/libraryTags';
+import { extractTags, hasAllTags } from '../lib/gamePage';
+import { takeLibraryTags } from '../lib/libraryTags';
 
 type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status' | 'waiting' | 'finishing';
 type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'notinstalled' | 'missing' | 'hidden' | 'cloud' | 'subs' | `status:${GameStatus}`;
@@ -53,7 +58,7 @@ const VIEW_KEY = 'vystral.library.view';
 const STORE_ORDER: PlatformKey[] = ['steam', 'xbox', 'epic', 'gog', 'ea', 'ubisoft', 'battlenet', 'manual'];
 
 /** Filter text, quick filter and sort per library route, restored on Back/Forward (like scroll in App.tsx). */
-const libraryMemory = new Map<string, { text: string; quick: Quick; sort: Sort }>();
+const libraryMemory = new Map<string, { text: string; quick: Quick; sort: Sort; tags?: number[] }>();
 
 export function LibraryView({ collectionId, quick: initialQuick }: { collectionId?: string; quick?: string }) {
   const games = useStore((s) => s.library.games);
@@ -70,9 +75,11 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
   const query = useDeferredValue(text);
   const [quick, setQuick] = useState<Quick>(() => remembered?.quick ?? (isQuick(initialQuick) ? initialQuick : 'all'));
   const [sort, setSort] = useState<Sort>(() => remembered?.sort ?? (initialQuick === 'unplayed' ? 'waiting' : 'recent'));
+  const [tagIds, setTagIds] = useState<number[]>(() => { const asked = takeLibraryTags(); return asked.length ? asked : remembered?.tags ?? []; });
+  const libTags = useLibraryTags();
   useEffect(() => {
-    libraryMemory.set(memoryKey, { text, quick, sort });
-  }, [memoryKey, text, quick, sort]);
+    libraryMemory.set(memoryKey, { text, quick, sort, tags: tagIds });
+  }, [memoryKey, text, quick, sort, tagIds]);
   const [view, setView] = useState<'grid' | 'list'>(() => (localStorage.getItem(VIEW_KEY) as 'grid' | 'list') ?? 'grid');
   const [dupOpen, setDupOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -100,12 +107,15 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
   }, [view]);
 
   const genres = useMemo(() => [...new Set(games.flatMap((g) => g.genres))], [games]);
-  const parsed: ParsedQuery = useMemo(() => parseQuery(query, { genres, drives }), [query, genres, drives]);
+  const tagQuery = useMemo(() => extractTags(query, libTags?.tags ?? []), [query, libTags]);
+  const parsed: ParsedQuery = useMemo(() => parseQuery(tagQuery.text, { genres, drives }), [tagQuery.text, genres, drives]);
 
   const results = useMemo(() => {
     const now = Date.now();
     let base = collectionId ? games.filter((g) => g.collections.includes(collectionId)) : games;
     if (store) base = base.filter((g) => g.installations.some((i) => i.platform === store));
+    const wantTags = [...new Set([...tagIds, ...tagQuery.ids])];
+    if (wantTags.length) base = base.filter((g) => hasAllTags(g.id, wantTags, libTags?.games));
     base = base.filter((g) => {
       switch (quick) {
         case 'hidden': return g.hidden;
@@ -140,7 +150,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
       found = [...found].sort(cmp[sort]);
     }
     return found;
-  }, [games, collectionId, quick, parsed, sort, query, store, ttb, cloudMap, subsMap]);
+  }, [games, collectionId, quick, parsed, sort, query, store, ttb, cloudMap, subsMap, tagIds, tagQuery.ids, libTags]);
 
   const title = collection ? collection.name : 'Library';
   const totalSize = useMemo(() => results.reduce((s, g) => s + (sizeOf(g) ?? 0), 0), [results]);
@@ -268,11 +278,13 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
             ))}
           </>
         )}
+        <TagFilter data={libTags} selected={tagIds} onChange={setTagIds} />
       </div>
 
-      {parsed.chips.length > 0 && (
+      {(parsed.chips.length > 0 || tagQuery.names.length > 0) && (
         <div className="lib-chips" aria-live="polite">
           <span className="caps">Showing</span>
+          {tagQuery.names.map((n) => <Badge key={`tag-${n}`} tone="accent">Tagged {n}</Badge>)}
           {parsed.chips.map((c) => {
             const p = platformFromName(c);
             return <Badge key={c} tone="accent" icon={p ? <StoreLogo platform={p} size={14} decorative /> : undefined}>{c}</Badge>;
@@ -297,9 +309,9 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
                     ? subsOn ? 'VYSTRAL didn’t find these games in your plans’ public lists, or the lists are still downloading. Settings → Library & stores shows their status.' : 'Turn on “Show what my plans include” in Settings → Library & stores.'
                     : 'Try fewer words, a different quick filter, or clear the filter.'
           }
-          actions={text || quick !== 'all' || store ? (
+          actions={text || quick !== 'all' || store || tagIds.length ? (
             <>
-              <Button onClick={() => { setText(''); setQuick('all'); setStore(null); }}>Clear filters</Button>
+              <Button onClick={() => { setText(''); setQuick('all'); setStore(null); setTagIds([]); }}>Clear filters</Button>
               {/* Track U: the game may not be in the library at all. */}
               {parsed.text.trim().length >= 2 && <Button variant="primary" onClick={() => useStore.getState().navigate({ name: 'discover', query: parsed.text.trim() })}>Search everywhere for “{parsed.text.trim()}”</Button>}
             </>
