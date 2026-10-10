@@ -114,3 +114,10 @@
   fill: oklch(from var(--warn) l c h / 0.12);
   stroke: none;
 }
+
+/* Track C2: stutter markers on the frame-rate chart (a triangle on the baseline with a surface ring; the chart's
+   heading and tooltip say what they are), and the tooltip line that names one. */
+.vx-chart__marker { fill: var(--warn); stroke: var(--bg-1); stroke-width: 2; paint-order: stroke; stroke-linejoin: round; }
+.vx-chart__marker[data-active] { fill: var(--text-1); }
+:root[data-theme='contrast'] .vx-chart__marker { fill: var(--accent); stroke: #000; }
+.vx-tip__note { display: block; margin-top: 2px; color: var(--text-1); font-weight: var(--fw-medium); }

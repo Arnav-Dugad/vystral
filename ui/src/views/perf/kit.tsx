@@ -4,6 +4,7 @@ import { Gamepad2 } from 'lucide-react';
 import type { Game } from '../../bridge/types';
 import { GameCover } from '../../components/game/GameCover';
 import './kit.css';
+import './viz-tokens.css';
 
 export function StatTile({ label, value, sub, icon, unavailable }: { label: string; value: ReactNode; sub?: ReactNode; icon?: ReactNode; unavailable?: boolean }) {
   return (

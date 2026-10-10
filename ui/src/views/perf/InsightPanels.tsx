@@ -69,7 +69,7 @@ export function ThermalPanel({ summary, samples }: { summary: PerfSummary; sampl
 
 /* ------------------------------------------------------------------ frame rate */
 
-const FPS_METRIC: ChartMetric = { label: 'Frame rate', unit: 'fps', color: 'var(--ok)' };
+export const FPS_METRIC: ChartMetric = { label: 'Frame rate', unit: 'fps', color: 'var(--viz-6)' };
 
 export function FrameRatePanel({
   summary,
@@ -79,6 +79,7 @@ export function FrameRatePanel({
   onHover,
   animateKey,
   bands,
+  markers,
 }: {
   summary: PerfSummary;
   samples: InsightSample[];
@@ -87,6 +88,8 @@ export function FrameRatePanel({
   onHover: (t: number | null) => void;
   animateKey: string;
   bands: Band[];
+  /** Track C2: sharp frame-rate drops, marked on the chart. */
+  markers?: { t: number; label: string }[];
 }) {
   const series = useMemo(() => {
     const pts = fpsSeries(samples);
@@ -151,7 +154,7 @@ export function FrameRatePanel({
             <span className="pf-chart__key" style={{ background: FPS_METRIC.color }} aria-hidden />
             <h3>Frames per second</h3>
             <span className="pf-chart__stats num">
-              avg {formatFps(series.stats.avg)} · low {formatFps(series.stats.min)} · high {formatFps(series.stats.max)} (per 2 s)
+              avg {formatFps(series.stats.avg)} · low {formatFps(series.stats.min)} · high {formatFps(series.stats.max)} (per 2 s){markers?.length ? ` · ▲ ${markers.length} sharp drop${markers.length === 1 ? '' : 's'}` : null}
             </span>
           </div>
           <LineChart
@@ -164,6 +167,7 @@ export function FrameRatePanel({
             onHover={onHover}
             animateKey={animateKey}
             bands={bands}
+            markers={markers}
             ariaLabel={`Frame rate over ${formatSpan(durationMs / 1000)}: average ${formatFps(series.stats.avg)} fps, lowest two-second average ${formatFps(series.stats.min)} fps.`}
           />
         </div>

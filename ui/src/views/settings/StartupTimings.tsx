@@ -207,8 +207,8 @@ function StartupChart({ runs, median, slowLatest }: { runs: StartupRun[]; median
               data-active={active === i || undefined}
               data-dim={active != null && active !== i ? true : undefined}
               style={{ originY: 1 }}
-              initial={reduce ? false : { scaleY: 0, opacity: 0 }}
-              animate={{ scaleY: 1, opacity: 1 }}
+              initial={reduce ? false : { scaleY: 0 }}
+              animate={{ scaleY: 1 }}
               transition={reduce ? { duration: 0 } : { duration: 0.55, delay: 0.05 + i * 0.025, ease: [0.16, 1, 0.3, 1] }}
             >
               {segs.map((s, j) => {
