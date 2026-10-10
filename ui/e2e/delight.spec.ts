@@ -63,7 +63,7 @@ test.describe('store logos', () => {
     await expect(card('igdb')).toHaveAttribute('aria-hidden', 'true');
     expect(await seriousViolations(page)).toEqual([]);
 
-    await page.getByRole('button', { name: 'Local AI' }).click();
+    await page.getByRole('button', { name: 'AI', exact: true }).click(); // Track C5: the section is "AI" (local and cloud)
     await expect(page.locator('.sgroup__desc svg.service-logo[data-service="ollama"]')).toBeVisible();
 
     await nav(page, /Library/);

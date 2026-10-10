@@ -177,8 +177,8 @@ function DetailHero({ game, onOpenAchievements }: { game: Game; onOpenAchievemen
       ? [{ label: 'Before you uninstall…', icon: <Trash2 size={16} />, onSelect: () => setAdvisorOpen(true) } as MenuEntry]
       : []),
     { kind: 'separator' },
-    ...(collections.length
-      ? collections.map<MenuEntry>((c) => ({
+    ...(collections.some((c) => !c.rule) // Track C5: smart collections fill themselves
+      ? collections.filter((c) => !c.rule).map<MenuEntry>((c) => ({
           label: c.name,
           icon: game.collections.includes(c.id) ? <Check size={16} /> : <FolderPlus size={16} />,
           onSelect: () => void setCollection(game, c.id, !game.collections.includes(c.id)),

@@ -35,6 +35,7 @@ import { EnergySettings } from './settings/EnergySettings';
 import { BatteryHistoryCard } from '../components/controller/BatteryHistoryCard';
 import { CloudQueueAlertSettings, SubscriptionsSettings } from './settings/SubscriptionsSettings';
 import { CompactionSettings, SelfCheckSettings } from './settings/MaintenanceSettings';
+import { AiProvidersSettings } from '../components/ai/AiProvidersSettings'; // Track C5
 import './settings.css';
 
 interface Section {
@@ -51,7 +52,7 @@ const SECTIONS: Section[] = [
   { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu background apps processes driver tracker outside closed startup detected energy power watts electricity kwh cost price' },
   { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble on-screen keyboard typing text suggestions battery charge sound audio ambient volume mood immersive fullscreen' },
   { id: 'windows', label: 'Windows integration', icon: <Monitor size={17} />, keywords: 'hotkey shortcut summon notifications toast windows tray achievements' },
-  { id: 'ai', label: 'Local AI', icon: <Bot size={17} />, keywords: 'ollama assistant model ai natural language' },
+  { id: 'ai', label: 'AI', icon: <Bot size={17} />, keywords: 'local ai ollama assistant model natural language cloud claude anthropic chatgpt openai gpt gemini google openrouter api key provider journal patch notes summary tonight smart collection duplicate caption' },
   { id: 'updates', label: 'Updates', icon: <Download size={17} />, keywords: 'update version release automatic download self-check health check after update rollback' },
   { id: 'privacy', label: 'Privacy', icon: <ShieldCheck size={17} />, keywords: 'privacy telemetry network offline local data' },
   { id: 'data', label: 'Data & recovery', icon: <Database size={17} />, keywords: 'backup export delete history cache logs reset database safe mode recovery compact compaction vacuum size upkeep' },
@@ -110,7 +111,7 @@ export function SettingsView({ section }: { section?: string }) {
           {active === 'cloud' && <><CloudSettings /><CloudQueueAlertSettings /></>}
           {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /><EnergySettings /><AntiCheatNotesSettings /></>}
           {active === 'controller' && <><Controller s={settings} /><BatteryHistoryCard variant="settings" /><ImmersiveSettings /><SoundSettings /></>}
-          {active === 'ai' && <AiSection s={settings} />}
+          {active === 'ai' && <><AiSection s={settings} /><AiProvidersSettings /></>}
           {active === 'updates' && <Updates s={settings} />}
           {active === 'privacy' && <><Privacy s={settings} /><DataSaverSettings /><NetworkHealthSettings /></>}
           {active === 'windows' && <WindowsIntegrationSettings />}
@@ -376,6 +377,7 @@ function Privacy({ s }: { s: Settings }) {
           <li><strong>Trailers</strong> — streamed from Steam’s video servers when you open a game page, only if game details are on and Data saver is off. Nothing is stored.</li>
           <li><strong>Update checks</strong> — github.com, only if enabled.</li>
           <li><strong>Local AI</strong> — talks to Ollama on this PC (localhost) only.</li>
+          <li><strong>Cloud AI</strong> — only if you add your own key and turn a provider on in Settings → AI; each AI feature lists exactly what it sends. Paused in Offline mode.</li>
           <li><strong>Your games and stores</strong> — they connect to their own services as usual; VYSTRAL doesn’t see or change that traffic.</li>
         </ul>
       </div>

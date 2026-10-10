@@ -1,7 +1,7 @@
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { NewBadge } from '../whatsnew/NewBadge';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowDownWideNarrow, Cloud, FilePlus2, Grid3x3, List, Pencil, Search, Trash2, X, Copy, Wand2, HeartPulse } from 'lucide-react';
+import { ArrowDownWideNarrow, Cloud, FilePlus2, Grid3x3, List, Pencil, Search, Trash2, X, Copy, Wand2, HeartPulse, Sparkles } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game, GameStatus, PlatformKey } from '../bridge/types';
 import { ArtPacksDialog } from '../components/artpacks/ArtPacksDialog';
@@ -31,6 +31,10 @@ import { useSubsListed, useSubsMap } from '../state/subs';
 import { SubsBadge } from '../components/subs/SubsBits';
 import { ServiceLogo } from '../components/ui/ServiceLogo';
 import './library.css';
+// Track C5: smart collections (a rule stored on the collection, evaluated live) and duplicate explanations.
+import { SmartCollectionDialog } from '../components/ai/SmartCollectionDialog';
+import { DuplicateWhy } from '../components/ai/DuplicateWhy';
+import { describeSmartFilter, matchesSmartFilter, parseSmartFilter } from '../lib/smartFilter';
 
 type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status' | 'waiting' | 'finishing';
 type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'notinstalled' | 'missing' | 'hidden' | 'cloud' | 'subs' | `status:${GameStatus}`;
@@ -78,6 +82,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [packsOpen, setPacksOpen] = useState(false);
+  const [smartOpen, setSmartOpen] = useState(false); // Track C5
   // Track N: filter by store (the chips' marks draw themselves on hover/focus).
   const [store, setStore] = useState<PlatformKey | null>(null);
   const stores = useMemo(() => {
@@ -99,12 +104,18 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
     try { localStorage.setItem(VIEW_KEY, view); } catch { /* ignore */ }
   }, [view]);
 
+  // Track C5: a smart collection's rule (re-validated here: stored data is never trusted).
+  const rule = useMemo(() => parseSmartFilter(collection?.rule ?? null), [collection?.rule]);
+
   const genres = useMemo(() => [...new Set(games.flatMap((g) => g.genres))], [games]);
   const parsed: ParsedQuery = useMemo(() => parseQuery(query, { genres, drives }), [query, genres, drives]);
 
   const results = useMemo(() => {
     const now = Date.now();
-    let base = collectionId ? games.filter((g) => g.collections.includes(collectionId)) : games;
+    let base = collectionId
+      ? rule ? games.filter((g) => matchesSmartFilter(g, rule, { ttb: ttb?.games ?? null, subs: subsMap as Record<string, unknown[]> | null, now }))
+        : games.filter((g) => g.collections.includes(collectionId))
+      : games;
     if (store) base = base.filter((g) => g.installations.some((i) => i.platform === store));
     base = base.filter((g) => {
       switch (quick) {
@@ -140,7 +151,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
       found = [...found].sort(cmp[sort]);
     }
     return found;
-  }, [games, collectionId, quick, parsed, sort, query, store, ttb, cloudMap, subsMap]);
+  }, [games, collectionId, rule, quick, parsed, sort, query, store, ttb, cloudMap, subsMap]);
 
   const title = collection ? collection.name : 'Library';
   const totalSize = useMemo(() => results.reduce((s, g) => s + (sizeOf(g) ?? 0), 0), [results]);
@@ -154,6 +165,11 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
             {plural(results.length, 'game')}
             {totalSize > 0 && <> · {formatBytes(totalSize)} installed</>}
           </p>
+          {rule && (
+            <p className="lib-head__meta lib-head__smart">
+              <Sparkles size={13} aria-hidden /> Smart collection · {describeSmartFilter(rule).join(' · ')}
+            </p>
+          )}
         </div>
         <div className="lib-head__actions">
           {collection && (
@@ -167,6 +183,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
               Review {plural(duplicates.length, 'possible duplicate')}
             </Button>
           )}
+          {!collection && <Button size="sm" variant="ghost" icon={<Sparkles size={14} />} onClick={() => setSmartOpen(true)}>Smart collection</Button>}
           <Button size="sm" variant="ghost" icon={<Wand2 size={14} />} onClick={() => setPacksOpen(true)}>Art packs</Button>
           {!collection && <Button size="sm" variant="ghost" icon={<HeartPulse size={14} />} onClick={() => useStore.getState().navigate({ name: 'health' })}>Library health<NewBadge k="library.health" /></Button>}
           <Button size="sm" icon={<FilePlus2 size={14} />} onClick={() => void addManualGame()}>Add a game</Button>
@@ -285,10 +302,12 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
         <EmptyState
           art={games.length === 0 ? 'constellation' : 'shelf'}
           icon={<Search size={32} />}
-          title={games.length === 0 ? 'No games yet' : collection && !text && quick === 'all' ? 'This collection is empty' : quick === 'cloud' && !text ? 'No cloud matches yet' : quick === 'subs' && !text ? 'None of these are in your plans yet' : 'Nothing matches'}
+          title={games.length === 0 ? 'No games yet' : rule && !text && quick === 'all' ? 'Nothing fits this smart collection yet' : collection && !text && quick === 'all' ? 'This collection is empty' : quick === 'cloud' && !text ? 'No cloud matches yet' : quick === 'subs' && !text ? 'None of these are in your plans yet' : 'Nothing matches'}
           body={
             games.length === 0
               ? 'Rescan your stores or add a game yourself.'
+              : rule && !text && quick === 'all'
+                ? 'Games join it by themselves as soon as they fit the rule above.'
               : collection && !text && quick === 'all'
                 ? 'Add games from their right-click menu, or from the Collections section of a game’s page.'
                 : quick === 'cloud' && !text
@@ -312,6 +331,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
       )}
 
       <DuplicatesDialog open={dupOpen} onClose={() => setDupOpen(false)} />
+      <SmartCollectionDialog open={smartOpen} onClose={() => setSmartOpen(false)} />
       <ArtPacksDialog
         open={packsOpen}
         onClose={() => setPacksOpen(false)}
@@ -347,7 +367,7 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
               </>
             }
           >
-            Only the collection is removed. The {plural(collection.count, 'game')} in it stay in your library.
+            {rule ? 'Only the smart collection is removed. Your games stay in your library.' : <>Only the collection is removed. The {plural(collection.count, 'game')} in it stay in your library.</>}
           </Dialog>
         </>
       )}
@@ -559,6 +579,7 @@ function DuplicatesDialog({ open, onClose }: { open: boolean; onClose: () => voi
                 <Button size="sm" variant="primary" onClick={() => void merge(a.id, b.id)}>Merge</Button>
                 <Button size="sm" variant="ghost" onClick={() => void dismiss(a.id, b.id)}>Keep separate</Button>
               </div>
+              <DuplicateWhy gameIdA={a.id} gameIdB={b.id} />
             </div>
           );
         })}

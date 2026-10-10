@@ -1075,3 +1075,35 @@ export interface BridgeEvents {
 }
 
 export type * from './types.maintenance';
+
+// ---------- Track C5: optional cloud AI providers and AI features (types in ./types.ai) ----------
+
+export interface Settings {
+  /** Which AI powers AI features: local Ollama or one cloud provider (keys live only in Windows Credential Manager). */
+  'ai.provider': import('./types.ai').AiProviderChoice;
+  /** Explicit, per-provider consent to send data to that provider. Off by default. */
+  'ai.cloud.anthropic.optIn': boolean;
+  'ai.cloud.openai.optIn': boolean;
+  'ai.cloud.gemini.optIn': boolean;
+  'ai.cloud.compatible.optIn': boolean;
+  'ai.cloud.anthropic.model': 'claude-sonnet-5-5' | 'claude-opus-5-5' | 'claude-haiku-4-5-20251001';
+  /** '' = VYSTRAL's default (or the first listed model). */
+  'ai.cloud.openai.model': string;
+  'ai.cloud.gemini.model': string;
+  'ai.cloud.compatible.model': string;
+  /** The OpenAI-compatible endpoint's https address ('' = none). */
+  'ai.cloud.compatible.url': string;
+  'ai.features.journal': boolean;
+  'ai.features.patchNotes': boolean;
+  'ai.features.tonight': boolean;
+  'ai.features.smartCollections': boolean;
+  'ai.features.duplicates': boolean;
+  /** Automatic captions on replay cards (off by default; a caption can still be asked for once). */
+  'ai.features.recapCaptions': boolean;
+}
+
+export interface BridgeEvents {
+  'aiCloud.changed': import('./types.ai').AiCloudStatus;
+}
+
+export type * from './types.ai';

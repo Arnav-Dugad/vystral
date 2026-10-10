@@ -19,9 +19,10 @@ export function useGameMenu(game: Game) {
     { label: 'Details', icon: <Info size={16} />, onSelect: () => navigate({ name: 'game', id: game.id }) },
     { kind: 'separator' },
     { label: game.favorite ? 'Remove from favorites' : 'Add to favorites', icon: <Heart size={16} />, onSelect: () => void toggleFavorite(game) },
-    ...(collections.length
+    // Track C5: smart collections fill themselves, so only hand-made ones are offered here.
+    ...(collections.some((c) => !c.rule)
       ? ([{ kind: 'label', label: 'Collections' }] as MenuEntry[]).concat(
-          collections.map((c) => {
+          collections.filter((c) => !c.rule).map((c) => {
             const member = game.collections.includes(c.id);
             return { label: c.name, icon: member ? <Check size={16} /> : <FolderPlus size={16} />, onSelect: () => void setCollection(game, c.id, !member) };
           }),

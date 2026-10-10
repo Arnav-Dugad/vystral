@@ -34,6 +34,9 @@ import { DISCOVER_DEFAULT_SETTINGS, discoverPreviewHandlers } from './preview.di
 import { TRACK_W_DEFAULT_SETTINGS, previewTrackWSettings, trackWPreviewHandlers } from './preview.trackW';
 import type { AchievementsResult } from './types';
 import { MAINTENANCE_DEFAULT_SETTINGS, maintenancePreviewHandlers } from './preview.maintenance';
+import { AI_CLOUD_DEFAULT_SETTINGS, aiCloudPreviewHandlers, previewAiSettings } from './preview.ai'; // Track C5
+import { parseSmartFilter } from '../lib/smartFilter';
+import type { NewsFeed, ReplayData } from './types';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -91,6 +94,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_W_DEFAULT_SETTINGS,
   ...TRACK_Z_DEFAULT_SETTINGS,
   ...MAINTENANCE_DEFAULT_SETTINGS, // Track AA
+  ...AI_CLOUD_DEFAULT_SETTINGS, // Track C5
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -262,6 +266,7 @@ export function createPreviewBackend() {
   if (previewFriendsOn(params)) settings['home.friendsActivity'] = true; // Track P: ?friends, ?friendsPrivate
   if (params.has('energy')) settings['energy.enabled'] = true; // Track Y: the opt-in energy estimate
   settings = { ...settings, ...previewTrackWSettings(params) }; // Track W: ?wishlist, ?friendsHistory
+  settings = { ...settings, ...previewAiSettings(params) }; // Track C5: ?aiCloud
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
   // Track T: `?nowPlaying` starts the preview with a game already running (Immersive's Now playing row).
@@ -392,9 +397,12 @@ export function createPreviewBackend() {
     'launch.current': () => launch,
     // Preview can't bring another app's window forward; the real app does (SetForegroundWindow).
     'game.focus': () => launch?.phase === 'running',
-    'collections.create': (p: { name: string; icon?: string | null }) => {
+    'collections.create': (p: { name: string; icon?: string | null; rule?: unknown }) => {
       const id = hex(Math.random);
-      collections.push({ id, name: p.name, icon: p.icon ?? null, sortOrder: collections.length, rule: null, count: 0 });
+      // Track C5: a smart collection keeps its validated rule (the app canonicalises it natively).
+      const rule = p.rule == null ? null : parseSmartFilter(p.rule);
+      if (p.rule != null && !rule) throw new BridgeError('invalid', 'That smart collection rule isn’t valid.');
+      collections.push({ id, name: p.name, icon: p.icon ?? null, sortOrder: collections.length, rule: rule ? JSON.stringify(rule) : null, count: 0 });
       emit('library.changed', null);
       return id;
     },
@@ -520,6 +528,14 @@ export function createPreviewBackend() {
     }),
     // Track AA: first-paint snapshot (?firstpaint, ?slowLibrary=ms), after-update self-check (?selfCheckFail, ?selfCheckNone), compaction (?compactBusy).
     ...maintenancePreviewHandlers({ emit: () => emit, settings: () => settings, timers }),
+    // Track C5: cloud AI providers and AI features with a fake provider (?aiCloud, ?aiFail, ?aiInvent, ?aiSlow).
+    ...aiCloudPreviewHandlers({
+      lib, emit: () => emit, settings: () => settings, setSettings: (s) => { settings = s; },
+      ttb: () => handlers['ttb.map']({}) as TimeToBeatMap,
+      news: (gameId) => handlers['news.get']({ gameId }) as NewsFeed,
+      replay: (sessionId) => handlers['replay.get']({ sessionId }) as ReplayData,
+      duplicates: () => snapshot().duplicateSuggestions,
+    }),
   };
   const slowLibrary = Math.min(10_000, Number(params.get('slowLibrary') ?? 0) || 0);
 
