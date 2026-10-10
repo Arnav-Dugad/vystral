@@ -7,6 +7,8 @@ import AxeBuilder from '@axe-core/playwright';
 
 async function open(page: Page, query = '?reduced') {
   await page.addInitScript(() => sessionStorage.setItem('vystral.introPlayed', '1'));
+  // GitHub's runners have 4 cores, where "auto" quality turns trailers off; pin a typical desktop.
+  await page.addInitScript(() => Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 }));
   const errors: string[] = [];
   const external: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
