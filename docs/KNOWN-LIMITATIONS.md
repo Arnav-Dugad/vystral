@@ -199,3 +199,11 @@
 - YouTube trailers (opt-in) have no colour-follow for the Living Canvas (the frame is cross-origin) and no pause-on-pointer-leave; they stop on their own when the video ends. The frame-navigation rule was verified in tests, not yet in the real WebView2 (the lead's after-merge check).
 - The Epic free-games feed, ProtonDB and GOG's catalogue are undocumented public endpoints: if they change, their rows say *unavailable* and nothing else is affected.
 
+## Recommendations, Free this week, better cloud play (Track D5, 0.9)
+
+- recommend.v2 runs in the interface (`ui/src/lib/recommendV2.ts`) on what VYSTRAL already has. It uses Steam community tags only for games that have them (Track C4), time to beat only with an IGDB key (Track M), and friends playing only with the opt-in friends card (Track P). Series are guessed from titles ("Kingsfall Remastered" and "Kingsfall II" share one), so an odd title can miss its series. Steam Deck / controller fit is supported by the engine but not fed yet (it would need a per-game lookup).
+- "The time you usually have" comes from your own sessions near this hour on the same weekday (or kind of day); with fewer than three sessions nothing is said about time.
+- Free this week reads Track D4's GamerPower and Epic sources (opt-in under Data sources). Ownership is matched by title (editions folded), so a renamed release can be missed; Prime Gaming isn't a source.
+- The cloud readiness check measures TCP connection time to each service's public website, not to the streaming data centre, and the adapter's link speed to the router, not internet bandwidth (it says so). Windows doesn't report the Wi-Fi band through the API used, so the 2.4 GHz tip only appears when the band is known (never, today, in the real app).
+- The GeForce NOW hours forecast extrapolates this cycle's pace from sessions VYSTRAL saw; rollover hours and other devices aren't counted.
+- The cover flight between cards and pages skips itself when the next page takes more than 1.4 s to draw (a very busy PC); the page then simply appears.

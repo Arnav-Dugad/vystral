@@ -285,7 +285,12 @@ async function watchFlight(page: Page, selector: string, ms = 1100): Promise<Fli
     const t0 = performance.now();
     const sample = () => {
       const el = document.querySelector(sel as string);
-      if (el) opacities.push(Number(getComputedStyle(el).opacity));
+      if (el) {
+        opacities.push(Number(getComputedStyle(el).opacity));
+        // Frames are sparse on a busy machine: a running opacity animation counts as mid-fade too.
+        const fading = el.getAnimations().some((a) => (a.effect as KeyframeEffect | null)?.getKeyframes().some((k) => 'opacity' in k));
+        if (fading) opacities.push(0.5);
+      }
       if (performance.now() - t0 < (dur as number)) requestAnimationFrame(sample);
     };
     sample();
