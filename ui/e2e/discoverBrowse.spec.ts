@@ -163,13 +163,13 @@ test.describe('Wishlist → game pages', () => {
     const list = page.getByRole('list', { name: /wishlisted games/ });
     await expect(list).toBeVisible({ timeout: 15_000 });
     await expect(list.getByRole('button', { name: 'Open Aurora Vanguard on the Steam store' })).toBeVisible();
-    await list.getByRole('button', { name: /^Aurora Vanguard\. Open its page/ }).click();
+    await list.getByRole('button', { name: 'Open the page for Aurora Vanguard', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Aurora Vanguard', level: 1 })).toBeVisible();
     await expect(page.locator('.ddhero__route')).toContainText('Not in your library');
     await noSeriousViolations(page);
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     // A wishlist game you already own opens your own page.
-    await list.getByRole('button', { name: /^Deep Field\. Open its page in your library/ }).click();
+    await list.getByRole('button', { name: 'Open the page for Deep Field, which you own' }).click();
     await expect(page.getByRole('heading', { name: 'Deep Field', level: 1 })).toBeVisible();
     await expect(page.locator('.ddhero')).toHaveCount(0);
     expect(errors).toEqual([]);

@@ -134,6 +134,14 @@
 - The Watching list doesn't notify about price drops; prices are checked when you open a game's page. It doesn't sync with Steam's wishlist.
 - Results and pages are kept in memory only; after a restart a page is looked up again.
 
+**Discover browse shelves (0.8, Track C3)**
+- Steam's featured lists (`featuredcategories`) are undocumented, so the store shelves are opt-in and may change or stop without notice; VYSTRAL then keeps showing the last copy, marked as older. Their shape was checked live on 2026-10-10; the store item facts and store query were checked the same day without a key.
+- Steam's featured lists carry no genres or dates, and the store's own query decides what "popular" means; VYSTRAL only filters (games only, visible, nothing Steam hides by default). Prices in the free-to-play and genre shelves are Steam's own text; Steam doesn't say the currency there.
+- IGDB's `similar_games` and genre queries were built from IGDB's documentation and haven't been run against the real service (no developer key was used). IGDB's genre, theme and game-mode IDs are fixed in code.
+- Without an IGDB key, "Because you played" needs the Steam store shelves (it uses Steam's tags), and only for games with a Steam app ID. Seeds are games you played: a library with no playtime anywhere gets no such rows.
+- Ownership uses the Steam app ID, IGDB ID or an exact title and year: an owned game with a different name on another store can still be suggested.
+- Grouping editions under their game uses edition words in English titles; an edition with an unusual name stays a separate result.
+
 **Steam extras: wishlist, friends who played, achievement guide, news (0.7, Track W)**
 - All four were built and tested against recorded Steam responses (fixtures, including hostile ones) and the browser preview. They haven't yet been run against a live Steam account in the installed app, so the shapes of `IWishlistService/GetWishlist` and `IStoreBrowseService/GetItems` are as documented and observed on Steam's own pages, not yet re-checked with a real key.
 - **Wishlist** prices are Steam's own price in your price country. The lowest-ever price comes from IsThereAnyDeal (with your key) or CheapShark (US dollars); when its currency differs from Steam's, the two are never compared or converted, so there's no "lowest ever" verdict for that game. Lowest prices are looked up for at most 20 games per refresh, so a long wishlist fills in over a few days. Price history is VYSTRAL's own: one point per refresh (about twice a day while VYSTRAL runs) from the day you turn the wishlist on, so sparklines start empty and have gaps when the app is closed. Games Steam lists only as a month, quarter or year ("Q3 2027") show that text and sort after dated ones. Free games show "Free to play" and are never priced.

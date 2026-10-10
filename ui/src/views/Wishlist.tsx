@@ -272,7 +272,7 @@ function WishCard({ item, index }: { item: WishlistItem; index: number }) {
         <div className="wish-card__titles">
           <h2 id={titleId} className="wish-card__title truncate" title={item.name}>
             <button type="button" className="wish-card__title-btn" onClick={openPage}
-              aria-label={`${item.name}. Open its page${item.gameId ? ' in your library' : ''}.`}>{item.name}</button>
+              aria-label={`Open the page for ${item.name}${item.gameId ? ', which you own' : ''}`}>{item.name}</button>
           </h2>
           <span className="wish-card__release" data-soon={badge === 'soon' || undefined}>
             <CalendarClock size={13} aria-hidden /> {releaseLabel(item)}
