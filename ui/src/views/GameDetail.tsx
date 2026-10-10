@@ -51,6 +51,7 @@ import { PackageFacts } from '../components/game/NotOwned';
 import { CommunityTags, FranchiseTimeline, GameInsights } from '../components/game/insights/lazy';
 // Track D1: similar games you own (forgotten ones first) and the update / mod / session timeline.
 import { SimilarStrip } from '../components/game/SimilarStrip';
+import { ModTimeline } from '../components/game/ModTimeline';
 
 // Track AA: tab panels that aren't on the first screen load when their tab opens (not at startup).
 const AchievementsPanel = lazy(() => import('../components/game/AchievementsPanel').then((m) => ({ default: m.AchievementsPanel })));
@@ -116,7 +117,7 @@ export function GameDetailView({ id }: { id: string }) {
         </div>
         <div className="detail__panel">
           {tab === 'overview' && <Overview game={game} onOpenAchievements={() => setTab('achievements')} />}
-          {tab === 'sessions' && <Sessions game={game} />}
+          {tab === 'sessions' && <><ModTimeline game={game} onOpenNews={isSteamGame(game) ? () => setTab('news') : undefined} onOpenFiles={() => setTab('files')} /><Sessions game={game} /></>}
           {tab === 'versions' && <Versions game={game} />}
           {tab === 'artwork' && <ArtworkTab game={game} />}
           {tab === 'achievements' && <Suspense fallback={null}>{isSteamGame(game)

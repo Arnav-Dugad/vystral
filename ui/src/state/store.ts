@@ -12,7 +12,7 @@ export type Route =
   | { name: 'library'; collectionId?: string; query?: string; /** Track K: open with a quick filter (e.g. 'unplayed'). */ quick?: string }
   | { name: 'game'; id: string }
   | { name: 'journal'; tab?: 'sessions' | 'achievements' | 'value' | 'records'; /** Track M: open on one day (local start-of-day ms). */ day?: number }
-  | { name: 'performance'; sessionId?: string; /** Track C2: Overview, Sessions, Compare or System. */ tab?: 'overview' | 'sessions' | 'compare' | 'system' }
+  | { name: 'performance'; sessionId?: string; /** Track C2: Overview, Sessions, Compare or System. */ tab?: 'overview' | 'sessions' | 'compare' | 'system'; /** Track D1: on Compare, the other session (e.g. the last one before a game update). */ compareWith?: string }
   | { name: 'moments' }
   | { name: 'constellation' }
   | { name: 'assistant' }
