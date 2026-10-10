@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   AlertTriangle, ArrowLeft, BarChart3, Check, ChevronDown, Clock3, Eye, EyeOff, FolderOpen, FolderPlus, Heart, HardDrive,
@@ -18,14 +18,13 @@ import { openFolder, removeManualGame, setCollection, setHidden, setNotes, setPr
 import { useReducedMotion, useStore } from '../state/store';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { GameCover } from '../components/game/GameCover';
-import { GameCard } from '../components/game/GameCard';
 import { PlayButton } from '../components/game/PlayButton';
 import { LastSessionGhost } from '../components/game/LastSessionGhost';
 import { SessionOriginChip } from '../components/game/SessionOriginChip';
 import { useInstallFor } from '../state/installs';
 import { StatusPicker } from '../components/game/StatusPicker';
 import { HeroTrailer } from '../components/game/HeroTrailer';
-import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, SectionHead, Stars, Tabs } from '../components/ui/primitives';
+import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, Stars, Tabs } from '../components/ui/primitives';
 import { StoreLogo } from '../components/ui/StoreLogo';
 import { DriverChangeCard } from './perf/DataInsightCards';
 import { GameExtras, IdentityPanel } from '../components/game/GameDataPanels';
@@ -50,6 +49,8 @@ import { PatchNotes } from '../components/game/PatchNotes';
 import { PackageFacts } from '../components/game/NotOwned';
 // Track C4: the "At a glance" stat tiles, community tags and the franchise timeline.
 import { CommunityTags, FranchiseTimeline, GameInsights } from '../components/game/insights/lazy';
+// Track D1: similar games you own (forgotten ones first) and the update / mod / session timeline.
+import { SimilarStrip } from '../components/game/SimilarStrip';
 
 // Track AA: tab panels that aren't on the first screen load when their tab opens (not at startup).
 const AchievementsPanel = lazy(() => import('../components/game/AchievementsPanel').then((m) => ({ default: m.AchievementsPanel })));
@@ -125,7 +126,7 @@ export function GameDetailView({ id }: { id: string }) {
           {tab === 'controls' && <Suspense fallback={null}><ControlsPanel game={game} /></Suspense>}
           {tab === 'files' && <FilesPanel game={game} />}
         </div>
-        <Related game={game} />
+        <SimilarStrip game={game} />
       </div>
     </div>
   );
@@ -648,29 +649,5 @@ function ArtworkTab({ game }: { game: Game }) {
       ))}
       <p className="provenance" style={{ gridColumn: '1 / -1' }}>Images you choose are copied into VYSTRAL’s private cache and always take priority. Store artwork is never replaced in the store itself.</p>
     </div>
-  );
-}
-
-function Related({ game }: { game: Game }) {
-  const games = useStore((s) => s.library.games);
-  const related = useMemo(() => {
-    const genres = new Set(game.genres);
-    if (!genres.size) return [];
-    return games
-      .filter((g) => g.id !== game.id && !g.hidden)
-      .map((g) => ({ g, score: g.genres.filter((x) => genres.has(x)).length + (isInstalled(g) ? 0.5 : 0) }))
-      .filter((x) => x.score >= 1)
-      .sort((a, b) => b.score - a.score || a.g.sortTitle.localeCompare(b.g.sortTitle))
-      .slice(0, 6)
-      .map((x) => x.g);
-  }, [games, game]);
-  if (!related.length) return null;
-  return (
-    <section style={{ marginTop: 'var(--s-12)' }}>
-      <SectionHead title="More like this in your library" meta={`Sharing ${game.genres.slice(0, 2).join(' & ')}`} />
-      <div className="related">
-        {related.map((g) => <GameCard key={g.id} game={g} />)}
-      </div>
-    </section>
   );
 }
