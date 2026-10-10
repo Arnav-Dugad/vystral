@@ -147,15 +147,15 @@ function DetailHero({ game, onOpenAchievements }: { game: Game; onOpenAchievemen
   const heroRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   useFlightLanding(game.id, coverRef, true, 0, reduce); // Track D5: reduced motion crossfades
-  // Leaving the page, the cover becomes the start of the flight back into its card.
+  // Leaving the page, the cover becomes the start of the flight back into its card. Track D5: taken the moment the
+  // route changes (not when this page unmounts, which waits for its exit animation: by then the card has already
+  // mounted and missed it). Only a real departure starts a return flight — not a re-render or a double-mount.
   useEffect(() => {
-    const el = coverRef.current;
-    return () => {
-      // Only a real departure (the route changed) starts a return flight — not a re-render
-      // or React's development double-mount.
-      const r = useStore.getState().route;
-      if (r.name !== 'game' || r.id !== game.id) captureFlight(game.id, el);
-    };
+    return useStore.subscribe((s, prev) => {
+      if (s.route === prev.route) return;
+      const r = s.route;
+      if (r.name !== 'game' || r.id !== game.id) captureFlight(game.id, coverRef.current);
+    });
   }, [game.id]);
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [chooseAt, setChooseAt] = useState<{ x: number; y: number } | null>(null);

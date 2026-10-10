@@ -122,13 +122,12 @@ function Hero({ itemKey, hint, d, onChange }: { itemKey: string; hint?: string; 
   const [busy, setBusy] = useState(false);
   const flightId = `discover:${itemKey}`;
   useFlightLanding(flightId, coverRef, true, 0, reduce); // Track D5: reduced motion crossfades
-  useEffect(() => {
-    const el = coverRef.current;
-    return () => {
-      const r = useStore.getState().route;
-      if (r.name !== 'discoverGame' || r.key !== itemKey) captureFlight(flightId, el);
-    };
-  }, [flightId, itemKey]);
+  // Track D5: the return flight starts the moment the route changes (the card mounts before this page finishes leaving).
+  useEffect(() => useStore.subscribe((s, prev) => {
+    if (s.route === prev.route) return;
+    const r = s.route;
+    if (r.name !== 'discoverGame' || r.key !== itemKey) captureFlight(flightId, coverRef.current);
+  }), [flightId, itemKey]);
 
   const title = d?.title ?? hint ?? '';
   const logo = useDiscoverImage(d?.hasLogo ? itemKey : null, 'logo');
