@@ -34,6 +34,7 @@ import { DISCOVER_DEFAULT_SETTINGS, discoverPreviewHandlers } from './preview.di
 import { TRACK_W_DEFAULT_SETTINGS, previewTrackWSettings, trackWPreviewHandlers } from './preview.trackW';
 import type { AchievementsResult } from './types';
 import { MAINTENANCE_DEFAULT_SETTINGS, maintenancePreviewHandlers } from './preview.maintenance';
+import { decorateLibraryCorrectness, libraryCorrectnessPreviewHandlers } from './preview.libraryCorrectness';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -253,6 +254,7 @@ export function createPreviewBackend() {
   const extra = Math.min(20000, Number(params.get('games') ?? 0) || 0);
   const empty = params.has('empty');
   const lib = empty ? { games: [], sessions: [] } : buildLibrary(extra);
+  if (!empty) decorateLibraryCorrectness(lib, params); // Track C1: ?refunded, ?xbox
   decoratePreviewSessions(lib.sessions); // Track B: FPS and throttling on recent sessions
   decorateTrackingSessions(lib.sessions); // Track H: a background and a detected session
   const statusHistory: StatusHistoryEntry[] = buildStatusHistory(lib.games, 11);
@@ -520,6 +522,8 @@ export function createPreviewBackend() {
     }),
     // Track AA: first-paint snapshot (?firstpaint, ?slowLibrary=ms), after-update self-check (?selfCheckFail, ?selfCheckNone), compaction (?compactBusy).
     ...maintenancePreviewHandlers({ emit: () => emit, settings: () => settings, timers }),
+    // Track C1: the "no longer in your Steam library" notice (?refunded).
+    ...libraryCorrectnessPreviewHandlers(params),
   };
   const slowLibrary = Math.min(10_000, Number(params.get('slowLibrary') ?? 0) || 0);
 

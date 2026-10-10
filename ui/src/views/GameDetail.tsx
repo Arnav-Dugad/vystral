@@ -47,6 +47,7 @@ import { UninstallAdvisor } from '../components/game/UninstallAdvisor';
 import { AchievementGuidePanel, CurrentGoalChip } from '../components/game/AchievementGuide';
 import { FriendsPlayedChip } from '../components/game/FriendsPlayedChip';
 import { PatchNotes } from '../components/game/PatchNotes';
+import { PackageFacts } from '../components/game/NotOwned';
 
 // Track AA: tab panels that aren't on the first screen load when their tab opens (not at startup).
 const AchievementsPanel = lazy(() => import('../components/game/AchievementsPanel').then((m) => ({ default: m.AchievementsPanel })));
@@ -186,7 +187,10 @@ function DetailHero({ game, onOpenAchievements }: { game: Game; onOpenAchievemen
       : []),
     { label: 'New collection…', icon: <FolderPlus size={16} />, onSelect: () => window.dispatchEvent(new CustomEvent('vystral:new-collection')) },
     { kind: 'separator' },
-    game.hidden
+    // Track C1: a game Steam no longer lists stays out of the library until it's bought again.
+    game.notOwned
+      ? { label: 'No longer in your Steam library', icon: <EyeOff size={16} />, onSelect: () => {}, disabled: true }
+      : game.hidden
       ? { label: 'Show in library', icon: <Eye size={16} />, onSelect: () => void setHidden(game, false) }
       : { label: 'Hide from library', icon: <EyeOff size={16} />, onSelect: () => void setHidden(game, true) },
     ...(manual ? [{ label: 'Remove from VYSTRAL…', icon: <Trash2 size={16} />, danger: true, onSelect: () => setRemoveOpen(true) } as MenuEntry] : []),
@@ -321,6 +325,7 @@ function describeStatus(game: Game, primary: Installation | undefined, install?:
     if (!(install.kind === 'update' && install.phase === 'installed')) return { text: detail ? `${phaseLabel(install)} · ${detail}` : phaseLabel(install), tone: 'muted' };
   }
   if (!isInstalled(game)) {
+    if (game.notOwned) return { text: 'No longer in your Steam library (refunded or removed). Its play history, notes and rating are kept.', tone: 'warn' };
     const missing = game.installations.find((i) => i.state === 'missing');
     return missing
       ? { text: `Not found during the last scan of ${PLATFORM_NAMES[missing.platform]}. Reinstall it there or rescan.`, tone: 'warn' }
@@ -352,7 +357,7 @@ function StatsRow({ game }: { game: Game }) {
   const imported = importedStore?.minutes ?? null;
   const importedFrom = importedStore?.platform;
   const stats = [
-    { label: 'Last played', value: lp.at ? formatRelative(lp.at) : 'Never', hint: lp.source === 'imported' ? 'from the store' : lp.source === 'tracked' ? 'tracked by VYSTRAL' : undefined },
+    { label: 'Last played', value: lp.at ? formatRelative(lp.at) : 'Never', hint: lp.source === 'imported' ? 'from the store' : lp.source === 'estimated' ? 'estimated from save data' : lp.source === 'tracked' ? 'tracked by VYSTRAL' : undefined },
     { label: 'Tracked by VYSTRAL', value: game.trackedSeconds ? formatDuration(game.trackedSeconds) : '—', hint: game.sessionCount ? plural(game.sessionCount, 'session') : 'No sessions yet' },
     { label: importedFrom ? `${PLATFORM_NAMES[importedFrom]} playtime` : 'Store playtime', value: imported != null ? formatDuration(imported * 60) : '—', hint: imported != null ? 'reported by the store' : 'not available from this store' },
     { label: 'Size on disk', value: size.value, hint: size.hint },
@@ -567,6 +572,7 @@ function VersionCard({ game, inst, onUnmerge }: { game: Game; inst: Installation
       <div className="version__head">
         <PlatformBadge platform={inst.platform} motion />
         {inst.state === 'installed' ? <Badge tone="ok">Installed</Badge> : inst.state === 'missing' ? <Badge tone="warn">Missing</Badge> : <Badge>Not installed</Badge>}
+        {inst.noLongerOwned && <Badge tone="warn">No longer in your Steam library</Badge>}
         {preferred && <Badge tone="accent">Preferred</Badge>}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           {game.installations.length > 1 && !preferred && inst.state === 'installed' && <Button size="sm" variant="ghost" onClick={() => void setPreferred(game, inst.id)}>Make preferred</Button>}
@@ -579,6 +585,7 @@ function VersionCard({ game, inst, onUnmerge }: { game: Game; inst: Installation
         <div><dt className="caps">Size</dt><dd className="num">{formatBytes(inst.sizeBytes)}</dd></div>
         <div><dt className="caps">Starts via</dt><dd>{inst.launchKind === 'Uri' ? <span className="svc-name"><StoreLogo platform={inst.platform} size={14} decorative />{PLATFORM_NAMES[inst.platform]} (store app required)</span> : inst.launchKind === 'PackagedApp' ? 'Windows (Xbox app identity)' : 'Direct program launch'}</dd></div>
         <div><dt className="caps">Store ID</dt><dd className="num selectable">{inst.platformGameId}</dd></div>
+        <PackageFacts inst={inst} />
         <div><dt className="caps">Last seen</dt><dd>{formatRelative(inst.lastSeen)}</dd></div>
       </dl>
       {supportsArgs && (

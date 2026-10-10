@@ -1,0 +1,13 @@
+/* Track C1: the "No longer owned" explanation and package facts. */
+.not-owned-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  margin: var(--s-3) 0 0;
+  max-width: 72ch;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.not-owned-note svg { flex: none; margin-top: 2px; color: var(--text-3); }
+.not-owned-est { color: var(--text-3); font-size: var(--fs-xs); }

@@ -3,7 +3,7 @@
  * are unit-tested. Everything comes from the user's own library; nothing needs the network.
  */
 import type { CollectionInfo, Game, InstallProgress, LaunchPhase, PlatformKey } from '../../bridge/types';
-import { importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../../lib/format';
+import { byLastPlayed, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../../lib/format';
 import { isWaiting } from '../../lib/neverPlayed';
 import { suggestGames } from '../../lib/recommend';
 import { applyRowOrder } from './rowOrder';
@@ -126,7 +126,7 @@ export function genreTiles(visible: readonly Game[], max = MAX_GENRES): Tile[] {
 
 /** The game whose art represents a browse tile: the most recently played, else the first with hero art, else the first. */
 function pickSample(games: readonly Game[]): Game | null {
-  const played = games.filter((g) => lastPlayed(g).at).sort((a, b) => lastPlayed(b).at!.localeCompare(lastPlayed(a).at!));
+  const played = games.filter((g) => lastPlayed(g).at).sort(byLastPlayed);
   return played[0] ?? games.find((g) => g.art.hero) ?? games[0] ?? null;
 }
 
@@ -137,7 +137,7 @@ function pickSample(games: readonly Game[]): Game | null {
 export function homeRows(visible: readonly Game[], collections: readonly CollectionInfo[], now: number, hour: number, live: LiveState = {}, order: readonly string[] = []): Row[] {
   const recent = visible
     .filter((g) => isInstalled(g) && lastPlayed(g).at)
-    .sort((a, b) => lastPlayed(b).at!.localeCompare(lastPlayed(a).at!))
+    .sort((a, b) => byLastPlayed(a, b) || byTitle(a, b))
     .slice(0, 15);
   const unplayed = visible
     .filter(isWaiting)
@@ -313,7 +313,7 @@ export function sortGames(games: readonly Game[], sort: LibrarySort): Game[] {
   switch (sort) {
     case 'az': return list.sort(byTitle);
     case 'recent':
-      return list.sort((a, b) => (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? '') || byTitle(a, b));
+      return list.sort((a, b) => byLastPlayed(a, b) || byTitle(a, b));
     case 'played': return list.sort((a, b) => playedSeconds(b) - playedSeconds(a) || byTitle(a, b));
     case 'added': return list.sort((a, b) => b.added.localeCompare(a.added) || byTitle(a, b));
   }

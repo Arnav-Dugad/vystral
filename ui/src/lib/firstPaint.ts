@@ -57,7 +57,12 @@ function liteArt(a: Artwork): Artwork {
 }
 
 function liteInstallation(i: Installation): Installation {
-  return { ...i, title: clip(i.title, 200) ?? '', installPath: null, userLaunchArgs: null, platformGameId: clip(i.platformGameId, 120) ?? '' };
+  // Track C1: package details and ownership dates aren't needed on Home; an estimated last-played keeps its label.
+  const { version: _v, installedAt: _ia, noLongerOwned: _no, lastPlayedSource, ...rest } = i;
+  return {
+    ...rest, title: clip(i.title, 200) ?? '', installPath: null, userLaunchArgs: null, platformGameId: clip(i.platformGameId, 120) ?? '',
+    ...(lastPlayedSource === 'saveData' ? { lastPlayedSource } : {}),
+  };
 }
 
 /** Only what Home and its cards read; user notes, paths and long text stay out. */
@@ -163,6 +168,8 @@ function readInstallation(x: unknown): Installation {
     userLaunchArgs: null,
     manualLink: req(bool(x.manualLink ?? false)),
     lastSeen: req(str(x.lastSeen ?? '', 40)),
+    // Track C1: an estimated last-played date stays labelled as one in the cached Home.
+    ...(x.lastPlayedSource === 'saveData' ? { lastPlayedSource: 'saveData' as const } : {}),
   };
 }
 

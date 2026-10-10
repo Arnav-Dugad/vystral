@@ -29,7 +29,10 @@ export function useGameMenu(game: Game) {
       : []),
     { kind: 'separator' },
     { label: 'Open install folder', icon: <FolderOpen size={16} />, onSelect: () => void openFolder(game), disabled: !installed },
-    game.hidden
+    // Track C1: a game Steam no longer lists is out of the library until it's bought again; showing it can't change that.
+    game.notOwned
+      ? { label: 'No longer in your Steam library', icon: <EyeOff size={16} />, onSelect: () => {}, disabled: true }
+      : game.hidden
       ? { label: 'Show in library', icon: <Eye size={16} />, onSelect: () => void setHidden(game, false) }
       : { label: 'Hide from library', icon: <EyeOff size={16} />, onSelect: () => void setHidden(game, true) },
   ];

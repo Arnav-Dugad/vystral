@@ -1,5 +1,5 @@
 import type { Game } from '../bridge/types';
-import { isInstalled, lastPlayed, playSeconds } from './format';
+import { byLastPlayed, isInstalled, lastPlayed, playSeconds } from './format';
 import { hasNeverBeenPlayed } from './neverPlayed';
 
 export interface Suggestion {
@@ -69,9 +69,6 @@ export function suggestGames(games: Game[], now = Date.now(), limit = 10): Sugge
 /** Featured game for the Home hero: most recently played installed game, else a suggestion. */
 export function featuredGame(games: Game[]): Game | null {
   const installed = games.filter((g) => !g.hidden && isInstalled(g));
-  const recent = installed
-    .map((g) => ({ g, at: lastPlayed(g).at }))
-    .filter((x) => x.at)
-    .sort((a, b) => b.at!.localeCompare(a.at!));
-  return recent[0]?.g ?? suggestGames(games, Date.now(), 1)[0]?.game ?? installed[0] ?? games[0] ?? null;
+  const recent = installed.filter((g) => lastPlayed(g).at).sort((a, b) => byLastPlayed(a, b) || a.sortTitle.localeCompare(b.sortTitle));
+  return recent[0] ?? suggestGames(games, Date.now(), 1)[0]?.game ?? installed[0] ?? games[0] ?? null;
 }

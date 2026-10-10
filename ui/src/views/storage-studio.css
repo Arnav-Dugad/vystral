@@ -65,6 +65,17 @@
   transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-slow) var(--ease-out);
   pointer-events: none;
 }
+/* Track C1: a square store logo (Xbox packages often have nothing else) is shown whole and centred, not cropped or stretched. */
+.tile-t__art--icon {
+  inset: 50% auto auto 50%;
+  width: min(44%, 96px);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  translate: -50% -58%;
+  mix-blend-mode: normal;
+  opacity: 0.85;
+}
 /* The platform tint stays on top so tiles still read as a map; the label gets a scrim. */
 .tile-t:has(.tile-t__art)::before {
   content: '';

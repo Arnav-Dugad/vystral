@@ -5,7 +5,7 @@
  */
 import type { Game } from '../../bridge/types';
 import type { LiveBlock } from '../../lib/liveTiles';
-import { isInstalled, lastPlayed } from '../../lib/format';
+import { byLastPlayed, isInstalled, lastPlayed } from '../../lib/format';
 import { isWaiting } from '../../lib/neverPlayed';
 import { playedSeconds } from './rows';
 
@@ -53,7 +53,7 @@ export function showcasePool(games: readonly Game[], now: number, max = 24): Sho
     const taken = new Set(out.map((x) => x.game.id));
     const recent = eligible
       .filter((g) => !taken.has(g.id))
-      .sort((a, b) => (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? '') || a.sortTitle.localeCompare(b.sortTitle));
+      .sort((a, b) => byLastPlayed(a, b) || a.sortTitle.localeCompare(b.sortTitle));
     for (const g of recent) {
       if (out.length >= Math.min(max, TOP_UP)) break;
       out.push({ game: g, reason: 'recent' });

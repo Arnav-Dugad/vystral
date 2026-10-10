@@ -1,5 +1,5 @@
 import type { Game, PlatformKey } from '../bridge/types';
-import { isInstalled, isMissing, lastPlayed } from './format';
+import { byLastPlayed, isInstalled, isMissing, lastPlayed } from './format';
 import { neverPlayedGames, tonightPicks } from './neverPlayed';
 import { featuredGame, suggestGames } from './recommend';
 
@@ -27,10 +27,11 @@ const DAY = 86_400_000;
 /** The Home view-model for a library (`games` should already exclude hidden games). Pure. */
 export function buildHomeModel(visible: Game[], now: number): HomeModel {
   const featured = featuredGame(visible);
+  // Track C1: the hero's game stays in Continue playing too (as its first card when it's the latest one): people
+  // look for what they just played in the row, and a row that skips it reads as if the game went missing.
   const continueIds = visible
     .filter((g) => isInstalled(g) && lastPlayed(g).at)
-    .sort((a, b) => lastPlayed(b).at!.localeCompare(lastPlayed(a).at!))
-    .filter((g) => g.id !== featured?.id)
+    .sort((a, b) => byLastPlayed(a, b) || a.sortTitle.localeCompare(b.sortTitle))
     .slice(0, 12)
     .map((g) => g.id);
   const favorites = visible.filter((g) => g.favorite).sort((a, b) => a.sortTitle.localeCompare(b.sortTitle));
