@@ -236,6 +236,34 @@ public sealed partial class OllamaService
         }
     }
 
+    /// <summary>
+    /// Track C5: one non-streamed answer for an AI feature (the caller validates it). Returns null when Ollama
+    /// answers with an error; throws <see cref="BridgeException"/> when local AI is off or paused for a game.
+    /// </summary>
+    public async Task<string?> CompleteAsync(string system, string user, bool json, CancellationToken ct)
+    {
+        EnsureAllowed();
+        var body = new JsonObject
+        {
+            ["model"] = _settings.GetString("ai.model"),
+            ["stream"] = false,
+            ["think"] = false,
+            ["options"] = new JsonObject { ["temperature"] = 0.2, ["num_ctx"] = 8192 },
+            ["messages"] = new JsonArray
+            {
+                new JsonObject { ["role"] = "system", ["content"] = system },
+                new JsonObject { ["role"] = "user", ["content"] = user },
+            },
+        };
+        if (json) body["format"] = "json";
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(TimeSpan.FromSeconds(90));
+        using var res = await _http.PostAsync("api/chat", new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"), cts.Token);
+        if (!res.IsSuccessStatusCode) return null;
+        var reply = await res.Content.ReadFromJsonAsync<JsonObject>(cts.Token);
+        return reply?["message"]?["content"] is JsonValue v && v.TryGetValue<string>(out var s) ? s : null;
+    }
+
     internal static JsonObject? ValidateQuery(JsonObject? o)
     {
         if (o is null) return null;

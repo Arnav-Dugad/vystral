@@ -141,6 +141,8 @@ public sealed partial class AppBackend
         {
             var rule = p.Rule is { ValueKind: JsonValueKind.Object } r ? r.GetRawText() : null;
             if (rule is { Length: > 4000 }) throw new BridgeException("invalid", "Rule too large.");
+            // Track C5: a rule is a smart collection's filter; only the validated, canonical form is stored.
+            if (rule is not null) rule = Vystral.Windows.Ai.SmartFilterSpec.Canonical(rule) ?? throw new BridgeException("invalid", "That smart collection rule isn’t valid.");
             var id = Repository.CreateCollection(RequireText(p.Name, 60, "Name"), p.Icon is null ? null : RequireText(p.Icon, 32, "Icon"), rule);
             _events.Emit("library.changed", null);
             return Task.FromResult<object?>(id);
