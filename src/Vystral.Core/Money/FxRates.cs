@@ -53,20 +53,28 @@ public static partial class FxRates
 
     private static FxSnapshot? ParseList(JsonElement list, DateTimeOffset fetchedAt)
     {
-        string? baseCode = null, latest = null;
-        var rates = new Dictionary<string, double>(StringComparer.Ordinal);
+        // Valid rows first; the base is the one most rows agree on, so a stray row can't pick it.
+        var rows = new List<(string Base, string Quote, double Rate, string Date)>();
         foreach (var row in list.EnumerateArray())
         {
-            if (rates.Count >= MaxEntries) break;
+            if (rows.Count >= MaxEntries * 2) break;
             if (row.ValueKind != JsonValueKind.Object) continue;
             var b = Str(row, "base");
             var q = Str(row, "quote");
             var d = Str(row, "date");
-            if (!IsCode(b) || !IsCode(q) || !TryRate(row, "rate", out var rate)) continue;
-            baseCode ??= b;
-            if (b != baseCode) continue;
-            if (d is not null && DateRx().IsMatch(d) && (latest is null || string.CompareOrdinal(d, latest) > 0)) latest = d;
-            rates[q!] = rate;
+            if (!IsCode(b) || !IsCode(q) || d is null || !DateRx().IsMatch(d) || !TryRate(row, "rate", out var rate)) continue;
+            rows.Add((b!, q!, rate, d));
+        }
+        if (rows.Count == 0) return null;
+        var baseCode = rows.GroupBy(r => r.Base).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal).First().Key;
+        string? latest = null;
+        var rates = new Dictionary<string, double>(StringComparer.Ordinal);
+        foreach (var r in rows)
+        {
+            if (r.Base != baseCode) continue;
+            if (rates.Count >= MaxEntries) break;
+            if (latest is null || string.CompareOrdinal(r.Date, latest) > 0) latest = r.Date;
+            rates[r.Quote] = r.Rate;
         }
         return Finish(baseCode, latest, rates, fetchedAt);
     }
