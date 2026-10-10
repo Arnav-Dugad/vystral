@@ -2,7 +2,9 @@
  * Track U: pure helpers for universal search — highlighting what matched, client-side filters, prices, and the plain
  * words for every source state. No React and no bridge here, so all of it is unit-tested.
  */
-import type { DiscoverResult, DiscoverSearch, DiscoverSourceId, DiscoverSourceState, PlatformKey, StorePrice } from '../bridge/types';
+import type {
+  DiscoverResult, DiscoverSearch, DiscoverShelf, DiscoverSourceId, DiscoverSourceState, PlatformKey, StorePrice, WishlistItem,
+} from '../bridge/types';
 
 // ---------------- query ----------------
 
@@ -257,4 +259,197 @@ export function hoursLabel(seconds: number | null | undefined): string | null {
   const h = seconds / 3600;
   if (h < 1) return `${Math.max(1, Math.round(seconds / 60))} min`;
   return h < 10 ? `${Math.round(h * 2) / 2} h` : `${Math.round(h)} h`;
+}
+
+// =====================================================================================================================
+// Track C3: Discover 2.0 — browsing before you type, editions grouped under their game, prices and dates on cards.
+// =====================================================================================================================
+
+export interface DiscoverGenre {
+  id: string;
+  label: string;
+  /** 'genre' (what kind of game) or 'tag' (a theme or way to play). */
+  kind: 'genre' | 'tag';
+}
+
+/** The genres and tags Discover can browse. Mirrors DiscoverGenres in src/Vystral.Windows/Discover/DiscoverBrowseParsers.cs. */
+export const DISCOVER_GENRES: readonly DiscoverGenre[] = [
+  { id: 'action', label: 'Action', kind: 'genre' },
+  { id: 'adventure', label: 'Adventure', kind: 'genre' },
+  { id: 'rpg', label: 'RPG', kind: 'genre' },
+  { id: 'strategy', label: 'Strategy', kind: 'genre' },
+  { id: 'shooter', label: 'Shooter', kind: 'genre' },
+  { id: 'racing', label: 'Racing', kind: 'genre' },
+  { id: 'sports', label: 'Sports', kind: 'genre' },
+  { id: 'simulation', label: 'Simulation', kind: 'genre' },
+  { id: 'puzzle', label: 'Puzzle', kind: 'genre' },
+  { id: 'platformer', label: 'Platformer', kind: 'genre' },
+  { id: 'fighting', label: 'Fighting', kind: 'genre' },
+  { id: 'indie', label: 'Indie', kind: 'genre' },
+  { id: 'open-world', label: 'Open world', kind: 'tag' },
+  { id: 'co-op', label: 'Co-op', kind: 'tag' },
+  { id: 'horror', label: 'Horror', kind: 'tag' },
+  { id: 'survival', label: 'Survival', kind: 'tag' },
+  { id: 'sci-fi', label: 'Sci-fi', kind: 'tag' },
+  { id: 'fantasy', label: 'Fantasy', kind: 'tag' },
+  { id: 'sandbox', label: 'Sandbox', kind: 'tag' },
+];
+
+export function genreById(id: string | null | undefined): DiscoverGenre | null {
+  return DISCOVER_GENRES.find((g) => g.id === id) ?? null;
+}
+
+// ---------------- prices and dates on cards ----------------
+
+/** What a card shows for the price: Steam's price in cents when known, else the store's own text, "Free" for free games. */
+export function cardPrice(r: Pick<DiscoverResult, 'price' | 'free' | 'priceText' | 'discountPercent' | 'comingSoon'>, locale?: string): { now: string; was: string | null; cut: number } | null {
+  if (r.free) return { now: 'Free', was: null, cut: 0 };
+  const p = formatStorePrice(r.price, locale);
+  if (p) return r.comingSoon && r.price?.finalCents === 0 ? null : p;
+  const text = r.priceText?.trim();
+  return text ? { now: text, was: null, cut: Math.max(0, Math.min(100, r.discountPercent ?? 0)) } : null;
+}
+
+const MONTHS_SHORT = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC' });
+
+/**
+ * When a game comes out (or came out recently), as exactly as the store says: "12 Nov 2026", "Dec 2026", "2027".
+ * Null for games out for a while (the year is shown instead).
+ */
+export function releaseLabel(r: Pick<DiscoverResult, 'releaseDate' | 'comingSoon' | 'year'>, now = new Date()): string | null {
+  const d = r.releaseDate ?? null;
+  const full = d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(`${d}T00:00:00Z`) : null;
+  const month = d && /^\d{4}-\d{2}$/.test(d) ? new Date(`${d}-01T00:00:00Z`) : null;
+  if (full && !Number.isNaN(full.getTime())) {
+    const label = `${full.getUTCDate()} ${MONTHS_SHORT.format(full)} ${full.getUTCFullYear()}`;
+    if (r.comingSoon || full.getTime() > now.getTime()) return `Coming ${label}`;
+    const days = (now.getTime() - full.getTime()) / 86_400_000;
+    return days <= 60 ? `Out ${label}` : null;
+  }
+  if (month && !Number.isNaN(month.getTime())) return `Coming ${MONTHS_SHORT.format(month)} ${month.getUTCFullYear()}`;
+  if (r.comingSoon) return r.year ? `Coming ${r.year}` : 'Coming soon';
+  return null;
+}
+
+// ---------------- editions and add-ons under their game ----------------
+
+const EDITION = /[\s:–—\-(]+(?:(?:digital\s+|super\s+)?(?:deluxe|gold|goty|game of the year|definitive|ultimate|complete|premium|standard|special|collector'?s|legendary|anniversary|platinum|launch|enhanced|royal|champions|digital|bonus|expanded)\s+(?:edition|bundle|pack|version)|director'?s cut|goty|game of the year)\)?\s*$/i;
+
+/** Folded for comparing titles: case, accents, trademark signs and punctuation ignored. */
+export function titleKey(title: string): string {
+  return title.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[™®©]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+/** "Forza Horizon 5: Premium Edition" → "Forza Horizon 5". Titles without an edition word are returned as they are. */
+export function baseTitle(title: string): string {
+  const stripped = title.replace(EDITION, '').trim();
+  return stripped.length >= 2 ? stripped : title;
+}
+
+export interface ResultGroup {
+  base: DiscoverResult;
+  /** Editions and add-ons of `base`, in the order they were found. */
+  children: DiscoverResult[];
+}
+
+/**
+ * Collapses editions ("… Deluxe Edition") and add-ons (an extra whose title starts with the game's, like
+ * "Forza Horizon 4: Fortune Island") under the base game when it's in the same list. Groups keep the position of
+ * whichever member ranked first; nothing is ever dropped, and a result without its base game stays on its own.
+ */
+export function groupEditions(results: DiscoverResult[]): ResultGroup[] {
+  const parents = new Map<string, number>();
+  results.forEach((r, i) => {
+    if (r.kind !== 'game') return;
+    const k = titleKey(r.title);
+    if (titleKey(baseTitle(r.title)) === k && k && !parents.has(k)) parents.set(k, i);
+  });
+  const parentKeys = [...parents.keys()].sort((a, b) => b.length - a.length);
+  const parentOf = results.map((r, i): number => {
+    if (parents.get(titleKey(r.title)) === i) return -1;
+    const base = titleKey(baseTitle(r.title));
+    if (base !== titleKey(r.title) && parents.has(base)) return parents.get(base)!;
+    if (r.kind === 'extra') {
+      const k = titleKey(r.title);
+      const p = parentKeys.find((pk) => k.startsWith(`${pk} `));
+      if (p !== undefined) return parents.get(p)!;
+    }
+    return -1;
+  });
+  const groups = new Map<number, ResultGroup & { at: number }>();
+  results.forEach((r, i) => {
+    const p = parentOf[i];
+    const anchor = p >= 0 ? p : i;
+    let g = groups.get(anchor);
+    if (!g) {
+      g = { base: results[anchor], children: [], at: i };
+      groups.set(anchor, g);
+    }
+    if (p >= 0) g.children.push(r);
+    g.at = Math.min(g.at, i);
+  });
+  return [...groups.values()].sort((a, b) => a.at - b.at).map(({ base, children }) => ({ base, children }));
+}
+
+// ---------------- the hero and shelves ----------------
+
+export interface HeroPick {
+  result: DiscoverResult;
+  /** A short line above the title ("Because you played Forza Horizon 4", "Trending on Steam"). */
+  eyebrow: string;
+  /** Where it came from (a shelf id, or 'wishlist'). */
+  from: string;
+}
+
+/**
+ * Up to `max` featured picks for the carousel: the first game of each "Because you played" shelf (two at most), the
+ * best wishlist deal, then Steam's deals, top sellers and new releases. Never a game twice, never one you own.
+ */
+export function heroPicks(because: DiscoverShelf[], store: DiscoverShelf[], wishlistSale: DiscoverResult[], max = 6): HeroPick[] {
+  const picks: HeroPick[] = [];
+  const seen = new Set<string>();
+  const take = (r: DiscoverResult | undefined, eyebrow: string, from: string) => {
+    if (!r || r.libraryGameId || seen.has(r.key) || picks.length >= max) return false;
+    seen.add(r.key);
+    picks.push({ result: r, eyebrow, from });
+    return true;
+  };
+  const firstFree = (items: DiscoverResult[]) => items.find((r) => !r.libraryGameId && !seen.has(r.key));
+  for (const s of because.filter((x) => x.kind === 'because').slice(0, 2)) take(firstFree(s.items), s.title, s.id);
+  const deal = firstFree(wishlistSale);
+  if (deal) take(deal, `On your wishlist${deal.discountPercent ? ` · −${deal.discountPercent}%` : ''}`, 'wishlist');
+  const byId = new Map(store.map((s) => [s.id, s]));
+  const order: [string, (r: DiscoverResult) => string][] = [
+    ['specials', (r) => { const p = cardPrice(r); return p?.cut ? `On sale · −${p.cut}% on Steam` : 'On sale on Steam'; }],
+    ['trending', () => 'Trending on Steam'],
+    ['newReleases', () => 'New on Steam'],
+    ['trending', () => 'Trending on Steam'],
+    ['comingSoon', (r) => releaseLabel(r) ?? 'Coming soon'],
+  ];
+  for (const [id, label] of order) {
+    const s = byId.get(id);
+    const r = s && firstFree(s.items);
+    if (r) take(r, label(r), id);
+  }
+  return picks;
+}
+
+/** Wishlist games on sale, as result cards (Steam's own prices in your price country), biggest discount first. */
+export function wishlistOnSale(items: WishlistItem[], max = 18): DiscoverResult[] {
+  return items
+    .filter((i) => i.discount > 0 && i.priceCents != null && !i.notSold && !i.gameId && /^\d{1,10}$/.test(i.appId))
+    .sort((a, b) => b.discount - a.discount || a.name.localeCompare(b.name))
+    .slice(0, max)
+    .map((i): DiscoverResult => ({
+      key: `steam-${i.appId}`, title: i.name, year: i.releaseDate ? Number(i.releaseDate.slice(0, 4)) || null : null, stores: ['steam'],
+      platforms: [], genres: [], sources: ['steam'], steamAppId: i.appId, libraryGameId: null,
+      price: i.currency && /^[A-Z]{3}$/.test(i.currency) ? { finalCents: i.priceCents!, initialCents: Math.max(i.regularCents ?? i.priceCents!, i.priceCents!), currency: i.currency } : null,
+      hasCover: true, cover: null, score: 0, kind: 'game', priceText: i.priceText, discountPercent: i.discount,
+    }));
+}
+
+/** A plain line under a "Because you played" title: why that game, and where the suggestions come from. */
+export function becauseLine(s: Pick<DiscoverShelf, 'seed' | 'source' | 'reason'>): string {
+  const why = s.seed?.why === 'recent' ? 'You played it recently' : s.seed?.why === 'mostPlayed' ? 'One of your most played' : null;
+  return [why, s.reason].filter(Boolean).join(' · ');
 }

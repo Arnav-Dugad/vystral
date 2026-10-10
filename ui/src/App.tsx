@@ -248,7 +248,7 @@ function View({ route }: { route: Route }) {
     case 'settings': return <SettingsView section={route.section} />;
     case 'storage': return <StorageStudioView />;
     case 'health': return <HealthView />;
-    case 'discover': return <DiscoverView query={route.query} />;
+    case 'discover': return <DiscoverView query={route.query} genre={route.genre} />;
     case 'discoverGame': return <DiscoverGameView key={route.key} itemKey={route.key} title={route.title} />;
     case 'wishlist': return <WishlistView />;
   }

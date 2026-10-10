@@ -14,6 +14,7 @@ import {
 import { useReducedMotion, useStore } from '../state/store';
 import { Badge, Button, EmptyState, IconButton, Segmented, Skeleton } from '../components/ui/primitives';
 import { PriceSparkline } from './wishlist/PriceSparkline';
+import { openSteamApp } from '../components/discover/DiscoverBits';
 import './wishlist/wishlist.css';
 
 type Load = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'done'; data: Wishlist };
@@ -246,6 +247,9 @@ function WishCard({ item, index }: { item: WishlistItem; index: number }) {
   const verdict = priceVerdict(item);
   const open = () => void call('wishlist.openStore', { appId: item.appId }).catch((err) => toast({ tone: 'info', title: errorMessage(err) }));
   const titleId = `wish-${item.appId}`;
+  // Track C3: the card opens the game's own VYSTRAL page (yours when you own it); the Steam store stays one click away.
+  const artRef = useRef<HTMLButtonElement>(null);
+  const openPage = () => openSteamApp(item.appId, item.name, item.gameId, artRef.current);
 
   return (
     <motion.li
@@ -257,15 +261,19 @@ function WishCard({ item, index }: { item: WishlistItem; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={reduce ? { duration: 0.15 } : { ...spring.panel, delay: Math.min(index, 16) * 0.03 }}
     >
-      <div className="wish-card__art">
+      {/* The art opens the page too; it's skipped by Tab (the title button right after it is the same action). */}
+      <button type="button" className="wish-card__art wish-card__open" ref={artRef} tabIndex={-1} aria-hidden onClick={openPage}>
         {item.header ? <img src={item.header} alt="" loading="lazy" decoding="async" draggable={false} /> : <span className="wish-card__art-blank" aria-hidden><Gift size={22} /></span>}
         {badge === 'today' && <span className="wish-card__ribbon"><Sparkles size={13} aria-hidden /> Released!</span>}
         {item.discount > 0 && <span className="wish-card__cut num">−{item.discount}%</span>}
-      </div>
+      </button>
 
       <div className="wish-card__body">
         <div className="wish-card__titles">
-          <h2 id={titleId} className="wish-card__title truncate" title={item.name}>{item.name}</h2>
+          <h2 id={titleId} className="wish-card__title truncate" title={item.name}>
+            <button type="button" className="wish-card__title-btn" onClick={openPage}
+              aria-label={`${item.name}. Open its page${item.gameId ? ' in your library' : ''}.`}>{item.name}</button>
+          </h2>
           <span className="wish-card__release" data-soon={badge === 'soon' || undefined}>
             <CalendarClock size={13} aria-hidden /> {releaseLabel(item)}
           </span>

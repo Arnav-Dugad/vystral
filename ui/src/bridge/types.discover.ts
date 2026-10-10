@@ -36,6 +36,16 @@ export interface DiscoverResult {
   score: number;
   /** 'extra' = DLC, soundtracks and the like. */
   kind: 'game' | 'extra';
+  /** Track C3 (browse shelves): ISO date, or yyyy-MM when the store only names the month. */
+  releaseDate?: string | null;
+  /** Track C3: not out yet, per the store. */
+  comingSoon?: boolean;
+  /** Track C3: free to play, per the store. */
+  free?: boolean;
+  /** Track C3: the store's own formatted price when no price in cents is known. */
+  priceText?: string | null;
+  /** Track C3: the discount that goes with priceText. */
+  discountPercent?: number;
 }
 
 export interface DiscoverSourceState {
@@ -166,4 +176,62 @@ export interface DiscoverWatch {
   addedAt: string;
   priceWhenAdded: string | null;
   cover: string | null;
+}
+
+// ---------------- Track C3: browse shelves (additive; Immersive Discover builds on these) ----------------
+
+export interface DiscoverShelfSeed {
+  gameId: string;
+  title: string;
+  /** 'recent' = played in the last weeks; 'mostPlayed'. */
+  why: 'recent' | 'mostPlayed';
+}
+
+export type DiscoverStoreShelfId = 'trending' | 'specials' | 'newReleases' | 'comingSoon' | 'free';
+
+export interface DiscoverShelf {
+  /** trending | specials | newReleases | comingSoon | free | because:<library game id> */
+  id: string;
+  kind: 'store' | 'because';
+  title: string;
+  /** Where the row comes from, in plain words. */
+  reason: string | null;
+  source: 'steam' | 'igdb';
+  seed: DiscoverShelfSeed | null;
+  items: DiscoverResult[];
+}
+
+/** discover.featured({ refresh }) */
+export interface DiscoverFeatured {
+  /** off = the opt-in is off; failed = nothing saved to show. */
+  state: 'ready' | 'off' | 'offline' | 'failed';
+  /** offline | rateLimited | unavailable | empty | null */
+  reason: string | null;
+  fetched: string | null;
+  /** An older copy (Offline mode, or Steam didn't answer this time). */
+  stale: boolean;
+  shelves: DiscoverShelf[];
+}
+
+/** discover.similar({ refresh }) */
+export interface DiscoverSimilar {
+  /** off = searching online is off; noSeeds = nothing played yet; noSource = no IGDB key and no Steam shelves. */
+  state: 'ready' | 'off' | 'offline' | 'noSeeds' | 'noSource' | 'failed';
+  source: 'igdb' | 'steam' | null;
+  reason: string | null;
+  fetched: string | null;
+  stale: boolean;
+  shelves: DiscoverShelf[];
+}
+
+/** discover.genre({ genre, page }) */
+export interface DiscoverGenrePage {
+  genre: string;
+  label: string;
+  state: 'ready' | 'off' | 'offline' | 'noSource' | 'failed';
+  source: 'steam' | 'igdb' | null;
+  reason: string | null;
+  page: number;
+  hasMore: boolean;
+  results: DiscoverResult[];
 }

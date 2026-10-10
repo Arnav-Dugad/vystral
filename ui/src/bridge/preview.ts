@@ -30,7 +30,7 @@ import type { TimeToBeatMap } from './types';
 import { TRACK_X_DEFAULT_SETTINGS, trackXPreviewHandlers } from './preview.trackX';
 import type { ControllerLayout, HealthReport } from './types';
 import { SUBS_DEFAULT_SETTINGS, subsPreviewHandlers } from './preview.subs';
-import { DISCOVER_DEFAULT_SETTINGS, discoverPreviewHandlers } from './preview.discover';
+import { DISCOVER_DEFAULT_SETTINGS, discoverPreviewHandlers, previewDiscoverSettings } from './preview.discover';
 import { TRACK_W_DEFAULT_SETTINGS, previewTrackWSettings, trackWPreviewHandlers } from './preview.trackW';
 import type { AchievementsResult } from './types';
 import { MAINTENANCE_DEFAULT_SETTINGS, maintenancePreviewHandlers } from './preview.maintenance';
@@ -262,6 +262,7 @@ export function createPreviewBackend() {
   if (previewFriendsOn(params)) settings['home.friendsActivity'] = true; // Track P: ?friends, ?friendsPrivate
   if (params.has('energy')) settings['energy.enabled'] = true; // Track Y: the opt-in energy estimate
   settings = { ...settings, ...previewTrackWSettings(params) }; // Track W: ?wishlist, ?friendsHistory
+  settings = { ...settings, ...previewDiscoverSettings(params) }; // Track C3: ?discoverStore
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
   // Track T: `?nowPlaying` starts the preview with a game already running (Immersive's Now playing row).

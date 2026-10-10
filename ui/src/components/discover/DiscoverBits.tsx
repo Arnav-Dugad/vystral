@@ -1,7 +1,7 @@
 import { memo, useMemo, useRef, type ReactNode } from 'react';
-import { Check, Puzzle } from 'lucide-react';
+import { CalendarClock, Check, Puzzle } from 'lucide-react';
 import type { DiscoverResult, DiscoverSourceId, Game, PlatformKey } from '../../bridge/types';
-import { formatStorePrice, highlightParts, SOURCE_NAMES } from '../../lib/discover';
+import { cardPrice, highlightParts, releaseLabel, SOURCE_NAMES } from '../../lib/discover';
 import { captureFlight } from '../../lib/flight';
 import { PLATFORM_NAMES } from '../../lib/format';
 import { useDiscoverImage } from '../../state/discover';
@@ -65,16 +65,34 @@ export function listWords(words: string[]): string {
   return `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
 }
 
-/** Opens a result: a library game's own page, else the Discover page for it, flying the cover across. */
+/**
+ * Opens a result: a library game's own page, else the Discover page for it, flying the cover across. A Steam game you
+ * own is found by its app ID even when the result didn't know (Watching, the wishlist, store shelves).
+ */
 export function openResult(r: Pick<DiscoverResult, 'key' | 'title' | 'libraryGameId'>, coverEl: Element | null | undefined) {
   const s = useStore.getState();
-  if (r.libraryGameId && s.gamesById.has(r.libraryGameId)) {
-    captureFlight(r.libraryGameId, coverEl);
-    s.navigate({ name: 'game', id: r.libraryGameId });
+  const steamApp = /^steam-(\d{1,10})$/.exec(r.key)?.[1];
+  const owned = r.libraryGameId && s.gamesById.has(r.libraryGameId) ? r.libraryGameId : steamApp ? libraryIdForSteamApp(steamApp) : null;
+  if (owned) {
+    captureFlight(owned, coverEl);
+    s.navigate({ name: 'game', id: owned });
   } else {
     captureFlight(`discover:${r.key}`, coverEl);
     s.navigate({ name: 'discoverGame', key: r.key, title: r.title });
   }
+}
+
+/** Track C3: the library game with this Steam app ID (on the game or any Steam copy), if you have it. */
+export function libraryIdForSteamApp(appId: string): string | null {
+  const { library } = useStore.getState();
+  const g = library.games.find((x) => x.installations.some((i) => i.platform === 'steam' && i.platformGameId === appId));
+  return g?.id ?? null;
+}
+
+/** Track C3: opens a Steam game's VYSTRAL page (yours when you own it, else its Discover page). Never the store. */
+export function openSteamApp(appId: string, title: string, libraryGameId: string | null | undefined, coverEl?: Element | null) {
+  if (!/^\d{1,10}$/.test(appId)) return;
+  openResult({ key: `steam-${appId}`, title, libraryGameId: libraryGameId ?? null }, coverEl);
 }
 
 export function storeNames(stores: PlatformKey[]): string {
@@ -82,14 +100,16 @@ export function storeNames(stores: PlatformKey[]): string {
 }
 
 /** A card in the Discover grid. */
-export const ResultCard = memo(function ResultCard({ r, query, extra }: { r: DiscoverResult; query: string | null; extra?: ReactNode }) {
+export const ResultCard = memo(function ResultCard({ r, query, extra, showSources = true }: { r: DiscoverResult; query: string | null; extra?: ReactNode; showSources?: boolean }) {
   const coverRef = useRef<HTMLDivElement>(null);
-  const price = formatStorePrice(r.price);
+  const price = cardPrice(r);
   const owned = !!r.libraryGameId;
+  const release = releaseLabel(r);
   const label = [
-    r.title, r.year ? String(r.year) : null, owned ? 'in your library' : null, r.kind === 'extra' ? 'add-on or extra' : null,
-    r.stores.length ? `sold on ${storeNames(r.stores)}` : null, price ? `${price.now} on Steam${price.cut ? `, ${price.cut}% off` : ''}` : null,
-    `found on ${listWords(r.sources.map((s) => SOURCE_NAMES[s]))}`,
+    r.title, release ?? (r.year ? String(r.year) : null), owned ? 'in your library' : null, r.kind === 'extra' ? 'add-on or extra' : null,
+    r.stores.length ? `sold on ${storeNames(r.stores)}` : null,
+    price ? (price.now === 'Free' ? 'free to play' : `${price.now} on Steam${price.cut ? `, ${price.cut}% off` : ''}`) : null,
+    showSources && r.sources.length ? `found on ${listWords(r.sources.map((s) => SOURCE_NAMES[s]))}` : null,
   ].filter(Boolean).join(', ');
   return (
     <button className="dcard" data-discover-key={r.key} data-owned={owned || undefined} aria-label={label} onClick={() => openResult(r, coverRef.current)}>
@@ -97,17 +117,18 @@ export const ResultCard = memo(function ResultCard({ r, query, extra }: { r: Dis
         <DiscoverCover itemKey={r.key} title={r.title} known={r.cover} genres={r.genres} />
         {owned && <span className="dcard__owned"><Check size={12} aria-hidden /> In your library</span>}
         {!owned && price && (
-          <span className="dcard__price num">{price.cut > 0 && <span className="dcard__cut">−{price.cut}%</span>}{price.now}</span>
+          <span className="dcard__price num" data-free={price.now === 'Free' || undefined}>{price.cut > 0 && <span className="dcard__cut">−{price.cut}%</span>}{price.now}</span>
         )}
         {r.kind === 'extra' && <span className="dcard__extra"><Puzzle size={11} aria-hidden /> Extra</span>}
+        {r.kind !== 'extra' && r.comingSoon && <span className="dcard__extra dcard__soon"><CalendarClock size={11} aria-hidden /> Soon</span>}
       </div>
       <div className="dcard__body">
         <div className="dcard__title"><Highlight text={r.title} query={query} /></div>
         <div className="dcard__meta">
-          {r.year && <span className="num">{r.year}</span>}
+          {release ? <span className="dcard__release">{release}</span> : r.year && <span className="num">{r.year}</span>}
           {r.stores.length > 0 && <StoreLogos platforms={r.stores} size={14} decorative />}
           <span className="dcard__spacer" />
-          <SourceMarks sources={r.sources} size={12} label={false} />
+          {showSources && <SourceMarks sources={r.sources} size={12} label={false} />}
         </div>
         {extra}
       </div>

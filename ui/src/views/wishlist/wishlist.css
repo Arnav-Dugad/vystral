@@ -103,6 +103,23 @@ button.wish-stat:focus-visible { outline: var(--focus-outline); outline-offset: 
 .wish-card__body { display: grid; gap: var(--s-2); align-content: start; min-width: 0; }
 .wish-card__titles { display: grid; gap: 2px; min-width: 0; }
 .wish-card__title { margin: 0; font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--text-1); }
+/* Track C3: the art and the title open the game's VYSTRAL page. */
+.wish-card__open { display: block; width: 100%; padding: 0; cursor: pointer; text-align: inherit; }
+.wish-card__title-btn {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  border-radius: var(--r-xs);
+  text-decoration: underline 1px transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--dur-fast) var(--ease-out);
+}
+.wish-card__title-btn:hover { text-decoration-color: currentColor; }
+.wish-card:hover .wish-card__title-btn { color: var(--accent-text); }
 .wish-card__release { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-sm); color: var(--text-3); }
 .wish-card__release[data-soon] { color: var(--accent-text); }
 .wish-card__price { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--s-3); }

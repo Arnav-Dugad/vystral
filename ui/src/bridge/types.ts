@@ -1011,6 +1011,8 @@ export type * from './types.subs';
 export interface Settings {
   /** Universal search also asks Steam's store search, Wikidata and (with your keys) IGDB and RAWG as you type. */
   'discover.searchOnline': boolean;
+  /** Track C3: Discover's Steam store shelves (opt-in). */
+  'discover.storeShelves': boolean;
 }
 
 export interface BridgeEvents {

@@ -19,7 +19,7 @@ export type Route =
   /** Track Q: the library health check. */
   | { name: 'health' }
   /** Track U: search every connected source for any game, owned or not. */
-  | { name: 'discover'; query?: string }
+  | { name: 'discover'; query?: string; /** Track C3: a genre or tag being browsed (an id from DISCOVER_GENRES). */ genre?: string }
   /** Track U: the page for a game that isn't (necessarily) in the library. `title` shows while details load. */
   | { name: 'discoverGame'; key: string; title?: string }
   /** Track W: the Steam wishlist. */
