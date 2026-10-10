@@ -133,6 +133,7 @@ public sealed partial class TrailerService : IDisposable
             return new TrailerDto(true, isHls ? "hls" : "file",
                 $"https://{MediaService.MediaHost}{PathPrefix}{gameId}/{(isHls ? SteamTrailers.MasterEntry : SteamTrailers.FileEntry)}", ext.Name, null, source);
         }
+        if (_externalAlternative.TryGetValue(gameId, out var extAlt)) return Offer(gameId, extAlt, BlockReason());
         var resolved = SteamAppFor(gameId);
         var appId = resolved?.AppId;
         var via = resolved?.Via;
@@ -186,6 +187,11 @@ public sealed partial class TrailerService : IDisposable
             _alternative.TryRemove(gameId, out _);
             return steamAnswer;
         }
+        return Offer(gameId, alt, block);
+    }
+
+    private TrailerDto Offer(string gameId, Vystral.Windows.DataSources.ExternalTrailer alt, string? block)
+    {
         var label = Vystral.Windows.DataSources.ExternalTrailers.SourceLabel(alt.Source);
         if (block is not null) return new TrailerDto(false, null, null, alt.Name, block, label);
         if (alt.Kind == "youtube")
@@ -196,6 +202,19 @@ public sealed partial class TrailerService : IDisposable
         _alternative[gameId] = alt;
         return new TrailerDto(true, "file", $"https://{MediaService.MediaHost}{PathPrefix}{gameId}/{SteamTrailers.FileEntry}", alt.Name, null, label);
     }
+
+    /// <summary>
+    /// Track D4: a Discover page's trailer from RAWG, IGDB or GOG (a game that isn't in the library and has no Steam
+    /// trailer), served under a stand-in ID exactly like <see cref="RegisterExternal"/>.
+    /// </summary>
+    public void RegisterExternalAlternative(string standInId, Vystral.Windows.DataSources.ExternalTrailer trailer)
+    {
+        if (!ExternalId().IsMatch(standInId) || Vystral.Windows.DataSources.ExternalTrailers.Validate(trailer) is not { } valid) return;
+        if (_externalAlternative.Count >= MaxExternal && !_externalAlternative.ContainsKey(standInId)) _externalAlternative.Clear();
+        _externalAlternative[standInId] = valid;
+    }
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Vystral.Windows.DataSources.ExternalTrailer> _externalAlternative = new(StringComparer.Ordinal);
 
     /// <summary>Track D4: forgets the alternative trailer offered for a game (its identity changed).</summary>
     public void ForgetAlternative(string gameId) => _alternative.TryRemove(gameId, out _);

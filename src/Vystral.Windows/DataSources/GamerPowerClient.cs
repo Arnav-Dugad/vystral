@@ -157,8 +157,10 @@ public sealed partial class EpicFreeGamesClient(ProviderTransport transport)
             var worth = JsonRead.Obj(e, "price") is { } price && JsonRead.Obj(price, "totalPrice") is { } tp && JsonRead.Obj(tp, "fmtPrice") is { } fmt
                 ? JsonRead.Str(fmt, "originalPrice", 16) : null;
             if (worth is "0" or "Free") worth = null;
+            // The feed is a snapshot: an "upcoming" window that has started by now is free now.
+            var started = DateTimeOffset.TryParse(window.Value.Start, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var s) && s <= now;
             list.Add(new Freebie($"epic-{id[..Math.Min(id.Length, 32)].ToLowerInvariant()}", "epic", title, "epic", ["PC", "Epic Games Store"], kind,
-                current is not null ? "now" : "upcoming", worth, window.Value.Start, window.Value.End, JsonRead.Str(e, "description", 400),
+                current is not null || started ? "now" : "upcoming", worth, window.Value.Start, window.Value.End, JsonRead.Str(e, "description", 400),
                 Image(e), $"https://store.epicgames.com/en-US/p/{slug}"));
         }
         return list;
