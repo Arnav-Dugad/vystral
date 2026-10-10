@@ -101,6 +101,8 @@ public sealed partial class AppBackend
             _steamAccount.SelectAccount(RequireText(p.SteamId, 17, "Steam account"));
             return Task.FromResult<object?>(_steamAccount.Status());
         });
+        // Track C1: the "no longer in your Steam library" notice, handed out once.
+        Dispatcher.Register("steam.ownershipNotice", _ => Task.FromResult<object?>(_steamAccount.TakeOwnershipNotice()));
         Dispatcher.Register<GameIdParams>("steam.achievements", async (p, ct) =>
             await _steamAccount.GetAchievementsAsync(RequireId(p.GameId), ct));
 
@@ -204,6 +206,7 @@ public sealed partial class AppBackend
             Artwork.ImportScanned(inst.GameId, found.LocalArtwork, $"{platform.Key()}-local");
         }
         var restored = platform == PlatformId.Steam ? Repository.RestoreOwnedSteamMissing(Vystral.Core.Data.LibraryRepository.DriveConnected) : 0;
+        if (platform == PlatformId.Xbox) PokePackageSizes(); // Track C1
         _installs.InvalidateGames();
         Log.Info("library", "Platform rescan applied", new { platform = platform.Key(), report, restored });
         _events.Emit("library.changed", new { reason = "platformScan" });

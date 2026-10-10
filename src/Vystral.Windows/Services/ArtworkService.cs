@@ -60,6 +60,8 @@ public sealed partial class ArtworkService(AppPaths paths, LibraryRepository rep
         foreach (var (kind, path) in found)
         {
             if (existing.TryGetValue(kind.ToString().ToLowerInvariant(), out var e) && (e.IsUser || !e.Source.EndsWith("-local", StringComparison.Ordinal))) continue;
+            // Track C1: a package's splash/tile art never replaces another store's local art (Steam's library cache).
+            if (e.Source is not null && source == "xbox-local" && e.Source != source) continue;
             long length;
             try { length = new FileInfo(path).Length; }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) { continue; }
@@ -123,7 +125,9 @@ public sealed partial class ArtworkService(AppPaths paths, LibraryRepository rep
     /// </summary>
     public async Task FetchSteamArtworkAsync(string gameId, string appId, CancellationToken ct)
     {
-        var existing = repo.GetArtwork(gameId);
+        // Track C1: a package's own splash or tile image (an Xbox copy of the same game) gives way to Steam's library art.
+        var existing = repo.GetArtworkSources(gameId).Where(a => a.Value.IsUser || a.Value.Source != "xbox-local")
+            .ToDictionary(a => a.Key, a => a.Value);
         var wanted = new (ArtworkKind Kind, string[] Files)[]
         {
             (ArtworkKind.Cover, ["library_600x900_2x.jpg", "library_600x900.jpg"]),

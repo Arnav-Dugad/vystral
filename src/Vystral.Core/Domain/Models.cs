@@ -34,6 +34,21 @@ public sealed record DiscoveredInstallation
     /// <summary>Executable file names (no paths) that indicate the game is running.</summary>
     public IReadOnlyList<string> ProcessHints { get; init; } = [];
     public InstallState State { get; init; } = InstallState.Installed;
+    /// <summary>Track C1: "saveData" when <see cref="LastPlayed"/> is estimated from save-data write times rather than a store record.</summary>
+    public string? LastPlayedSource { get; init; }
+    /// <summary>Track C1: the publisher's display name as the package declares it (fills an empty game field only).</summary>
+    public string? Publisher { get; init; }
+    /// <summary>Track C1: the installed package version (Xbox), e.g. "1.478.564.2".</summary>
+    public string? Version { get; init; }
+    /// <summary>Track C1: when the package was installed, when Windows says.</summary>
+    public DateTimeOffset? InstalledAt { get; init; }
+}
+
+/// <summary>Track C1: where an imported last-played date came from when it isn't the store's own record.</summary>
+public static class LastPlayedSources
+{
+    /// <summary>Estimated from the newest write time in the game's own save-data folders.</summary>
+    public const string SaveData = "saveData";
 }
 
 public enum ArtworkKind

@@ -34,6 +34,19 @@ public sealed record SchemaAchievement(string ApiName, string DisplayName, strin
 public sealed record PlayerAchievement(string ApiName, bool Achieved, DateTimeOffset? UnlockTime);
 
 /// <summary>
+/// Track C1: one GetOwnedGames answer. <see cref="ListedAppIds"/> holds every valid appid Steam sent (also entries
+/// without a usable name); <see cref="ReportedCount"/> is Steam's own game_count.
+/// </summary>
+public sealed record OwnedGamesList(IReadOnlyList<OwnedSteamGame> Games, IReadOnlySet<string> ListedAppIds, int ReportedCount)
+{
+    /// <summary>
+    /// True only when the answer is whole: Steam reported a count, it isn't zero, and every game it counted came back.
+    /// Only a complete list may mark games as no longer owned.
+    /// </summary>
+    public bool Complete => ReportedCount > 0 && ListedAppIds.Count >= ReportedCount;
+}
+
+/// <summary>
 /// Minimal client for the documented Steam Web API (api.steampowered.com, HTTPS only).
 /// Requests are serialized and spaced at least <see cref="MinSpacing"/> apart; a 429 pauses
 /// all requests for the Retry-After period (or one minute). The key is supplied per call by
@@ -52,7 +65,11 @@ public sealed partial class SteamWebApiClient(HttpClient http, Func<string?> api
     internal Func<TimeSpan, CancellationToken, Task> Delay { get; set; } = Task.Delay;
 
     /// <param name="keyOverride">A key being tested before it is stored; otherwise the stored key is used.</param>
-    public async Task<IReadOnlyList<OwnedSteamGame>> GetOwnedGamesAsync(string steamId, CancellationToken ct, string? keyOverride = null)
+    public async Task<IReadOnlyList<OwnedSteamGame>> GetOwnedGamesAsync(string steamId, CancellationToken ct, string? keyOverride = null) =>
+        (await GetOwnedGamesListAsync(steamId, ct, keyOverride)).Games;
+
+    /// <summary>Track C1: the owned list with what's needed to tell whether it is complete.</summary>
+    public async Task<OwnedGamesList> GetOwnedGamesListAsync(string steamId, CancellationToken ct, string? keyOverride = null)
     {
         var key = keyOverride is not null && SteamApiKeyStore.IsValidFormat(keyOverride) ? keyOverride : RequireKey();
         var (status, body) = await GetAsync(
@@ -60,7 +77,7 @@ public sealed partial class SteamWebApiClient(HttpClient http, Func<string?> api
         if (status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
             throw new SteamApiException(SteamApiOutcome.InvalidKey, "Steam didn’t accept this Web API key. Check that you copied all 32 characters from steamcommunity.com/dev/apikey.");
         EnsureOk(status);
-        return ParseOwnedGames(body);
+        return ParseOwnedGamesList(body);
     }
 
     public async Task<IReadOnlyList<PlayerAchievement>> GetPlayerAchievementsAsync(string steamId, string appId, CancellationToken ct)
@@ -172,30 +189,36 @@ public sealed partial class SteamWebApiClient(HttpClient http, Func<string?> api
     /// GetOwnedGames returns <c>{"response":{}}</c> (no game_count) when the profile's game
     /// details are private, which is reported as <see cref="SteamApiOutcome.PrivateProfile"/>.
     /// </summary>
-    internal static IReadOnlyList<OwnedSteamGame> ParseOwnedGames(string json)
+    internal static IReadOnlyList<OwnedSteamGame> ParseOwnedGames(string json) => ParseOwnedGamesList(json).Games;
+
+    internal static OwnedGamesList ParseOwnedGamesList(string json)
     {
         try
         {
             using var doc = JsonDocument.Parse(json);
             if (!doc.RootElement.TryGetProperty("response", out var response) || response.ValueKind != JsonValueKind.Object)
                 throw new SteamApiException(SteamApiOutcome.Malformed, "Steam’s owned-games answer couldn’t be read.");
-            if (!response.TryGetProperty("game_count", out _))
+            if (!response.TryGetProperty("game_count", out var countProp))
                 throw new SteamApiException(SteamApiOutcome.PrivateProfile,
                     "Your Steam profile’s game details are private, so Steam won’t list your games. In Steam, open Profile → Edit Profile → Privacy Settings and set “Game details” to Public, then test again.");
+            var reported = countProp.TryGetInt32(out var c) && c > 0 ? c : 0;
             var result = new List<OwnedSteamGame>();
-            if (!response.TryGetProperty("games", out var games) || games.ValueKind != JsonValueKind.Array) return result;
+            var listed = new HashSet<string>(StringComparer.Ordinal);
+            if (!response.TryGetProperty("games", out var games) || games.ValueKind != JsonValueKind.Array) return new(result, listed, reported);
             foreach (var g in games.EnumerateArray())
             {
                 if (g.ValueKind != JsonValueKind.Object) continue;
-                var appId = g.TryGetProperty("appid", out var a) && a.TryGetInt64(out var id) && id > 0 ? id.ToString(CultureInfo.InvariantCulture) : null;
+                var appId = g.TryGetProperty("appid", out var a) && a.TryGetInt64(out var id) && id is > 0 and < 10_000_000_000 ? id.ToString(CultureInfo.InvariantCulture) : null;
+                if (appId is null) continue;
+                listed.Add(appId);
                 var name = g.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String ? n.GetString()?.Trim() : null;
-                if (appId is null || string.IsNullOrEmpty(name) || name.Length > 300) continue;
+                if (string.IsNullOrEmpty(name) || name.Length > 300) continue;
                 int? minutes = g.TryGetProperty("playtime_forever", out var p) && p.TryGetInt32(out var m) && m > 0 ? m : null;
                 DateTimeOffset? last = g.TryGetProperty("rtime_last_played", out var r) && r.TryGetInt64(out var t) && t > 0
                     ? DateTimeOffset.FromUnixTimeSeconds(t) : null;
                 result.Add(new OwnedSteamGame(appId, name, minutes, last));
             }
-            return result;
+            return new(result, listed, reported);
         }
         catch (JsonException)
         {

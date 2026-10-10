@@ -20,7 +20,14 @@ public sealed record InstallationDto(
     int? ImportedPlaytimeMinutes,
     string? UserLaunchArgs,
     bool ManualLink,
-    string LastSeen);
+    string LastSeen,
+    // Track C1: when Steam's owned list stopped including this not-installed copy (refunded or removed); null = owned.
+    string? NoLongerOwned = null,
+    // Track C1: 'saveData' when ImportedLastPlayed is an estimate from the package's save-data write times; null = the store's record.
+    string? LastPlayedSource = null,
+    // Track C1: package version and install date read locally (Xbox), when known.
+    string? Version = null,
+    string? InstalledAt = null);
 
 public sealed record GameDto(
     string Id,
@@ -46,7 +53,16 @@ public sealed record GameDto(
     string? LastTrackedPlay,
     string Added,
     string? Status = null,
-    string? StatusChangedAt = null);
+    string? StatusChangedAt = null)
+{
+    /// <summary>
+    /// Track C1: every copy of the game is one Steam no longer lists (refunded or removed) and nothing else keeps it.
+    /// Such games are sent with <see cref="Hidden"/> = true so every view leaves them out like hidden games;
+    /// <see cref="UserHidden"/> is the user's own hidden flag, kept as it was for when the game is bought again.
+    /// </summary>
+    public bool NotOwned { get; init; }
+    public bool UserHidden { get; init; }
+}
 
 public sealed record CollectionDto(string Id, string Name, string? Icon, int SortOrder, string? Rule, int Count);
 

@@ -23,7 +23,12 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
         string? InstalledLocation,
         bool IsFramework,
         bool IsResourcePackage,
-        bool IsStoreSigned);
+        bool IsStoreSigned,
+        // Track C1: read-only package details (null when Windows didn't say).
+        string? FullName = null,
+        string? Version = null,
+        DateTimeOffset? InstalledDate = null,
+        string? PublisherDisplayName = null);
 
     [GeneratedRegex(@"\.(?:scale|targetsize)-(\d+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex QualifierRegex();
@@ -39,6 +44,8 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
         "Shows Xbox app and Microsoft Store games installed on this PC. Game Pass games you haven't installed aren't shown.",
         "Older Store games without Xbox Live may be missed; you can add them yourself.",
         "Playtime isn't available locally for Xbox games; VYSTRAL tracks sessions you start from here.",
+        "When VYSTRAL hasn't seen you play, \"last played\" is estimated from when the game last wrote its saves.",
+        "Windows doesn't say locally whether a game came with Game Pass or was bought, so VYSTRAL doesn't guess.",
     ];
 
     public AdapterStatus GetStatus()
@@ -60,7 +67,7 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
         {
             var packages = EnumeratePackages();
             if (packages.Count == 0) return (IReadOnlyList<DiscoveredInstallation>)[];
-            return Discover(packages, FindGamingFolders(EnumerateDriveRoots()), cancellationToken);
+            return Discover(packages, FindGamingFolders(EnumerateDriveRoots()), cancellationToken, ReadContext.ForThisPc());
         }, cancellationToken);
 
     internal static IReadOnlyList<PackageInfo> EnumeratePackages()
@@ -93,13 +100,22 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
                     {
                     }
 
+                    // Track C1: details for the game page and size refreshes. Each read may fail on its own.
+                    string? fullName = null, version = null, publisher = null;
+                    DateTimeOffset? installed = null;
+                    try { fullName = package.Id.FullName; } catch (Exception) { }
+                    try { var v = package.Id.Version; version = $"{v.Major}.{v.Minor}.{v.Build}.{v.Revision}"; } catch (Exception) { }
+                    try { publisher = package.PublisherDisplayName; } catch (Exception) { }
+                    try { installed = package.InstalledDate; } catch (Exception) { }
+
                     list.Add(new PackageInfo(
                         package.Id.FamilyName,
                         displayName,
                         location,
                         package.IsFramework,
                         package.IsResourcePackage,
-                        package.SignatureKind == global::Windows.ApplicationModel.PackageSignatureKind.Store));
+                        package.SignatureKind == global::Windows.ApplicationModel.PackageSignatureKind.Store,
+                        fullName, version, installed, publisher));
                 }
                 catch (Exception)
                 {
@@ -130,17 +146,29 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
         }
     }
 
-    /// <summary>Resolves the Xbox app library folder named by each drive's .GamingRoot file.</summary>
+    /// <summary>
+    /// Resolves the Xbox app library folder named by each drive's .GamingRoot file. A drive without one (or with an
+    /// unreadable one) that still has the Xbox app's default "XboxGames" folder counts too (Track C1: games on
+    /// other drives whose marker file is missing).
+    /// </summary>
     internal static IReadOnlyList<string> FindGamingFolders(IEnumerable<string> driveRoots)
     {
         var folders = new List<string>();
         foreach (var root in driveRoots)
         {
             var file = Path.Combine(root, ".GamingRoot");
-            if (!AdapterIo.FileExists(file)) continue;
-            var relative = ParseGamingRoot(AdapterIo.ReadAllBytesShared(file, maxBytes: 64 * 1024));
-            var folder = relative is null ? null : AdapterIo.CombineInside(root, relative);
-            if (folder is not null) folders.Add(folder);
+            string? folder = null;
+            if (AdapterIo.FileExists(file))
+            {
+                var relative = ParseGamingRoot(AdapterIo.ReadAllBytesShared(file, maxBytes: 64 * 1024));
+                folder = relative is null ? null : AdapterIo.CombineInside(root, relative);
+            }
+            if (folder is null)
+            {
+                var fallback = Path.Combine(root, "XboxGames");
+                if (AdapterIo.DirectoryExists(fallback)) folder = fallback;
+            }
+            if (folder is not null && !folders.Contains(folder, StringComparer.OrdinalIgnoreCase)) folders.Add(folder);
         }
         return folders;
     }
@@ -175,15 +203,16 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
     }
 
     internal static IReadOnlyList<DiscoveredInstallation> Discover(
-        IEnumerable<PackageInfo> packages, IReadOnlyList<string> gamingFolders, CancellationToken ct)
+        IEnumerable<PackageInfo> packages, IReadOnlyList<string> gamingFolders, CancellationToken ct, ReadContext? context = null)
     {
+        context ??= ReadContext.None;
         var results = new List<DiscoveredInstallation>();
         var seenFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var package in packages)
         {
             ct.ThrowIfCancellationRequested();
-            var found = TryBuild(package, gamingFolders);
+            var found = TryBuild(package, gamingFolders, context);
             if (found is null) continue;
             if (!seenFamilies.Add(found.PlatformGameId) || !seenPaths.Add(found.InstallPath!)) continue;
             results.Add(found);
@@ -191,7 +220,7 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
         return results;
     }
 
-    private static DiscoveredInstallation? TryBuild(PackageInfo package, IReadOnlyList<string> gamingFolders)
+    private static DiscoveredInstallation? TryBuild(PackageInfo package, IReadOnlyList<string> gamingFolders, ReadContext context)
     {
         if (package.IsFramework || package.IsResourcePackage || !package.IsStoreSigned) return null;
         if (string.IsNullOrWhiteSpace(package.FamilyName)) return null;
@@ -207,25 +236,37 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
                             AdapterIo.FileExists(Path.Combine(location, "xboxservices.config")) &&
                             !IsXboxSystemApp(package.FamilyName);
         if (!hasConfig && !underGamingRoot && !xboxLiveTitle) return null;
+        // Microsoft's own Xbox apps are never games, wherever they are installed (a GDK game config says otherwise).
+        if (!hasConfig && IsXboxSystemApp(package.FamilyName)) return null;
 
         var manifest = AdapterIo.ReadXml(Path.Combine(location, "AppxManifest.xml"));
         if (manifest?.Root is null) return null;
-        var application = manifest.Root.Elements().Where(e => e.Name.LocalName == "Applications")
-            .Elements().FirstOrDefault(e => e.Name.LocalName == "Application" && !string.IsNullOrWhiteSpace(e.Attribute("Id")?.Value));
-        if (application is null) return null;
-        var appId = application.Attribute("Id")!.Value.Trim();
-        var aumid = $"{package.FamilyName}!{appId}";
-
         var config = hasConfig ? AdapterIo.ReadXml(configPath)?.Root : null;
         var shellVisuals = config?.Elements().FirstOrDefault(e => e.Name.LocalName == "ShellVisuals");
 
-        var title = Usable(package.DisplayName)
-                    ?? Usable(shellVisuals?.Attribute("DefaultDisplayName")?.Value)
-                    ?? Usable(manifest.Root.Elements().Where(e => e.Name.LocalName == "Properties").Elements()
-                        .FirstOrDefault(e => e.Name.LocalName == "DisplayName")?.Value);
-        if (title is null) return null;
+        var application = PickApplication(manifest.Root, config);
+        if (application is null) return null;
+        var appId = application.Attribute("Id")!.Value.Trim();
+        var aumid = $"{package.FamilyName}!{appId}";
+        var visual = application.Elements().FirstOrDefault(e => e.Name.LocalName == "VisualElements");
+        var properties = manifest.Root.Elements().FirstOrDefault(e => e.Name.LocalName == "Properties");
+        string? Prop(string name) => properties?.Elements().FirstOrDefault(e => e.Name.LocalName == name)?.Value;
 
-        // Process hints: every executable the game declares, plus the manifest entry point unless it is the GDK helper.
+        // Names: Windows' own display name, else the config's or manifest's, resolving ms-resource: references read-only.
+        var packageName = package.FamilyName.Split('_')[0];
+        string? Text(string? value, int max) => ReadableText(value, max, package.FullName, packageName, context.ResolveResource);
+        var title = Text(package.DisplayName, 200)
+                    ?? Text(shellVisuals?.Attribute("DefaultDisplayName")?.Value, 200)
+                    ?? Text(visual?.Attribute("DisplayName")?.Value, 200)
+                    ?? Text(Prop("DisplayName"), 200);
+        if (title is null) return null;
+        var publisher = Text(package.PublisherDisplayName, 120)
+                        ?? Text(shellVisuals?.Attribute("PublisherDisplayName")?.Value, 120)
+                        ?? Text(Prop("PublisherDisplayName"), 120);
+        var version = UsableVersion(package.Version)
+                      ?? UsableVersion(manifest.Root.Elements().FirstOrDefault(e => e.Name.LocalName == "Identity")?.Attribute("Version")?.Value);
+
+        // Process hints: every executable the game declares, plus the chosen app's entry point unless it is the GDK helper.
         var hints = new List<string>();
         if (config is not null)
         {
@@ -240,23 +281,7 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
             !hints.Contains(entry, StringComparer.OrdinalIgnoreCase))
             hints.Add(entry);
 
-        var artwork = new Dictionary<ArtworkKind, string>();
-        var visual = application.Descendants().FirstOrDefault(e => e.Name.LocalName == "VisualElements");
-        var logoCandidates = new[]
-        {
-            shellVisuals?.Attribute("Square480x480Logo")?.Value,
-            visual?.Attribute("Square150x150Logo")?.Value,
-            shellVisuals?.Attribute("Square150x150Logo")?.Value,
-            visual?.Attribute("Square44x44Logo")?.Value,
-            shellVisuals?.Attribute("Square44x44Logo")?.Value,
-        };
-        foreach (var candidate in logoCandidates)
-        {
-            var file = ResolveLogo(location, candidate);
-            if (file is null) continue;
-            artwork[ArtworkKind.Icon] = file;
-            break;
-        }
+        var lastPlayed = EstimateLastPlayed(context.PackagesRoot, package.FamilyName, context.Now());
 
         return new DiscoveredInstallation
         {
@@ -266,8 +291,13 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
             InstallPath = location,
             Launch = new LaunchTarget(LaunchKind.PackagedApp, aumid),
             ClientRequired = false,
-            LocalArtwork = artwork,
+            LocalArtwork = PackageArtwork(location, shellVisuals, visual, Prop("Logo")),
             ProcessHints = hints,
+            LastPlayed = lastPlayed,
+            LastPlayedSource = lastPlayed is null ? null : LastPlayedSources.SaveData,
+            Publisher = publisher,
+            Version = version,
+            InstalledAt = package.InstalledDate is { } d && d.Year >= 2012 && d <= context.Now().AddDays(1) ? d : null,
         };
     }
 
@@ -311,12 +341,5 @@ public sealed partial class XboxAdapter(IRegistryReader registry) : IPlatformAda
             return null;
         }
         return best.Path;
-    }
-
-    private static string? Usable(string? name)
-    {
-        if (string.IsNullOrWhiteSpace(name)) return null;
-        name = name.Trim();
-        return name.StartsWith("ms-resource:", StringComparison.OrdinalIgnoreCase) ? null : name;
     }
 }

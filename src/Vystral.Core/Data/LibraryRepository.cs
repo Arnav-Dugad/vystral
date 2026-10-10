@@ -58,12 +58,20 @@ public sealed partial class LibraryRepository(Database db)
                 if (existingId is not null)
                 {
                     conn.Execute("""
-                        UPDATE installations SET title=@Title, install_path=@InstallPath, size_bytes=@SizeBytes,
+                        UPDATE installations SET title=@Title, install_path=@InstallPath,
+                            -- Track C1: Xbox sizes are measured in the background (the scan doesn't report them): keep the last one.
+                            size_bytes=CASE WHEN @SizeBytes IS NULL AND platform='xbox' AND install_path IS @InstallPath THEN size_bytes ELSE @SizeBytes END,
                             state=@State, launch_kind=@Kind, launch_value=@Value, launch_args=@Args, launch_workdir=@Work,
                             client_required=@ClientRequired,
+                            -- Track C1: where the date came from follows the value that wins below.
+                            last_played_source=CASE WHEN @LastPlayed IS NULL THEN last_played_source
+                                WHEN imported_last_played IS NULL OR @LastPlayed > imported_last_played THEN @LastPlayedSource ELSE last_played_source END,
                             -- Local store files can lack playtime (played on another PC/account): never wipe or lower a known value.
                             imported_last_played=CASE WHEN @LastPlayed IS NULL THEN imported_last_played
                                 WHEN imported_last_played IS NULL OR @LastPlayed > imported_last_played THEN @LastPlayed ELSE imported_last_played END,
+                            package_version=COALESCE(@Version, package_version), installed_at=COALESCE(@InstalledAt, installed_at),
+                            -- Track C1: an installed copy is owned, whatever the last owned-games list said.
+                            unowned_since=CASE WHEN @State='installed' THEN NULL ELSE unowned_since END,
                             imported_playtime_minutes=CASE WHEN @Playtime IS NULL THEN imported_playtime_minutes
                                 WHEN imported_playtime_minutes IS NULL OR @Playtime > imported_playtime_minutes THEN @Playtime ELSE imported_playtime_minutes END,
                             steam_app_id=@SteamAppId,
@@ -94,12 +102,23 @@ public sealed partial class LibraryRepository(Database db)
                     conn.Execute("""
                         INSERT INTO installations(id, game_id, platform, platform_game_id, title, install_path, size_bytes, state,
                             launch_kind, launch_value, launch_args, launch_workdir, client_required, imported_last_played,
-                            imported_playtime_minutes, steam_app_id, process_hints_json, first_seen, last_seen)
+                            imported_playtime_minutes, steam_app_id, process_hints_json, first_seen, last_seen,
+                            last_played_source, package_version, installed_at)
                         VALUES (@Id, @GameId, @Platform, @Pgid, @Title, @InstallPath, @SizeBytes, @State,
                             @Kind, @Value, @Args, @Work, @ClientRequired, @LastPlayed,
-                            @Playtime, @SteamAppId, @Hints, @Now, @Now)
+                            @Playtime, @SteamAppId, @Hints, @Now, @Now,
+                            CASE WHEN @LastPlayed IS NULL THEN NULL ELSE @LastPlayedSource END, @Version, @InstalledAt)
                         """, InstallationParams(found, NewId(), gameId, now), tx);
                     matcher.Register(gameId, found.Platform, found.PlatformGameId, found.SteamAppId);
+                }
+
+                // Track C1: the package's publisher fills an empty field only (store metadata may replace it later).
+                if (!string.IsNullOrWhiteSpace(found.Publisher))
+                {
+                    conn.Execute("""
+                        UPDATE games SET publisher=@pub WHERE publisher IS NULL
+                          AND id=(SELECT game_id FROM installations WHERE platform=@p AND platform_game_id=@g)
+                        """, new { pub = found.Publisher.Trim(), p = platformKey, g = found.PlatformGameId }, tx);
                 }
 
                 if (!string.IsNullOrEmpty(found.SteamAppId))
@@ -148,6 +167,9 @@ public sealed partial class LibraryRepository(Database db)
         f.SteamAppId,
         Hints = JsonSerializer.Serialize(f.ProcessHints),
         Now = now,
+        f.LastPlayedSource,
+        f.Version,
+        InstalledAt = f.InstalledAt?.ToString("O"),
     };
 
     // ---------- Snapshot for the UI ----------
@@ -171,18 +193,26 @@ public sealed partial class LibraryRepository(Database db)
         {
             var a = art[g.id].ToDictionary(x => x.Kind, x => artworkUrl(g.id, x.File));
             stats.TryGetValue(g.id, out var st);
+            var gameInstalls = installs[g.id].Select(ToDto).ToList();
+            // Track C1: only copies Steam no longer lists, and nothing else (no install, no other store): the game
+            // leaves the library like it left Steam. It stays in the database with every session, note and rating.
+            var notOwned = gameInstalls.Count > 0 && gameInstalls.All(i => i.NoLongerOwned is not null);
             return new GameDto(
                 g.id, g.title, g.sort_title, g.description, g.developer, g.publisher, g.release_date,
                 JsonSerializer.Deserialize<List<string>>(g.genres_json) ?? [],
-                g.favorite != 0, g.hidden != 0, g.user_rating, g.notes, g.preferred_installation_id,
+                g.favorite != 0, g.hidden != 0 || notOwned, g.user_rating, g.notes, g.preferred_installation_id,
                 g.metadata_source, g.palette_json,
                 new ArtworkDto(a.GetValueOrDefault("cover"), a.GetValueOrDefault("hero"), a.GetValueOrDefault("logo"),
                     a.GetValueOrDefault("header"), a.GetValueOrDefault("icon")),
-                installs[g.id].Select(ToDto).ToList(),
+                gameInstalls,
                 colMembers[g.id].ToList(),
                 st.Secs, st.Count, st.Last, g.added,
                 Status: statuses.TryGetValue(g.id, out var sv) ? sv.Status : null,
-                StatusChangedAt: statuses.TryGetValue(g.id, out var sc) ? sc.Changed : null);
+                StatusChangedAt: statuses.TryGetValue(g.id, out var sc) ? sc.Changed : null)
+            {
+                NotOwned = notOwned,
+                UserHidden = g.hidden != 0,
+            };
         }).ToList();
 
         var collections = conn.Query<(string Id, string Name, string? Icon, int Sort, string? Rule, int Count)>("""
@@ -211,7 +241,10 @@ public sealed partial class LibraryRepository(Database db)
         i.id, i.platform, i.platform_game_id, i.title, i.state, i.install_path,
         i.install_path is { Length: >= 2 } p && p[1] == ':' ? p[..2].ToUpperInvariant() : null,
         i.size_bytes, i.client_required != 0, i.launch_kind, i.imported_last_played, i.imported_playtime_minutes,
-        i.user_launch_args, i.manual_link != 0, i.last_seen);
+        i.user_launch_args, i.manual_link != 0, i.last_seen,
+        NoLongerOwned: i.unowned_since is not null && i.state != "installed" ? i.unowned_since : null,
+        LastPlayedSource: i.imported_last_played is null ? null : i.last_played_source,
+        Version: i.package_version, InstalledAt: i.installed_at);
 
     public Installation? GetInstallation(string installationId)
     {
@@ -719,6 +752,11 @@ public sealed partial class LibraryRepository(Database db)
         public string? user_launch_args { get; init; }
         public string first_seen { get; init; } = "";
         public string last_seen { get; init; } = "";
+        // Track C1 (migration 9).
+        public string? unowned_since { get; init; }
+        public string? last_played_source { get; init; }
+        public string? package_version { get; init; }
+        public string? installed_at { get; init; }
     }
 
     private sealed class SessionRow
