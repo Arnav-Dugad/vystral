@@ -1,0 +1,85 @@
+{
+ "_embedded": {
+  "product": {
+   "isAvailableForSale": false,
+   "isVisibleInCatalog": false,
+   "isPreorder": false,
+   "isVisibleInAccount": true,
+   "id": 1207664663,
+   "title": "The Witcher 3: Wild Hunt - Complete Edition",
+   "isInstallable": false,
+   "globalReleaseDate": "2015-05-19T00:00:00+02:00",
+   "hasProductCard": false,
+   "gogReleaseDate": "2015-05-19T01:00:00+02:00",
+   "category": "PACK",
+   "hasPatrons": false,
+   "hasHowLongToBeatInformation": true,
+   "hasDreamlistStories": true,
+   "hasOpenCriticInformation": true,
+   "hasFaqInformation": true,
+   "isSecret": false,
+   "_links": {
+    "image": {
+     "href": "https://images.gog-statics.com/45a0d9d39f01bd10a9d967194d81e0660da0cd93038501be48b32ac4667a8591_{formatter}.png",
+     "templated": true,
+     "formatters": [
+      "800",
+      "1600",
+      "glx_logo",
+      "glx_logo_2x",
+      "product_630",
+      "product_630_2x"
+     ]
+    },
+    "checkout": {
+     "href": "https://www.gog.com/en/checkout/manual/1207664663"
+    },
+    "prices": {
+     "href": "https://api.gog.com/products/1207664663/prices?countryCode={country}",
+     "templated": true
+    }
+   }
+  },
+  "videos": [
+   {
+    "provider": "youtube",
+    "videoId": "nBT2SP21f3Q",
+    "thumbnailId": "nBT2SP21f3Q",
+    "_links": {
+     "self": {
+      "href": "https://www.youtube.com/embed/nBT2SP21f3Q?wmode=opaque&rel=0"
+     },
+     "thumbnail": {
+      "href": "https://img.youtube.com/vi/nBT2SP21f3Q/hqdefault.jpg"
+     }
+    }
+   },
+   {
+    "provider": "youtube",
+    "videoId": "glo7AzNq8YY",
+    "thumbnailId": "glo7AzNq8YY",
+    "_links": {
+     "self": {
+      "href": "https://www.youtube.com/embed/glo7AzNq8YY?wmode=opaque&rel=0"
+     },
+     "thumbnail": {
+      "href": "https://img.youtube.com/vi/glo7AzNq8YY/hqdefault.jpg"
+     }
+    }
+   },
+   {
+    "provider": "youtube",
+    "videoId": "1-l29HlKkXU",
+    "thumbnailId": "1-l29HlKkXU",
+    "_links": {
+     "self": {
+      "href": "https://www.youtube.com/embed/1-l29HlKkXU?wmode=opaque&rel=0"
+     },
+     "thumbnail": {
+      "href": "https://img.youtube.com/vi/1-l29HlKkXU/hqdefault.jpg"
+     }
+    }
+   }
+  ]
+ }
+}

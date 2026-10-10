@@ -9,8 +9,11 @@ using Vystral.Core.Media;
 namespace Vystral.Windows.Services;
 
 /// <summary>What the detail page needs to know about a game's trailer.</summary>
-/// <param name="Reason">Why there is no playable trailer: noSteamApp, none, notChecked, offline, dataSaver, gameRunning, lookupsOff.</param>
-public sealed record TrailerDto(bool Available, string? Kind, string? Src, string? Name, string? Reason, string Source);
+/// <param name="Reason">Why there is no playable trailer: noSteamApp, none, notChecked, offline, dataSaver, gameRunning, lookupsOff, youtubeOff.</param>
+/// <param name="Kind">hls | file | youtube (Track D4: a youtube-nocookie.com embed URL in <paramref name="Src"/>, only with "Allow YouTube trailers" on).</param>
+/// <param name="Source">Who the trailer comes from: Steam, RAWG, IGDB or GOG (Track D4).</param>
+/// <param name="Via">Track D4: for a Steam trailer of a game that isn't a Steam game, how its Steam app was found: matched | pinned.</param>
+public sealed record TrailerDto(bool Available, string? Kind, string? Src, string? Name, string? Reason, string Source, string? Via = null);
 
 /// <summary>A proxied trailer response, already size-limited.</summary>
 public sealed record TrailerResponse(int Status, string Reason, byte[] Body, string ContentType, string? ContentRange)
@@ -72,7 +75,23 @@ public sealed partial class TrailerService : IDisposable
         })
         { Timeout = TimeSpan.FromSeconds(25) };
         _media.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
+        SteamAppFor = gameId => _repo.GetSteamAppId(gameId) is { } own ? (own, null) : null;
     }
+
+    /// <summary>
+    /// Track D4: the Steam app a library game's trailer comes from — its own, or one matched or chosen by the cross-store
+    /// identity resolver (labelled through <c>Via</c>). Defaults to the game's own Steam app.
+    /// </summary>
+    public Func<string, (string AppId, string? Via)?> SteamAppFor { get; set; }
+
+    /// <summary>Track D4: a trailer from RAWG, IGDB or GOG when Steam has none for the game (the caller caches it; the bool says whether the network may be used).</summary>
+    public Func<string, bool, CancellationToken, Task<Vystral.Windows.DataSources.ExternalTrailer?>>? AlternativeLookup { get; set; }
+
+    /// <summary>Track D4: "Allow YouTube trailers" (off by default).</summary>
+    public const string YouTubeSetting = "trailers.youtube";
+
+    /// <summary>Track D4: alternative MP4 trailers currently offered, by game ID (the proxy serves only these, re-validated).</summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Vystral.Windows.DataSources.ExternalTrailer> _alternative = new(StringComparer.Ordinal);
 
     /// <summary>Track U: trailers of games that aren't in the library, by a stand-in ID (kept in memory only, capped).</summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SteamTrailer> _external = new(StringComparer.Ordinal);
@@ -114,8 +133,10 @@ public sealed partial class TrailerService : IDisposable
             return new TrailerDto(true, isHls ? "hls" : "file",
                 $"https://{MediaService.MediaHost}{PathPrefix}{gameId}/{(isHls ? SteamTrailers.MasterEntry : SteamTrailers.FileEntry)}", ext.Name, null, source);
         }
-        var appId = _repo.GetSteamAppId(gameId);
-        if (appId is null || !AppId().IsMatch(appId)) return new TrailerDto(false, null, null, null, "noSteamApp", source);
+        var resolved = SteamAppFor(gameId);
+        var appId = resolved?.AppId;
+        var via = resolved?.Via;
+        if (appId is null || !AppId().IsMatch(appId)) return await AlternativeAsync(gameId, new TrailerDto(false, null, null, null, "noSteamApp", source), ct);
 
         var row = _repo.GetTrailer(gameId);
         var block = BlockReason();
@@ -124,7 +145,7 @@ public sealed partial class TrailerService : IDisposable
         {
             if (!_settings.GetBool("library.fetchMetadata"))
             {
-                if (row is null) return new TrailerDto(false, null, null, null, "lookupsOff", source);
+                if (row is null) return new TrailerDto(false, null, null, null, "lookupsOff", source, via);
             }
             else
             {
@@ -132,14 +153,52 @@ public sealed partial class TrailerService : IDisposable
                 row = _repo.GetTrailer(gameId);
             }
         }
-        if (block is not null) return new TrailerDto(false, null, null, row?.Trailer?.Name, block, source);
-        if (row is null) return new TrailerDto(false, null, null, null, "notChecked", source);
-        if (row.Value.Trailer is not { } t) return new TrailerDto(false, null, null, null, "none", source);
+        // A trailer saved for another Steam app (the match was corrected meanwhile) isn't this game's.
+        if (row is { } r0 && r0.SteamAppId != appId) row = null;
+        if (block is not null) return new TrailerDto(false, null, null, row?.Trailer?.Name, block, source, via);
+        if (row is null) return new TrailerDto(false, null, null, null, "notChecked", source, via);
+        if (row.Value.Trailer is not { } t) return await AlternativeAsync(gameId, new TrailerDto(false, null, null, null, "none", source, via), ct);
 
+        _alternative.TryRemove(gameId, out _);
         var hls = t.Format == "hls";
         var src = $"https://{MediaService.MediaHost}{PathPrefix}{gameId}/{(hls ? SteamTrailers.MasterEntry : SteamTrailers.FileEntry)}";
-        return new TrailerDto(true, hls ? "hls" : "file", src, t.Name, null, source);
+        return new TrailerDto(true, hls ? "hls" : "file", src, t.Name, null, source, via);
     }
+
+    /// <summary>
+    /// Track D4: when Steam has no trailer for a game (or the game has no Steam app), the best other source: an MP4
+    /// from RAWG (through this same proxy), else a YouTube video from IGDB or GOG — the latter only with "Allow YouTube
+    /// trailers" on, and never fetched by VYSTRAL itself (the page embeds youtube-nocookie.com in a sandboxed frame).
+    /// </summary>
+    private async Task<TrailerDto> AlternativeAsync(string gameId, TrailerDto steamAnswer, CancellationToken ct)
+    {
+        if (AlternativeLookup is null) return steamAnswer;
+        var block = BlockReason();
+        Vystral.Windows.DataSources.ExternalTrailer? alt;
+        try { alt = Vystral.Windows.DataSources.ExternalTrailers.Validate(await AlternativeLookup(gameId, block is null, ct)); }
+        catch (Exception ex) when (ex is Vystral.Windows.DataSources.DataSourceException or HttpRequestException or JsonException)
+        {
+            Log.Warn("trailer", "Alternative trailer lookup failed", new { gameId, error = ex.GetType().Name });
+            return steamAnswer;
+        }
+        if (alt is null)
+        {
+            _alternative.TryRemove(gameId, out _);
+            return steamAnswer;
+        }
+        var label = Vystral.Windows.DataSources.ExternalTrailers.SourceLabel(alt.Source);
+        if (block is not null) return new TrailerDto(false, null, null, alt.Name, block, label);
+        if (alt.Kind == "youtube")
+        {
+            if (!_settings.GetBool(YouTubeSetting)) return new TrailerDto(false, null, null, alt.Name, "youtubeOff", label);
+            return new TrailerDto(true, "youtube", YouTubeEmbed.EmbedUrl(alt.YouTubeId!), alt.Name, null, label);
+        }
+        _alternative[gameId] = alt;
+        return new TrailerDto(true, "file", $"https://{MediaService.MediaHost}{PathPrefix}{gameId}/{SteamTrailers.FileEntry}", alt.Name, null, label);
+    }
+
+    /// <summary>Track D4: forgets the alternative trailer offered for a game (its identity changed).</summary>
+    public void ForgetAlternative(string gameId) => _alternative.TryRemove(gameId, out _);
 
     private async Task LookupAsync(string gameId, string appId, CancellationToken ct)
     {
@@ -173,8 +232,20 @@ public sealed partial class TrailerService : IDisposable
         if (ParseProxyPath(absolutePath) is not { } parsed) return null;
         var (gameId, relative) = parsed;
         if (BlockReason() is not null) return null;
-        if ((_external.TryGetValue(gameId, out var ext) ? ext : _repo.GetTrailer(gameId)?.Trailer) is not { } trailer) return null;
-        var upstream = SteamTrailers.ResolveUpstream(trailer, relative);
+        Uri? upstream;
+        string type;
+        if ((_external.TryGetValue(gameId, out var ext) ? ext : _repo.GetTrailer(gameId)?.Trailer) is { } trailer)
+        {
+            upstream = SteamTrailers.ResolveUpstream(trailer, relative);
+            type = SteamTrailers.ContentTypeFor(trailer, relative);
+        }
+        else if (_alternative.TryGetValue(gameId, out var alt))
+        {
+            // Track D4: a RAWG MP4, re-validated against the allow-list on every request.
+            upstream = Vystral.Windows.DataSources.ExternalTrailers.ResolveUpstream(alt, relative);
+            type = "video/mp4";
+        }
+        else return null;
         if (upstream is null) return null;
 
         var single = relative == SteamTrailers.FileEntry;
@@ -196,7 +267,6 @@ public sealed partial class TrailerService : IDisposable
             if (response.Content.Headers.ContentLength > limit) return null;
             var body = await ReadCappedAsync(response.Content, limit, timeout.Token);
             if (body is null) return null;
-            var type = SteamTrailers.ContentTypeFor(trailer, relative);
             if (response.StatusCode == HttpStatusCode.PartialContent && response.Content.Headers.ContentRange is { } cr)
                 return new TrailerResponse(206, "Partial Content", body, type, cr.ToString());
             return new TrailerResponse(200, "OK", body, type, null);

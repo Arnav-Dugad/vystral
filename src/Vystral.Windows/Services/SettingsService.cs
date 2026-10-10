@@ -197,6 +197,14 @@ public sealed class SettingsService
         new BoolDef("ai.features.smartCollections", true),
         new BoolDef("ai.features.duplicates", true),
         new BoolDef("ai.features.recapCaptions", false),
+        // Track D4: cross-store matching (non-Steam games get Steam data through a matched Steam app, labelled), YouTube
+        // trailers (off: a sandboxed youtube-nocookie.com frame), and four more free sources (all off by default).
+        new BoolDef("dataSources.identityMatch", true),
+        new BoolDef("trailers.youtube", false),
+        new BoolDef("dataSources.gamerpower", false),
+        new BoolDef("dataSources.epicFreeGames", false),
+        new BoolDef("dataSources.protondb", false),
+        new BoolDef("dataSources.gogCatalog", false),
     ];
 
     private const string CloudModelPattern = @"^([A-Za-z0-9][A-Za-z0-9._:/\-]{0,119})?\z";

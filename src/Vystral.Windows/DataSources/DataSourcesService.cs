@@ -121,7 +121,24 @@ public sealed class DataSourcesService
         }
         PcGamingWiki = new PcGamingWikiClient(_transports["pcgamingwiki"] = new ProviderTransport(noRedirect, "pcgamingwiki", "PCGamingWiki", TimeSpan.FromMilliseconds(1500), 3 * 1024 * 1024));
         WorkshopDetails = new WorkshopDetailsClient(T("workshop", "Steam Workshop", 1600, 2 * 1024 * 1024));
+        // Track D4: more free sources, each on its own spaced lane.
+        GamerPower = new GamerPowerClient(T("gamerpower", "GamerPower", 1000, 2 * 1024 * 1024));
+        EpicFreeGames = new EpicFreeGamesClient(T("epicfree", "Epic Games Store", 2000, 2 * 1024 * 1024));
+        ProtonDb = new ProtonDbClient(T("protondb", "ProtonDB", 1500, 64 * 1024));
+        GogCatalog = new GogCatalogClient(T("gogcatalog", "GOG", 1500, 2 * 1024 * 1024));
     }
+
+    /// <summary>Track D4: free giveaways (GamerPower), Epic's free games, ProtonDB summaries and GOG's public catalogue.</summary>
+    public GamerPowerClient GamerPower { get; }
+    public EpicFreeGamesClient EpicFreeGames { get; }
+    public ProtonDbClient ProtonDb { get; }
+    public GogCatalogClient GogCatalog { get; }
+
+    /// <summary>
+    /// Track D4: the Steam app a library game's Steam-keyed data (prices, Deck, anti-cheat) is about: its own, or a
+    /// matched/chosen one from the cross-store identity resolver. Defaults to the game's own.
+    /// </summary>
+    public Func<Game, string?> SteamAppFor { get; set; } = g => g.SteamAppId;
 
     internal ProviderTransport Transport(string id) => _transports[id];
 
@@ -197,6 +214,27 @@ public sealed class DataSourcesService
             "Workshop titles from Steam.", "api.steampowered.com",
             "The Workshop item IDs installed for a game, when you open its Files tab (up to 100 per request).",
             "Names for the Workshop items in a game's mod list instead of bare numbers."),
+        // Track D4 (all off by default).
+        new("gamerpower", "GamerPower", "keyless", null, "dataSources.gamerpower",
+            "Free for personal and commercial use with an active link back to GamerPower.com (shown wherever its giveaways appear).",
+            "Giveaways from GamerPower.com.", "www.gamerpower.com",
+            "Nothing about you: the public list of PC giveaways, at most every few hours.",
+            "Free games and in-game items you can claim right now on Steam, Epic, GOG and more."),
+        new("epicfree", "Epic free games", "keyless", null, "dataSources.epicFreeGames",
+            "Epic’s public store data, shown with attribution. Not a documented API: it may change, and VYSTRAL stops quietly if it does.",
+            "Free games from the Epic Games Store.", "store-site-backend-static.ak.epicgames.com",
+            "Your price country, when the free-games list is refreshed (at most every few hours).",
+            "This week’s and next week’s free games on the Epic Games Store, with exact dates."),
+        new("protondb", "ProtonDB", "keyless", null, "dataSources.protondb",
+            "Community reports, ODbL. Shown with attribution; looked up on this PC only, never redistributed. Not a documented API.",
+            "Linux compatibility from ProtonDB.com.", "www.protondb.com",
+            "A game’s Steam app ID (its own or the matched one), when you open that game’s page.",
+            "How well a game runs on Linux and Steam Deck through Proton, as rated by players."),
+        new("gogcatalog", "GOG catalogue", "keyless", null, "dataSources.gogCatalog",
+            "GOG’s public store data, shown with attribution. Not a documented API: it may change, and VYSTRAL stops quietly if it does.",
+            "Store IDs and trailers from GOG.com.", "catalog.gog.com, api.gog.com",
+            "Titles of games that aren’t from GOG (to find their GOG page), and GOG product IDs when you open a game’s page.",
+            "Matching games to their GOG page, and GOG’s trailer list (YouTube) for the trailer fallback."),
     ];
 
     public DataSourcesStatusDto Status()
@@ -313,6 +351,11 @@ public sealed class DataSourcesService
                     "steamdeck" => await Do(async () => await SteamStore.GetDeckReportAsync("620", ct) is not null ? "Steam answered." : "Steam answered without a report."),
                     "pcgamingwiki" => await PcGamingWiki.TestAsync(ct), // Track X
                     "workshop" => await WorkshopDetails.TestAsync(ct),  // Track X
+                    // Track D4.
+                    "gamerpower" => await GamerPower.TestAsync(ct),
+                    "epicfree" => await Do(async () => $"Epic answered with {(await EpicFreeGames.GetAsync(Country, ct)).Count.ToString(CultureInfo.InvariantCulture)} free games."),
+                    "protondb" => await ProtonDb.TestAsync(ct),
+                    "gogcatalog" => await Do(async () => { await GogCatalog.TestAsync(ct); return "GOG answered."; }),
                     _ =>await Do(async () => $"Downloaded {await RefreshAntiCheatAsync(force: true, ct)} entries."),
                 };
             }
@@ -466,7 +509,7 @@ public sealed class DataSourcesService
     public async Task<DealsDto> GetDealsAsync(string gameId, bool refresh, CancellationToken ct)
     {
         var game = _repo.GetGame(gameId) ?? throw new DataSourceException(DataSourceOutcome.Malformed, "That game no longer exists.");
-        return await GetDealsForSteamAppAsync(game.SteamAppId, refresh, ct);
+        return await GetDealsForSteamAppAsync(SteamAppFor(game), refresh, ct);
     }
 
     /// <summary>Track U: prices by Steam app ID, for games that aren't in the library too (Discover pages). Same cache and rules.</summary>
@@ -526,7 +569,7 @@ public sealed class DataSourcesService
     public string? OfferUrl(string gameId, string offerId)
     {
         var game = _repo.GetGame(gameId);
-        return OfferUrlForSteamApp(game?.SteamAppId, offerId);
+        return OfferUrlForSteamApp(game is null ? null : SteamAppFor(game), offerId);
     }
 
     /// <summary>Track U: the link of one offer previously shown for a Steam app (the page never sends URLs).</summary>
@@ -630,7 +673,7 @@ public sealed class DataSourcesService
     public async Task<CompatDto> GetCompatAsync(string gameId, CancellationToken ct)
     {
         var game = _repo.GetGame(gameId) ?? throw new DataSourceException(DataSourceOutcome.Malformed, "That game no longer exists.");
-        return await GetCompatForSteamAppAsync(game.SteamAppId, ct);
+        return await GetCompatForSteamAppAsync(SteamAppFor(game), ct);
     }
 
     /// <summary>Track U: Steam Deck and anti-cheat by Steam app ID, for games that aren't in the library too. Same cache and rules.</summary>

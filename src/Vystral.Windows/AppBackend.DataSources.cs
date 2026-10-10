@@ -162,8 +162,7 @@ public sealed partial class AppBackend
         Dispatcher.Register("compat.antiCheatMap", _ => Task.FromResult<object?>(_dataSources.AntiCheatMap()));
         Dispatcher.Register<GameIdParams>("compat.openAntiCheat", (p, _) =>
         {
-            var game = Repository.GetGame(RequireId(p.GameId));
-            var slug = game?.SteamAppId is { } a ? Repository.GetAntiCheat("steam", a)?.Slug : null;
+            var slug = SteamAppIdOf(RequireId(p.GameId)) is { } a ? Repository.GetAntiCheat("steam", a)?.Slug : null; // Track D4: own or matched app
             _shell.OpenUri(new Uri(slug is null ? "https://areweanticheatyet.com/" : $"https://areweanticheatyet.com/game/{slug}"));
             return Task.FromResult<object?>(true);
         });
