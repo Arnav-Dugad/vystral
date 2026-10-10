@@ -65,3 +65,7 @@
 .srow.srow--stack { flex-direction: column; align-items: stretch; gap: var(--s-3); }
 .srow[aria-disabled] .srow__label, .srow[aria-disabled] .srow__hint { opacity: 0.6; }
 .cloudplus-grid { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; }
+
+/* A caption with an action (Stream) puts the reason on its own lines and the buttons underneath. */
+.pick-cap[data-has-extra] { flex-direction: column; align-items: stretch; gap: 6px; }
+.pick-cap[data-has-extra] .pick-cap__tools { justify-content: space-between; }

@@ -78,7 +78,7 @@ export function FreeShelf({ place }: { place: 'discover' | 'home' }) {
       >
         {items.map((it, i) => <FreeCard key={it.id} item={it} games={games} now={now} index={i} />)}
       </DiscoverShelf>
-      <p className="free-note disc-credit">
+      <p className="free-note">
         From GamerPower’s public giveaway list{data.fetchedAt ? `, checked ${formatRelative(data.fetchedAt).toLowerCase()}` : ''}{stale ? ' (an older copy)' : ''}. VYSTRAL never claims, signs in or buys anything.
       </p>
     </>

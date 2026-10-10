@@ -123,6 +123,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterLibraryCorrectnessHandlers(); // AppBackend.LibraryCorrectness.cs: Xbox package sizes in the background (Track C1)
         RegisterAiFeatureHandlers();      // AppBackend.AiFeatures.cs: optional cloud AI providers and AI-assisted features (Track C5)
         RegisterTrackC2Handlers();        // AppBackend.TrackC2.cs: Performance page rig summary, startup timing history (Track C2)
+        RegisterRecommendHandlers();      // AppBackend.Recommend.cs: "Not interested", cloud readiness, Discover cloud badges (Track D5)
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

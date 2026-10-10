@@ -12,7 +12,7 @@ export function PickCaption({ pick, extra }: { pick: Pick<Recommendation, 'reaso
   const dismiss = useDismiss();
   const more = pick.reasons.length > 1 ? pick.reasons.slice(0, 4).map((r) => r.text).join('\n') : undefined;
   return (
-    <div className="pick-cap">
+    <div className="pick-cap" data-has-extra={extra ? '' : undefined}>
       <p className="pick-cap__why" title={more}>{pick.reason}</p>
       <div className="pick-cap__tools">
         {extra}

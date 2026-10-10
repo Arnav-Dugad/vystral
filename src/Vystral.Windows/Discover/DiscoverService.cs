@@ -663,6 +663,46 @@ public sealed partial class DiscoverService
         return (options, options.Count > 0 ? null : anyData ? "none" : "noData");
     }
 
+    /// <summary>
+    /// Track D5: cloud availability for many Discover cards at once (the same rules as <see cref="CloudFor"/>: GeForce NOW
+    /// only by Steam app ID, Xbox Cloud Gaming by an unambiguous title). Titles come from what this service already
+    /// found for each key, never from the page; keys it doesn't know are matched by Steam app ID only. No request is made.
+    /// </summary>
+    public (bool Enabled, IReadOnlyDictionary<string, IReadOnlyList<DiscoverCloudBadgeDto>> Map) CloudForMany(IReadOnlyList<string> keys)
+    {
+        var cloud = _cloud();
+        var map = new Dictionary<string, IReadOnlyList<DiscoverCloudBadgeDto>>(StringComparer.Ordinal);
+        if (cloud is null || !cloud.Enabled) return (false, map);
+        var (market, _) = cloud.Market;
+        var games = new List<CloudLibraryGame>();
+        foreach (var key in keys.Distinct(StringComparer.Ordinal))
+        {
+            var ids = IdsFor(key);
+            var title = _entries.TryGet(key, out var e) ? e.Title : _details.TryGet(key, out var d) ? d.Dto.Title : null;
+            if (title is null && ids.Steam is null) continue;
+            var copies = ids.Steam is not null ? new List<CloudLibraryCopy> { new(CloudStores.Steam, ids.Steam, title ?? "") } : [new("discover", "", title!)];
+            games.Add(new CloudLibraryGame(key, title ?? "", ids.Steam, copies));
+        }
+        if (games.Count == 0) return (true, map);
+        var found = new Dictionary<string, List<DiscoverCloudBadgeDto>>(StringComparer.Ordinal);
+        foreach (var service in CloudServices.All)
+        {
+            if (!cloud.ServiceOn(service)) continue;
+            var catalog = _repo.GetCloudCatalog(service, market);
+            if (catalog.Count == 0) continue;
+            // A game without a known title can only match by store ID.
+            foreach (var m in CloudMatcher.Match(service, catalog, games, new Dictionary<string, string>()))
+            {
+                if (m.Kind == CloudMatchKind.Title && games.First(g => g.GameId == m.GameId).Title.Length == 0) continue;
+                if (!found.TryGetValue(m.GameId, out var list)) found[m.GameId] = list = [];
+                if (list.Any(x => x.Service == service)) continue;
+                list.Add(new DiscoverCloudBadgeDto(service, m.Kind == CloudMatchKind.StoreId ? "store" : "title", m.Entry.PlayType));
+            }
+        }
+        foreach (var (k, v) in found) map[k] = v;
+        return (true, map);
+    }
+
     // ---------------- deals, watching ----------------
 
     public string? SteamAppIdFor(string key) => _details.TryGet(key, out var d) ? d.Dto.SteamAppId : IdsFor(key).Steam;

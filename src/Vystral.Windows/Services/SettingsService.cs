@@ -197,6 +197,9 @@ public sealed class SettingsService
         new BoolDef("ai.features.smartCollections", true),
         new BoolDef("ai.features.duplicates", true),
         new BoolDef("ai.features.recapCaptions", false),
+        // Track D5: "Free this week" (public giveaways from GamerPower; opt-in) on Discover, and optionally as a Home row.
+        new BoolDef("freebies.enabled", false),
+        new BoolDef("freebies.homeRow", false),
     ];
 
     private const string CloudModelPattern = @"^([A-Za-z0-9][A-Za-z0-9._:/\-]{0,119})?\z";

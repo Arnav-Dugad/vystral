@@ -6,9 +6,9 @@
  */
 import type { CloudBadge, CloudMeter, CloudReadiness, CloudReadinessLevel, CloudService, Session } from '../bridge/types';
 import { formatHours, SERVICE_SHORT } from './cloud';
+import { formatBytes } from './format';
 
 const DAY = 86_400_000;
-const GB = 1_000_000_000;
 
 /** The badge "Play in the cloud" starts by default: verified store matches first, then ready-to-play GeForce NOW, then Xbox. */
 export function preferredBadge(badges: readonly CloudBadge[] | null | undefined): CloudBadge | null {
@@ -48,7 +48,8 @@ export interface PlayWayAdvice {
   alternative: string | null;
 }
 
-const gb = (bytes: number) => `${bytes >= 10 * GB ? Math.round(bytes / GB) : (Math.round(bytes / GB * 10) / 10).toLocaleString()} GB`;
+/** Sizes read the same as everywhere else in VYSTRAL (Storage, game pages). */
+const gb = (bytes: number) => formatBytes(bytes);
 
 /**
  * Installed or cloud? Weighs what's known: installed is always best (full quality, no queue); otherwise disk space,

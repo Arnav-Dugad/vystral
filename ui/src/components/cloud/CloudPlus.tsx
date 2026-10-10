@@ -47,9 +47,9 @@ export function CloudReadinessCard({ compact }: { compact?: boolean }) {
                 <span className="cready__probe-name">{SERVICE_SHORT[p.service]}</span>
                 {p.latencyMs != null ? (
                   <>
-                    <span className="cready__num num" title="Median time to open a connection: about one round trip">{Math.round(p.latencyMs)} ms</span>
+                    <span className="cready__num" title="Median time to open a connection: about one round trip">{Math.round(p.latencyMs)} ms</span>
                     <span className="cready__dim">round trip</span>
-                    {p.jitterMs != null && <><span className="cready__num num" title="How much the round trip varied between attempts">± {Math.round(p.jitterMs)} ms</span><span className="cready__dim">jitter</span></>}
+                    {p.jitterMs != null && <><span className="cready__num" title="How much the round trip varied between attempts">± {Math.round(p.jitterMs)} ms</span><span className="cready__dim">jitter</span></>}
                     {p.loss > 0 && <span className="cready__loss">{Math.round(p.loss * 100)}% no answer</span>}
                   </>
                 ) : <span className="cready__dim">{p.error ?? 'No answer'}</span>}
@@ -145,17 +145,17 @@ export function CloudInsightsCard() {
   return (
     <div className="cinsights" aria-label="Cloud sessions">
       <div className="cinsights__stats">
-        <div className="cinsights__stat"><span className="cinsights__value num">{formatHours(ins.seconds)}</span><span className="cinsights__label">streamed in {ins.sessions} session{ins.sessions === 1 ? '' : 's'}</span></div>
-        {ins.typicalSeconds != null && <div className="cinsights__stat"><span className="cinsights__value num">{formatHours(ins.typicalSeconds)}</span><span className="cinsights__label">a typical session</span></div>}
-        <div className="cinsights__stat"><span className="cinsights__value num">{formatHours(ins.longestSeconds)}</span><span className="cinsights__label">longest session</span></div>
-        <div className="cinsights__stat"><span className="cinsights__value num">{formatHours(ins.last30)}</span><span className="cinsights__label">last 30 days</span></div>
+        <div className="cinsights__stat"><span className="cinsights__value">{formatHours(ins.seconds)}</span><span className="cinsights__label">streamed in {ins.sessions} session{ins.sessions === 1 ? '' : 's'}</span></div>
+        {ins.typicalSeconds != null && <div className="cinsights__stat"><span className="cinsights__value">{formatHours(ins.typicalSeconds)}</span><span className="cinsights__label">a typical session</span></div>}
+        <div className="cinsights__stat"><span className="cinsights__value">{formatHours(ins.longestSeconds)}</span><span className="cinsights__label">longest session</span></div>
+        <div className="cinsights__stat"><span className="cinsights__value">{formatHours(ins.last30)}</span><span className="cinsights__label">last 30 days</span></div>
       </div>
       <ul className="cinsights__rows">
         {ins.byService.map((b) => (
-          <li key={b.service}><CloudMark service={b.service} size={12} /> {SERVICE_NAME[b.service]}: <strong className="num">{formatHours(b.seconds)}</strong> · {b.sessions} session{b.sessions === 1 ? '' : 's'}</li>
+          <li key={b.service}><CloudMark service={b.service} size={12} /> {SERVICE_NAME[b.service]}: <strong className="cinsights__n">{formatHours(b.seconds)}</strong> · {b.sessions} session{b.sessions === 1 ? '' : 's'}</li>
         ))}
         {ins.topGames.map((g) => (
-          <li key={g.gameId}><Cloud size={12} aria-hidden /> {gamesById.get(g.gameId)?.title ?? 'A game no longer in your library'}: <strong className="num">{formatHours(g.seconds)}</strong></li>
+          <li key={g.gameId}><Cloud size={12} aria-hidden /> {gamesById.get(g.gameId)?.title ?? 'A game no longer in your library'}: <strong className="cinsights__n">{formatHours(g.seconds)}</strong></li>
         ))}
       </ul>
       <p className="cinsights__foot">
