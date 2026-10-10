@@ -54,6 +54,10 @@
 .free-invite__text { flex: 1; min-width: 0; display: grid; gap: 4px; }
 .free-invite__text p { margin: 0; color: var(--text-2); font-size: var(--fs-sm); line-height: 1.5; }
 .free-note { margin: 4px 0 0; font-size: var(--fs-xs); color: var(--text-3); }
+.free-note__link { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
+.free-note__link:hover, .free-note__link:focus-visible { color: var(--text-1); }
+.free-card[data-upcoming] .free-card__cover { filter: saturate(0.75); }
+.free-card[data-upcoming] .free-card__ribbon { color: var(--text-1); background: oklch(0.3 0.02 282 / 0.9); box-shadow: none; }
 @media (max-width: 720px) { .free-invite { flex-wrap: wrap; } }
 
 /* Settings → Not interested list */

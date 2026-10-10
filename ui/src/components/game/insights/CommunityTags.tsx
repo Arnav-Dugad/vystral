@@ -3,6 +3,7 @@ import { Hash } from 'lucide-react';
 import type { GameTags } from '../../../bridge/types';
 import { formatRelative } from '../../../lib/format';
 import { requestLibraryTags } from '../../../lib/libraryTags';
+import { useIdentityStore } from '../../../state/identity';
 import { useStore } from '../../../state/store';
 import { StoreLogo } from '../../ui/StoreLogo';
 import { useBridgeData } from './useBridgeData';
@@ -16,7 +17,10 @@ const SHOWN = 12;
  */
 export function CommunityTags({ params, cacheKey }: { params: { gameId: string } | { key: string; appId: string }; cacheKey: string }) {
   const settings = useStore((s) => `${s.settings?.['dataSources.steamTags']}${s.settings?.['library.fetchMetadata']}${s.settings?.['privacy.localOnly']}`);
-  const { data } = useBridgeData<GameTags>('tags.get', params, `${cacheKey}|${settings}`);
+  // Track D4: a non-Steam game's tags come from its matched (or chosen) Steam app; refetch when that changes, and say so.
+  const identity = useIdentityStore((s) => ('gameId' in params ? s.byGame[params.gameId] ?? null : null));
+  const matched = identity && (identity.status === 'matched' || identity.status === 'pinned') ? identity : null;
+  const { data } = useBridgeData<GameTags>('tags.get', params, `${cacheKey}|${settings}|${identity?.status ?? ''}${matched?.steam?.value ?? ''}`);
   const navigate = useStore((s) => s.navigate);
   const [all, setAll] = useState(false);
   if (!data || !data.tags.length) return null;
@@ -41,7 +45,7 @@ export function CommunityTags({ params, cacheKey }: { params: { gameId: string }
         )}
       </ul>
       <p className="gi-tile__src">
-        <StoreLogo platform="steam" size={12} decorative /> Community tags applied by Steam players, strongest first{data.fetchedAt ? ` · checked ${formatRelative(data.fetchedAt).toLowerCase()}` : ''}{data.stale ? ' · couldn’t refresh' : ''}
+        <StoreLogo platform="steam" size={12} decorative /> Community tags applied by Steam players, strongest first{matched ? ` · for ${matched.steam?.name ? `“${matched.steam.name}”` : 'the Steam version'}, ${matched.status === 'pinned' ? 'chosen by you' : 'matched automatically'}` : ''}{data.fetchedAt ? ` · checked ${formatRelative(data.fetchedAt).toLowerCase()}` : ''}{data.stale ? ' · couldn’t refresh' : ''}
       </p>
     </section>
   );

@@ -24,7 +24,8 @@ public sealed partial class RecommendStore(string dataRoot)
     private readonly Lock _lock = new();
     private string FilePath => Path.Combine(dataRoot, "ui-state", "recommend.json");
 
-    [GeneratedRegex(@"\A(?:game:[0-9a-f]{32}|free:[0-9]{1,10})\z")]
+    /// <summary>Library games, and Track D4's giveaway ids (FreebiesService.ItemId).</summary>
+    [GeneratedRegex(@"\A(?:game:[0-9a-f]{32}|free:(?:gp-[0-9]{1,9}|epic-[0-9a-f]{16,32}))\z")]
     private static partial Regex GameOrFreeKey();
 
     /// <summary>Feature keys: k: (genre or tag), s: (series) or d: (developer), then 1–48 printable characters.</summary>

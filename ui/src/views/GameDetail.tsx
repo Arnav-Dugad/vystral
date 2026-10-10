@@ -31,6 +31,9 @@ import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, SectionHea
 import { StoreLogo } from '../components/ui/StoreLogo';
 import { DriverChangeCard } from './perf/DataInsightCards';
 import { GameExtras, IdentityPanel } from '../components/game/GameDataPanels';
+import { IdentityMatchCard } from '../components/game/IdentityMatch';
+import { useIdentityStore } from '../state/identity';
+import { steamLinkOf } from '../lib/identity';
 import { TimeToBeatPanel } from '../components/game/TimeToBeatBar';
 import { CompletionForecastPanel } from '../components/game/CompletionForecast';
 import { HardwareTimeline } from './perf/HardwareTimeline';
@@ -66,6 +69,7 @@ export function GameDetailView({ id }: { id: string }) {
   const loaded = useStore((s) => s.libraryLoaded);
   const navigate = useStore((s) => s.navigate);
   const setFocusGame = useStore((s) => s.setFocusGame);
+  const identity = useIdentityStore((s) => s.byGame[id] ?? null); // Track D4: a matched Steam app brings Steam news too
   // Track Q: another page can ask for a tab ("See versions" from the health check).
   const [tab, setTab] = useState<Tab>(() => {
     const requested = takeGameTab(id);
@@ -109,7 +113,7 @@ export function GameDetailView({ id }: { id: string }) {
             tabs={[
               { value: 'overview', label: 'Overview' },
               { value: 'achievements', label: 'Achievements' },
-              ...(isSteamGame(game) ? [{ value: 'news' as const, label: 'News' }] : []), // Track W: patch notes and announcements
+              ...(steamLinkOf(game, identity) ? [{ value: 'news' as const, label: 'News' }] : []), // Track W: patch notes and announcements (Track D4: also a matched Steam app's)
               { value: 'sessions', label: `Sessions${game.sessionCount ? ` · ${game.sessionCount}` : ''}` },
               { value: 'versions', label: `Versions${game.installations.length > 1 ? ` · ${game.installations.length}` : ''}` },
               { value: 'artwork', label: 'Artwork' },
@@ -554,6 +558,8 @@ function Versions({ game }: { game: Game }) {
       ))}
       {/* Track I: the same game's IDs on other stores, from Wikidata. */}
       <IdentityPanel game={game} />
+      {/* Track D4: the same game's Steam, IGDB, RAWG, GOG and Wikidata IDs, how each was found, and "Fix match". */}
+      <IdentityMatchCard game={game} />
     </div>
   );
 }

@@ -1,0 +1,98 @@
+{
+ "4814120": {
+  "success": true,
+  "data": {
+   "type": "game",
+   "name": "ANANTA",
+   "steam_appid": 4814120,
+   "is_free": true,
+   "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4814120/3bd40cfd93dfe6e7a21d9f825fa3b82ee1c57105/header.jpg?t=1790579282",
+   "capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4814120/700d5ea448d403ac2b7aa8fc330433bf0623b002/capsule_231x87.jpg?t=1790579282",
+   "capsule_imagev5": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4814120/700d5ea448d403ac2b7aa8fc330433bf0623b002/capsule_184x69.jpg?t=1790579282",
+   "release_date": {
+    "coming_soon": true,
+    "date": "15 Jan, 2027"
+   }
+  }
+ },
+ "3061930": {
+  "success": true,
+  "data": {
+   "type": "game",
+   "name": "CLUTCH",
+   "steam_appid": 3061930,
+   "is_free": false,
+   "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3061930/26691256a0032fe27b2cd378db0ea07656ab9f1c/header.jpg?t=1791303589",
+   "capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3061930/21dd8eee88390ecb4265337cf9aa9381f262b0f1/capsule_231x87.jpg?t=1791303589",
+   "capsule_imagev5": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3061930/21dd8eee88390ecb4265337cf9aa9381f262b0f1/capsule_184x69.jpg?t=1791303589",
+   "release_date": {
+    "coming_soon": true,
+    "date": "2027"
+   }
+  }
+ },
+ "3596430": {
+  "success": true,
+  "data": {
+   "type": "game",
+   "name": "Bancho the Chef",
+   "steam_appid": 3596430,
+   "is_free": false,
+   "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3596430/4c91500b03cb5f1e293ca1d4005775b68e894dc8/header.jpg?t=1780438904",
+   "capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3596430/5b5ad62015d1dadcd207e7f1d4055522876484ea/capsule_231x87.jpg?t=1780438904",
+   "capsule_imagev5": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3596430/5b5ad62015d1dadcd207e7f1d4055522876484ea/capsule_184x69.jpg?t=1780438904",
+   "release_date": {
+    "coming_soon": true,
+    "date": "To be announced"
+   }
+  }
+ },
+ "2397320": {
+  "success": true,
+  "data": {
+   "type": "game",
+   "name": "Bus Simulator 27",
+   "steam_appid": 2397320,
+   "is_free": false,
+   "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2397320/da4a57428bac72569d83afcd0b7f5878c97a17f5/header.jpg?t=1791538474",
+   "capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2397320/de365801aa823ac4bad83a7abc4974e7a7f379c7/capsule_231x87.jpg?t=1791538474",
+   "capsule_imagev5": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2397320/de365801aa823ac4bad83a7abc4974e7a7f379c7/capsule_184x69.jpg?t=1791538474",
+   "release_date": {
+    "coming_soon": false,
+    "date": "8 Sep, 2026"
+   }
+  }
+ },
+ "1757350": {
+  "success": true,
+  "data": {
+   "type": "game",
+   "name": "ILL",
+   "steam_appid": 1757350,
+   "is_free": false,
+   "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1757350/d612df21fe4a2fac7ff8e639ab74fbd059df692c/header.jpg?t=1780439134",
+   "capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1757350/fa88387eb05b9680907ee63da46e105c1521a4e5/capsule_231x87.jpg?t=1780439134",
+   "capsule_imagev5": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1757350/fa88387eb05b9680907ee63da46e105c1521a4e5/capsule_184x69.jpg?t=1780439134",
+   "release_date": {
+    "coming_soon": true,
+    "date": "2027"
+   }
+  }
+ },
+ "2947860": {
+  "success": true,
+  "data": {
+   "type": "game",
+   "name": "Untitled John Wick Game",
+   "steam_appid": 2947860,
+   "is_free": false,
+   "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2947860/441f7236790fe6a02ee0f1441be8f5563c488db5/header.jpg?t=1771511145",
+   "capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2947860/46eb0e8aa832e25d0e648b60d093cbf4ad3c58a7/capsule_231x87.jpg?t=1771511145",
+   "capsule_imagev5": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2947860/46eb0e8aa832e25d0e648b60d093cbf4ad3c58a7/capsule_184x69.jpg?t=1771511145",
+   "release_date": {
+    "coming_soon": true,
+    "date": "Coming soon"
+   }
+  }
+ }
+}

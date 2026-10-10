@@ -87,16 +87,22 @@ export interface StatusResult {
 }
 
 /** Why no trailer can play right now. */
-export type TrailerReason = 'noSteamApp' | 'none' | 'notChecked' | 'offline' | 'dataSaver' | 'gameRunning' | 'lookupsOff';
+export type TrailerReason = 'noSteamApp' | 'none' | 'notChecked' | 'offline' | 'dataSaver' | 'gameRunning' | 'lookupsOff' | 'youtubeOff';
 
 export interface TrailerInfo {
   available: boolean;
-  /** 'hls' = Steam's HLS (fMP4) trailer through the media proxy; 'file' = a single mp4/webm file. */
-  kind: 'hls' | 'file' | null;
+  /**
+   * 'hls' = Steam's HLS (fMP4) trailer through the media proxy; 'file' = a single mp4/webm file (Steam's or RAWG's);
+   * 'youtube' = Track D4: a youtube-nocookie.com embed URL, only with "Allow YouTube trailers" on.
+   */
+  kind: 'hls' | 'file' | 'youtube' | null;
   src: string | null;
   name: string | null;
   reason: TrailerReason | null;
+  /** Steam, RAWG, IGDB or GOG (Track D4). */
   source: string;
+  /** Track D4: a Steam trailer of a non-Steam game, through its matched ('matched') or chosen ('pinned') Steam app. */
+  via?: 'matched' | 'pinned' | null;
 }
 
 export interface NetworkStatus {
@@ -1149,21 +1155,40 @@ export interface BridgeEvents {
 
 export type * from './types.ai';
 
-// ---------- Track D5: recommend.v2, "Free this week", cloud readiness (types in ./types.recommend, ./types.freebies) ----------
+// ---------- Track D4: every data source for every game (types in ./types.identity) ----------
 
 export interface Settings {
-  /** "Free this week": public giveaways (GamerPower) on Discover. Opt-in. */
-  'freebies.enabled': boolean;
-  /** Also show "Free this week" as a row on Home. */
+  /** Match non-Steam games to their Steam app (and IGDB, RAWG, GOG, Wikidata), so Steam data works for them, labelled as matched. */
+  'dataSources.identityMatch': boolean;
+  /** Trailers hosted on YouTube (IGDB, GOG) in a sandboxed youtube-nocookie.com frame. Off by default. */
+  'trailers.youtube': boolean;
+  /** Free games to claim, from GamerPower (Track D5's "Free this week" shelf). Off by default. */
+  'dataSources.gamerpower': boolean;
+  /** Epic's own free-games feed (grey: public, undocumented). Off by default. */
+  'dataSources.epicFreeGames': boolean;
+  /** ProtonDB's Linux compatibility summary on game pages (grey). Off by default. */
+  'dataSources.protondb': boolean;
+  /** GOG's public catalogue: matching games to GOG, GOG's trailer list (grey). Off by default. */
+  'dataSources.gogCatalog': boolean;
+}
+
+export interface BridgeEvents {
+  /** A game's cross-store identity changed (gameId), or matching settings changed for every game (gameId null). */
+  'identity.changed': { gameId: string | null };
+}
+
+export type * from './types.identity';
+
+// ---------- Track D5: recommend.v2, "Free this week" (Track D4's freebies.get), cloud readiness (types in ./types.recommend) ----------
+
+export interface Settings {
+  /** Also show "Free this week" (Track D4's GamerPower and Epic sources, opt-in there) as a row on Home. */
   'freebies.homeRow': boolean;
 }
 
 export interface BridgeEvents {
   /** "Not interested" changed. */
   'recommend.dismissed': import('./types.recommend').RecommendDismissal[];
-  /** The giveaways list changed (a refresh finished). */
-  'freebies.changed': import('./types.freebies').Freebies;
 }
 
 export type * from './types.recommend';
-export type * from './types.freebies';

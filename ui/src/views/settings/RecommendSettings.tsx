@@ -12,7 +12,8 @@ import '../../components/recommend/recommend.css';
  * "Not interested" to (each can be brought back; the list lives only on this PC).
  */
 export function RecommendSettings() {
-  const enabled = useStore((s) => !!s.settings?.['freebies.enabled']);
+  // The giveaway sources themselves (GamerPower, Epic's free-games list) are Track D4's rows under Data sources.
+  const enabled = useStore((s) => !!(s.settings?.['dataSources.gamerpower'] || s.settings?.['dataSources.epicFreeGames']));
   const homeRow = useStore((s) => !!s.settings?.['freebies.homeRow']);
   const setSetting = useStore((s) => s.setSetting);
   const dismissed = useDismissedList();
@@ -24,17 +25,14 @@ export function RecommendSettings() {
         time to beat and the time you usually have. No AI and nothing is sent anywhere.
       </p>
       <div className="sgroup__rows surface">
-        <div className="srow" id="freebies-row">
+        <div className="srow" id="freebies-row" aria-disabled={!enabled || undefined}>
           <div className="srow__text">
-            <label className="srow__label" htmlFor="freebies-enabled">Free this week</label>
-            <div className="srow__hint">Shows games you can keep for free on Epic, Steam, GOG, Prime Gaming and more in Discover, from GamerPower’s public giveaway list. Checked a few times a day while this is on; nothing about you is sent. Claiming always happens on the store’s own page in your browser.</div>
-          </div>
-          <div className="srow__control"><Toggle id="freebies-enabled" label="Free this week" checked={enabled} onChange={(v) => void setSetting('freebies.enabled', v)} /></div>
-        </div>
-        <div className="srow" aria-disabled={!enabled || undefined}>
-          <div className="srow__text">
-            <label className="srow__label" htmlFor="freebies-home">Also show it on Home</label>
-            <div className="srow__hint">A “Free this week” row on Home, below your picks.</div>
+            <label className="srow__label" htmlFor="freebies-home">“Free this week” on Home</label>
+            <div className="srow__hint">
+              {enabled
+                ? 'A row of games you can keep for free, below your picks. Discover always shows it.'
+                : 'Turn on GamerPower or Epic free games under Data sources first: then Discover shows what’s free this week, and this adds it to Home.'}
+            </div>
           </div>
           <div className="srow__control"><Toggle id="freebies-home" label="Also show Free this week on Home" checked={homeRow} disabled={!enabled} onChange={(v) => void setSetting('freebies.homeRow', v)} /></div>
         </div>

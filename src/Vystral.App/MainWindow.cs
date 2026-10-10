@@ -209,7 +209,9 @@ public sealed partial class MainWindow : Window, IHostShell, IEventSink
             };
             _core.FrameNavigationStarting += (_, e) =>
             {
-                if (!IsTrustedUri(e.Uri)) e.Cancel = true;
+                // Track D4: the only third-party frame is a single YouTube trailer on youtube-nocookie.com, and only with
+                // "Allow YouTube trailers" on (never in Offline mode, safe mode, Data saver or while a game runs).
+                if (!IsTrustedUri(e.Uri) && !YouTubeEmbed.IsAllowedFrame(e.Uri, _backend.YouTubeFramesAllowed)) e.Cancel = true;
             };
             _core.NewWindowRequested += (_, e) => e.Handled = true;
             _core.DownloadStarting += (_, e) => e.Cancel = true;

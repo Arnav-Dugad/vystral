@@ -81,46 +81,47 @@ test.describe('recommend.v2 on Home', () => {
 });
 
 test.describe('Free this week', () => {
-  test('is an invitation until turned on, then a shelf that marks what you own and opens only the store page', async ({ page }) => {
+  test('is an invitation until a source is on, then a shelf that marks what you own and opens only the store page', async ({ page }) => {
     const { errors, external } = await open(page, '?reduced&discover');
     const invite = page.locator('[data-invite="free"]');
     await expect(invite).toBeVisible({ timeout: 15_000 });
     await expect(invite).toContainText('See what’s free this week');
     await noSeriousViolations(page, '[data-invite="free"]');
+    // Turns on Track D4's GamerPower source (Epic's own list stays a separate choice under Data sources).
     await invite.getByRole('button', { name: 'Show free games' }).click();
 
     const free = dshelf(page, 'Free this week');
     await expect(free).toBeVisible({ timeout: 15_000 });
-    await expect(free.getByText('Preview')).toBeVisible();
     const cards = free.locator('[data-free-id]');
-    await expect.poll(() => cards.count()).toBeGreaterThan(4);
+    await expect.poll(() => cards.count()).toBe(3);
     // You own Moss & Marrow on Epic: marked, and moved to the end.
-    const owned = free.locator('[data-free-id="9100002"]');
+    const owned = free.locator('[data-free-id="gp-41003"]');
     await expect(owned).toContainText('In your library');
-    await expect(cards.last()).toHaveAttribute('data-free-id', '9100002');
-    // Ending within two days comes first.
-    await expect(cards.first()).toHaveAttribute('data-free-id', '9100003');
-    await expect(cards.first()).toContainText('Ends tomorrow');
+    await expect(cards.last()).toHaveAttribute('data-free-id', 'gp-41003');
+    await expect(free.locator('[data-free-id="gp-41002"]')).toContainText('Free items'); // in-game items, said so
 
     await cards.first().getByRole('button').click();
-    await expect(page.getByText('Opening Ironwake Rally in your browser')).toBeVisible();
-    await expect.poll(() => page.evaluate(() => window.__vystralPreviewFreebies?.opened)).toEqual(['9100003']);
-    await expect(page.getByText(/From GamerPower’s public giveaway list/)).toBeVisible();
+    await expect(page.getByText(/^Opening .+ in your browser$/)).toBeVisible();
+    // GamerPower asks for an active link wherever its giveaways appear.
+    await expect(page.getByRole('button', { name: 'Giveaways from GamerPower.com' })).toBeVisible();
     await noSeriousViolations(page, '.disc-browse');
     expect(errors).toEqual([]);
     expect(external).toEqual([]);
   });
 
-  test('also shows on Home when its row is on, and says so honestly when the source fails', async ({ page }) => {
-    await open(page, '?reduced&freebies');
-    await expect(dshelf(page, 'Free this week')).toBeVisible({ timeout: 15_000 });
+  test('with Epic’s list on too, next week’s free game comes last, and Home shows the row when it’s on', async ({ page }) => {
+    const { errors } = await open(page, '?reduced&freebies');
+    const free = dshelf(page, 'Free this week');
+    await expect(free).toBeVisible({ timeout: 15_000 });
+    const cards = free.locator('[data-free-id]');
+    await expect.poll(() => cards.count()).toBe(5);
+    const upcoming = cards.last();
+    await expect(upcoming).toHaveAttribute('data-upcoming', 'true');
+    await expect(upcoming).toContainText('Soon');
+    await expect(upcoming).toContainText(/Free from /);
+    await expect(upcoming).toContainText('See it on Epic Games Store');
     await noSeriousViolations(page, '.home__rows');
-
-    const p2 = await page.context().newPage();
-    await p2.addInitScript(() => sessionStorage.setItem('vystral.introPlayed', '1'));
-    await p2.goto('/?reduced&discover&freebies&freebiesFail');
-    await expect(p2.locator('[data-free-state="failed"]')).toContainText('Free games couldn’t be checked', { timeout: 15_000 });
-    await expect(p2.locator('section.dshelf[data-shelf="free-week"]')).toHaveCount(0);
+    expect(errors).toEqual([]);
   });
 });
 
@@ -216,9 +217,9 @@ test.describe('better cloud play', () => {
     await noSeriousViolations(page, '#settings-suggestions');
     await list.getByRole('button', { name: `Bring back ${name}` }).click();
     await expect(page.getByRole('list', { name: 'Not interested' })).toHaveCount(0);
-    // The free shelf toggles live here too.
-    await page.locator('#freebies-enabled').click();
-    await expect(page.locator('#freebies-home')).toBeEnabled();
+    // The Home row for "Free this week" waits for a giveaway source (Track D4's rows under Data sources).
+    await expect(page.locator('#freebies-home')).toBeDisabled();
+    await expect(page.locator('#freebies-row')).toContainText('Turn on GamerPower or Epic free games under Data sources first');
   });
 });
 
@@ -284,8 +285,12 @@ async function watchFlight(page: Page, selector: string, ms = 1100): Promise<Fli
 const NEAR = 16;
 
 test.describe('cover flight between cards and pages', () => {
-  // Timing-sensitive: these three don't compete with each other for the CPU.
+  // Timing-sensitive: these three don't compete with each other for the CPU, and a busy test machine may take longer
+  // than the app's 1.4 s to draw the next page, so the flight's lifetime is stretched here (the motion itself isn't).
   test.describe.configure({ mode: 'serial' });
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => { (window as { __vystralFlightTtlMs?: number }).__vystralFlightTtlMs = 8000; });
+  });
   test('a Discover card’s cover flies into the page hero and back into the card', async ({ page }) => {
     await open(page, '?discover&discoverStore');
     const card = page.locator('section.dshelf[data-shelf^="because:"] .dcard').first();

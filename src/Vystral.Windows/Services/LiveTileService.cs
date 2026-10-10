@@ -69,15 +69,16 @@ public sealed partial class LiveTileService : IDisposable
     public async Task<LiveTileDto> GetAsync(string gameId, CancellationToken ct)
     {
         if (BlockReason() is { } block) return new LiveTileDto(gameId, null, block);
-        if (_repo.GetSteamAppId(gameId) is null) return new LiveTileDto(gameId, null, "noSteamApp");
+        // Track D4: the game's own Steam app, or one the cross-store resolver matched (or you chose) for it.
+        if (_trailers.SteamAppFor(gameId) is not { } app) return new LiveTileDto(gameId, null, "noSteamApp");
 
         var row = _repo.GetTrailer(gameId);
         // The trailer service owns the lookup (rate-limited, cached for 14 days, respects every block).
-        if (row is null || DateTimeOffset.UtcNow - row.Value.Fetched > TimeSpan.FromDays(14))
+        if (row is null || row.Value.SteamAppId != app.AppId || DateTimeOffset.UtcNow - row.Value.Fetched > TimeSpan.FromDays(14))
         {
             var info = await _trailers.GetAsync(gameId, ct);
             row = _repo.GetTrailer(gameId);
-            if (row is null) return new LiveTileDto(gameId, null, info.Reason ?? "notChecked");
+            if (row is null || row.Value.SteamAppId != app.AppId) return new LiveTileDto(gameId, null, info.Reason ?? "notChecked");
         }
 
         if (SteamMicroTrailers.Resolve(row.Value.Trailer) is not { } uri) return new LiveTileDto(gameId, null, "none");

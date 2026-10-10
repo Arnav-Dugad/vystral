@@ -53,6 +53,14 @@ public sealed partial class AppBackend
         [("pcgamingwiki", "home")] = "https://www.pcgamingwiki.com/",
         [("pcgamingwiki", "terms")] = "https://creativecommons.org/licenses/by-nc-sa/3.0/",
         [("workshop", "home")] = "https://steamcommunity.com/workshop/",
+        // Track D4.
+        [("gamerpower", "home")] = "https://www.gamerpower.com/",
+        [("gamerpower", "docs")] = "https://www.gamerpower.com/api-read",
+        [("epicfree", "home")] = "https://store.epicgames.com/free-games",
+        [("protondb", "home")] = "https://www.protondb.com/",
+        [("protondb", "terms")] = "https://opendatacommons.org/licenses/odbl/",
+        [("gogcatalog", "home")] = "https://www.gog.com/",
+        [("youtube", "privacy")] = "https://support.google.com/youtube/answer/171780",
     };
 
     private void RegisterDataSourceHandlers()
@@ -162,8 +170,7 @@ public sealed partial class AppBackend
         Dispatcher.Register("compat.antiCheatMap", _ => Task.FromResult<object?>(_dataSources.AntiCheatMap()));
         Dispatcher.Register<GameIdParams>("compat.openAntiCheat", (p, _) =>
         {
-            var game = Repository.GetGame(RequireId(p.GameId));
-            var slug = game?.SteamAppId is { } a ? Repository.GetAntiCheat("steam", a)?.Slug : null;
+            var slug = SteamAppIdOf(RequireId(p.GameId)) is { } a ? Repository.GetAntiCheat("steam", a)?.Slug : null; // Track D4: own or matched app
             _shell.OpenUri(new Uri(slug is null ? "https://areweanticheatyet.com/" : $"https://areweanticheatyet.com/game/{slug}"));
             return Task.FromResult<object?>(true);
         });

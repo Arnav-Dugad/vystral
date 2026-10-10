@@ -64,10 +64,10 @@ public sealed partial class AppBackend
         // ---------- Friends' recent games ----------
         Dispatcher.Register<GameIdParams>("friends.gameHistory", (p, _) =>
         {
-            var game = Repository.GetGame(RequireId(p.GameId));
+            var gameId = RequireId(p.GameId);
             if (SafeMode) return Task.FromResult<object?>(new FriendsHistoryDto("unavailable", "VYSTRAL is in safe mode, so it doesn’t contact Steam.", null, false, [], 0, 0, 0, 0));
             if (!_steamKeys.IsConfigured) _friendsHistory.Forget();
-            return Task.FromResult<object?>(_friendsHistory.ForApp(game?.SteamAppId, _life.Token));
+            return Task.FromResult<object?>(_friendsHistory.ForApp(SteamAppIdOf(gameId), _life.Token));
         });
 
         // ---------- Achievement guide ----------
@@ -94,18 +94,18 @@ public sealed partial class AppBackend
         // ---------- News and patch notes ----------
         Dispatcher.Register<GameRefreshParams>("news.get", async (p, ct) =>
         {
-            var game = Repository.GetGame(RequireId(p.GameId));
+            var gameId = RequireId(p.GameId);
             if (SafeMode) return new NewsDto("unavailable", "VYSTRAL is in safe mode, so it doesn’t contact Steam.", null, false, []);
-            return await _news.GetAsync(game?.SteamAppId, p.Refresh ?? false, ct);
+            return await _news.GetAsync(SteamAppIdOf(gameId), p.Refresh ?? false, ct); // Track D4: own or matched Steam app
         });
         Dispatcher.Register<NewsPostParams>("news.images", async (p, ct) =>
         {
-            var appId = Repository.GetGame(RequireId(p.GameId))?.SteamAppId ?? throw new BridgeException("notFound", "This game isn’t from Steam.");
+            var appId = SteamAppIdOf(RequireId(p.GameId)) ?? throw new BridgeException("notFound", "This game isn’t from Steam.");
             return await _news.LoadImagesAsync(appId, RequireGid(p.Gid), p.Force ?? false, ct);
         });
         Dispatcher.Register<NewsPostParams>("news.open", (p, _) =>
         {
-            var appId = Repository.GetGame(RequireId(p.GameId))?.SteamAppId;
+            var appId = SteamAppIdOf(RequireId(p.GameId));
             var url = appId is null ? null : _news.PostUrl(appId, RequireGid(p.Gid));
             _shell.OpenUri(url ?? throw new BridgeException("notFound", "That post is no longer listed. Refresh the news."));
             return Task.FromResult<object?>(true);

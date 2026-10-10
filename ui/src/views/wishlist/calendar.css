@@ -1,0 +1,411 @@
+/* Track D2: the wishlist as a release calendar. */
+.wcal { display: grid; gap: var(--s-5); align-content: start; min-width: 0; container: wcal / inline-size; }
+
+/* ===== Year strip ===== */
+.wyear {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  padding: 6px;
+  border-radius: var(--r-xl);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-1), inset 0 0 0 1px var(--line);
+}
+.wyear__year { display: grid; line-height: 1.1; padding: 0 var(--s-1); }
+.wyear__year b { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: var(--fw-semibold); letter-spacing: -0.02em; color: var(--text-1); }
+.wyear__year span { font-size: var(--fs-2xs); color: var(--text-3); white-space: nowrap; }
+.wyear__months { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 2px; margin: 0; padding: 0; list-style: none; }
+.wyear__month {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 46px;
+  padding: 6px 2px 7px;
+  border-radius: var(--r-md);
+  font: inherit;
+  color: var(--text-3);
+  cursor: pointer;
+  isolation: isolate;
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.wyear__month:hover { color: var(--text-1); background: var(--bg-2); }
+.wyear__month:focus-visible { outline: var(--focus-outline); outline-offset: 1px; }
+.wyear__month[data-has] { color: var(--text-2); }
+.wyear__month[aria-current] { color: var(--text-1); }
+.wyear__pill {
+  position: absolute; inset: 0; z-index: -1;
+  border-radius: inherit;
+  background: var(--accent-ghost);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.wyear__name { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-sm); font-weight: var(--fw-medium); text-transform: capitalize; }
+.wyear__now { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.wyear__heat {
+  width: 70%; height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2, var(--accent)));
+  opacity: calc(0.12 + var(--heat, 0) * 0.88);
+  transform: scaleX(calc(0.25 + var(--heat, 0) * 0.75));
+  transform-origin: left;
+}
+.wyear__month:not([data-has]) .wyear__heat { background: var(--line); opacity: 0.6; transform: scaleX(0.25); }
+.wyear__n {
+  min-width: 16px; padding: 0 4px;
+  text-align: center;
+  border-radius: var(--r-pill);
+  font-size: 10px; line-height: 16px; font-weight: var(--fw-semibold);
+  color: var(--text-on-accent); background: var(--accent);
+}
+
+/* ===== Layout ===== */
+.wcal__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: var(--s-5); align-items: start; }
+.wcal__main { display: grid; gap: var(--s-3); min-width: 0; }
+.wcal__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; }
+.wcal__title-wrap { display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap; }
+.wcal__title { margin: 0; font-family: var(--font-display); font-size: var(--fs-2xl); font-weight: var(--fw-semibold); letter-spacing: -0.02em; text-transform: capitalize; }
+.wcal__count { font-size: var(--fs-sm); color: var(--text-3); }
+.wcal__nav { display: inline-flex; align-items: center; gap: 4px; }
+
+/* "Sometime this month": games Steam dates only to the month. */
+.wcal__sometime {
+  display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: var(--r-lg);
+  background: var(--bg-1);
+  box-shadow: inset 0 0 0 1px var(--line);
+  border: 1px dashed var(--line-strong);
+}
+.wcal__sometime-label { display: inline-flex; align-items: center; gap: 6px; color: var(--text-3); }
+.wcal__sometime-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.wcal-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  max-width: 220px; height: 34px; padding: 3px 12px 3px 3px;
+  border-radius: var(--r-pill);
+  font: inherit; font-size: var(--fs-sm); color: var(--text-1);
+  background: var(--bg-2); cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.wcal-chip:hover { background: var(--bg-3); }
+.wcal-chip:focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
+.wcal-chip .wposter-img, .wcal-chip .wposter { width: 28px; height: 28px; flex: none; border-radius: 50%; object-fit: cover; }
+.wcal-chip .wposter__title { display: none; }
+
+/* ===== Month grid ===== */
+.wcal__frame {
+  display: grid; gap: 6px;
+  padding: 10px;
+  border-radius: var(--r-xl);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-1), inset 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+.wcal__weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.wcal__weekdays span { padding: 0 6px; font-size: var(--fs-2xs); font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+.wcal__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; outline: none; }
+
+.wcal-day {
+  position: relative;
+  min-height: clamp(86px, 8.6vw, 138px);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  overflow: hidden;
+  isolation: isolate;
+}
+.wcal-day[data-outside] { background: oklch(from var(--bg-2) l c h / 0.35); }
+.wcal-day[data-outside] .wcal-day__num { color: var(--text-3); font-weight: var(--fw-regular); }
+.wcal-day__num {
+  position: absolute; top: 6px; left: 8px; z-index: 2;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.wcal-day[data-past]:not([data-today]) .wcal-day__num { color: var(--text-3); }
+/* Over a cover, the number sits on a small glass pill (readable in light and dark). */
+.wcal-day[data-n]:not([data-n='0']) .wcal-day__num {
+  top: 4px; left: 4px; min-width: 22px; height: 20px; padding: 0 6px;
+  display: grid; place-items: center;
+  border-radius: var(--r-pill);
+  color: var(--text-1); background: var(--glass-strong);
+  box-shadow: 0 2px 8px -2px oklch(0 0 0 / 0.5);
+}
+.wcal-day[data-today] { box-shadow: inset 0 0 0 2px var(--accent), 0 0 24px -6px oklch(from var(--accent) l c h / 0.7); }
+/* Today's number: an accent ring on a solid chip (readable in every theme). */
+.wcal-day[data-today] .wcal-day__num,
+.wcal-day[data-today][data-n] .wcal-day__num {
+  display: grid; place-items: center;
+  top: 4px; left: 4px; min-width: 22px; height: 22px; padding: 0 6px;
+  border-radius: var(--r-pill);
+  color: var(--text-1); background: var(--bg-1); text-shadow: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.wcal-day__today {
+  position: absolute; top: 7px; right: 8px; z-index: 2;
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--accent-text);
+}
+.wcal-day[data-n]:not([data-n='0']) .wcal-day__today { display: none; }
+.wcal-day[data-selected] { box-shadow: inset 0 0 0 2px var(--accent-line); }
+
+.wcal-day__games {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; align-items: stretch; justify-content: center; gap: 4px;
+  padding: 6px;
+}
+/* A day's own covers, as a soft glow behind them. */
+.wcal-day[data-n]:not([data-n='0'])::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 100%, oklch(from var(--accent) l c h / 0.28), transparent 70%), var(--bg-3);
+}
+
+.wcal-game {
+  position: relative;
+  flex: 0 1 auto;
+  height: 100%;
+  aspect-ratio: 2 / 3;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 6px 16px -8px oklch(0 0 0 / 0.8), inset 0 0 0 1px oklch(1 0 0 / 0.08);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.wcal-day[data-n='2'] .wcal-game, .wcal-day[data-n='3'] .wcal-game { max-width: calc(50% - 2px); }
+.wcal-day[data-n='3'] .wcal-game { max-width: calc(38% - 2px); }
+.wcal-game:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 12px 26px -10px oklch(0 0 0 / 0.9), inset 0 0 0 1px oklch(1 0 0 / 0.16); z-index: 2; }
+.wcal-game:focus-visible { outline: var(--focus-outline); outline-offset: 2px; z-index: 3; }
+.wcal-game .wposter-img, .wcal-game .wposter { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wcal-game[data-out] { filter: saturate(0.9); }
+.wcal-game__name {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 14px 5px 4px;
+  font-size: 10px; line-height: 1.2; font-weight: var(--fw-semibold); text-align: left;
+  color: oklch(1 0 0);
+  background: linear-gradient(transparent, oklch(0 0 0 / 0.85));
+  opacity: 0; transform: translateY(4px);
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.wcal-game:hover .wcal-game__name, .wcal-game:focus-visible .wcal-game__name { opacity: 1; transform: none; }
+:root[data-input='pad'] .wcal-game:focus .wcal-game__name { opacity: 1; transform: none; }
+
+.wcal-day__more {
+  flex: 0 0 auto; align-self: center;
+  min-width: 32px; height: 32px; padding: 0 8px;
+  border-radius: var(--r-pill);
+  font: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  color: var(--text-1); background: var(--glass-strong);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  cursor: pointer;
+}
+.wcal-day__more:hover { background: var(--bg-3); }
+.wcal-day__more:focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
+
+/* ===== Posters ===== */
+.wposter-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.wposter-img[data-crop] { object-position: center; }
+.wposter {
+  position: relative;
+  display: grid; align-items: end;
+  width: 100%; height: 100%;
+  padding: 8%;
+  overflow: hidden;
+  background:
+    radial-gradient(80% 60% at 80% 10%, oklch(0.78 0.14 calc(var(--wish-hue, 280) + 40) / 0.55), transparent 70%),
+    linear-gradient(160deg, oklch(0.45 0.12 var(--wish-hue, 280)), oklch(0.2 0.06 calc(var(--wish-hue, 280) + 60)));
+}
+.wposter__title {
+  font-family: var(--font-display); font-weight: var(--fw-bold); font-size: clamp(9px, 1.1vw, 15px); line-height: 1.05; letter-spacing: -0.01em;
+  color: oklch(1 0 0 / 0.95); text-shadow: 0 1px 8px oklch(0 0 0 / 0.4);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
+}
+
+/* ===== Markers: price drop, lowest ever, owned ===== */
+.wmarks { position: absolute; top: 4px; right: 4px; z-index: 2; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; pointer-events: none; }
+.wmark {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 1px 6px; border-radius: var(--r-pill);
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); line-height: 1.5; white-space: nowrap;
+}
+.wmarks[data-compact] .wmark { padding: 0 4px; font-size: 9.5px; }
+.wmark--cut { color: var(--text-on-accent); background: var(--accent); }
+.wmark--low { color: oklch(0.18 0.05 155); background: var(--ok); }
+.wmark--owned { color: var(--text-1); background: var(--glass-strong); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.wcal-row .wmark--low, .wprice .wmark--cut { margin-left: 2px; }
+
+/* ===== Agenda ===== */
+.wcal__agenda {
+  position: sticky; top: var(--s-4);
+  display: grid; gap: var(--s-3); align-content: start;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  padding: var(--s-3);
+  border-radius: var(--r-xl);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-1), inset 0 0 0 1px var(--line);
+  scrollbar-width: thin;
+}
+.wcal-agenda__title { margin: var(--s-1) 0 0; color: var(--text-3); text-transform: capitalize; }
+.wcal-agenda__days { display: grid; gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
+.wcal-agenda__days > li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: var(--s-2); align-items: start; border-radius: var(--r-lg); }
+.wcal-agenda__days > li[data-selected] { background: var(--accent-ghost); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.wcal-agenda__date { display: grid; justify-items: center; padding-top: 4px; line-height: 1.05; color: var(--text-3); }
+.wcal-agenda__date span { font-size: var(--fs-2xs); font-weight: var(--fw-semibold); letter-spacing: 0.05em; text-transform: uppercase; }
+.wcal-agenda__date b { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: var(--fw-semibold); color: var(--text-1); }
+.wcal-agenda__date--vague { padding-top: 10px; color: var(--accent-text); }
+.wcal-agenda__games { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.wcal-agenda__empty { display: grid; gap: var(--s-2); padding: var(--s-3) var(--s-1); color: var(--text-3); font-size: var(--fs-sm); }
+.wcal-agenda__empty p { margin: 0; }
+.wcal-agenda__jumps { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.wcal-row {
+  display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 10px; align-items: center;
+  width: 100%; padding: 5px; border-radius: var(--r-md);
+  font: inherit; text-align: left; color: inherit; cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.wcal-row:hover { background: var(--bg-2); }
+.wcal-row:focus-visible { outline: var(--focus-outline); outline-offset: 1px; }
+.wcal-row__art { display: block; aspect-ratio: 460 / 215; border-radius: var(--r-sm); overflow: hidden; background: var(--bg-2); }
+.wcal-row__art .wposter__title { font-size: 10px; -webkit-line-clamp: 2; }
+.wcal-row__text { display: grid; gap: 1px; min-width: 0; }
+.wcal-row__name { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text-1); }
+.wcal-row__when { font-size: var(--fs-xs); color: var(--text-3); }
+.wcal-row__price { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 2px; }
+.wprice { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--text-1); }
+.wprice--muted { font-weight: var(--fw-regular); color: var(--text-3); }
+
+/* Next up */
+.wnext { display: grid; gap: 4px; }
+.wnext__card {
+  position: relative;
+  display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; align-items: center;
+  width: 100%; padding: 8px; border-radius: var(--r-lg);
+  font: inherit; text-align: left; color: inherit; cursor: pointer;
+  background: linear-gradient(120deg, oklch(0.62 0.12 var(--wish-hue, 280) / 0.22), transparent 70%), var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+.wnext__card:hover { box-shadow: inset 0 0 0 1px var(--accent-line), 0 10px 26px -14px oklch(from var(--accent) l c h / 0.8); }
+.wnext__card:focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
+.wnext__art { display: block; aspect-ratio: 460 / 215; border-radius: var(--r-sm); overflow: hidden; }
+.wnext__art .wposter__title { font-size: 11px; }
+.wnext__text { display: grid; gap: 2px; min-width: 0; }
+.wnext__eyebrow { display: inline-flex; align-items: center; gap: 5px; color: var(--accent-text); }
+.wnext__name { font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text-1); }
+.wnext__when { font-size: var(--fs-xs); color: var(--text-2); }
+.wnext__show { justify-self: end; }
+
+/* Hints */
+.wcal__hint { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--s-3); margin: 0; font-size: var(--fs-xs); color: var(--text-3); }
+.wcal__hint-keys { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.wcal__hint-pad { display: none; }
+:root[data-input='pad'] .wcal__hint-pad { display: inline-flex; }
+:root[data-input='pad'] .wcal__hint-keys { display: none; }
+
+/* ===== Lanes ===== */
+.wlanes { display: grid; gap: var(--s-4); }
+.wlanes__head { display: grid; gap: 4px; }
+.wlanes__title { margin: 0; font-family: var(--font-display); font-size: var(--fs-xl); font-weight: var(--fw-semibold); letter-spacing: -0.02em; }
+.wlanes__lede { margin: 0; max-width: 72ch; font-size: var(--fs-sm); color: var(--text-3); }
+.wlane {
+  display: grid; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  border-radius: var(--r-xl);
+  background: var(--bg-1);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.wlane__head { display: flex; align-items: baseline; gap: var(--s-2); flex-wrap: wrap; }
+.wlane__title { margin: 0; font-size: var(--fs-lg); font-weight: var(--fw-semibold); }
+.wlane__sub { font-size: var(--fs-sm); color: var(--accent-text); font-weight: var(--fw-medium); }
+.wlane__n { margin-left: auto; font-size: var(--fs-xs); color: var(--text-3); }
+.wlane__row { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
+.wlane__all { justify-self: start; }
+
+.wlane-card {
+  display: grid; gap: 4px; align-content: start;
+  width: 100%; padding: 0;
+  font: inherit; text-align: left; color: inherit; cursor: pointer;
+  border-radius: var(--r-md);
+}
+.wlane-card:focus-visible { outline: var(--focus-outline); outline-offset: 3px; }
+.wlane-card__art {
+  position: relative; display: block;
+  aspect-ratio: 2 / 3; border-radius: var(--r-md); overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: 0 8px 20px -12px oklch(0 0 0 / 0.8), inset 0 0 0 1px oklch(1 0 0 / 0.06);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.wlane-card:hover .wlane-card__art { transform: translateY(-3px); box-shadow: 0 16px 30px -14px oklch(0 0 0 / 0.9), inset 0 0 0 1px oklch(1 0 0 / 0.12); }
+.wlane-card__art .wposter-img, .wlane-card__art .wposter { position: absolute; inset: 0; }
+.wlane-card__name { margin-top: 4px; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text-1); }
+.wlane-card:hover .wlane-card__name { color: var(--accent-text); }
+/* The date chip's border says how precise it is: dashed for part of a year, dotted for no date. */
+.wlane-card__when {
+  justify-self: start;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 1px 8px; border-radius: var(--r-pill);
+  font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--text-2);
+  border: 1px dashed var(--line-strong);
+}
+.wlane-card[data-precision='month'] .wlane-card__when { border-style: solid; }
+.wlane-card[data-precision='tba'] .wlane-card__when { border-style: dotted; color: var(--text-3); }
+.wlane-card__price { min-height: 18px; }
+
+/* Loading */
+.wcal-skeleton { display: grid; gap: var(--s-4); }
+.wcal-skeleton__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+
+/* ===== Narrow windows (the calendar's own width, whatever the sidebar does) ===== */
+@container wcal (max-width: 1040px) {
+  .wcal__body { grid-template-columns: minmax(0, 1fr); }
+  .wcal__agenda { position: static; max-height: none; }
+}
+@container wcal (max-width: 900px) {
+  .wyear__months { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+@container wcal (max-width: 620px) {
+  .wyear { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .wyear__year { grid-column: 1 / -1; grid-row: 1; }
+  .wcal__frame { padding: 6px; }
+  .wcal__grid, .wcal__weekdays { gap: 3px; }
+  .wcal-day { min-height: 64px; }
+  .wcal-day[data-n='2'] .wcal-game, .wcal-day[data-n='3'] .wcal-game { max-width: 100%; }
+  .wcal-day[data-n='2'] .wcal-game:nth-child(2) { display: none; }
+  .wmarks[data-compact] { display: none; }
+}
+
+/* ===== Reduced motion ===== */
+:root[data-reduced-motion='true'] .wcal-game,
+:root[data-reduced-motion='true'] .wlane-card__art,
+:root[data-reduced-motion='true'] .wcal-game__name { transition: none; }
+:root[data-reduced-motion='true'] .wcal-game:hover,
+:root[data-reduced-motion='true'] .wlane-card:hover .wlane-card__art { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .wcal-game, .wlane-card__art, .wcal-game__name { transition: none; }
+  .wcal-game:hover, .wlane-card:hover .wlane-card__art { transform: none; }
+}
+
+/* ===== High contrast ===== */
+:root[data-theme='contrast'] .wcal-day { background: var(--bg-0); box-shadow: inset 0 0 0 1px var(--line); }
+:root[data-theme='contrast'] .wcal-day[data-n]:not([data-n='0'])::before { display: none; }
+:root[data-theme='contrast'] .wcal-day[data-today] { box-shadow: inset 0 0 0 3px var(--accent); }
+:root[data-theme='contrast'] .wcal-day[data-n]:not([data-n='0']) .wcal-day__num { color: var(--text-1); text-shadow: none; }
+:root[data-theme='contrast'] .wcal-game,
+:root[data-theme='contrast'] .wlane-card__art { box-shadow: inset 0 0 0 1px var(--line-strong); }
+:root[data-theme='contrast'] .wcal-game__name { background: oklch(0 0 0); }
+:root[data-theme='contrast'] .wposter { background: var(--bg-2); box-shadow: inset 0 0 0 1px var(--line-strong); }
+:root[data-theme='contrast'] .wmark--cut { color: var(--bg-0); background: var(--accent); }
+:root[data-theme='contrast'] .wmark--low { color: var(--bg-0); background: var(--text-1); }
+:root[data-theme='contrast'] .wnext__card { background: var(--bg-0); box-shadow: inset 0 0 0 1px var(--line-strong); }
+:root[data-theme='contrast'] .wyear__pill { background: transparent; box-shadow: inset 0 0 0 2px var(--accent); }
+:root[data-theme='contrast'] .wyear__heat { background: var(--text-1); }
+:root[data-theme='contrast'] .wcal__sometime { border-color: var(--text-1); }
+@media (forced-colors: active) {
+  .wcal-day { border: 1px solid CanvasText; }
+  .wcal-day[data-today] { border: 3px solid Highlight; }
+  .wmark { border: 1px solid CanvasText; }
+}

@@ -121,6 +121,17 @@ const CATALOGUE: Entry[] = [
   E('Mirewood', 2026, ['RPG', 'Horror'], ['steam'], ['PC'], ['steam'], 'Thornhill', 'A swamp that remembers every step.', { steam: 2480090 }),
   E('Vesper Protocol', 2026, ['Action', 'Shooter'], ['steam'], ['PC'], ['steam'], 'Hyperthread', 'A heist thriller at the edge of the night.', { steam: 2480100, price: [2799, 3499] }),
   E('Clockwork Pilgrim', 2019, ['Platformer', 'Adventure'], ['steam'], ['PC'], ['steam'], 'Spark Theory', 'Wind the pilgrim and walk the world.', { steam: 2480110, price: [999, 999] }),
+  // Track D2: the release calendar's extra wishlist games.
+  E('Quiet Orbit', 2026, ['Adventure', 'Space'], ['steam'], ['PC'], ['steam'], 'Prism Lane', 'Keep the only lighthouse on a silent moon.', { steam: 2480130, price: [3599, 3999] }),
+  E('Velvet Circuit', 2026, ['Racing'], ['steam'], ['PC'], ['steam'], 'Torque Collective', 'Night races through a city of neon velvet.', { steam: 2480140 }),
+  E('Granite Saga', 2026, ['RPG', 'Fantasy'], ['steam'], ['PC'], ['steam'], 'Thornhill', 'A mountain kingdom carved one legend at a time.', { steam: 2480150, price: [4999, 4999] }),
+  E('Kite Season', 2027, ['Casual', 'Simulation'], ['steam'], ['PC'], ['steam'], 'Bloom', 'Build kites, read the wind, win the festival.', { steam: 2480160 }),
+  E('Tidebreaker', 2026, ['Action', 'Adventure'], ['steam'], ['PC'], ['steam'], 'Low Tide', 'Hold the sea wall for one more night.', { steam: 2480170 }),
+  E('Ember Atlas', 2027, ['Strategy'], ['steam'], ['PC'], ['steam'], 'Hyperthread', 'Map a continent that keeps catching fire.', { steam: 2480180 }),
+  E('Northwind Relay', 2027, ['Simulation'], ['steam'], ['PC'], ['steam'], 'Northwind', 'Carry the post across the frozen north.', { steam: 2480190 }),
+  E('Lumen Drift', 2028, ['Puzzle', 'Space'], ['steam'], ['PC'], ['steam'], 'Prism Lane', 'Steer light through a drifting nebula.', { steam: 2480200 }),
+  E('Hollow Choir', 2027, ['Horror', 'Adventure'], ['steam'], ['PC'], ['steam'], 'Coldwave', 'An abandoned cathedral still sings at night.', { steam: 2480210 }),
+  E('Moonlit Ferry', 2027, ['Adventure', 'Indie'], ['steam'], ['PC'], ['steam'], 'Quiet Owl', 'Ferry travellers across a lake that isn’t on any map.', { steam: 2480220 }),
 ];
 
 const keyOf = (e: Entry) => (e.steam ? `steam-${e.steam}` : `igdb-${700000 + CATALOGUE.indexOf(e)}`);

@@ -22,7 +22,12 @@ interface PendingFlight {
 
 let pending: PendingFlight | null = null;
 // Track D5: 1.4 s (was 0.9 s): a page that takes a moment to render on a busy PC still gets its flight.
-const FLIGHT_TTL_MS = 1400;
+const FLIGHT_TTL = 1400;
+/** UI tests on a busy machine can stretch it (window.__vystralFlightTtlMs); the app never sets it. */
+const ttl = () => {
+  const v = typeof window === 'undefined' ? undefined : (window as { __vystralFlightTtlMs?: unknown }).__vystralFlightTtlMs;
+  return typeof v === 'number' && v > 0 ? v : FLIGHT_TTL;
+};
 
 /** Records where a flight starts (call on press, and when a flight's source leaves). */
 export function captureFlight(id: string, el: Element | null | undefined) {
@@ -41,7 +46,7 @@ export function useFlightLanding(id: string, ref: RefObject<HTMLElement | null>,
   useLayoutEffect(() => {
     const el = ref.current;
     const flight = pending;
-    if (!el || !enabled || !flight || flight.id !== id || performance.now() - flight.at > FLIGHT_TTL_MS) return;
+    if (!el || !enabled || !flight || flight.id !== id || performance.now() - flight.at > ttl()) return;
     // The flight is only claimed when it lands, so effect re-runs (StrictMode) don't lose it.
     el.style.opacity = '0';
     let raf = 0;
@@ -60,7 +65,7 @@ export function useFlightLanding(id: string, ref: RefObject<HTMLElement | null>,
         return;
       }
       const to = el.getBoundingClientRect();
-      const fresh = waits > 0 && performance.now() - flight.at < FLIGHT_TTL_MS;
+      const fresh = waits > 0 && performance.now() - flight.at < ttl();
       // Track D5: the same game can be on screen twice (Recommended and a "Because you played" row); only a copy
       // that's mostly visible claims the flight, so one scrolled away (or clipped by its row) can't swallow it. A page
       // restoring its scroll position takes a few frames, so a copy keeps looking while the flight is fresh.

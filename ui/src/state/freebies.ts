@@ -1,9 +1,9 @@
 /**
- * Track D5: "Free this week" — the giveaways list from freebies.get (Track D4's GamerPower client; the browser preview
- * fakes it). Loaded once while the opt-in is on, refreshed by freebies.changed and when the opt-in changes. A real app
- * without the native client yet simply shows nothing.
+ * Track D5: "Free this week" — the giveaways from Track D4's freebies.get (GamerPower and Epic's free-games feed, each
+ * opt-in under Data sources). Loaded once while a source is on, again when those settings change; images are asked
+ * for lazily (freebies.image) once a card is near the screen. Claiming opens the store's own page (freebies.open).
  */
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { call, errorMessage, on } from '../bridge/bridge';
 import type { Freebies } from '../bridge/types';
@@ -31,12 +31,11 @@ export const useFreebiesStore = create<FreebiesState>((set) => ({
       await settingsSettled();
       const raw = await call<Freebies>('freebies.get', { refresh }, 45_000);
       if (mine !== seq) return;
-      // An app without the native client answers something that isn't a list: nothing to show, quietly.
       set({ data: cleanFreebies(raw), loading: false });
     } catch (err) {
       if (mine !== seq) return;
+      // 'unknown' = a build without the giveaways client: show nothing rather than an error.
       const code = (err as { code?: string }).code;
-      // 'unknown' = this build has no giveaways client yet: show nothing rather than an error.
       set({ loading: false, data: null, error: code === 'unknown' ? null : errorMessage(err) });
     }
   },
@@ -45,28 +44,27 @@ export const useFreebiesStore = create<FreebiesState>((set) => ({
 function ensureStarted() {
   if (started) return;
   started = true;
-  on('freebies.changed', (d) => useFreebiesStore.setState({ data: cleanFreebies(d), loading: false }));
   let last: unknown;
   on('settings.changed', (s) => {
-    const key = `${s?.['freebies.enabled']}|${s?.['privacy.localOnly']}`;
+    const key = `${s?.['dataSources.gamerpower']}|${s?.['dataSources.epicFreeGames']}|${s?.['privacy.localOnly']}`;
     if (key === last) return;
     last = key;
     void useFreebiesStore.getState().load();
   });
 }
 
-/** The giveaways (loads on first use while the opt-in is on). */
+/** The giveaways (loads on first use while a source is on). `enabled` = GamerPower or Epic's feed is on. */
 export function useFreebies(): FreebiesState & { enabled: boolean } {
-  const enabled = useStore((s) => !!s.settings?.['freebies.enabled']);
+  const enabled = useStore((s) => !!(s.settings?.['dataSources.gamerpower'] || s.settings?.['dataSources.epicFreeGames']));
   const state = useFreebiesStore();
   useEffect(() => {
     ensureStarted();
-    if (enabled && !state.data && !state.loading) void useFreebiesStore.getState().load();
-  }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (enabled && !useFreebiesStore.getState().data && !useFreebiesStore.getState().loading) void useFreebiesStore.getState().load();
+  }, [enabled]);
   return { ...state, enabled };
 }
 
-/** Opens a giveaway's official claim page in your browser (the native side holds and checks the URL). */
+/** Opens a giveaway's own store page in your browser (the native side holds the URL; the page never sends one). */
 export function useClaim() {
   const toast = useStore((s) => s.toast);
   return useCallback(async (id: string, title: string) => {
@@ -77,4 +75,32 @@ export function useClaim() {
       toast({ tone: 'warning', title: 'Couldn’t open the giveaway', body: errorMessage(err) });
     }
   }, [toast]);
+}
+
+const images = new Map<string, Promise<string | null>>();
+
+/** A giveaway's cached image, asked for once the card is near the screen. Undefined while unknown. */
+export function useFreebieImage(id: string, known: string | null, hasImage: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [url, setUrl] = useState<string | null | undefined>(known ?? (hasImage ? undefined : null));
+  useEffect(() => {
+    if (known || !hasImage) return;
+    const el = ref.current;
+    let alive = true;
+    const ask = () => {
+      let p = images.get(id);
+      if (!p) {
+        p = call<string | null>('freebies.image', { id }, 30_000)
+          .then((u) => (typeof u === 'string' && u.startsWith('https://art.vystral.example/') ? u : null))
+          .catch(() => null);
+        images.set(id, p);
+      }
+      void p.then((u) => { if (alive) setUrl(u); });
+    };
+    if (!el || typeof IntersectionObserver === 'undefined') { ask(); return () => { alive = false; }; }
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { io.disconnect(); ask(); } }, { rootMargin: '400px' });
+    io.observe(el);
+    return () => { alive = false; io.disconnect(); };
+  }, [id, known, hasImage]);
+  return { ref, url: known ?? url };
 }

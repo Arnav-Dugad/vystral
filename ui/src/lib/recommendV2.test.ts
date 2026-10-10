@@ -276,12 +276,12 @@ describe('discover picks', () => {
     const picks = recommendDiscover([
       c('steam-10', 'Later', ['RPG'], { comingSoon: true }),
       c('steam-11', 'Now', ['RPG']),
-      c('free:12', 'Gift', [], { via: ['free'], freeOn: 'Epic Games Store', freeUntil: '2026-10-15T15:00:00Z' }),
+      c('free:gp-12', 'Gift', [], { via: ['free'], freeOn: 'Epic Games Store', freeUntil: '2026-10-15T15:00:00Z' }),
     ], profile, s, { diversify: false });
     expect(picks.map((p) => p.title).indexOf('Later')).toBeGreaterThan(picks.map((p) => p.title).indexOf('Now'));
     const gift = picks.find((p) => p.title === 'Gift')!;
     expect(gift.reason).toMatch(/^Free to keep on Epic Games Store until /);
-    expect(gift.dismissKey).toBe('free:12');
+    expect(gift.dismissKey).toBe('free:gp-12');
   });
 });
 

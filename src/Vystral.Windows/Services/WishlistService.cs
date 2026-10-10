@@ -30,7 +30,18 @@ public sealed record WishlistItemDto(
     IReadOnlyList<WishlistPointDto> History,
     string? Header,
     string? GameId,
-    string? PricedAt);
+    string? PricedAt)
+{
+    /// <summary>Track D2: portrait cover (600×900 library capsule, or the hero capsule, or SteamGridDB) through the art host, or null.</summary>
+    public string? Cover { get; init; }
+    /// <summary>Track D2: day | month | quarter | half | season | year | tba (see <see cref="ReleaseWindow"/>).</summary>
+    public string ReleasePrecision { get; init; } = "tba";
+    /// <summary>First and last calendar day of the release window (yyyy-MM-dd), null for tba.</summary>
+    public string? ReleaseFrom { get; init; }
+    public string? ReleaseTo { get; init; }
+    /// <summary>Honest wording for a vague date ("Q1 2027", "Summer 2027", "To be announced"); null for an exact day.</summary>
+    public string? ReleaseLabel { get; init; }
+}
 
 /// <summary>
 /// Status: ok | empty | off | notConnected | noAccount | offline | invalidKey | unavailable | rateLimited | notLoaded.
@@ -81,6 +92,19 @@ public sealed class WishlistCacheItem
     public List<WishlistPointDto> History { get; set; } = [];
     public bool NotifiedReleased { get; set; }
     public long? NotifiedLowCents { get; set; }
+
+    // Track D2: release precision and every store art variant (older cache files have none of these; see ArtVersion).
+    public string? ReleaseDisplay { get; set; }
+    public DateTimeOffset? ReleaseHint { get; set; }
+    public string? CapsuleUrl { get; set; }
+    public string? CoverUrl { get; set; }
+    public string? HeroCapsuleUrl { get; set; }
+    public string? HeroUrl { get; set; }
+    public string? CoverFile { get; set; }
+    /// <summary>When VYSTRAL last tried every art source and something was still missing (retried a day later).</summary>
+    public DateTimeOffset? ArtTriedAt { get; set; }
+    /// <summary>Store facts below <see cref="WishlistService.ArtVersion"/> are read again on the next refresh.</summary>
+    public int ArtVersion { get; set; }
 }
 
 public sealed class WishlistCache
@@ -112,6 +136,13 @@ public sealed class WishlistService
     internal const int MaxPriceLookups = 600;
     internal const int MaxLowLookupsPerRefresh = 20;
     internal const int MaxHeadersPerRefresh = 60;
+    /// <summary>Track D2: one-app appdetails lookups (header_image) and SteamGridDB lookups per refresh, for art Steam's index can't serve.</summary>
+    internal const int MaxStoreArtLookupsPerRefresh = 4;
+    internal const int MaxGridLookupsPerRefresh = 6;
+    internal const long MinCoverBytes = 6 * 1024;
+    public static readonly TimeSpan ArtRetry = TimeSpan.FromDays(1);
+    /// <summary>Track D2: cached store facts older than this version lack the art variants and release precision.</summary>
+    internal const int ArtVersion = 2;
     internal const int MaxHistory = 120;
     private const long MaxCacheBytes = 8 * 1024 * 1024;
 
@@ -190,12 +221,23 @@ public sealed class WishlistService
 
     private string? RetryText() => _retryAt > Now() ? _retryAt.ToString("O") : null;
 
-    private WishlistItemDto ToDto(WishlistCacheItem i, IReadOnlyDictionary<string, string> library) => new(
-        i.AppId, i.Name!, i.Priority, i.Added?.ToString("O"), i.Release?.ToString("O"), i.ComingSoon, i.ReleaseText, i.IsFree,
-        i.PriceCents, i.RegularCents, i.Discount, i.Currency, i.PriceText, i.NotSold,
-        i.LowCents, i.LowCurrency, i.LowSource, i.LowAt, i.History.ToList(),
-        _artwork.CachedFileExists(i.HeaderFile) ? ArtworkService.Url("", i.HeaderFile!) : null,
-        library.TryGetValue(i.AppId, out var gid) ? gid : null, i.PricedAt?.ToString("O"));
+    private WishlistItemDto ToDto(WishlistCacheItem i, IReadOnlyDictionary<string, string> library)
+    {
+        var window = WishlistRelease.Parse(i.Release, i.ReleaseHint, i.ComingSoon, i.ReleaseDisplay, i.ReleaseText);
+        return new WishlistItemDto(
+            i.AppId, i.Name!, i.Priority, i.Added?.ToString("O"), i.Release?.ToString("O"), i.ComingSoon, i.ReleaseText, i.IsFree,
+            i.PriceCents, i.RegularCents, i.Discount, i.Currency, i.PriceText, i.NotSold,
+            i.LowCents, i.LowCurrency, i.LowSource, i.LowAt, i.History.ToList(),
+            _artwork.CachedFileExists(i.HeaderFile) ? ArtworkService.Url("", i.HeaderFile!) : null,
+            library.TryGetValue(i.AppId, out var gid) ? gid : null, i.PricedAt?.ToString("O"))
+        {
+            Cover = _artwork.CachedFileExists(i.CoverFile) ? ArtworkService.Url("", i.CoverFile!) : null,
+            ReleasePrecision = window.Precision,
+            ReleaseFrom = window.From?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            ReleaseTo = window.To?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            ReleaseLabel = window.Label,
+        };
+    }
 
     private static WishlistDto Empty(string status, string? message, string country) => new(status, message, null, false, false, 0, [], null, country, null);
 
@@ -286,7 +328,8 @@ public sealed class WishlistService
             }
 
             // Store facts (names, release, header URL) for new and day-old entries.
-            var needStore = next.Where(i => i.Name is null || i.StoreFetched is null || now - i.StoreFetched > StoreInfoMaxAge).Take(MaxStoreLookups).ToList();
+            var needStore = next.Where(i => i.Name is null || i.StoreFetched is null || now - i.StoreFetched > StoreInfoMaxAge || i.ArtVersion < ArtVersion)
+                .Take(MaxStoreLookups).ToList();
             try
             {
                 foreach (var batch in needStore.Chunk(SteamWebApiClient.StoreItemsBatch))
@@ -329,7 +372,7 @@ public sealed class WishlistService
             }
 
             await RefreshLowsAsync(next, country, now, ct);
-            if (!DataSaver) await CacheHeadersAsync(next, ct);
+            if (!DataSaver) await CacheArtAsync(next, now, ct);
 
             var alerts = new List<WishlistAlert>();
             lock (_lock)
@@ -393,23 +436,100 @@ public sealed class WishlistService
         }
     }
 
-    private async Task CacheHeadersAsync(List<WishlistCacheItem> items, CancellationToken ct)
+    /// <summary>
+    /// Track D2: caches a header (wide) and a cover (portrait) for each game, trying every variant Steam names before
+    /// giving up: the header, the main capsule, the classic header path and the library hero for the header; the
+    /// 600×900 library capsule, the hero capsule and the classic library path for the cover. Games with no art at all
+    /// then ask the store's appdetails for its header_image (a few per refresh), and SteamGridDB when the user
+    /// connected a key. Every download goes through the art cache's safe path (HTTPS, image types, size caps, magic
+    /// bytes); every URL was built natively from the appid or validated against Steam's or SteamGridDB's hosts.
+    /// </summary>
+    private async Task CacheArtAsync(List<WishlistCacheItem> items, DateTimeOffset now, CancellationToken ct)
     {
-        var wanted = items.Where(i => i.HeaderUrl is not null && !_artwork.CachedFileExists(i.HeaderFile)).Take(MaxHeadersPerRefresh).ToList();
+        bool Missing(WishlistCacheItem i) => !_artwork.CachedFileExists(i.HeaderFile) || !_artwork.CachedFileExists(i.CoverFile);
+        var wanted = items.Where(i => i.Name is not null && Missing(i) && (i.ArtTriedAt is null || now - i.ArtTriedAt > ArtRetry))
+            .Take(MaxHeadersPerRefresh).ToList();
+        if (wanted.Count == 0) return;
+
         using var lane = new SemaphoreSlim(3, 3);
         await Task.WhenAll(wanted.Select(async i =>
         {
             await lane.WaitAsync(ct);
             try
             {
-                if (IsGameActive() || DataSaver) return;
-                // HeaderUrl was built natively from the appid and Steam-shaped asset names (see SteamWebApiClient.HeaderUrl).
-                var rel = await _artwork.CacheThumbAsync(i.HeaderUrl!, "wishlist", ct);
-                if (rel is not null) lock (_lock) i.HeaderFile = rel;
+                if (IsGameActive() || DataSaver || LocalOnly) return;
+                if (!_artwork.CachedFileExists(i.HeaderFile) && await FirstAsync(HeaderCandidates(i), 0, ct) is { } header)
+                    lock (_lock) i.HeaderFile = header;
+                if (!_artwork.CachedFileExists(i.CoverFile) && await FirstAsync(CoverCandidates(i), MinCoverBytes, ct) is { } cover)
+                    lock (_lock) i.CoverFile = cover;
             }
             finally { lane.Release(); }
         }));
+
+        // Nothing from the asset index loaded: the store page's own header, then SteamGridDB (the user's key).
+        var bare = wanted.Where(i => !_artwork.CachedFileExists(i.HeaderFile) && !_artwork.CachedFileExists(i.CoverFile)).ToList();
+        try
+        {
+            foreach (var i in bare.Take(MaxStoreArtLookupsPerRefresh))
+            {
+                if (IsGameActive() || DataSaver || LocalOnly) break;
+                if (await _sources.SteamStore.GetHeaderImageAsync(i.AppId, ct) is { } url && await _artwork.CacheThumbAsync(url, "wishlist", ct) is { } rel)
+                    lock (_lock) i.HeaderFile = rel;
+            }
+        }
+        catch (DataSourceException ex)
+        {
+            Log.Info("wishlist", "Store art lookups stopped for this refresh", new { outcome = ex.Outcome.ToString() });
+        }
+        if (_sources.HasKey(KeyedProvider.SteamGridDb))
+        {
+            try
+            {
+                foreach (var i in bare.Where(i => !_artwork.CachedFileExists(i.HeaderFile)).Take(MaxGridLookupsPerRefresh))
+                {
+                    if (IsGameActive() || DataSaver || LocalOnly) break;
+                    if (await _sources.SteamGridDb.GetGameBySteamAppIdAsync(i.AppId, ct) is not { } game) continue;
+                    var images = await _sources.SteamGridDb.GetImagesAsync(Core.Domain.ArtworkKind.Cover, game.Id, new SgdbFilter([], false, 0), ct);
+                    // Thumbnails are plenty for a calendar cell; ParseImages already kept only HTTPS steamgriddb.com URLs.
+                    foreach (var image in images.Where(x => x.Height > x.Width).Take(2))
+                        if (await _artwork.CacheThumbAsync(image.Thumb, "wishlist", ct, 2 * 1024) is { } rel)
+                        {
+                            lock (_lock) i.CoverFile = rel;
+                            break;
+                        }
+                }
+            }
+            catch (DataSourceException ex)
+            {
+                Log.Info("wishlist", "SteamGridDB art lookups stopped for this refresh", new { outcome = ex.Outcome.ToString() });
+            }
+        }
+
+        lock (_lock)
+            foreach (var i in wanted)
+                i.ArtTriedAt = Missing(i) ? now : null;
+        Log.Info("wishlist", "Wishlist art cached", new { tried = wanted.Count, stillMissing = wanted.Count(Missing) });
     }
+
+    private async Task<string?> FirstAsync(IEnumerable<string> urls, long minBytes, CancellationToken ct)
+    {
+        foreach (var url in urls)
+        {
+            if (IsGameActive() || DataSaver) return null;
+            if (await _artwork.CacheThumbAsync(url, "wishlist", ct, minBytes) is { } rel) return rel;
+        }
+        return null;
+    }
+
+    /// <summary>Wide art, best first: the store header, the main capsule, the classic header path, the library hero.</summary>
+    internal static IReadOnlyList<string> HeaderCandidates(WishlistCacheItem i) =>
+        new[] { i.HeaderUrl, i.CapsuleUrl, SteamWebApiClient.ClassicAssetUrl(i.AppId, "header.jpg"), i.HeroUrl }
+            .OfType<string>().Distinct(StringComparer.Ordinal).ToList();
+
+    /// <summary>Portrait art, best first: the 600×900 library capsule, the hero capsule, the classic library path.</summary>
+    internal static IReadOnlyList<string> CoverCandidates(WishlistCacheItem i) =>
+        new[] { i.CoverUrl, i.HeroCapsuleUrl, SteamWebApiClient.ClassicAssetUrl(i.AppId, "library_600x900.jpg") }
+            .OfType<string>().Distinct(StringComparer.Ordinal).ToList();
 
     // ---------- Pure steps (unit-tested) ----------
 
@@ -420,7 +540,19 @@ public sealed class WishlistService
         item.ComingSoon = info.ComingSoon;
         item.ReleaseText = info.ReleaseText;
         item.IsFree = info.IsFree;
-        item.HeaderUrl = info.HeaderUrl;
+        item.ReleaseDisplay = info.ReleaseDisplay;
+        item.ReleaseHint = info.ReleaseHint;
+        var art = info.Art;
+        var header = art.Header ?? info.HeaderUrl;
+        // New art names (Steam re-hashes art when a publisher updates it): try every source again.
+        if (header != item.HeaderUrl || art.Cover != item.CoverUrl || art.Capsule != item.CapsuleUrl || art.HeroCapsule != item.HeroCapsuleUrl)
+            item.ArtTriedAt = null;
+        item.HeaderUrl = header;
+        item.CapsuleUrl = art.Capsule;
+        item.CoverUrl = art.Cover;
+        item.HeroCapsuleUrl = art.HeroCapsule;
+        item.HeroUrl = art.Hero;
+        item.ArtVersion = ArtVersion;
         item.StoreFetched = now;
     }
 
@@ -591,12 +723,26 @@ public sealed class WishlistService
             if (i.PriceCents is < 0 or > 100_000_000) i.PriceCents = null;
             if (i.RegularCents is < 0 or > 100_000_000) i.RegularCents = null;
             if (i.LowCents is < 0 or > 100_000_000) i.LowCents = null;
-            i.HeaderUrl = i.HeaderUrl is { } h && h.StartsWith("https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/" + i.AppId + "/", StringComparison.Ordinal) &&
-                          h.Length <= 300 && !h.Contains("..", StringComparison.Ordinal) ? h : null;
-            i.HeaderFile = i.HeaderFile is { } f && f.StartsWith("_thumbs/wishlist/", StringComparison.Ordinal) && f.Length <= 60 && !f.Contains("..", StringComparison.Ordinal) ? f : null;
+            i.HeaderUrl = SafeArtUrl(i.HeaderUrl, i.AppId);
+            i.CapsuleUrl = SafeArtUrl(i.CapsuleUrl, i.AppId);
+            i.CoverUrl = SafeArtUrl(i.CoverUrl, i.AppId);
+            i.HeroCapsuleUrl = SafeArtUrl(i.HeroCapsuleUrl, i.AppId);
+            i.HeroUrl = SafeArtUrl(i.HeroUrl, i.AppId);
+            i.HeaderFile = SafeArtFile(i.HeaderFile);
+            i.CoverFile = SafeArtFile(i.CoverFile);
+            i.ReleaseDisplay = i.ReleaseDisplay is "date_full" or "date_month" or "date_quarter" or "date_year" or "text_tba" or "text_comingsoon" ? i.ReleaseDisplay : null;
+            i.ArtVersion = Math.Clamp(i.ArtVersion, 0, ArtVersion);
             i.History = (i.History ?? []).Where(p => p is not null && p.Day is { Length: 10 } && DateOnly.TryParseExact(p.Day, "yyyy-MM-dd", out _) && p.Cents is >= 0 and <= 100_000_000)
                 .TakeLast(MaxHistory).ToList();
         }
         return c;
     }
+
+    /// <summary>A cached store art URL: Steam's shared CDN, inside this app's own folder, no traversal.</summary>
+    private static string? SafeArtUrl(string? url, string appId) =>
+        url is { Length: <= 300 } u && u.StartsWith(SteamWebApiClient.AssetCdn + "steam/apps/" + appId + "/", StringComparison.Ordinal) &&
+        !u.Contains("..", StringComparison.Ordinal) && !u.Contains('\\') ? u : null;
+
+    private static string? SafeArtFile(string? file) =>
+        file is { Length: <= 60 } f && f.StartsWith("_thumbs/wishlist/", StringComparison.Ordinal) && !f.Contains("..", StringComparison.Ordinal) && !f.Contains('\\') ? f : null;
 }

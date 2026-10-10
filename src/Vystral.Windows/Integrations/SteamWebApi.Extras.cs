@@ -23,7 +23,25 @@ public sealed record StoreItemInfo(
     long? OriginalCents,
     int DiscountPercent,
     string? FormattedPrice,
-    string? HeaderUrl);
+    string? HeaderUrl)
+{
+    /// <summary>Track D2: every store art variant Steam names for the app (hashed or classic file names), validated.</summary>
+    public StoreItemArt Art { get; init; } = StoreItemArt.None;
+    /// <summary>Steam's <c>coming_soon_display</c> (date_full, date_month, date_quarter, date_year, text_tba, text_comingsoon), or null.</summary>
+    public string? ReleaseDisplay { get; init; }
+    /// <summary>The raw release timestamp, also for vague dates (where it only marks the month, quarter or year).</summary>
+    public DateTimeOffset? ReleaseHint { get; init; }
+}
+
+/// <summary>
+/// Track D2: Steam store art for one app on the shared CDN. Header is 460×215, Capsule the 616×353 main capsule,
+/// Cover the 600×900 library capsule, HeroCapsule the 374×448 hero capsule and Hero the 1920×620 library hero.
+/// Every URL was built natively from the validated appid and a Steam-shaped file name.
+/// </summary>
+public sealed record StoreItemArt(string? Header, string? Capsule, string? Cover, string? HeroCapsule, string? Hero)
+{
+    public static readonly StoreItemArt None = new(null, null, null, null, null);
+}
 
 /// <summary>One game a friend played recently (IPlayerService/GetRecentlyPlayedGames/v1).</summary>
 public sealed record RecentGame(string AppId, int MinutesTwoWeeks, int MinutesForever);
@@ -148,16 +166,18 @@ public sealed partial class SteamWebApiClient
                 if (name is null) continue;
 
                 DateTimeOffset? release = null;
+                DateTimeOffset? hint = null;
                 var comingSoon = false;
                 string? releaseText = null;
+                string? display = null;
                 if (Obj(i, "release") is { } r)
                 {
                     var ts = Long(r, "steam_release_date") ?? Long(r, "original_release_date");
-                    if (ts is > 0 and < 32503680000) release = DateTimeOffset.FromUnixTimeSeconds(ts.Value);
+                    if (ts is > 0 and < 32503680000) release = hint = DateTimeOffset.FromUnixTimeSeconds(ts.Value);
                     comingSoon = Bool(r, "is_coming_soon");
                     releaseText = CleanText(Str(r, "custom_release_date_message"), 60);
                     // "date_month"/"date_quarter"/"date_year": Steam itself shows only part of the date.
-                    var display = Str(r, "coming_soon_display");
+                    display = Str(r, "coming_soon_display") is { } shown && KnownDisplays.Contains(shown) ? shown : null;
                     if (comingSoon && releaseText is null && release is { } d && display is "date_month" or "date_quarter" or "date_year")
                         releaseText = display switch
                         {
@@ -178,8 +198,14 @@ public sealed partial class SteamWebApiClient
                     discount = (int)Math.Clamp(Long(p, "discount_pct") ?? 0, 0, 100);
                     formatted = CleanText(Str(p, "formatted_final_price"), 24);
                 }
+                var assets = Obj(i, "assets");
                 result.Add(new StoreItemInfo(appId, name, release, comingSoon, releaseText, Bool(i, "is_free"), final, original, discount, formatted,
-                    HeaderUrl(appId, Obj(i, "assets"))));
+                    HeaderUrl(appId, assets))
+                {
+                    Art = ArtOf(appId, assets),
+                    ReleaseDisplay = display,
+                    ReleaseHint = hint,
+                });
             }
             return result;
         }
@@ -189,23 +215,45 @@ public sealed partial class SteamWebApiClient
         }
     }
 
+    private static readonly HashSet<string> KnownDisplays = new(StringComparer.Ordinal)
+        { "date_full", "date_month", "date_quarter", "date_year", "text_tba", "text_comingsoon" };
+
+    internal const string AssetCdn = "https://shared.akamai.steamstatic.com/store_item_assets/";
+
     /// <summary>
     /// The header image on Steam's shared CDN. Built only from the validated appid and asset names that
     /// match Steam's shapes; anything else falls back to the standard path for that appid.
+    /// Track D2: newer apps name their art <c>&lt;sha1&gt;/header.jpg</c> (the hash is part of the file name, not of the
+    /// URL format), and the classic <c>header.jpg</c> path answers 404 for them. Those names used to be refused, so
+    /// most upcoming games fell back to a missing image.
     /// </summary>
-    internal static string HeaderUrl(string appId, JsonElement? assets)
+    internal static string HeaderUrl(string appId, JsonElement? assets) =>
+        AssetUrl(appId, assets, "header") ?? ClassicAssetUrl(appId, "header.jpg");
+
+    /// <summary>The classic, unhashed art path (older apps still answer it; newer ones answer 404).</summary>
+    internal static string ClassicAssetUrl(string appId, string file) => $"{AssetCdn}steam/apps/{appId}/{file}";
+
+    /// <summary>Every art variant the store names for the app (null where Steam has none or the name isn't Steam-shaped).</summary>
+    internal static StoreItemArt ArtOf(string appId, JsonElement? assets) => new(
+        AssetUrl(appId, assets, "header"),
+        AssetUrl(appId, assets, "main_capsule"),
+        AssetUrl(appId, assets, "library_capsule") ?? AssetUrl(appId, assets, "library_capsule_2x"),
+        AssetUrl(appId, assets, "hero_capsule"),
+        AssetUrl(appId, assets, "library_hero"));
+
+    /// <summary>One named asset as a URL inside the app's own CDN folder, or null.</summary>
+    internal static string? AssetUrl(string appId, JsonElement? assets, string key)
     {
-        const string cdn = "https://shared.akamai.steamstatic.com/store_item_assets/";
-        if (assets is { } a && Str(a, "asset_url_format") is { } format && Str(a, "header") is { } header &&
-            AssetFormat().Match(format) is { Success: true } m && m.Groups[1].Value == appId && AssetFile().IsMatch(header))
-            return cdn + format.Replace("${FILENAME}", header, StringComparison.Ordinal);
-        return $"{cdn}steam/apps/{appId}/header.jpg";
+        if (assets is not { } a || Str(a, "asset_url_format") is not { Length: <= 200 } format || Str(a, key) is not { Length: <= 160 } file) return null;
+        if (AssetFormat().Match(format) is not { Success: true } m || m.Groups[1].Value != appId || !AssetFile().IsMatch(file)) return null;
+        return AssetCdn + format.Replace("${FILENAME}", file, StringComparison.Ordinal);
     }
 
     [GeneratedRegex(@"\Asteam/apps/(\d{1,10})/(?:[0-9a-f]{40}/)?\$\{FILENAME\}(?:\?t=\d{1,12})?\z")]
     private static partial Regex AssetFormat();
 
-    [GeneratedRegex(@"\A[A-Za-z0-9_\-]{1,100}\.(?:jpg|png|webp)\z")]
+    /// <summary>A plain image name, optionally inside one SHA-1 folder (<c>3bd40cfd…7105/header.jpg</c>).</summary>
+    [GeneratedRegex(@"\A(?:[0-9a-f]{40}/)?[A-Za-z0-9_\-]{1,100}\.(?:jpg|png|webp)\z")]
     private static partial Regex AssetFile();
 
     /// <summary>Null = the friend's game details aren't public (Steam answers <c>{"response":{}}</c>).</summary>

@@ -44,7 +44,61 @@ public sealed partial class SteamStoreDataClient(ProviderTransport transport)
         return ParsePrices(r.Body, ids);
     }
 
+    /// <summary>
+    /// Track D2: the store's own header image for one app (appdetails <c>header_image</c>), the last Steam fallback for
+    /// wishlist art when the asset index names nothing that loads. One app per request (appdetails allows only prices
+    /// in batches), so callers use it sparingly.
+    /// </summary>
+    public async Task<string?> GetHeaderImageAsync(string appId, CancellationToken ct)
+    {
+        if (!IsAppId(appId)) return null;
+        var r = await transport.SendAsync(() => new HttpRequestMessage(HttpMethod.Get,
+            new Uri($"https://store.steampowered.com/api/appdetails?appids={appId}&filters=basic&l=english")), ct);
+        if (r.Status == HttpStatusCode.Forbidden)
+            throw new DataSourceException(DataSourceOutcome.RateLimited, "Steam asked VYSTRAL to slow down. Try again in a few minutes.");
+        if (r.Status != HttpStatusCode.OK) throw new DataSourceException(DataSourceOutcome.Malformed, $"Steam answered with an unexpected status ({(int)r.Status}).");
+        return ParseHeaderImage(r.Body, appId);
+    }
+
     // ---------- Parsing (pure, unit-tested) ----------
+
+    /// <summary>Steam CDN hosts that serve store art.</summary>
+    internal static readonly string[] SteamArtHosts =
+    [
+        "shared.akamai.steamstatic.com", "shared.fastly.steamstatic.com", "shared.cloudflare.steamstatic.com",
+        "cdn.akamai.steamstatic.com", "cdn.fastly.steamstatic.com", "cdn.cloudflare.steamstatic.com",
+        "store.akamai.steamstatic.com", "store.fastly.steamstatic.com", "steamcdn-a.akamaihd.net",
+    ];
+
+    /// <summary>appdetails' header_image, accepted only as HTTPS on a Steam CDN host inside this app's own art folder.</summary>
+    internal static string? ParseHeaderImage(string json, string appId)
+    {
+        using var doc = JsonRead.Parse(json, "Steam");
+        if (doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty(appId, out var entry) ||
+            entry.ValueKind != JsonValueKind.Object || !entry.TryGetProperty("success", out var ok) || ok.ValueKind != JsonValueKind.True ||
+            JsonRead.Obj(entry, "data") is not { } data) return null;
+        if (JsonRead.Long(data, "steam_appid") is { } id && id.ToString(CultureInfo.InvariantCulture) != appId) return null;
+        return SafeSteamArt(JsonRead.Str(data, "header_image", 400), appId);
+    }
+
+    /// <summary>An HTTPS Steam CDN image inside <c>/steam/apps/&lt;appId&gt;/</c> (optionally under /store_item_assets), or null.</summary>
+    internal static string? SafeSteamArt(string? url, string appId)
+    {
+        if (JsonRead.SafeUrl(url, SteamArtHosts) is not { Length: <= 400 } safe || !Uri.TryCreate(safe, UriKind.Absolute, out var uri)) return null;
+        if (!SteamArtHosts.Contains(uri.Host.ToLowerInvariant())) return null; // exact hosts only, no subdomains
+        var path = uri.AbsolutePath;
+        var rest = path.StartsWith($"/store_item_assets/steam/apps/{appId}/", StringComparison.Ordinal) ? path[$"/store_item_assets/steam/apps/{appId}/".Length..]
+            : path.StartsWith($"/steam/apps/{appId}/", StringComparison.Ordinal) ? path[$"/steam/apps/{appId}/".Length..] : null;
+        if (rest is null || !SteamArtFile().IsMatch(rest)) return null;
+        if (uri.Query.Length > 0 && !SteamArtQuery().IsMatch(uri.Query)) return null;
+        return uri.AbsoluteUri;
+    }
+
+    [GeneratedRegex(@"\A(?:[0-9a-f]{40}/)?[A-Za-z0-9_\-]{1,100}\.(?:jpg|png|webp)\z")]
+    private static partial Regex SteamArtFile();
+
+    [GeneratedRegex(@"\A\?t=\d{1,12}\z")]
+    private static partial Regex SteamArtQuery();
 
     internal static DeckReport? ParseDeck(string json, string appId)
     {

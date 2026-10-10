@@ -46,7 +46,7 @@ test.describe('wishlist', () => {
     await expect(page.getByRole('heading', { name: 'Wishlist', level: 1 })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Bring your Steam wishlist into VYSTRAL' })).toBeVisible();
     await page.getByRole('button', { name: 'Show my wishlist' }).click();
-    await expect(page.getByRole('list', { name: /wishlisted games/ })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Release calendar' })).toBeVisible(); // Track D2: the calendar is the page
     await expect(sidebar.getByRole('button', { name: 'Wishlist' })).toBeVisible();
     expect(errors).toEqual([]);
   });
@@ -54,7 +54,8 @@ test.describe('wishlist', () => {
   test('lists prices, lowest-ever, release badges and price history; sorts and filters; axe-clean', async ({ page }) => {
     const { errors, external } = await open(page, '?wishlist&reduced');
     await nav(page, 'Wishlist');
-    const list = page.getByRole('list', { name: /12 wishlisted games/ });
+    await page.getByRole('button', { name: 'Show as list' }).click(); // Track D2: the card list is the alternative view
+    const list = page.getByRole('list', { name: /22 wishlisted games/ });
     await expect(list).toBeVisible();
 
     const lantern = list.getByRole('listitem').filter({ hasText: 'Lantern Shore' });
@@ -82,7 +83,7 @@ test.describe('wishlist', () => {
     await expect(list.getByRole('listitem').first()).toContainText('Halcyon Depths');
     // Filters.
     await page.getByRole('radio', { name: 'Lowest ever' }).click();
-    await expect(page.getByRole('list', { name: /3 wishlisted games/ })).toBeVisible();
+    await expect(page.getByRole('list', { name: /5 wishlisted games/ })).toBeVisible();
     await page.getByRole('radio', { name: 'All' }).click();
     await page.getByLabel('Search your wishlist').fill('vesper');
     await expect(page.getByRole('list', { name: /1 wishlisted game$/ })).toBeVisible();
@@ -105,7 +106,7 @@ test.describe('wishlist', () => {
     await page.goto('/?wishlist=loading&reduced');
     await nav(page, 'Wishlist');
     await expect(page.getByText(/Reading your wishlist from Steam/)).toBeVisible();
-    await expect(page.getByRole('list', { name: /wishlisted games/ })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('region', { name: 'Release calendar' })).toBeVisible({ timeout: 15_000 });
 
     await page.goto('/?wishlist=invalid&reduced');
     await nav(page, 'Wishlist');

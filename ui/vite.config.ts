@@ -20,7 +20,9 @@ const CSP = [
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'none'",
-  "frame-src 'none'",
+  // Track D4: one third-party frame only — a YouTube trailer in privacy-enhanced mode, with "Allow YouTube trailers" on.
+  // The host's FrameNavigationStarting check enforces the setting and the exact /embed/{id} shape; the page sandboxes it.
+  "frame-src https://www.youtube-nocookie.com",
 ].join('; ');
 
 function csp(): Plugin {
