@@ -80,6 +80,30 @@ test.describe('recommend.v2 on Home', () => {
   });
 });
 
+test.describe('recommend.v2 in Immersive', () => {
+  test('“Picked for you” says why for the focused game, and “Play in the cloud” is a row', async ({ page }) => {
+    await page.addInitScript(() => Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 }));
+    const { errors } = await open(page, '?reduced&cloud&cloudMore');
+    await page.evaluate("import('/src/views/Immersive.tsx')");
+    await page.evaluate("import('/src/state/store.ts').then((m) => m.useStore.getState().setSetting('immersive.tourDone', true))");
+    await page.keyboard.press('F11');
+    await expect(page.locator('.imm')).toBeVisible({ timeout: 15_000 });
+    const cloudRow = page.locator('.imm__row[data-row-id="cloud"]');
+    await expect(cloudRow).toBeAttached({ timeout: 10_000 });
+    await expect(cloudRow.locator('.imm__row-name')).toHaveText('Play in the cloud');
+    // Move down to "Picked for you": the focused game's reason replaces the row's line.
+    const picked = page.locator('.imm__row[data-row-id="picked"]');
+    await expect(picked).toBeAttached();
+    for (let i = 0; i < 8 && (await picked.getAttribute('data-active')) !== 'true'; i++) {
+      await page.keyboard.press('ArrowDown');
+      await page.waitForTimeout(120);
+    }
+    await expect(picked).toHaveAttribute('data-active', 'true');
+    await expect(picked.locator('.imm__row-why')).not.toBeEmpty();
+    expect(errors).toEqual([]);
+  });
+});
+
 test.describe('Free this week', () => {
   test('is an invitation until a source is on, then a shelf that marks what you own and opens only the store page', async ({ page }) => {
     const { errors, external } = await open(page, '?reduced&discover');
