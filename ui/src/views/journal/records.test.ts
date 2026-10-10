@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { Session } from '../../bridge/types';
 import {
   CELEBRATE_FLOOR, computeRecords, finishedSessions, improvedSince, nightScore, recordsBrokenBy, scoresOf, startOfWeek,
@@ -15,6 +15,8 @@ function s(start: Date, seconds: number, gameId = 'g1', extra: Partial<Session> 
   };
 }
 const at = (y: number, m: number, d: number, h = 12, min = 0) => new Date(y, m - 1, d, h, min);
+/** Node's environment (the time zone is read from TZ at each date call). */
+const env = (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process.env;
 
 describe('finishedSessions', () => {
   it('leaves out open, imported, zero-length and unparseable sessions', () => {
@@ -115,25 +117,25 @@ describe('computeRecords', () => {
   });
 
   it('uses the local time zone for days and night hours', () => {
-    const prev = process.env.TZ;
+    const prev = env.TZ;
     try {
       // 2026-06-01 03:30 UTC: 23:30 on 31 May in New York, 05:30 on 1 June in Berlin (not a night finish there).
       const list: Session[] = [{
         id: 'tz', gameId: 'g', installationId: null, start: '2026-06-01T01:30:00.000Z', end: '2026-06-01T03:30:00.000Z',
         durationSeconds: 2 * H, source: 'tracked', perfSummary: null,
       }];
-      process.env.TZ = 'America/New_York';
+      env.TZ = 'America/New_York';
       const ny = computeRecords(list);
       expect(ny.nightOwl?.value).toBe(23 * 60 + 30);
       expect(new Date(ny.bestDay!.day).getDate()).toBe(31);
-      process.env.TZ = 'Europe/Berlin';
+      env.TZ = 'Europe/Berlin';
       const berlin = computeRecords(list);
       expect(berlin.nightOwl?.value).toBe(5 * 60 + 30);
       expect(berlin.earlyBird).toBeUndefined(); // started 03:30, before 04:00
       expect(new Date(berlin.bestDay!.day).getDate()).toBe(1);
     } finally {
-      if (prev === undefined) delete process.env.TZ;
-      else process.env.TZ = prev;
+      if (prev === undefined) delete env.TZ;
+      else env.TZ = prev;
     }
   });
 });

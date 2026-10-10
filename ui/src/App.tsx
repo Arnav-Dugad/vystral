@@ -3,6 +3,7 @@ import { AnimatePresence, LayoutGroup, motion, useIsPresent } from 'motion/react
 import { exit, pick, spring } from './lib/motion';
 import { startInput } from './lib/input';
 import { watchAmbient } from './lib/sound';
+import { startRecordWatch } from './state/records';
 import { useGameRunning, useReducedMotion, useStore, type Route } from './state/store';
 import { LivingCanvas } from './components/shell/LivingCanvas';
 import { SystemBackdrop } from './components/shell/SystemBackdrop';
@@ -56,6 +57,7 @@ export default function App() {
   useEffect(() => {
     startInput();
     watchAmbient(); // Track K: mood-following ambient sound (off unless enabled in Settings)
+    startRecordWatch(); // Track C6: a toast when a finished session beats a personal record
     void init();
   }, [init]);
 

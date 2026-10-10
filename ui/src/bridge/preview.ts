@@ -381,8 +381,10 @@ export function createPreviewBackend() {
       let sessionId = 'preview';
       timers.push(window.setTimeout(() => {
         // Like the native side, the finished session is saved before 'ended' is reported.
-        sessionId = recordPreviewSession(lib, findGame(g.id), inst.id, 5400);
-        setLaunch({ ...base, phase: 'ended', sessionId, durationSeconds: 5400, message: null });
+        // Track C6: `?recordSession` makes it a six-hour session, longer than any preview session (a new record).
+        const seconds = params.has('recordSession') ? 6 * 3600 : 5400;
+        sessionId = recordPreviewSession(lib, findGame(g.id), inst.id, seconds);
+        setLaunch({ ...base, phase: 'ended', sessionId, durationSeconds: seconds, message: null });
       }, 7000));
       // Track F: Steam reports two fictional unlocks a moment after the session ends.
       timers.push(window.setTimeout(() => dataInsights.__unlocked({ gameId: g.id, sessionId }), 8500));
