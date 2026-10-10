@@ -6,7 +6,9 @@ import {
 import { call, errorMessage, on } from '../../bridge/bridge';
 import type { Compat, Deals, Enrichment, EnrichmentSource, Game, Identity, PlatformKey } from '../../bridge/types';
 import { formatDate, formatRelative } from '../../lib/format';
-import { DECK_LABEL, deckTone, formatHours, formatMoney, matchLabel } from '../../lib/dataSources';
+import { DECK_LABEL, deckTone, formatHours, matchLabel } from '../../lib/dataSources';
+import { useMoney } from '../../state/money'; // Track D6
+import { Price } from '../ui/Price';
 import { useReducedMotion, useStore } from '../../state/store';
 import { Badge, Button, PlatformBadge, Skeleton } from '../ui/primitives';
 import { ServiceLogo } from '../ui/ServiceLogo';
@@ -226,6 +228,7 @@ function Score({ value, count, of }: { value: number; count?: number; of: number
 }
 
 function DealsCard({ game }: { game: Game }) {
+  const money = useMoney(); // Track D6: every price in the chosen currency
   const settingsKey = useStore((s) => `${s.settings?.['dataSources.cheapshark']}${s.settings?.['privacy.localOnly']}${s.settings?.['dataSources.priceCountry']}`);
   const { data, error, reload } = useBridge<Deals>('deals.get', game.id, [settingsKey]);
   const [refreshing, setRefreshing] = useState(false);
@@ -253,13 +256,13 @@ function DealsCard({ game }: { game: Game }) {
               <div className="gx-quote__best">
                 <div>
                   <span className="caps">Best price now</span>
-                  <div className="gx-quote__price num">{formatMoney(best.price, q.currency)}</div>
+                  <div className="gx-quote__price num"><Price amount={best.price} currency={q.currency} /></div>
                   <span className="gx-quote__shop">at {best.shop}{best.cut > 0 ? ` · −${best.cut}%` : ''}</span>
                 </div>
                 {q.historicalLow != null && (
                   <div className="gx-quote__low">
                     <span className="caps"><TrendingDown size={12} aria-hidden /> Lowest ever</span>
-                    <div className="num">{formatMoney(q.historicalLow, q.currency)}</div>
+                    <div className="num"><Price amount={q.historicalLow} currency={q.currency} /></div>
                     {q.historicalLowAt && <span className="gx-quote__shop">{formatDate(q.historicalLowAt)}</span>}
                   </div>
                 )}
@@ -269,10 +272,10 @@ function DealsCard({ game }: { game: Game }) {
               <ul className="gx-offers">
                 {q.offers.slice(0, 5).map((o) => (
                   <li key={o.id}>
-                    <button className="gx-offer" onClick={openExternal('deals.open', { gameId: game.id, offerId: o.id })} aria-label={`${o.shop}: ${formatMoney(o.price, q.currency)}${o.cut ? `, ${o.cut}% off` : ''}. Opens in your browser.`}>
+                    <button className="gx-offer" onClick={openExternal('deals.open', { gameId: game.id, offerId: o.id })} aria-label={`${o.shop}: ${money.label(o.price, q.currency)}${o.cut ? `, ${o.cut}% off` : ''}. Opens in your browser.`}>
                       <span>{o.shop}</span>
                       {o.cut > 0 && <Badge tone="ok">−{o.cut}%</Badge>}
-                      <span className="num">{formatMoney(o.price, q.currency)}</span>
+                      <Price amount={o.price} currency={q.currency} />
                       <ExternalLink size={12} aria-hidden />
                     </button>
                   </li>
@@ -281,7 +284,7 @@ function DealsCard({ game }: { game: Game }) {
             )}
             <p className="gx-attrib">
               Prices from <button className="gx-link" onClick={openExternal('dataSources.openLink', { provider: q.provider, link: 'home' })}>{q.provider === 'itad' ? 'IsThereAnyDeal.com' : 'CheapShark.com'} <ExternalLink size={11} aria-hidden /></button>
-              {q.currency && ` · ${q.currency}`}
+              {q.currency && (q.currency === money.target ? ` · ${q.currency}` : ` · ${q.currency}, shown in ${money.target} (approximate)`)}
               {q.fetched && ` · as of ${formatRelative(q.fetched).toLowerCase()}`}
               {q.stale && ' · couldn’t refresh, showing the last prices'}
             </p>

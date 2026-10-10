@@ -3,6 +3,7 @@
  * lowest price ever, money formatting and the price-history sparkline geometry.
  */
 import type { WishlistItem, WishlistPoint } from '../bridge/types';
+import { centsText, isCurrencyCode } from './money';
 
 export type WishlistSort = 'priority' | 'drop' | 'release' | 'added';
 export type WishlistFilter = 'all' | 'sale' | 'lowest' | 'upcoming';
@@ -52,12 +53,9 @@ function formatDay(iso: string): string {
 /** Steam reports every currency in hundredths, including ones without minor units (¥1,980 is 198000). */
 export function formatMoney(cents: number, currency: string | null): string {
   const value = cents / 100;
-  if (!currency || !/^[A-Z]{3}$/.test(currency)) return value.toFixed(2);
-  try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
-  } catch {
-    return `${value.toFixed(2)} ${currency}`;
-  }
+  if (!isCurrencyCode(currency)) return value.toFixed(2);
+  // Track D6: in the currency chosen in Settings (converted and marked "≈" when Steam priced it in another one).
+  return centsText(cents, currency);
 }
 
 export interface PriceVerdict {

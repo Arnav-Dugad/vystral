@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import type { WishlistItem } from '../../bridge/types';
 import { formatMoney, sparkline, sparklineSummary } from '../../lib/wishlist';
+import { useMoneyContext } from '../../state/money';
 
 /**
  * Track W: the Steam prices VYSTRAL has seen for one game, as a step line over real time with a soft
@@ -9,6 +10,7 @@ import { formatMoney, sparkline, sparklineSummary } from '../../lib/wishlist';
  */
 export function PriceSparkline({ item, width = 168, height = 44 }: { item: WishlistItem; width?: number; height?: number }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  useMoneyContext(); // Track D6: the whole line's labels follow the display currency
   const comparableLow = item.lowestCurrency && item.lowestCurrency === item.currency ? item.lowestCents : null;
   const s = sparkline(item.history, width, height, comparableLow);
   if (!s) return null;
@@ -29,7 +31,7 @@ export function PriceSparkline({ item, width = 168, height = 44 }: { item: Wishl
       </svg>
       <figcaption className="wish-spark__caption" aria-hidden>
         <span>{s.days >= 2 ? `${s.days} days` : 'Recent'}</span>
-        {s.min !== s.max && <span className="num">{formatMoney(s.min, item.currency)}–{formatMoney(s.max, item.currency)}</span>}
+        {s.min !== s.max && <span className="num">{formatMoney(s.min, item.currency)}–{formatMoney(s.max, item.currency).replace(/^≈\s*/, '')}</span>}
       </figcaption>
     </figure>
   );

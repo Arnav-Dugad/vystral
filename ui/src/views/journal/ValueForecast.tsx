@@ -7,6 +7,8 @@ import { formatMoney } from '../../lib/dataSources';
 import { formatDate, formatRelative, plural } from '../../lib/format';
 import { daysText, formatDay, mainTotal, oldestPrice, providersLabel, saleHeadline, saleRange } from '../../lib/forecast';
 import { useReducedMotion, useStore } from '../../state/store';
+import { useMoney } from '../../state/money'; // Track D6
+import { sumInto } from '../../lib/money';
 import { Button, SectionHead, Skeleton } from '../../components/ui/primitives';
 import './value-forecast.css';
 
@@ -79,8 +81,11 @@ function BacklogSavingsCard() {
   useEffect(() => {
     call<BacklogSavings>('forecast.backlogSavings').then(setS).catch((e) => setError(errorMessage(e)));
   }, []);
-  const main = s ? mainTotal(s) : null;
-  const others = s ? s.totals.slice(1) : [];
+  // Track D6: one total in the chosen currency (converted where needed); only amounts without a rate stay apart.
+  const money = useMoney();
+  const sum = s ? sumInto(s.totals, money.ctx) : null;
+  const main = sum ? { total: sum.total, currency: sum.currency, games: sum.games } : s ? mainTotal(s) : null;
+  const others = sum ? sum.apart : [];
   const shown = s ? (all ? s.games : s.games.slice(0, 6)) : [];
   const asOf = s ? oldestPrice(s) : null;
 
@@ -94,7 +99,7 @@ function BacklogSavingsCard() {
           <div className="vf-save__hero">
             <PiggyBank size={20} aria-hidden />
             <div>
-              <strong className="vf-save__total num">{main ? formatMoney(main.total, main.currency) : '—'}</strong>
+              <strong className="vf-save__total num">{main ? `${sum?.approx ? '≈ ' : ''}${formatMoney(main.total, main.currency)}` : '—'}</strong>
               <span className="vf-save__sub">
                 {main ? `across ${plural(main.games, 'game')} with price data` : s.reason === 'noBacklog' ? 'No backlog or never-played games' : 'No price data yet'}
                 {others.map((o) => ` · ${formatMoney(o.total, o.currency)} (${plural(o.games, 'game')})`).join('')}
@@ -105,7 +110,7 @@ function BacklogSavingsCard() {
             <Info size={14} aria-hidden />
             <span>
               <strong>An estimate based on past lows</strong>, not a prediction: for backlog and never-played games, today’s best price minus the lowest price ever
-              recorded. Prices aren’t converted between currencies, and this isn’t what you paid.
+              recorded. {sum?.approx ? `Prices in other currencies are converted to ${money.target} at the day’s exchange rate, so the total is approximate. ` : ''}This isn’t what you paid.
             </span>
           </p>
           {shown.length > 0 && (

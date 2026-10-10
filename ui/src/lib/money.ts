@@ -100,6 +100,32 @@ export function convertSeries(values: number[], from: string | null | undefined,
   return { values: values.map((v) => v * rate), currency: ctx.target, approx: true };
 }
 
+/**
+ * Totals kept per currency, added up in the chosen currency. Totals that can't be converted (no rate) stay apart, so
+ * nothing is ever added across currencies without a rate. `approx` is true when any part was converted.
+ */
+export function sumInto<T extends { currency: string; total: number; games: number }>(totals: T[], ctx: MoneyCtx = current):
+  { total: number; games: number; currency: string; approx: boolean; apart: T[] } | null {
+  let total = 0;
+  let games = 0;
+  let approx = false;
+  let any = false;
+  const apart: T[] = [];
+  for (const t of totals) {
+    const v = convertAmount(t.total, t.currency, ctx.target, ctx.fx);
+    if (v == null) { apart.push(t); continue; }
+    any = true;
+    total += v;
+    games += t.games;
+    if (t.currency !== ctx.target) approx = true;
+  }
+  if (!any) {
+    const [first, ...rest] = totals;
+    return first ? { total: first.total, games: first.games, currency: first.currency, approx: false, apart: rest } : null;
+  }
+  return { total, games, currency: ctx.target, approx, apart };
+}
+
 // ---------------- formatting ----------------
 
 const fmtCache = new Map<string, Intl.NumberFormat>();

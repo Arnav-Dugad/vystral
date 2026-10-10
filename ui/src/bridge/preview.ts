@@ -41,6 +41,7 @@ import { AI_CLOUD_DEFAULT_SETTINGS, aiCloudPreviewHandlers, previewAiSettings } 
 import { parseSmartFilter } from '../lib/smartFilter';
 import type { NewsFeed, ReplayData } from './types';
 import { decorateRigSession, previewCaptionInset, trackC2PreviewHandlers } from './preview.trackC2';
+import { TRACK_D6_DEFAULT_SETTINGS, previewD6Settings, trackD6PreviewHandlers } from './preview.trackD6'; // Track D6
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -100,6 +101,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...MAINTENANCE_DEFAULT_SETTINGS, // Track AA
   ...GAME_PAGE_DEFAULT_SETTINGS, // Track C4
   ...AI_CLOUD_DEFAULT_SETTINGS, // Track C5
+  ...TRACK_D6_DEFAULT_SETTINGS, // Track D6
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -275,6 +277,7 @@ export function createPreviewBackend() {
   settings = { ...settings, ...previewTrackWSettings(params) }; // Track W: ?wishlist, ?friendsHistory
   settings = { ...settings, ...previewDiscoverSettings(params) }; // Track C3: ?discoverStore
   settings = { ...settings, ...previewAiSettings(params) }; // Track C5: ?aiCloud
+  settings = { ...settings, ...previewD6Settings(params) }; // Track D6: ?currency=INR
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
   // Track T: `?nowPlaying` starts the preview with a game already running (Immersive's Now playing row).
@@ -556,6 +559,8 @@ export function createPreviewBackend() {
     }),
     // Track C2: rig summary, startup history (?startupSlow, ?startupNone, ?noRig), caption width (?caption=px).
     ...trackC2PreviewHandlers({ insightSamples: insight['sessions.insightSamples'] }),
+    // Track D6: exchange rates (?fxNone, ?fxOffline), Data sources health (?healthCalm), caches, crash-free streak (?streakIncident, ?streakNew).
+    ...trackD6PreviewHandlers({ emit: () => emit, settings: () => settings, timers }),
   };
   const slowLibrary = Math.min(10_000, Number(params.get('slowLibrary') ?? 0) || 0);
 

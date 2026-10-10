@@ -1148,3 +1148,19 @@ export interface BridgeEvents {
 }
 
 export type * from './types.ai';
+
+// ---------- Track D6: app currency, Data sources health, cache viewer, crash-free streak (types in ./types.trackD6) ----------
+
+export interface Settings {
+  /** The currency every price is shown in (ISO 4217; '' = the Windows region's currency). Other prices are converted. */
+  'app.currency': string;
+}
+
+export interface BridgeEvents {
+  /** New exchange rates arrived (or a refresh failed). */
+  'fx.changed': import('./types.trackD6').FxStatus;
+  /** A cache was cleared from Settings › Data & recovery. */
+  'caches.cleared': { id: string };
+}
+
+export type * from './types.trackD6';

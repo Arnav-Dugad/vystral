@@ -6,6 +6,7 @@
  */
 import type { CloudBadge, CloudMap, CloudQueueSignal, CloudService, GfnPlanId, Settings, SubsBadge, SubsFamily, SubsPlanId } from '../bridge/types';
 import type { ServiceId } from './serviceMarks';
+import { getMoneyContext, isCurrencyCode, moneyText } from './money';
 
 export interface PlanMeta {
   id: SubsPlanId;
@@ -162,12 +163,10 @@ export function badgeLabel(badges: SubsBadge[], now = Date.now()): string {
 
 /** "£0.62 an hour" with the code the user picked, or their Windows currency. */
 export function formatMoney(amount: number, currency: string, locale?: string): string {
-  const code = /^[A-Z]{3}$/.test(currency) ? currency : defaultCurrency(locale);
-  try {
-    return new Intl.NumberFormat(locale, { style: 'currency', currency: code, maximumFractionDigits: 2 }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${code}`;
-  }
+  // Track D6: '' now means the app's display currency; anything else is converted to it ("≈") when rates allow.
+  const ctx = getMoneyContext();
+  const code = isCurrencyCode(currency) ? currency : locale ? defaultCurrency(locale) : ctx.target;
+  return moneyText(amount, code, { ctx: locale ? { ...ctx, locale, target: code } : ctx });
 }
 
 /** The currency for the user's region (en-GB → GBP, de-DE → EUR); USD when unknown. */

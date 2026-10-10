@@ -9,13 +9,15 @@ import { formatRelative } from '../lib/format';
 import { spring } from '../lib/motion';
 import { titleHue } from '../lib/palette';
 import {
-  filterWishlist, formatMoney, priceVerdict, releaseBadge, releaseLabel, sortWishlist, wishlistSummary, type WishlistFilter, type WishlistSort,
+  filterWishlist, priceVerdict, releaseBadge, releaseLabel, sortWishlist, wishlistSummary, type WishlistFilter, type WishlistSort,
 } from '../lib/wishlist';
 import { useReducedMotion, useStore } from '../state/store';
 import { Badge, Button, EmptyState, IconButton, Segmented, Skeleton } from '../components/ui/primitives';
 import { PriceSparkline } from './wishlist/PriceSparkline';
 import { openSteamApp } from '../components/discover/DiscoverBits';
 import './wishlist/wishlist.css';
+import { useMoney } from '../state/money'; // Track D6: prices in the display currency
+import { Price } from '../components/ui/Price';
 
 type Load = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'done'; data: Wishlist };
 
@@ -285,7 +287,7 @@ function WishCard({ item, index }: { item: WishlistItem; index: number }) {
             <Badge tone="ok" icon={<TrendingDown size={12} />}>{verdict.belowLowest ? 'New lowest price' : 'Lowest price ever'}</Badge>
           ) : item.lowestCents != null && item.lowestCurrency ? (
             <span className="wish-card__low">
-              Lowest ever <b className="num">{formatMoney(item.lowestCents, item.lowestCurrency)}</b>
+              Lowest ever <b><Price amount={item.lowestCents} currency={item.lowestCurrency} minor /></b>
               {verdict.aboveLowest != null && verdict.aboveLowest > 0 && <span className="wish-card__above"> · {Math.round(verdict.aboveLowest * 100)}% higher now</span>}
             </span>
           ) : null}
@@ -305,13 +307,17 @@ function WishCard({ item, index }: { item: WishlistItem; index: number }) {
 }
 
 function PriceLine({ item }: { item: WishlistItem }) {
+  const money = useMoney();
   if (item.isFree) return <span className="wish-card__now">Free to play</span>;
   if (item.notSold || item.priceCents == null) return <span className="wish-card__now wish-card__now--muted">{item.comingSoon ? 'Not for sale yet' : 'No price on Steam'}</span>;
   return (
     <span className="wish-card__pricing">
-      <span className="wish-card__now num">{item.priceText ?? formatMoney(item.priceCents, item.currency)}</span>
+      {/* Track D6: Steam's own text when it's already in the display currency, else converted ("≈", with the original on hover). */}
+      {item.priceText && item.currency === money.target
+        ? <span className="wish-card__now num">{item.priceText}</span>
+        : <Price className="wish-card__now" amount={item.priceCents} currency={item.currency} minor />}
       {item.discount > 0 && item.regularCents != null && (
-        <s className="wish-card__was num" aria-label={`was ${formatMoney(item.regularCents, item.currency)}`}>{formatMoney(item.regularCents, item.currency)}</s>
+        <Price className="wish-card__was" amount={item.regularCents} currency={item.currency} minor strike />
       )}
     </span>
   );

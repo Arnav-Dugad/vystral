@@ -2,16 +2,14 @@
  * Track I: pure helpers for data-source UI (prices, value timeline, compatibility and picker
  * labels). Everything here is deterministic and unit-tested; nothing touches the network.
  */
+import { isCurrencyCode, moneyText } from './money';
 import type { DataSourceId, DeckCategory, EnrichmentSource, PlatformKey, ValueGame, ValueSince } from '../bridge/types';
 
+/** A price in the currency chosen in Settings (Track D6: converted and marked "≈" when it was in another one). */
 export function formatMoney(amount: number, currency: string | null | undefined): string {
   if (!Number.isFinite(amount)) return '—';
-  if (!currency || !/^[A-Z]{3}$/.test(currency)) return amount.toFixed(2);
-  try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${currency}`;
-  }
+  if (!isCurrencyCode(currency)) return amount.toFixed(2);
+  return moneyText(amount, currency);
 }
 
 export const formatCents = (cents: number, currency: string | null | undefined) => formatMoney(cents / 100, currency);

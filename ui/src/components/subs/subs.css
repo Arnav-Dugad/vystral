@@ -249,6 +249,10 @@ button.subs-card:active { transform: scale(0.985); }
 .subsset__lists { display: grid; gap: var(--s-2); }
 .subsset__counts { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-2); }
 .subsset__price { display: flex; gap: var(--s-2); align-items: center; }
-.subsset__price input { width: 110px; }
-.subsset__price select { width: 96px; }
+.subsset__price input { width: 128px; font-variant-numeric: tabular-nums; }
+.subsset__price select { width: 150px; }
+/* Track D6: what was saved, or why nothing was. */
+.subsset__saved { margin-top: var(--s-1); color: var(--text-2); }
+.subsset__problem { margin-top: var(--s-1); color: var(--danger); font-weight: 520; }
+.subsset__price input[aria-invalid='true'] { border-color: var(--danger); }
 .onb__step .subs-picker { margin-top: var(--s-5); }
