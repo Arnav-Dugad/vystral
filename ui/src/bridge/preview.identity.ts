@@ -138,6 +138,8 @@ export function identityPreviewHandlers(ctx: Ctx): Record<string, (p: any) => un
     { id: 'epic-0f3a9c1d2b4e6f70', source: 'epic', title: 'Lanternfall', store: 'epic', platforms: ['PC', 'Epic Games Store'], kind: 'game', status: 'now', worth: '$19.99', startsAt: soon(-2), endsAt: soon(5), description: 'A cosy lighthouse-keeping puzzle game.', image: null, hasImage: false },
     { id: 'gp-41001', source: 'gamerpower', title: 'Tin Soldiers Remastered', store: 'steam', platforms: ['PC', 'Steam'], kind: 'game', status: 'now', worth: '$9.99', startsAt: soon(-1), endsAt: soon(2), description: 'Free on Steam for a few days.', image: null, hasImage: false },
     { id: 'gp-41002', source: 'gamerpower', title: 'Starfall Tactics Pilot Pack', store: 'gog', platforms: ['PC', 'GOG'], kind: 'loot', status: 'now', worth: null, startsAt: soon(-3), endsAt: null, description: 'Cosmetic DLC.', image: null, hasImage: false },
+    // Track D5: a giveaway for a game the preview library already has on Epic ("In your library" on the shelf).
+    { id: 'gp-41003', source: 'gamerpower', title: 'Moss & Marrow', store: 'epic', platforms: ['PC', 'Epic Games Store'], kind: 'game', status: 'now', worth: '$14.99', startsAt: soon(-1), endsAt: soon(6), description: 'Free on Epic this week.', image: null, hasImage: false },
     { id: 'epic-9a8b7c6d5e4f3a21', source: 'epic', title: 'Hollow Meridian', store: 'epic', platforms: ['PC', 'Epic Games Store'], kind: 'game', status: 'upcoming', worth: '$24.99', startsAt: soon(5), endsAt: soon(12), description: 'Next week’s free game.', image: null, hasImage: false },
   ];
 

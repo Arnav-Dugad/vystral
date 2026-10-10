@@ -13,6 +13,8 @@ import { DiscoverCover, openResult, ResultCard, ResultSkeletons } from './Discov
 import { DiscoverHero, DiscoverHeroSkeleton } from './DiscoverHero';
 import { DiscoverShelf, DiscoverShelfSkeleton } from './DiscoverShelf';
 import './discover-browse.css';
+import { RecommendedShelf, useRanked } from '../recommend/RecommendedShelf'; // Track D5
+import { FreeShelf } from '../recommend/FreeShelf'; // Track D5
 
 const STORE_ICONS: Record<string, ReactNode> = {
   trending: <Flame size={18} aria-hidden />,
@@ -51,6 +53,9 @@ export function DiscoverBrowse({ status }: { status: DiscoverStatus | null }) {
 
       <GenreChips active={null} />
 
+      {/* Track D5: every source ranked by recommend.v2, each pick with its reason. */}
+      <RecommendedShelf src={{ because: becauseShelves, store: storeShelves, wishlist: wish.items, watching }} />
+
       {watching && watching.length > 0 && (
         <DiscoverShelf id="watching" title="Watching" icon={<Eye size={18} aria-hidden />} count={watching.length}
           reason={`${plural(watching.length, 'game')} you’re keeping an eye on. Prices are checked when you open a page.`}>
@@ -64,6 +69,9 @@ export function DiscoverBrowse({ status }: { status: DiscoverStatus | null }) {
         <DiscoverShelf id="wishlist-sale" title="From your wishlist, on sale" icon={<Tag size={18} aria-hidden />} items={wish.items}
           reason="Today’s Steam prices in your price country, biggest discount first" />
       )}
+
+      {/* Track D5: public giveaways (opt-in; an invitation while it's off). */}
+      <FreeShelf place="discover" />
 
       <StoreSection state={featured} on={storeOn} offline={offline} />
 
@@ -89,9 +97,7 @@ function BecauseSection({ state, offline }: { state: BrowseState<DiscoverSimilar
   if (d.state === 'noSource') return <BecauseInvite />;
   return (
     <>
-      {d.shelves.map((s) => (
-        <DiscoverShelf key={s.id} id={s.id} title={s.title} items={s.items} icon={<History size={18} aria-hidden />} reason={becauseLine(s)} />
-      ))}
+      {d.shelves.map((s) => <RankedBecause key={s.id} shelf={s} />)}
       {state.loading && d.shelves.length === 0 && <DiscoverShelfSkeleton id="because" />}
       {d.shelves.length > 0 && d.stale && !offline && d.reason && (
         <StaleNote what="These suggestions" fetched={d.fetched} reason={d.reason} source={d.source === 'igdb' ? 'IGDB' : 'Steam'} onRetry={state.refresh} />
@@ -99,6 +105,12 @@ function BecauseSection({ state, offline }: { state: BrowseState<DiscoverSimilar
       {d.state === 'failed' && <InlineError text={reasonText(d.reason, d.source === 'igdb' ? 'IGDB' : 'Steam')} onRetry={state.refresh} />}
     </>
   );
+}
+
+/** Track D5: a "Because you played" row, re-ranked by recommend.v2 and without games you said "Not interested" to. */
+function RankedBecause({ shelf }: { shelf: Shelf }) {
+  const items = useRanked(shelf.items, shelf.seed?.gameId ?? null);
+  return <DiscoverShelf id={shelf.id} title={shelf.title} items={items} icon={<History size={18} aria-hidden />} reason={becauseLine(shelf)} />;
 }
 
 function BecauseInvite() {

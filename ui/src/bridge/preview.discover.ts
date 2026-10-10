@@ -347,6 +347,21 @@ export function discoverPreviewHandlers(ctx: Ctx): Record<string, (p: any) => un
       if (p.kind === 'logo') return { url: null, reason: 'none' };
       return { url: placeholderArt(p.kind === 'cover' ? 'cover' : 'hero', e.title, 0, 'alternate'), reason: null };
     },
+    // Track D5: cloud availability on Discover cards, from the same fictional flags the page uses (only while cloud play is on).
+    'discover.cloudMap': (p: { keys: string[] }) => {
+      const on = !!ctx.settings()['cloud.enabled'];
+      const map: Record<string, { service: 'gfn' | 'xbox'; match: 'store' | 'title'; playType: string | null }[]> = {};
+      if (on) for (const key of (p?.keys ?? []).slice(0, 120)) {
+        const e = CATALOGUE.find((x) => keyOf(x) === key);
+        if (!e) continue;
+        const list = [
+          ...(e.gfn && e.steam ? [{ service: 'gfn' as const, match: 'store' as const, playType: 'ready' }] : []),
+          ...(e.xbox ? [{ service: 'xbox' as const, match: 'title' as const, playType: 'ready' }] : []),
+        ];
+        if (list.length) map[key] = list;
+      }
+      return { enabled: on, map };
+    },
     'discover.details': (p: { key: string }): DiscoverDetails => {
       const e = entryOf(p.key);
       const st = ctx.settings();

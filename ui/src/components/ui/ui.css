@@ -296,7 +296,11 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ===== Skeleton (static shimmer only when motion is allowed) ===== */
-.skeleton { background: linear-gradient(100deg, var(--bg-2) 30%, var(--bg-3) 50%, var(--bg-2) 70%); background-size: 300% 100%; animation: shimmer 1.8s linear infinite; border-radius: var(--r-md); }
+.skeleton { background: linear-gradient(100deg, var(--skel-a, var(--bg-2)) 30%, var(--skel-b, var(--bg-3)) 50%, var(--skel-a, var(--bg-2)) 70%); background-size: 300% 100%; animation: shimmer 1.8s linear infinite; border-radius: var(--r-md); }
+/* Track D5: inside a game's page (or anything else that knows its palette), skeletons shimmer in the game's hue. */
+[data-skel-tint] { --skel-a: color-mix(in oklch, var(--bg-2) 86%, var(--skel-tint)); --skel-b: color-mix(in oklch, var(--bg-3) 68%, var(--skel-tint)); }
+:root[data-theme='light'] [data-skel-tint] { --skel-a: color-mix(in oklch, var(--bg-2) 90%, var(--skel-tint)); --skel-b: color-mix(in oklch, var(--bg-3) 80%, var(--skel-tint)); }
+:root[data-theme='contrast'] [data-skel-tint] { --skel-a: var(--bg-2); --skel-b: var(--bg-3); }
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -50% 0; } }
 
 /* ===== Empty state ===== */

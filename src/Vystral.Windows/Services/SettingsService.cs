@@ -212,6 +212,8 @@ public sealed class SettingsService
         new BoolDef("assistant.launcher", true),
         new BoolDef("assistant.askBeforeSharing", true),
         new BoolDef("assistant.keepHistory", true),
+        // Track D5: also show "Free this week" (Track D4's GamerPower and Epic sources, opt-in there) as a row on Home.
+        new BoolDef("freebies.homeRow", false),
     ];
 
     private const string CloudModelPattern = @"^([A-Za-z0-9][A-Za-z0-9._:/\-]{0,119})?\z";

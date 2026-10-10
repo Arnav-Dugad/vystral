@@ -1,6 +1,6 @@
 /**
  * Track O preview: cloud play with a fictional catalogue. Cloud play is off by default like the real app;
- * `?cloud` turns it on with a Performance membership and some fictional cloud sessions. `?cloudMeter=near|reached|free|none`
+ * `?cloud` turns it on with a Performance membership and some fictional cloud sessions (`?cloudMore` lists two games that aren't installed). `?cloudMeter=near|reached|free|none`
  * picks a meter state, `?cloudNoData` shows the "not downloaded yet" state. Nothing here touches the network or starts
  * anything: launches are only recorded (window.__vystralPreviewCloud) for UI tests.
  */
@@ -51,6 +51,15 @@ const CATALOG: Record<string, Entry[]> = {
   'Velvet Orbit': [{ service: 'xbox', title: 'Velvet Orbit', playType: 'ready', premium: false, match: 'store', store: 'xbox' }],
 };
 
+/**
+ * Track D5: `?cloudMore` also lists two preview games that aren't installed (their files are missing), so Home and
+ * Immersive show the "Play in the cloud" row and game pages the "best way to play" advice.
+ */
+const CATALOG_MORE: Record<string, Entry[]> = {
+  'Starfall Tactics': [{ service: 'gfn', title: 'Starfall Tactics', playType: 'ready', premium: false, match: 'store', store: 'steam' }],
+  'Kingsfall Remastered': [{ service: 'xbox', title: 'Kingsfall Remastered', playType: 'ready', premium: false, match: 'store', store: 'xbox' }],
+};
+
 const STORE_NAME: Record<string, string> = { steam: 'Steam', xbox: 'Xbox', epic: 'Epic Games', ubisoft: 'Ubisoft', gog: 'GOG' };
 const PLAN: Record<GfnPlanId, { label: string; session: number | null; monthly: number | null; rollover: number; note: string }> = {
   none: { label: 'Not a member', session: null, monthly: null, rollover: 0, note: 'Pick your membership to see session and monthly limits.' },
@@ -98,7 +107,8 @@ export function cloudPreviewHandlers(ctx: { lib: { games: Game[]; sessions: Sess
   const s = () => ctx.settings();
   const on = (service: CloudService) => s()['cloud.enabled'] && s()[service === 'gfn' ? 'cloud.gfn' : 'cloud.xbox'];
   const market = () => (/^[A-Z]{2}$/.test(s()['cloud.market']) ? s()['cloud.market'] : 'GB');
-  const entriesFor = (g: Game) => (noData ? [] : (CATALOG[g.title] ?? []).filter((e) => on(e.service)));
+  const more = params.has('cloudMore');
+  const entriesFor = (g: Game) => (noData ? [] : (CATALOG[g.title] ?? (more ? CATALOG_MORE[g.title] : undefined) ?? []).filter((e) => on(e.service)));
 
   const map = (): CloudMap => {
     if (!s()['cloud.enabled']) return {};

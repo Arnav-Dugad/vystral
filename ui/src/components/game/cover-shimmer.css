@@ -1,0 +1,24 @@
+/*
+ * Track D5: while a cover's art is still loading, a soft light sweeps across the generated cover in the game's own
+ * hue (the card's palette accent, or the page's tint). Transform-only; reduced motion and Performance Mode get a
+ * still tint instead, and High contrast none.
+ */
+.cover[data-art-loading]::after {
+  content: '';
+  position: absolute;
+  inset: 0 -60%;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 35%, oklch(from var(--skel-tint, var(--card-accent, var(--accent))) 0.85 calc(c * 0.7) h / 0.22) 50%, transparent 65%);
+  animation: cover-sweep 1.6s linear infinite;
+}
+@keyframes cover-sweep {
+  from { transform: translateX(-40%); }
+  to { transform: translateX(40%); }
+}
+:root:is([data-reduced-motion='true'], [data-performance='true']) .cover[data-art-loading]::after {
+  inset: 0;
+  animation: none;
+  background: oklch(from var(--skel-tint, var(--card-accent, var(--accent))) 0.8 calc(c * 0.6) h / 0.1);
+}
+:root[data-theme='contrast'] .cover[data-art-loading]::after { display: none; }

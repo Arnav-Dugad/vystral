@@ -1216,3 +1216,17 @@ export interface BridgeEvents {
 }
 
 export type * from './types.assistant';
+
+// ---------- Track D5: recommend.v2, "Free this week" (Track D4's freebies.get), cloud readiness (types in ./types.recommend) ----------
+
+export interface Settings {
+  /** Also show "Free this week" (Track D4's GamerPower and Epic sources, opt-in there) as a row on Home. */
+  'freebies.homeRow': boolean;
+}
+
+export interface BridgeEvents {
+  /** "Not interested" changed. */
+  'recommend.dismissed': import('./types.recommend').RecommendDismissal[];
+}
+
+export type * from './types.recommend';

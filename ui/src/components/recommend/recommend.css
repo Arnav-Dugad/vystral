@@ -1,0 +1,75 @@
+/* ===== Track D5: recommendations (reasons, "Not interested"), Free this week ===== */
+
+.pick-cap { display: flex; align-items: flex-start; gap: 6px; margin-top: 6px; min-width: 0; }
+.pick-cap__why {
+  flex: 1; min-width: 0; margin: 0;
+  font-size: var(--fs-xs); line-height: 1.4; color: var(--text-2);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pick-cap__tools { display: flex; gap: 2px; flex: none; }
+.pick-cap__no, .pick-cap__act {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--r-sm);
+  color: var(--text-3); opacity: 0.55;
+  transition: opacity var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.shelf__item:hover .pick-cap__no, .shelf__item:focus-within .pick-cap__no, .dshelf .shelf__item:hover .pick-cap__no,
+.pick-cap__no:focus-visible, .pick-cap__act { opacity: 1; }
+.pick-cap__no:hover, .pick-cap__no:focus-visible { color: var(--text-1); background: oklch(1 0 0 / 0.08); }
+.pick-cap__act { width: auto; padding: 0 8px; gap: 5px; display: inline-flex; align-items: center; font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--text-1); background: oklch(1 0 0 / 0.07); box-shadow: inset 0 0 0 1px var(--line); }
+.pick-cap__act:hover, .pick-cap__act:focus-visible { background: oklch(1 0 0 / 0.13); }
+:root[data-theme='light'] .pick-cap__no:hover, :root[data-theme='light'] .pick-cap__act { background: oklch(0 0 0 / 0.05); }
+:root[data-theme='contrast'] .pick-cap__no, :root[data-theme='contrast'] .pick-cap__act { opacity: 1; color: var(--text-1); box-shadow: inset 0 0 0 1px var(--text-1); }
+:root[data-theme='contrast'] .pick-cap__why { color: var(--text-1); }
+
+.home__title-icon { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Discover: "Recommended for you" cards carry their reason under the cover. */
+.drec { position: relative; display: grid; }
+.drec .pick-cap { padding: 0 2px; }
+
+/* ----- Free this week ----- */
+.free-card { position: relative; display: grid; gap: 6px; width: 100%; }
+.free-card__btn { display: grid; gap: 8px; width: 100%; text-align: left; border-radius: var(--r-lg); }
+.free-card__cover { position: relative; aspect-ratio: 2 / 3; border-radius: var(--r-lg); overflow: hidden; background: var(--bg-2); box-shadow: var(--shadow-2), inset 0 0 0 1px var(--line); transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
+.free-card__btn:hover .free-card__cover, .free-card__btn:focus-visible .free-card__cover { transform: translateY(-3px); box-shadow: var(--shadow-3), 0 0 0 2px var(--accent-line); }
+.free-card__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.free-card__ribbon {
+  position: absolute; left: 8px; top: 8px; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px;
+  border-radius: var(--r-pill); font-size: var(--fs-2xs); font-weight: var(--fw-bold); letter-spacing: 0.02em;
+  color: oklch(0.18 0.03 150); background: oklch(0.86 0.15 150); box-shadow: 0 4px 14px -4px oklch(0.6 0.15 150 / 0.7);
+}
+.free-card__owned { position: absolute; left: 8px; top: 36px; display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: var(--r-pill); font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--text-1); background: oklch(0.15 0.01 282 / 0.82); backdrop-filter: blur(6px); }
+.free-card__store { position: absolute; right: 8px; top: 8px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--r-sm); background: oklch(0.15 0.01 282 / 0.72); backdrop-filter: blur(6px); color: var(--text-1); font-size: var(--fs-2xs); font-weight: var(--fw-bold); }
+.free-card__title { font-weight: var(--fw-semibold); font-size: var(--fs-sm); color: var(--text-1); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.free-card__meta { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: var(--fs-xs); color: var(--text-2); }
+.free-card__worth { text-decoration: line-through; color: var(--text-3); }
+.free-card__ends[data-soon] { color: var(--warn); font-weight: var(--fw-semibold); }
+.free-card__claim { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--accent-text); }
+:root[data-theme='light'] .free-card__owned, :root[data-theme='light'] .free-card__store { background: oklch(1 0 0 / 0.86); }
+:root[data-theme='contrast'] .free-card__ribbon { color: var(--bg-0); background: var(--text-1); box-shadow: none; }
+:root[data-theme='contrast'] .free-card__cover { box-shadow: inset 0 0 0 2px var(--text-1); }
+
+.free-invite { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-4) var(--s-5); border-radius: var(--r-xl); }
+.free-invite__art { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: var(--r-lg); color: oklch(0.86 0.15 150); background: radial-gradient(circle at 40% 30%, oklch(0.86 0.15 150 / 0.25), transparent 70%), var(--bg-2); box-shadow: inset 0 0 0 1px var(--line); }
+.free-invite__text { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.free-invite__text p { margin: 0; color: var(--text-2); font-size: var(--fs-sm); line-height: 1.5; }
+.free-note { margin: 4px 0 0; font-size: var(--fs-xs); color: var(--text-3); }
+.free-note__link { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
+.free-note__link:hover, .free-note__link:focus-visible { color: var(--text-1); }
+.free-card[data-upcoming] .free-card__cover { filter: saturate(0.75); }
+.free-card[data-upcoming] .free-card__ribbon { color: var(--text-1); background: oklch(0.3 0.02 282 / 0.9); box-shadow: none; }
+@media (max-width: 720px) { .free-invite { flex-wrap: wrap; } }
+
+/* Settings → Not interested list */
+.notint { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.notint__row { display: flex; align-items: center; gap: var(--s-3); padding: 8px 10px; border-radius: var(--r-md); background: oklch(1 0 0 / 0.03); box-shadow: inset 0 0 0 1px var(--line); }
+.notint__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notint__when { font-size: var(--fs-xs); color: var(--text-3); }
+
+.srow.srow--stack { flex-direction: column; align-items: stretch; gap: var(--s-3); }
+.srow[aria-disabled] .srow__label, .srow[aria-disabled] .srow__hint { opacity: 0.6; }
+.cloudplus-grid { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; }
+
+/* A caption with an action (Stream) puts the reason on its own lines and the buttons underneath. */
+.pick-cap[data-has-extra] { flex-direction: column; align-items: stretch; gap: 6px; }
+.pick-cap[data-has-extra] .pick-cap__tools { justify-content: space-between; }

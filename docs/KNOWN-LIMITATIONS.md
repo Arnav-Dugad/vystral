@@ -213,3 +213,12 @@
 - *Requests today* counts requests that went through VYSTRAL's shared lanes (data sources, cloud catalogues, subscriptions, cloud AI, the Steam Web API and Steam store details). Artwork and trailer downloads, update checks and Ollama aren't listed. Discover's own store-shelf back-off isn't shown as a pause.
 - The crash-free streak starts counting with this version: earlier starts weren't recorded, so the first days say "since VYSTRAL began keeping count". An unexpected close (crash, forced end, power cut) is listed but doesn't reset the streak; only a start that never reached a working window does.
 - Clearing *Wishlist details* keeps your wishlist, its price history and sent alerts; clearing *Prices and deals* keeps the price history on game pages (store facts are never cleared).
+
+## Recommendations, Free this week, better cloud play (Track D5, 0.9)
+
+- recommend.v2 runs in the interface (`ui/src/lib/recommendV2.ts`) on what VYSTRAL already has. It uses Steam community tags only for games that have them (Track C4), time to beat only with an IGDB key (Track M), and friends playing only with the opt-in friends card (Track P). Series are guessed from titles ("Kingsfall Remastered" and "Kingsfall II" share one), so an odd title can miss its series. Steam Deck / controller fit is supported by the engine but not fed yet (it would need a per-game lookup).
+- "The time you usually have" comes from your own sessions near this hour on the same weekday (or kind of day); with fewer than three sessions nothing is said about time.
+- Free this week reads Track D4's GamerPower and Epic sources (opt-in under Data sources). Ownership is matched by title (editions folded), so a renamed release can be missed; Prime Gaming isn't a source.
+- The cloud readiness check measures TCP connection time to each service's public website, not to the streaming data centre, and the adapter's link speed to the router, not internet bandwidth (it says so). Windows doesn't report the Wi-Fi band through the API used, so the 2.4 GHz tip only appears when the band is known (never, today, in the real app).
+- The GeForce NOW hours forecast extrapolates this cycle's pace from sessions VYSTRAL saw; rollover hours and other devices aren't counted.
+- The cover flight between cards and pages skips itself when the next page takes more than 1.4 s to draw (a very busy PC); the page then simply appears.

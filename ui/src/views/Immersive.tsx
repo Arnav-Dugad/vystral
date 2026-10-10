@@ -51,6 +51,7 @@ import { useImmDiscover } from './immersive/useImmDiscover';
 import { DiscoverFace, DiscoverInfo, NoteFace, SearchFace, useDiscoverStage } from './immersive/DiscoverTiles';
 import { DiscoverPage } from './immersive/DiscoverPage';
 import type { DiscoverItem } from './immersive/discoverRows';
+import { useRecommendSignals } from '../state/recommend'; // Track D5
 import './immersive.css';
 import './immersive/immersive-t.css';
 import './immersive/immersive-z.css';
@@ -208,14 +209,16 @@ export function ImmersiveView() {
     return { playing: playingGame && playingPhase ? { game: playingGame, phase: playingPhase, startedAt: playingStart } : null, downloads };
   }, [downloadKey, gamesById, playingGame, playingPhase, playingStart]);
 
+  // Track D5: recommend.v2's inputs (tags, sessions, cloud lists, "Not interested"…) for Picked for you and Play in the cloud.
+  const recSignals = useRecommendSignals();
   const view = useMemo<{ rows: Row[]; jumps: Jump[] }>(
     () =>
       nav.tab === 'home'
-        ? { rows: homeRows(visible, collections, Date.now(), hour, live, moving ? moving.order : savedOrder), jumps: [] }
+        ? { rows: homeRows(visible, collections, Date.now(), hour, live, moving ? moving.order : savedOrder, recSignals), jumps: [] }
         : nav.tab === 'discover'
           ? { rows: disc.rows, jumps: [] }
           : libraryView(visible, nav.filter, sort, Date.now()),
-    [visible, collections, hour, nav.tab, nav.filter, live, sort, moving, savedOrder, disc.rows],
+    [visible, collections, hour, nav.tab, nav.filter, live, sort, moving, savedOrder, disc.rows, recSignals],
   );
   const rows = view.rows;
   const row = clampRow(nav, rows);
@@ -1560,7 +1563,10 @@ function RowsTrack({
             >
               <h2 className="imm__row-title" style={active ? ringVars : undefined} data-header-focus={isHeader || undefined} data-holding={(isHeader && holdingY) || undefined}>
                 <span className="imm__row-name">{r.title}</span>
-                {r.meta && <span className="imm__row-meta">{r.meta}</span>}
+                {/* Track D5: on a recommended row, the focused game's reason replaces the row's line. */}
+                {(active && r.reasons?.[r.tiles[activeCol]?.key ?? ''] && !isHeader && !lifted)
+                  ? <span className="imm__row-meta imm__row-why" aria-live="polite">{r.reasons[r.tiles[activeCol].key]}</span>
+                  : r.meta && <span className="imm__row-meta">{r.meta}</span>}
                 {active && r.tiles.length > 1 && !r.compact && !isHeader && !lifted && (
                   <span className="imm__row-count num" aria-hidden>
                     {activeCol + 1} / {r.tiles.length}

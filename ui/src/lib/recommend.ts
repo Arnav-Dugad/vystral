@@ -1,6 +1,6 @@
 import type { Game } from '../bridge/types';
-import { byLastPlayed, isInstalled, lastPlayed, playSeconds } from './format';
-import { hasNeverBeenPlayed } from './neverPlayed';
+import { byLastPlayed, isInstalled, lastPlayed } from './format';
+import { buildTasteProfile, recommendLibrary, type RecSignals } from './recommendV2';
 
 export interface Suggestion {
   game: Game;
@@ -9,61 +9,18 @@ export interface Suggestion {
 }
 
 /**
- * Deterministic "what to play" suggestions from the user's own library. Every suggestion
- * carries the plain-language reason it was chosen; nothing here needs AI or the network.
+ * Deterministic "what to play" suggestions from the user's own library: installed games only, each with the
+ * plain-language reason it was chosen. Track D5: a thin wrapper over the one engine (lib/recommendV2.ts), kept for
+ * callers that only have the library; pass `signals` for tags, time to beat, sessions, friends and the rest.
  */
-export function suggestGames(games: Game[], now = Date.now(), limit = 10): Suggestion[] {
-  // Genre affinity: how much time the user spends in each genre.
-  const affinity = new Map<string, number>();
-  let total = 0;
-  for (const g of games) {
-    const s = playSeconds(g);
-    if (s <= 0) continue;
-    total += s;
-    for (const genre of g.genres) affinity.set(genre, (affinity.get(genre) ?? 0) + s);
-  }
-
-  const out: Suggestion[] = [];
-  for (const g of games) {
-    if (g.hidden || !isInstalled(g)) continue;
-    const lp = lastPlayed(g).at;
-    const daysSince = lp ? (now - Date.parse(lp)) / 86400000 : Infinity;
-    if (daysSince < 2) continue; // already playing it
-
-    let topGenre: string | null = null;
-    let genreScore = 0;
-    for (const genre of g.genres) {
-      const a = total > 0 ? (affinity.get(genre) ?? 0) / total : 0;
-      if (a > genreScore) {
-        genreScore = a;
-        topGenre = genre;
-      }
-    }
-    let score = genreScore * 4;
-    let reason: string;
-    if (hasNeverBeenPlayed(g)) {
-      score += 1.2;
-      reason = topGenre && genreScore > 0.15 ? `Unplayed · you like ${topGenre}` : 'Installed, never played';
-    } else if (!lp) {
-      // Store playtime but no date: played at some point, not recently as far as anyone knows.
-      score += 0.8 + (playSeconds(g) > 5 * 3600 ? 0.5 : 0);
-      reason = topGenre ? `You play a lot of ${topGenre}` : 'Played before';
-    } else if (daysSince > 21) {
-      score += Math.min(2, daysSince / 60) + (playSeconds(g) > 5 * 3600 ? 1 : 0);
-      const weeks = Math.round(daysSince / 7);
-      reason = `Last played ${weeks > 8 ? `${Math.round(daysSince / 30)} months` : `${weeks} weeks`} ago`;
-    } else {
-      score += 0.6;
-      reason = topGenre ? `You play a lot of ${topGenre}` : 'Ready to play';
-    }
-    if (g.favorite) {
-      score += 1;
-      reason = `Favorite · ${reason.charAt(0).toLowerCase()}${reason.slice(1)}`;
-    }
-    if (g.userRating) score += (g.userRating - 3) * 0.4;
-    out.push({ game: g, score, reason });
-  }
-  return out.sort((a, b) => b.score - a.score || a.game.sortTitle.localeCompare(b.game.sortTitle)).slice(0, limit);
+export function suggestGames(games: Game[], now = Date.now(), limit = 10, signals?: Omit<RecSignals, 'now'>): Suggestion[] {
+  const s: RecSignals = { ...signals, now };
+  const profile = buildTasteProfile(games, s);
+  const byId = new Map(games.map((g) => [g.id, g]));
+  return recommendLibrary(games, profile, s, { limit, mode: 'installed' }).flatMap((r) => {
+    const game = byId.get(r.id);
+    return game ? [{ game, score: r.score, reason: r.reason }] : [];
+  });
 }
 
 /** Featured game for the Home hero: most recently played installed game, else a suggestion. */

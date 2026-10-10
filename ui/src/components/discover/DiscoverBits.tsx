@@ -1,15 +1,18 @@
 import { memo, useMemo, useRef, type ReactNode } from 'react';
-import { CalendarClock, Check, Puzzle } from 'lucide-react';
+import { CalendarClock, Check, Cloud, Puzzle } from 'lucide-react';
 import type { DiscoverResult, DiscoverSourceId, Game, PlatformKey } from '../../bridge/types';
 import { cardPrice, highlightParts, releaseLabel, SOURCE_NAMES } from '../../lib/discover';
-import { captureFlight } from '../../lib/flight';
+import { captureFlight, useFlightLanding } from '../../lib/flight';
+import { useDiscoverCloud } from '../../state/discoverCloud'; // Track D5
+import { SERVICE_SHORT } from '../../lib/cloud';
 import { PLATFORM_NAMES } from '../../lib/format';
 import { useDiscoverImage } from '../../state/discover';
-import { useStore } from '../../state/store';
+import { useReducedMotion, useStore } from '../../state/store';
 import { GameCover } from '../game/GameCover';
 import { StoreLogo, StoreLogos } from '../ui/StoreLogo';
 import { ServiceLogo } from '../ui/ServiceLogo';
 import './discover.css';
+import '../cloud/cloud-plus.css'; // Track D5: the card's cloud badge
 
 /**
  * A stand-in Game for components that draw one (covers, the hero trailer). It is never added to the library and
@@ -105,11 +108,18 @@ export const ResultCard = memo(function ResultCard({ r, query, extra, showSource
   const price = cardPrice(r);
   const owned = !!r.libraryGameId;
   const release = releaseLabel(r);
+  // Track D5: coming back from a game's page, its cover flies back into this card (a crossfade with reduced motion).
+  const reduce = useReducedMotion();
+  useFlightLanding(`discover:${r.key}`, coverRef, !owned, 1, reduce);
+  // Track D5: which cloud services list it (from catalogues already downloaded; only while cloud play is on).
+  const cloud = useDiscoverCloud(owned ? null : r.key);
+  const cloudNames = cloud ? [...new Set(cloud.map((c) => SERVICE_SHORT[c.service]))] : [];
   const label = [
     r.title, release ?? (r.year ? String(r.year) : null), owned ? 'in your library' : null, r.kind === 'extra' ? 'add-on or extra' : null,
     r.stores.length ? `sold on ${storeNames(r.stores)}` : null,
     price ? (price.now === 'Free' ? 'free to play' : `${price.now} on Steam${price.cut ? `, ${price.cut}% off` : ''}`) : null,
     showSources && r.sources.length ? `found on ${listWords(r.sources.map((s) => SOURCE_NAMES[s]))}` : null,
+    cloudNames.length ? `playable in the cloud with ${listWords(cloudNames)}${cloud!.every((c) => c.match === 'title') ? ' (likely match)' : ''}` : null,
   ].filter(Boolean).join(', ');
   return (
     <button className="dcard" data-discover-key={r.key} data-owned={owned || undefined} aria-label={label} onClick={() => openResult(r, coverRef.current)}>
@@ -121,6 +131,11 @@ export const ResultCard = memo(function ResultCard({ r, query, extra, showSource
         )}
         {r.kind === 'extra' && <span className="dcard__extra"><Puzzle size={11} aria-hidden /> Extra</span>}
         {r.kind !== 'extra' && r.comingSoon && <span className="dcard__extra dcard__soon"><CalendarClock size={11} aria-hidden /> Soon</span>}
+        {cloudNames.length > 0 && (
+          <span className="dcard__cloud" title={`Playable in the cloud: ${listWords(cloudNames)}`} data-likely={cloud!.every((c) => c.match === 'title') || undefined} aria-hidden>
+            <Cloud size={11} strokeWidth={2.4} /> Cloud
+          </span>
+        )}
       </div>
       <div className="dcard__body">
         <div className="dcard__title"><Highlight text={r.title} query={query} /></div>

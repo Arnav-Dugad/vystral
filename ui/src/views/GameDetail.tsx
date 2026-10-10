@@ -12,6 +12,8 @@ import {
 import { ease, spring } from '../lib/motion';
 import { paletteFor } from '../lib/palette';
 import { captureFlight, useFlightLanding } from '../lib/flight';
+import { tintProps, useGameTint } from '../lib/skeletonTint'; // Track D5
+import { BestWayToPlay } from '../components/cloud/CloudPlus'; // Track D5
 import { phaseLabel, progressDetail } from '../lib/installProgress';
 import { useLogoTone } from '../lib/logoTone';
 import { openFolder, removeManualGame, setCollection, setHidden, setNotes, setPreferred, setRating, toggleFavorite } from '../state/actions';
@@ -83,6 +85,7 @@ export function GameDetailView({ id }: { id: string }) {
       void paletteFor(game);
     }
   }, [game, setFocusGame]);
+  const tint = useGameTint(game); // Track D5: skeletons on this page shimmer in the game's hue
 
   if (!game) {
     return (
@@ -99,10 +102,12 @@ export function GameDetailView({ id }: { id: string }) {
   }
 
   return (
-    <div className="detail">
+    <div className="detail" {...tintProps(tint)}>
       <DetailHero game={game} onOpenAchievements={() => setTab('achievements')} />
       <div className="page detail__body">
         <StatsRow game={game} />
+        {/* Track D5: installed or streamed? Only when a cloud service lists the game. */}
+        <BestWayToPlay game={game} />
         <div className="detail__tabbar">
           <Tabs
             label="Game sections"
@@ -148,16 +153,16 @@ function DetailHero({ game, onOpenAchievements }: { game: Game; onOpenAchievemen
   const coverRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
-  useFlightLanding(game.id, coverRef, !reduce);
-  // Leaving the page, the cover becomes the start of the flight back into its card.
+  useFlightLanding(game.id, coverRef, true, 0, reduce); // Track D5: reduced motion crossfades
+  // Leaving the page, the cover becomes the start of the flight back into its card. Track D5: taken the moment the
+  // route changes (not when this page unmounts, which waits for its exit animation: by then the card has already
+  // mounted and missed it). Only a real departure starts a return flight — not a re-render or a double-mount.
   useEffect(() => {
-    const el = coverRef.current;
-    return () => {
-      // Only a real departure (the route changed) starts a return flight — not a re-render
-      // or React's development double-mount.
-      const r = useStore.getState().route;
-      if (r.name !== 'game' || r.id !== game.id) captureFlight(game.id, el);
-    };
+    return useStore.subscribe((s, prev) => {
+      if (s.route === prev.route) return;
+      const r = s.route;
+      if (r.name !== 'game' || r.id !== game.id) captureFlight(game.id, coverRef.current);
+    });
   }, [game.id]);
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [chooseAt, setChooseAt] = useState<{ x: number; y: number } | null>(null);

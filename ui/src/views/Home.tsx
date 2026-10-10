@@ -1,6 +1,6 @@
 import { useDeferredValue, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Clock3, FilePlus2, Heart, Info, Layers, Play, RefreshCw, Sparkles } from 'lucide-react';
+import { Clock3, FilePlus2, Heart, Info, Layers, Play, RefreshCw } from 'lucide-react';
 import type { Game, PlatformKey } from '../bridge/types';
 import { StoreLogo } from '../components/ui/StoreLogo';
 import { NeverPlayedSection } from './home/NeverPlayed';
@@ -22,6 +22,8 @@ import { Shelf } from '../components/game/Shelf';
 import { Badge, Button, EmptyState, IconButton, PlatformBadge, Skeleton } from '../components/ui/primitives';
 import { useLogoTone } from '../lib/logoTone';
 import { RollUp } from '../components/ui/RollUp';
+import { CloudPlayRow, PickedForYou } from './home/PickedForYou'; // Track D5
+import { FreeShelf } from '../components/recommend/FreeShelf'; // Track D5
 import './home.css';
 
 export function HomeView() {
@@ -99,17 +101,13 @@ export function HomeView() {
         {/* Track V: the one-time subscriptions question (renders nothing once answered). */}
         <SubsAskCard />
         <Shelf title="Continue playing" games={continuePlaying} variant="landscape" live />
-        {belowFold && suggestions.length > 0 && (
-          <Shelf
-            title={<span className="home__title-icon"><Sparkles size={16} /> Picked from your library</span>}
-            meta="Based on what you play — no AI, no cloud"
-            games={suggestions.map((s) => s.game)}
-            caption={(g) => suggestions.find((s) => s.game.id === g.id)?.reason}
-            live
-          />
-        )}
+        {/* Track D5: recommend.v2 picks with reasons and "Not interested"; streamable games you haven't installed. */}
+        {belowFold && <PickedForYou visible={visible} fallback={suggestions} />}
+        {belowFold && <CloudPlayRow visible={visible} />}
         {/* Track V: games your plans include that you don't own yet (renders nothing while the lists are off). */}
         <SubsIncludedRow />
+        {/* Track D5: "Free this week" (only with the opt-in and its Home row on). */}
+        {belowFold && <FreeShelf place="home" />}
         {belowFold && (
           <>
             <Shelf title="Favorites" meta={plural(model.favoriteCount, 'game')} games={favorites} live />

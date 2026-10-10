@@ -352,6 +352,31 @@ public sealed class DiscoverServiceTests : IDisposable
         Assert.Equal("none", _svc.CloudFor("Unlisted Game", "999").Reason);
     }
 
+    [Fact]
+    public void Cloud_badges_for_many_cards_match_by_steam_id_and_never_trust_page_titles()
+    {
+        // Track D5: discover.cloudMap.
+        _cloud = new CloudPlayService(_t.Repo, _settings, _http, _events, Path.Combine(_t.Dir.Path, "edge"), () => new CloudEnvironment(null, false, null), new NoStarter(), null, () => null);
+        Assert.False(_svc.CloudForMany(["steam-620"]).Enabled);
+        _settings.Set("cloud.enabled", JsonValue.Create(true));
+        _settings.Set("cloud.market", JsonValue.Create("US"));
+        Assert.Empty(_svc.CloudForMany(["steam-620"]).Map);
+
+        _t.Repo.ReplaceCloudCatalog(CloudServices.GeForceNow, "US", [
+            new CloudCatalogEntry(CloudServices.GeForceNow, "11111111-2222-3333-4444-555555555555", "100", "Portal 2", CloudPlayTypes.Ready, false, [new CloudStoreLink(CloudStores.Steam, "620")]),
+        ]);
+        _t.Repo.ReplaceCloudCatalog(CloudServices.Xbox, "US", [
+            new CloudCatalogEntry(CloudServices.Xbox, "9NBLGGH4R315", "9NBLGGH4R315", "Hades", CloudPlayTypes.Ready, false, [new CloudStoreLink(CloudStores.Xbox, "9NBLGGH4R315")]),
+        ]);
+        var (enabled, map) = _svc.CloudForMany(["steam-620", "steam-999", "igdb-1234", "steam-620"]);
+        Assert.True(enabled);
+        var only = Assert.Single(map);
+        Assert.Equal("steam-620", only.Key);
+        Assert.Equal(new DiscoverCloudBadgeDto("gfn", "store", CloudPlayTypes.Ready), Assert.Single(only.Value));
+        // A key this service hasn't seen has no known title, so nothing is matched by title (the page's word isn't used).
+        Assert.DoesNotContain("igdb-1234", map.Keys);
+    }
+
     // ---------- watching ----------
 
     [Fact]

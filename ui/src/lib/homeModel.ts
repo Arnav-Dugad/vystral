@@ -1,7 +1,8 @@
 import type { Game, PlatformKey } from '../bridge/types';
 import { byLastPlayed, isInstalled, isMissing, lastPlayed } from './format';
 import { neverPlayedGames, tonightPicks } from './neverPlayed';
-import { featuredGame, suggestGames } from './recommend';
+import { featuredGame } from './recommend';
+import { buildTasteProfile, gameFeatures, recommendLibrary, tasteMatch } from './recommendV2';
 
 /**
  * Track AA: what Home shows, as game ids and a few numbers. Home renders from this, both from the live
@@ -40,10 +41,13 @@ export function buildHomeModel(visible: Game[], now: number): HomeModel {
     .filter((g) => now - Date.parse(g.added) < 30 * DAY)
     .slice(0, 16)
     .map((g) => g.id);
-  const suggestions = suggestGames(visible, now, 12).map((s) => ({ id: s.game.id, reason: s.reason }));
+  // Track D5: one engine (recommend.v2) for "Picked for you" and the never-played "tonight" picks.
+  const signals = { now };
+  const profile = buildTasteProfile(visible, signals);
+  const suggestions = recommendLibrary(visible, profile, signals, { limit: 12 }).map((r) => ({ id: r.id, reason: r.reason }));
 
   const waiting = neverPlayedGames(visible);
-  const picks = tonightPicks(visible, now, 3).map((p) => ({ id: p.game.id, reason: p.reason }));
+  const picks = tonightPicks(visible, now, 3, (g) => tasteMatch(gameFeatures(g), profile).match).map((p) => ({ id: p.game.id, reason: p.reason }));
   const pickIds = new Set(picks.map((p) => p.id));
   const restIds = waiting.filter((g) => !pickIds.has(g.id)).slice(0, 24).map((g) => g.id);
 

@@ -21,7 +21,13 @@ interface PendingFlight {
 }
 
 let pending: PendingFlight | null = null;
-const FLIGHT_TTL_MS = 900;
+// Track D5: 1.4 s (was 0.9 s): a page that takes a moment to render on a busy PC still gets its flight.
+const FLIGHT_TTL = 1400;
+/** UI tests on a busy machine can stretch it (window.__vystralFlightTtlMs); the app never sets it. */
+const ttl = () => {
+  const v = typeof window === 'undefined' ? undefined : (window as { __vystralFlightTtlMs?: unknown }).__vystralFlightTtlMs;
+  return typeof v === 'number' && v > 0 ? v : FLIGHT_TTL;
+};
 
 /** Records where a flight starts (call on press, and when a flight's source leaves). */
 export function captureFlight(id: string, el: Element | null | undefined) {
@@ -33,17 +39,21 @@ export function captureFlight(id: string, el: Element | null | undefined) {
 
 /**
  * Lands a pending flight on `ref` when it mounts. `deferFrames` waits for scroll restoration
- * (cards on a restored page settle a frame after mounting).
+ * (cards on a restored page settle a frame after mounting). Track D5: with `reduce` (reduced
+ * motion) the element doesn't travel; it crossfades in where it is.
  */
-export function useFlightLanding(id: string, ref: RefObject<HTMLElement | null>, enabled: boolean, deferFrames = 0) {
+export function useFlightLanding(id: string, ref: RefObject<HTMLElement | null>, enabled: boolean, deferFrames = 0, reduce = false) {
   useLayoutEffect(() => {
     const el = ref.current;
     const flight = pending;
-    if (!el || !enabled || !flight || flight.id !== id || performance.now() - flight.at > FLIGHT_TTL_MS) return;
+    if (!el || !enabled || !flight || flight.id !== id || performance.now() - flight.at > ttl()) return;
     // The flight is only claimed when it lands, so effect re-runs (StrictMode) don't lose it.
     el.style.opacity = '0';
     let raf = 0;
     let frames = deferFrames;
+    let waits = 12;
+    let settled: DOMRect | null = null;
+    let steadyWaits = 6;
     let stop: (() => void) | undefined;
     const land = () => {
       if (frames-- > 0) {
@@ -54,10 +64,33 @@ export function useFlightLanding(id: string, ref: RefObject<HTMLElement | null>,
         el.style.opacity = '';
         return;
       }
-      pending = null;
       const to = el.getBoundingClientRect();
+      const fresh = waits > 0 && performance.now() - flight.at < ttl();
+      // Track D5: the same game can be on screen twice (Recommended and a "Because you played" row); only a copy
+      // that's mostly visible claims the flight, so one scrolled away (or clipped by its row) can't swallow it. A page
+      // restoring its scroll position takes a few frames, so a copy keeps looking while the flight is fresh.
+      if (to.width < 4 || visibleFraction(el, to) < 0.6) {
+        el.style.opacity = '';
+        if (fresh) { waits--; raf = requestAnimationFrame(land); }
+        return;
+      }
+      // …and lands only once its own place holds still for a frame (scroll restoration, rows loading above it),
+      // so the flight starts exactly where the cover was. Hidden meanwhile: at most a few frames.
+      // (A few pixels a frame is the page's own ease-in, which the flight rides along with.)
+      if (fresh && steadyWaits > 0 && (!settled || Math.abs(settled.top - to.top) > 4 || Math.abs(settled.left - to.left) > 4)) {
+        settled = to;
+        steadyWaits--;
+        raf = requestAnimationFrame(land);
+        return;
+      }
       el.style.opacity = '';
-      if (to.width < 4 || to.bottom < 0 || to.top > innerHeight) return;
+      pending = null;
+      if (reduce) {
+        const fade = animate(el, { opacity: [0, 1] }, { duration: 0.22, ease: 'linear' });
+        stop = () => fade.stop();
+        void fade.finished.then(() => { el.style.opacity = ''; });
+        return;
+      }
       const sx = flight.rect.width / to.width;
       const sy = flight.rect.height / to.height;
       const dx = flight.rect.left - to.left;
@@ -84,7 +117,25 @@ export function useFlightLanding(id: string, ref: RefObject<HTMLElement | null>,
       stop?.();
       el.style.opacity = '';
     };
-  }, [id, ref, enabled, deferFrames]);
+  }, [id, ref, enabled, deferFrames, reduce]);
+}
+
+/** How much of an element's box is on screen (0..1): inside the window, its row's track and the page's scroller. */
+export function visibleFraction(el: Element, r: DOMRect = el.getBoundingClientRect()): number {
+  let left = Math.max(r.left, 0);
+  let top = Math.max(r.top, 0);
+  let right = Math.min(r.right, innerWidth);
+  let bottom = Math.min(r.bottom, innerHeight);
+  for (const clip of [el.closest('.shelf__track'), el.closest('[data-scroll-main]')]) {
+    if (!clip) continue;
+    const c = clip.getBoundingClientRect();
+    left = Math.max(left, c.left);
+    top = Math.max(top, c.top);
+    right = Math.min(right, c.right);
+    bottom = Math.min(bottom, c.bottom);
+  }
+  const area = r.width * r.height;
+  return area > 0 ? (Math.max(0, right - left) * Math.max(0, bottom - top)) / area : 0;
 }
 
 export interface LaunchOrigin {

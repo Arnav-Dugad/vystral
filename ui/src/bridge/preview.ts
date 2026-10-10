@@ -45,6 +45,7 @@ import type { NewsFeed, ReplayData } from './types';
 import { decorateRigSession, previewCaptionInset, trackC2PreviewHandlers } from './preview.trackC2';
 import { trackD1PreviewHandlers } from './preview.trackD1';
 import { TRACK_D6_DEFAULT_SETTINGS, previewD6Settings, trackD6PreviewHandlers } from './preview.trackD6'; // Track D6
+import { RECOMMEND_DEFAULT_SETTINGS, previewRecommendSettings, recommendPreviewHandlers } from './preview.recommend'; // Track D5
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -107,6 +108,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...TRACK_D4_DEFAULT_SETTINGS(), // Track D4
   ...TRACK_D6_DEFAULT_SETTINGS, // Track D6
   ...ASSISTANT_DEFAULT_SETTINGS, // Track D3
+  ...RECOMMEND_DEFAULT_SETTINGS, // Track D5
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -283,6 +285,7 @@ export function createPreviewBackend() {
   settings = { ...settings, ...previewDiscoverSettings(params) }; // Track C3: ?discoverStore
   settings = { ...settings, ...previewAiSettings(params) }; // Track C5: ?aiCloud
   settings = { ...settings, ...previewD6Settings(params) }; // Track D6: ?currency=INR
+  settings = { ...settings, ...previewRecommendSettings(params) }; // Track D5: ?freebies
   const collections: LibrarySnapshot['collections'] = [];
   let emit: Emit = () => {};
   // Track T: `?nowPlaying` starts the preview with a game already running (Immersive's Now playing row).
@@ -573,6 +576,8 @@ export function createPreviewBackend() {
     ...trackD1PreviewHandlers({ lib, collections, statusHistory, emit: () => emit }),
     // Track D6: exchange rates (?fxNone, ?fxOffline), Data sources health (?healthCalm), caches, crash-free streak (?streakIncident, ?streakNew).
     ...trackD6PreviewHandlers({ emit: () => emit, settings: () => settings, timers }),
+    // Track D5: "Not interested", cloud readiness (?readiness=great|fair|poor); ?freebies also turns on the Home row.
+    ...recommendPreviewHandlers({ lib, emit: () => emit, settings: () => settings }),
   };
   const slowLibrary = Math.min(10_000, Number(params.get('slowLibrary') ?? 0) || 0);
 

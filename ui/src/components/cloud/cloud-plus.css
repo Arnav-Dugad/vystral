@@ -1,0 +1,90 @@
+/* ===== Track D5: better cloud play — readiness, best way to play, forecast, insights, Discover badges ===== */
+
+/* Discover card: which cloud services list it. */
+.dcard__cloud {
+  position: absolute; left: 8px; bottom: 8px; z-index: 1;
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: var(--r-pill);
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--text-1);
+  background: var(--glass-strong); backdrop-filter: blur(8px);
+}
+.dcard__cloud svg { color: oklch(0.8 0.13 150); }
+.dcard__cloud[data-likely] { color: var(--text-2); }
+:root[data-theme='contrast'] .dcard__cloud { background: Canvas; color: CanvasText; box-shadow: 0 0 0 1px CanvasText; backdrop-filter: none; }
+:root[data-theme='contrast'] .dcard__cloud svg { color: CanvasText; }
+:root[data-quality='low'] .dcard__cloud { backdrop-filter: none; }
+
+/* Readiness check. */
+.cready { display: grid; gap: var(--s-3); padding: var(--s-4); border-radius: var(--r-lg); background: oklch(1 0 0 / 0.03); box-shadow: inset 0 0 0 1px var(--line); }
+:root[data-theme='light'] .cready { background: oklch(0 0 0 / 0.02); }
+.cready__head { display: flex; align-items: center; gap: var(--s-3); }
+.cready__icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: var(--r-md); color: var(--text-2); background: oklch(1 0 0 / 0.06); box-shadow: inset 0 0 0 1px var(--line); transition: color var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out); }
+.cready[data-tone='ok'] .cready__icon { color: var(--ok); background: oklch(from var(--ok) l c h / 0.12); }
+.cready[data-tone='warn'] .cready__icon { color: var(--warn); background: oklch(from var(--warn) l c h / 0.12); }
+.cready[data-tone='danger'] .cready__icon { color: var(--danger); background: oklch(from var(--danger) l c h / 0.12); }
+.cready[aria-busy] .cready__icon { animation: cloud-breathe 1.4s ease-in-out infinite; }
+.cready__titles { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cready__title { color: var(--text-1); }
+.cready__sub { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.45; }
+.cready__error { margin: 0; font-size: var(--fs-sm); color: var(--danger); }
+.cready__probes { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.cready__probe { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--fs-sm); }
+.cready__probe-name { min-width: 92px; color: var(--text-1); font-weight: var(--fw-medium); }
+.cready__num { font-variant-numeric: tabular-nums; color: var(--text-1); font-weight: var(--fw-semibold); }
+.cready__dim { color: var(--text-3); font-size: var(--fs-xs); }
+.cready__loss { color: var(--warn); font-size: var(--fs-xs); font-weight: var(--fw-semibold); }
+.cready__link { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; font-size: var(--fs-xs); color: var(--text-2); }
+.cready__metered { color: var(--warn); }
+.cready__tips { display: grid; gap: 4px; margin: 0; padding-left: 18px; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.45; }
+.cready__how-btn { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--text-3); }
+.cready__how-btn:hover, .cready__how-btn:focus-visible { color: var(--text-1); }
+.cready__how-btn[aria-expanded='true'] svg { transform: rotate(180deg); }
+.cready__how-btn svg { transition: transform var(--dur-base) var(--ease-out); }
+.cready__how-text { display: grid; gap: 6px; margin-top: 6px; font-size: var(--fs-xs); color: var(--text-2); line-height: 1.5; }
+.cready__how-text p { margin: 0; }
+.cready[data-compact] { padding: var(--s-3); }
+:root[data-theme='contrast'] .cready { box-shadow: inset 0 0 0 1px var(--text-1); }
+
+/* Best way to play (game page). */
+.bestway { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-4) var(--s-5); border-radius: var(--r-xl); margin-block: var(--s-4); }
+.bestway__icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: var(--r-md); color: var(--accent-text); background: var(--accent-ghost); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.bestway[data-tone='warn'] .bestway__icon { color: var(--warn); background: oklch(from var(--warn) l c h / 0.12); box-shadow: inset 0 0 0 1px oklch(from var(--warn) l c h / 0.35); }
+.bestway[data-tone='muted'] .bestway__icon { color: var(--text-2); background: oklch(1 0 0 / 0.05); box-shadow: inset 0 0 0 1px var(--line); }
+.bestway__text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.bestway__eyebrow { font-size: var(--fs-2xs); color: var(--text-3); }
+.bestway__title { color: var(--text-1); font-size: var(--fs-lg); }
+.bestway__detail { margin: 0; color: var(--text-2); font-size: var(--fs-sm); line-height: 1.5; }
+.bestway__alt { color: var(--text-3); }
+.bestway__actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+@media (max-width: 760px) { .bestway { flex-wrap: wrap; } .bestway__actions { width: 100%; justify-content: flex-start; } }
+:root[data-theme='contrast'] .bestway__icon { color: var(--text-1); background: none; box-shadow: inset 0 0 0 1px var(--text-1); }
+
+/* Hours forecast under the meter. */
+.cforecast { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: var(--fs-xs); color: var(--text-2); line-height: 1.45; }
+.cforecast svg { flex: none; margin-top: 2px; color: var(--text-3); }
+.cforecast[data-tone='warn'] svg, .cforecast[data-tone='warn'] { color: var(--warn); }
+.cforecast[data-tone='danger'] svg, .cforecast[data-tone='danger'] { color: var(--danger); }
+
+/* Session insights. */
+.cinsights { display: grid; gap: var(--s-3); padding: var(--s-4); border-radius: var(--r-lg); background: oklch(1 0 0 / 0.03); box-shadow: inset 0 0 0 1px var(--line); }
+.cinsights--empty p { margin: 4px 0 0; color: var(--text-2); font-size: var(--fs-sm); }
+.cinsights__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--s-3); }
+.cinsights__stat { display: grid; gap: 2px; }
+.cinsights__value { font-variant-numeric: tabular-nums; font-size: var(--fs-xl); font-weight: var(--fw-semibold); color: var(--text-1); letter-spacing: var(--tracking-tight); }
+.cinsights__label { font-size: var(--fs-xs); color: var(--text-3); }
+.cinsights__rows { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: var(--fs-sm); color: var(--text-2); }
+.cinsights__rows li { display: flex; align-items: center; gap: 6px; }
+.cinsights__foot { margin: 0; font-size: var(--fs-xs); color: var(--text-3); line-height: 1.45; }
+
+/* Polish (Track D5): the split button gets a soft sheen on hover and a crisp focus ring that follows its shape; the
+   session pill shows how much of the session limit is left as a thin bar. */
+.cloud-split { transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
+.cloud-split:hover { box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.18), 0 10px 30px -14px oklch(0.75 0.14 150 / 0.55); }
+.cloud-split:has(:focus-visible) { box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.18), 0 0 0 2px var(--accent-line); }
+.cloud-split__main:focus-visible, .cloud-split__more:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.cloud-split__main:active, .cloud-split__more:active { transform: scale(0.985); }
+.cloud-pillbar__limit { position: absolute; left: 14px; right: 14px; bottom: 4px; height: 2px; border-radius: var(--r-pill); background: oklch(1 0 0 / 0.08); overflow: hidden; }
+.cloud-pillbar__limit > span { position: absolute; inset: 0; transform-origin: left center; border-radius: inherit; background: var(--ok); transition: transform 900ms var(--ease-emph); }
+.cloud-pillbar__limit[data-tone='warn'] > span { background: var(--warn); }
+.cloud-pillbar__limit[data-tone='danger'] > span { background: var(--danger); }
+:root[data-reduced-motion='true'] .cloud-pillbar__limit > span, :root[data-reduced-motion='true'] .cready[aria-busy] .cready__icon { transition: none; animation: none; }
+:root[data-theme='contrast'] .cloud-split:hover { box-shadow: inset 0 0 0 2px var(--text-1); }

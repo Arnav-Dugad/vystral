@@ -38,7 +38,7 @@ export const GameCard = memo(function GameCard({
   const { open: openMenu, element: menu } = useGameMenu(game);
   const frameRef = useRef<HTMLDivElement>(null);
   // Returning from the detail page, the cover springs back into this card.
-  useFlightLanding(game.id, frameRef, !reduce, 1);
+  useFlightLanding(game.id, frameRef, true, 1, reduce); // Track D5: reduced motion crossfades
   const [tilt, setTilt] = useState<CSSProperties>({});
   const installed = isInstalled(game);
   const lp = lastPlayed(game);

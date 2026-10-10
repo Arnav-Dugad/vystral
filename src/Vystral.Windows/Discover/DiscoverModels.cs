@@ -109,6 +109,9 @@ public sealed record DiscoverLinkDto(string Id, string Label, string? Platform, 
 
 public sealed record DiscoverCloudDto(string Service, string ServiceName, string? PlayType, bool Premium, string Match, string Note);
 
+/// <summary>Track D5: a Discover card's cloud badge (discover.cloudMap).</summary>
+public sealed record DiscoverCloudBadgeDto(string Service, string Match, string? PlayType);
+
 public sealed record DiscoverCreditDto(string Id, string Name, string Note);
 
 public sealed record DiscoverTtbDto(long? HastilySeconds, long? NormallySeconds, long? CompletelySeconds, int Count);

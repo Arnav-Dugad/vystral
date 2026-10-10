@@ -121,16 +121,23 @@ export interface BrowseState<T> {
   refresh: () => void;
 }
 
+/** Track D5: the last browse answer per method (and the settings it was asked under), for an instant return. */
+const lastShelves = new Map<string, { gates: string; data: unknown }>();
+
 /**
  * One browse answer (discover.featured or discover.similar), asked again when a setting that gates it changes.
  * Only the newest answer counts, so a slow earlier request can't bring back an old state.
  */
 export function useDiscoverShelves<T>(method: 'discover.featured' | 'discover.similar'): BrowseState<T> {
-  const [data, setData] = useState<T | null>(null);
+  const gates = useStore((s) => `${s.settings?.['discover.storeShelves']}|${s.settings?.['discover.searchOnline']}|${s.settings?.['privacy.localOnly']}|${s.settings?.['dataSaver.enabled']}`);
+  // Track D5: coming back to Discover shows the last answer at once (then refreshes quietly), so rows don't flash
+  // skeletons and a cover flying back from a game's page has its card to land in.
+  const remembered = lastShelves.get(method);
+  const [data, setDataState] = useState<T | null>(() => (remembered && remembered.gates === gates ? (remembered.data as T) : null));
+  const setData = useCallback((d: T) => { lastShelves.set(method, { gates, data: d }); setDataState(d); }, [method, gates]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const seq = useRef(0);
-  const gates = useStore((s) => `${s.settings?.['discover.storeShelves']}|${s.settings?.['discover.searchOnline']}|${s.settings?.['privacy.localOnly']}|${s.settings?.['dataSaver.enabled']}`);
 
   const ask = useCallback((refresh: boolean) => {
     const mine = ++seq.current;
@@ -141,7 +148,7 @@ export function useDiscoverShelves<T>(method: 'discover.featured' | 'discover.si
       .then((d) => { if (mine === seq.current) setData(d); })
       .catch((err) => { if (mine === seq.current) setError(errorMessage(err)); })
       .finally(() => { if (mine === seq.current) setLoading(false); });
-  }, [method]);
+  }, [method, setData]);
 
   useEffect(() => {
     ask(false);
