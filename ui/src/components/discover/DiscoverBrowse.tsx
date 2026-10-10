@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  AlertTriangle, CalendarClock, Compass, Eye, Flame, Gift, History, KeyRound, Percent, RefreshCw, Settings2, Sparkles, Store, Tag, Trophy, X,
+  AlertTriangle, CalendarClock, Compass, Eye, Flame, Gift, History, KeyRound, Percent, RefreshCw, Layers, Settings2, Sparkles, Store, Tag, X,
 } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { DiscoverFeatured, DiscoverShelf as Shelf, DiscoverSimilar, DiscoverStatus, DiscoverWatch } from '../../bridge/types';
@@ -40,7 +40,9 @@ export function DiscoverBrowse({ status }: { status: DiscoverStatus | null }) {
   const missingKeys = status?.sources.filter((s) => s.reason === 'noKey') ?? [];
   const offline = status?.reason === 'offline';
 
-  const nothing = !heroLoading && picks.length === 0 && storeShelves.length === 0 && becauseShelves.length === 0 && wish.items.length === 0 &&
+  // The calm "search for any game" state only when nothing else (rows or invitations) fills the page.
+  const invited = (!offline && (!storeOn || featured.data?.state === 'off')) || similar.data?.state === 'noSource';
+  const nothing = !invited && !heroLoading && picks.length === 0 && storeShelves.length === 0 && becauseShelves.length === 0 && wish.items.length === 0 &&
     !(watching && watching.length) && !featured.loading && !similar.loading;
 
   return (
@@ -275,7 +277,7 @@ export function ResultGroupCell({ group, query, index }: { group: ResultGroup; q
     <div className="dgroup" style={{ ['--i' as string]: index % 24 }} data-open={open || undefined}>
       <ResultCard r={group.base} query={query} />
       <button type="button" className="dgroup__toggle" aria-expanded={open} aria-controls={listId} onClick={() => setOpen((v) => !v)}>
-        <Trophy size={12} aria-hidden /> {open ? 'Hide' : 'Also'} {words}
+        <Layers size={12} aria-hidden /> {open ? 'Hide' : 'Also'} {words}
       </button>
       {open && (
         <ul id={listId} className="dgroup__list" aria-label={`Editions and add-ons of ${group.base.title}`}>

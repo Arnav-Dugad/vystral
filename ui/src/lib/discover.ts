@@ -333,7 +333,7 @@ export function releaseLabel(r: Pick<DiscoverResult, 'releaseDate' | 'comingSoon
 
 // ---------------- editions and add-ons under their game ----------------
 
-const EDITION = /[\s:–—\-(]+(?:(?:digital\s+|super\s+)?(?:deluxe|gold|goty|game of the year|definitive|ultimate|complete|premium|standard|special|collector'?s|legendary|anniversary|platinum|launch|enhanced|royal|champions|digital|bonus|expanded)\s+(?:edition|bundle|pack|version)|director'?s cut|goty|game of the year)\)?\s*$/i;
+const EDITION = /[\s:–—\-(]+(?:(?:digital\s+|super\s+)?(?:deluxe|gold|goty|game of the year|definitive|ultimate|complete|premium|standard|special|collector['’]?s|legendary|anniversary|platinum|launch|enhanced|royal|champions|digital|bonus|expanded)\s+(?:edition|bundle|pack|version)|director['’]?s cut|goty|game of the year)\)?\s*$/i;
 
 /** Folded for comparing titles: case, accents, trademark signs and punctuation ignored. */
 export function titleKey(title: string): string {

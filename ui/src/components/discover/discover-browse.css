@@ -23,6 +23,7 @@
 .dshelf__tools .icon-btn[aria-disabled='true']:hover { opacity: 0.4; cursor: default; background: none; color: inherit; }
 .dshelf__track { grid-auto-columns: clamp(146px, 11.5vw, 196px); padding-bottom: 6px; }
 .dshelf__track > .dcard--skeleton { min-width: 0; }
+.dshelf__track .shelf__item > .dcard { width: 100%; }
 .dshelf--loading { opacity: 0; animation: dshelf-wait 240ms var(--ease-out) 320ms both; }
 .dshelf__reason-skel { margin-top: 2px; }
 @keyframes dshelf-wait { from { opacity: 0; } to { opacity: 1; } }
@@ -32,8 +33,8 @@
 .dhero {
   position: relative;
   aspect-ratio: 21 / 8;
-  min-height: 300px;
-  max-height: 480px;
+  min-height: 280px;
+  max-height: 420px;
   width: 100%;
   border-radius: var(--r-xl);
   overflow: hidden;
