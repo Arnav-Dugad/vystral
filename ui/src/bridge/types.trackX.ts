@@ -93,6 +93,8 @@ export interface ModItem {
   enabled: boolean | null;
   /** The folder is on disk. */
   present: boolean;
+  /** Track D1: when its folder was created on this PC (the update timeline's "installed"); null when not on disk. */
+  installed?: string | null;
 }
 
 export interface ModSource {

@@ -69,6 +69,8 @@ export interface Game {
    */
   notOwned?: boolean;
   userHidden?: boolean;
+  /** Track D1: when the user marked it as played somewhere VYSTRAL can't see (takes it out of "never played"). */
+  playedMarkedAt?: string | null;
 }
 
 export type GameStatus = 'backlog' | 'playing' | 'beaten' | 'completed' | 'abandoned';
@@ -1148,3 +1150,4 @@ export interface BridgeEvents {
 }
 
 export type * from './types.ai';
+export type * from './types.trackD1';
