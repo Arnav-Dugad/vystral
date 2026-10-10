@@ -101,7 +101,7 @@ export function assistantPreviewHandlers(ctx: {
 
   function plan(q: string, c: AssistantChatParams['context']): Step[] {
     const game = findGame(q, c.gameId);
-    if (/\bfavou?rite\b/.test(q) && game) return [{ tool: 'set_favorite', args: { gameId: game.id } }];
+    if (/\bfavou?rites?\b/.test(q) && game) return [{ tool: 'set_favorite', args: { gameId: game.id } }];
     if (/\b(open|go to|take me to)\b.*\b(storage|journal|wishlist|discover|settings|library|health)\b/.test(q))
       return [{ tool: 'open_page', args: { page: q.match(/\b(storage|journal|wishlist|discover|settings|library|health)\b/)![1] } }];
     if (/stutter|frame ?time|hitch/.test(q)) return [{ tool: 'explain_stutter' }];

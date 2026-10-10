@@ -287,3 +287,4 @@
 .asx-set__tools li svg { flex: none; margin-top: 2px; color: var(--accent-text); }
 .asx-set__tools strong { color: var(--text-1); font-weight: var(--fw-semibold); margin-right: 4px; }
 .asx-setup__actions { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; }
+.asx-panel:focus-visible { outline: none; }

@@ -25,14 +25,24 @@ export function AssistantHost() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Escape closes the panel when nothing else (a dialog or menu) owns the keyboard and focus isn't in another field.
+      if (e.key === 'Escape' && useAssistant.getState().panelOpen && !document.querySelector('[data-dialog-open], [data-menu-open]')) {
+        const a = document.activeElement;
+        if (!a || a === document.body || a.closest('.asx-panel')) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          useAssistant.getState().closePanel();
+        }
+        return;
+      }
       if (!isPanelShortcut(e)) return;
       if (document.querySelector('[data-dialog-open]:not(.asx-panel), .onb')) return;
       e.preventDefault();
       if (useAssistant.getState().panelOpen) useAssistant.getState().closePanel();
       else openAssistant();
     };
-    addEventListener('keydown', onKey);
-    return () => removeEventListener('keydown', onKey);
+    addEventListener('keydown', onKey, true);
+    return () => removeEventListener('keydown', onKey, true);
   }, []);
 
   // The Assistant page shows the conversation itself.
@@ -91,7 +101,12 @@ function Panel({ open }: { open: boolean }) {
     if (!open) return;
     previous.current = document.activeElement as HTMLElement | null;
     void useAssistant.getState().refreshStatus();
+    // Focus moves into the panel (the composer takes it when it can; otherwise the panel itself).
+    const t = window.setTimeout(() => {
+      if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
+    }, 120);
     return () => {
+      window.clearTimeout(t);
       const p = previous.current;
       if (p && document.contains(p) && !p.closest('.asx-panel')) requestAnimationFrame(() => p.focus());
       else requestAnimationFrame(() => document.querySelector<HTMLElement>('.asx-launcher')?.focus());
@@ -115,6 +130,7 @@ function Panel({ open }: { open: boolean }) {
           role="dialog"
           aria-modal="false"
           aria-labelledby="asx-panel-title"
+          tabIndex={-1}
           onKeyDown={onKeyDown}
           initial={reduce ? { opacity: 0 } : { opacity: 0, x: 28, scale: 0.98 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
