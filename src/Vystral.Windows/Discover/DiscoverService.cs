@@ -193,6 +193,17 @@ public sealed partial class DiscoverService
         return snapshot;
     }
 
+    /// <summary>Track D3: the latest state of a channel's search (the assistant waits on its own "assistant" channel), or null.</summary>
+    public DiscoverSearchDto? Current(string channel)
+    {
+        SearchRun? run;
+        lock (_runsLock) _runs.TryGetValue(channel, out run);
+        if (run is null) return null;
+        bool done;
+        lock (run.Lock) done = run.States.Values.All(s => s.State != "pending");
+        return Snapshot(run, done);
+    }
+
     /// <summary>Cancels a channel's running search (the command bar closed).</summary>
     public void Cancel(string channel)
     {

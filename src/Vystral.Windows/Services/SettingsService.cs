@@ -197,6 +197,11 @@ public sealed class SettingsService
         new BoolDef("ai.features.smartCollections", true),
         new BoolDef("ai.features.duplicates", true),
         new BoolDef("ai.features.recapCaptions", false),
+        // Track D3: the one Assistant (chat, side panel and tools over app data). Still off until an AI is set up.
+        new BoolDef("ai.features.assistant", true),
+        new BoolDef("assistant.launcher", true),
+        new BoolDef("assistant.askBeforeSharing", true),
+        new BoolDef("assistant.keepHistory", true),
     ];
 
     private const string CloudModelPattern = @"^([A-Za-z0-9][A-Za-z0-9._:/\-]{0,119})?\z";
