@@ -212,6 +212,7 @@ public sealed partial class LibraryRepository(Database db)
             {
                 NotOwned = notOwned,
                 UserHidden = g.hidden != 0,
+                PlayedMarkedAt = g.played_marked,
             };
         }).ToList();
 
@@ -727,6 +728,7 @@ public sealed partial class LibraryRepository(Database db)
         public string? steam_app_id { get; init; }
         public string added { get; init; } = "";
         public string updated { get; init; } = "";
+        public string? played_marked { get; init; }
     }
 
     private sealed class InstallationRow

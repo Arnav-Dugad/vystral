@@ -12,7 +12,8 @@ namespace Vystral.Windows.Storage;
 /// <param name="Title">The Workshop title (opt-in lookup, cached), when known.</param>
 /// <param name="Enabled">Mod Organizer 2's selected profile says it's on/off; null when unknown.</param>
 /// <param name="Present">The item's folder is on disk (Workshop items can be listed before they've downloaded).</param>
-public sealed record ModItemDto(string Id, string Name, string? Title, long? Bytes, string? Updated, bool? Enabled, bool Present);
+/// <param name="Installed">Track D1: when its folder was created on this PC (the update timeline's "installed"); null when not on disk.</param>
+public sealed record ModItemDto(string Id, string Name, string? Title, long? Bytes, string? Updated, bool? Enabled, bool Present, string? Installed = null);
 
 /// <param name="Id">workshop | vortex | mo2-&lt;n&gt;.</param>
 /// <param name="Kind">workshop | vortex | mo2.</param>
@@ -115,7 +116,7 @@ public sealed partial class ModFolders(Func<string?> steamPath, string cacheDir)
                         byId.TryGetValue(dir.Name, out var known);
                         var measured = known?.Bytes is null ? budget.Measure(dir.FullName) : default;
                         byId[dir.Name] = new ModItemDto(dir.Name, dir.Name, null, known?.Bytes ?? measured.Bytes,
-                            known?.Updated ?? (measured.Newest ?? new DateTimeOffset(dir.LastWriteTimeUtc, TimeSpan.Zero)).ToString("O"), null, true);
+                            known?.Updated ?? (measured.Newest ?? new DateTimeOffset(dir.LastWriteTimeUtc, TimeSpan.Zero)).ToString("O"), null, true, Created(dir));
                         folders[$"workshop/{dir.Name}"] = dir.FullName;
                     }
                     folders["workshop"] = contentDir.FullName;
@@ -214,9 +215,16 @@ public sealed partial class ModFolders(Func<string?> steamPath, string cacheDir)
             var id = ShortId(d.Name);
             folders[$"{sourceId}/{id}"] = d.FullName;
             bool? on = enabled is null ? null : enabled.TryGetValue(d.Name, out var e) ? e : false;
-            items.Add(new ModItemDto(id, ModManifests.CleanTitle(d.Name), null, m.Bytes, (m.Newest ?? new DateTimeOffset(d.LastWriteTimeUtc, TimeSpan.Zero)).ToString("O"), on, true));
+            items.Add(new ModItemDto(id, ModManifests.CleanTitle(d.Name), null, m.Bytes, (m.Newest ?? new DateTimeOffset(d.LastWriteTimeUtc, TimeSpan.Zero)).ToString("O"), on, true, Created(d)));
         }
         return [.. items.OrderBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase)];
+    }
+
+    /// <summary>Track D1: the folder's creation time (when the mod arrived on this PC), or null when Windows doesn't say.</summary>
+    internal static string? Created(DirectoryInfo dir)
+    {
+        var t = dir.CreationTimeUtc;
+        return t.Year < 2000 ? null : new DateTimeOffset(t, TimeSpan.Zero).ToString("O");
     }
 
     /// <summary>A stable 16-hex id for a folder name, so the page never sends a name or path back.</summary>

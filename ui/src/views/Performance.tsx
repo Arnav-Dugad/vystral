@@ -51,7 +51,7 @@ function rememberedTab(): PerfTab | null {
  * trend), then four tabs — Overview, Sessions (timeline picker and one session in depth), Compare and System
  * (drivers, hardware history, background apps, energy, controller battery). One game filter scopes everything.
  */
-export function PerformanceView({ sessionId, tab: routeTab }: { sessionId?: string; tab?: PerfTab }) {
+export function PerformanceView({ sessionId, tab: routeTab, compareWith }: { sessionId?: string; tab?: PerfTab; compareWith?: string }) {
   const { status, sessions, error, reload } = useTrackedSessions();
   const gamesById = useStore((s) => s.gamesById);
   const collecting = useStore((s) => s.settings?.['performance.collectMetrics'] ?? true);
@@ -59,7 +59,7 @@ export function PerformanceView({ sessionId, tab: routeTab }: { sessionId?: stri
   const [gameFilter, setGameFilter] = useState('all');
   const [selectedId, setSelectedId] = useState<string | null>(sessionId ?? null);
   const [compareA, setCompareA] = useState<string | null>(null);
-  const [compareB, setCompareB] = useState<string | null>(null);
+  const [compareB, setCompareB] = useState<string | null>(compareWith ?? null); // Track D1: a deep link can name the other session
   const [listLimit, setListLimit] = useState(LIST_PAGE);
   const [tab, setTabState] = useState<PerfTab>(() => (isPerfTab(routeTab) ? routeTab : sessionId ? 'sessions' : rememberedTab() ?? 'overview'));
   const panelRef = useRef<HTMLDivElement>(null);
@@ -74,9 +74,10 @@ export function PerformanceView({ sessionId, tab: routeTab }: { sessionId?: stri
   };
 
   // A new deep link (route prop) selects that session, opens Sessions and clears the game filter.
-  const [linked, setLinked] = useState({ sessionId, routeTab });
-  if (sessionId !== linked.sessionId || routeTab !== linked.routeTab) {
-    setLinked({ sessionId, routeTab });
+  const [linked, setLinked] = useState({ sessionId, routeTab, compareWith });
+  if (sessionId !== linked.sessionId || routeTab !== linked.routeTab || compareWith !== linked.compareWith) {
+    setLinked({ sessionId, routeTab, compareWith });
+    if (compareWith) { setCompareA(null); setCompareB(compareWith); }
     if (sessionId) {
       setSelectedId(sessionId);
       setGameFilter('all');

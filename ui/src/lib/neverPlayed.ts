@@ -21,6 +21,8 @@ const DONE = new Set(['beaten', 'completed', 'abandoned']);
  */
 export function hasNeverBeenPlayed(g: Game): boolean {
   if (g.trackedSeconds > 0 || g.sessionCount > 0) return false;
+  // Track D1: the user said they played it somewhere VYSTRAL can't see.
+  if (g.playedMarkedAt) return false;
   if (lastPlayed(g).at) return false;
   const minutes = importedMinutes(g);
   return minutes == null || minutes <= 0;

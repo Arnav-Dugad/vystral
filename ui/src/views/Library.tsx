@@ -1,7 +1,7 @@
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { NewBadge } from '../whatsnew/NewBadge';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowDownWideNarrow, Cloud, FilePlus2, Grid3x3, List, Pencil, Search, Trash2, X, Copy, Wand2, HeartPulse, Sparkles } from 'lucide-react';
+import { ArrowDownWideNarrow, Cloud, FilePlus2, Grid3x3, List, ListChecks, Pencil, Search, Trash2, X, Copy, Wand2, HeartPulse, Sparkles } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { Game, GameStatus, PlatformKey } from '../bridge/types';
 import { ArtPacksDialog } from '../components/artpacks/ArtPacksDialog';
@@ -41,6 +41,11 @@ import { takeLibraryTags } from '../lib/libraryTags';
 // Track C5: smart collections (a rule stored on the collection, evaluated live) and duplicate explanations.
 import { DuplicateWhy } from '../components/ai/DuplicateWhy';
 import { describeSmartFilter, matchesSmartFilter, parseSmartFilter } from '../lib/smartFilter';
+// Track D1: multi-select with a floating bulk-action bar and one-step undo.
+import { BulkBar } from '../components/library/BulkBar';
+import { SelectCheck } from '../components/library/SelectCheck';
+import { useLibrarySelection, type SelectApi } from '../components/library/useLibrarySelection';
+import '../components/library/bulk-bar.css';
 
 type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status' | 'waiting' | 'finishing';
 type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'notinstalled' | 'missing' | 'hidden' | 'cloud' | 'subs' | 'notowned' | `status:${GameStatus}`;
@@ -170,9 +175,14 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
 
   const title = collection ? collection.name : 'Library';
   const totalSize = useMemo(() => results.reduce((s, g) => s + (sizeOf(g) ?? 0), 0), [results]);
+  // Track D1: multi-select over what the filter shows.
+  const order = useMemo(() => results.map((g) => g.id), [results]);
+  const selection = useLibrarySelection(order);
+  const gamesById = useStore((s) => s.gamesById);
+  const selectedGames = useMemo(() => selection.selected.map((id) => gamesById.get(id)).filter((g): g is Game => !!g), [selection.selected, gamesById]);
 
   return (
-    <div className="page library">
+    <div className="page library" data-selecting={selection.selecting || undefined}>
       <header className="lib-head">
         <div>
           <h1 className="lib-head__title">{title}</h1>
@@ -235,6 +245,17 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
               {(hasTtb || sort === 'finishing') && <option value="finishing">Closest to finishing</option>}
             </select>
           </label>
+          {results.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<ListChecks size={14} />}
+              title="Select games to change them together (Ctrl-click or Space also selects)"
+              onClick={() => (selection.selecting ? selection.clear() : selection.setMode(true))}
+            >
+              {selection.selecting ? 'Done' : 'Select'}
+            </Button>
+          )}
           {view === 'grid' && (
             <div className="lib-size" title="Card size">
               <Slider label="Card size" value={gridSize} min={120} max={280} step={10} onChange={(v) => void setSetting('appearance.gridSize', v)} />
@@ -348,10 +369,20 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
           ) : undefined}
         />
       ) : view === 'grid' ? (
-        <VirtualGrid games={results} size={gridSize} caption={quick === 'unplayed' ? ageLabel : undefined} />
+        <VirtualGrid games={results} size={gridSize} caption={quick === 'unplayed' ? ageLabel : undefined} sel={selection.api} />
       ) : (
-        <VirtualList games={results} />
+        <VirtualList games={results} sel={selection.api} />
       )}
+
+      <BulkBar
+        ids={selection.selected}
+        games={selectedGames}
+        shown={results.length}
+        collections={collections}
+        collectionId={collection && !rule ? collection.id : undefined}
+        onSelectAll={selection.selectAll}
+        onClear={selection.clear}
+      />
 
       <DuplicatesDialog open={dupOpen} onClose={() => setDupOpen(false)} />
       <ArtPacksDialog
@@ -401,7 +432,16 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
  * Row-virtualized responsive grid: only visible rows are mounted, so 10k games stay fast. When the
  * order changes, on-screen cards glide to their new cells (useFlipGrid; Track K).
  */
-function VirtualGrid({ games, size, caption }: { games: Game[]; size: number; caption?: (g: Game) => string }) {
+/** Track D1: focuses a game's card or row, scrolling its row into the virtualized view first when needed. */
+function focusSelectable(container: HTMLElement | null, id: string, scrollTo: () => void) {
+  const find = () => container?.querySelector<HTMLElement>(`[data-select-id="${CSS.escape(id)}"] :is(.card, [role=row])`) ?? container?.querySelector<HTMLElement>(`[role=row][data-select-id="${CSS.escape(id)}"]`);
+  const el = find();
+  if (el) return el.focus({ preventScroll: false });
+  scrollTo();
+  requestAnimationFrame(() => requestAnimationFrame(() => find()?.focus()));
+}
+
+function VirtualGrid({ games, size, caption, sel }: { games: Game[]; size: number; caption?: (g: Game) => string; sel?: SelectApi }) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(1000);
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
@@ -442,8 +482,29 @@ function VirtualGrid({ games, size, caption }: { games: Game[]; size: number; ca
           style={{ transform: `translateY(${row.start - (virtual.options.scrollMargin ?? 0)}px)`, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap }}
         >
           {games.slice(row.index * columns, row.index * columns + columns).map((g) => (
-            <div key={g.id} role="listitem" data-flip-id={g.id}>
+            <div
+              key={g.id}
+              role="listitem"
+              data-flip-id={g.id}
+              className={sel ? 'sel-cell' : undefined}
+              data-select-id={sel ? g.id : undefined}
+              data-selected={sel?.ids.has(g.id) || undefined}
+              onClickCapture={sel ? (e) => sel.click(e, g.id) : undefined}
+              onMouseDownCapture={sel ? (e) => { if (e.shiftKey) e.preventDefault(); } : undefined}
+              onKeyDownCapture={sel ? (e) => {
+                if (!(e.target as HTMLElement).classList?.contains('card') || sel.key(e, g.id)) return;
+                const delta = !e.shiftKey ? 0 : e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowDown' ? columns : e.key === 'ArrowUp' ? -columns : 0;
+                if (!delta) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const to = sel.extend(g.id, delta);
+                const index = games.findIndex((x) => x.id === to);
+                focusSelectable(ref.current, to, () => virtual.scrollToIndex(Math.floor(index / columns), { align: 'auto' }));
+              } : undefined}
+              onKeyUpCapture={sel ? (e) => { if (e.key === ' ' && (e.target as HTMLElement).classList?.contains('card')) e.preventDefault(); } : undefined}
+            >
               <GameCard game={g} />
+              {sel && <SelectCheck title={g.title} checked={sel.ids.has(g.id)} onToggle={() => sel.toggle(g.id)} onRange={() => sel.range(g.id)} />}
               {caption && <div className="vgrid__caption truncate">{caption(g)}</div>}
             </div>
           ))}
@@ -462,7 +523,7 @@ function VirtualGrid({ games, size, caption }: { games: Game[]; size: number; ca
   );
 }
 
-function VirtualList({ games }: { games: Game[] }) {
+function VirtualList({ games, sel }: { games: Game[]; sel?: SelectApi }) {
   const ref = useRef<HTMLDivElement>(null);
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const navigate = useStore((s) => s.navigate);
@@ -500,10 +561,22 @@ function VirtualList({ games }: { games: Game[] }) {
               data-game-id={g.id}
               data-flip-id={g.id}
               data-dim={!isInstalled(g) || undefined}
+              data-select-id={sel ? g.id : undefined}
+              aria-selected={sel?.selecting ? sel.ids.has(g.id) : undefined}
               style={{ transform: `translateY(${item.start - (virtual.options.scrollMargin ?? 0)}px)` }}
-              onClick={() => navigate({ name: 'game', id: g.id })}
+              onMouseDown={(e) => { if (sel && e.shiftKey) e.preventDefault(); }}
+              onClick={(e) => { if (!sel?.click(e, g.id)) navigate({ name: 'game', id: g.id }); }}
               onKeyDown={(e) => {
-                if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                if (e.target !== e.currentTarget) return;
+                // Track D1: Space selects (Enter opens); Shift+Up/Down extend the selection.
+                if (sel && e.key === ' ') { sel.key(e, g.id); return; }
+                if (sel && e.shiftKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+                  e.preventDefault();
+                  const to = sel.extend(g.id, e.key === 'ArrowDown' ? 1 : -1);
+                  focusSelectable(ref.current, to, () => virtual.scrollToIndex(games.findIndex((x) => x.id === to), { align: 'auto' }));
+                  return;
+                }
+                if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   navigate({ name: 'game', id: g.id });
                 }
@@ -511,6 +584,7 @@ function VirtualList({ games }: { games: Game[] }) {
               onFocus={() => useStore.getState().setFocusGame(g.id)}
             >
               <span role="cell" className="vlist__title">
+                {sel && <SelectCheck title={g.title} checked={sel.ids.has(g.id)} onToggle={() => sel.toggle(g.id)} onRange={() => sel.range(g.id)} />}
                 <span className="vlist__thumb"><GameCover game={g} /></span>
                 <span className="truncate">{g.title}</span>
                 <CloudBadge gameId={g.id} />

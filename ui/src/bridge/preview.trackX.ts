@@ -156,10 +156,11 @@ export function trackXPreviewHandlers(ctx: {
       const items: ModItem[] = WORKSHOP.slice(0, n).map((name, i) => ({
         id: String(2_800_000_000 + h % 1000 * 10 + i), name: String(2_800_000_000 + h % 1000 * 10 + i), title: titlesOn ? name : null,
         bytes: (i + 1) * 37 * MB + (h % 90) * MB, updated: new Date(Date.now() - (i * 9 + 2) * 86400000).toISOString(), enabled: null, present: i !== n - 1,
+        installed: i !== n - 1 ? new Date(Date.now() - (i * 23 + 40) * 86400000).toISOString() : null, // Track D1
       }));
       sources.push({ id: 'workshop', kind: 'workshop', label: 'Steam Workshop', detail: null, folder: `C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\${steam.platformGameId}`, bytes: items.reduce((s, i) => s + (i.bytes ?? 0), 0), count: items.length, partial: false, items });
       if (h % 2 === 0) {
-        const mo2: ModItem[] = MO2.map((name, i) => ({ id: (h + i).toString(16).padStart(16, '0').slice(-16), name, title: null, bytes: (i + 2) * 120 * MB, updated: new Date(Date.now() - (i * 30 + 5) * 86400000).toISOString(), enabled: i !== 2, present: true }));
+        const mo2: ModItem[] = MO2.map((name, i) => ({ id: (h + i).toString(16).padStart(16, '0').slice(-16), name, title: null, bytes: (i + 2) * 120 * MB, updated: new Date(Date.now() - (i * 30 + 5) * 86400000).toISOString(), enabled: i !== 2, present: true, installed: new Date(Date.now() - (i * 30 + 60) * 86400000).toISOString() }));
         sources.push({ id: 'mo2-0', kind: 'mo2', label: 'Mod Organizer 2', detail: `Mod Organizer 2 · ${g.title} · ${mo2.filter((m) => m.enabled).length} of ${mo2.length} on in “Default”`, folder: `C:\\Users\\You\\AppData\\Local\\ModOrganizer\\${g.title}\\mods`, bytes: mo2.reduce((s, i) => s + (i.bytes ?? 0), 0), count: mo2.length, partial: false, items: mo2 });
       }
     }

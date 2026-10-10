@@ -201,7 +201,7 @@ test.describe('Personal records', () => {
     const tab = page.getByRole('tab', { name: 'Records' });
     await expect(tab).toHaveAttribute('aria-selected', 'true');
     const badges = page.locator('.jr-rec');
-    await expect(badges).toHaveCount(9);
+    await expect(badges).toHaveCount(20); // Track D1 added eleven
     await expect(page.getByRole('heading', { name: 'Personal records' })).toBeVisible();
     const marathon = page.getByRole('button', { name: /^Marathon.*Longest session: / });
     await expect(marathon).toBeVisible();
@@ -237,7 +237,7 @@ test.describe('Personal records', () => {
     await open(page, '?recordSession');
     // A first look at the badges, so the next visit can tell what's new.
     await page.evaluate("import('/src/state/store.ts').then((m) => m.useStore.getState().navigate({ name: 'journal', tab: 'records' }))");
-    await expect(page.locator('.jr-rec')).toHaveCount(9);
+    await expect(page.locator('.jr-rec')).toHaveCount(20);
     await expect(page.locator('.jr-rec[data-new]')).toHaveCount(0);
     await page.waitForTimeout(1500);
     await page.evaluate("import('/src/state/store.ts').then((m) => m.useStore.getState().navigate({ name: 'home' }))");

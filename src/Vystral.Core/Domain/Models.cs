@@ -42,6 +42,10 @@ public sealed record DiscoveredInstallation
     public string? Version { get; init; }
     /// <summary>Track C1: when the package was installed, when Windows says.</summary>
     public DateTimeOffset? InstalledAt { get; init; }
+    /// <summary>Track D1: Steam's build id from the app manifest (<c>buildid</c>), for the update timeline.</summary>
+    public string? BuildId { get; init; }
+    /// <summary>Track D1: when Steam last updated the game (the manifest's <c>LastUpdated</c>), when it says.</summary>
+    public DateTimeOffset? BuildUpdated { get; init; }
 }
 
 /// <summary>Track C1: where an imported last-played date came from when it isn't the store's own record.</summary>

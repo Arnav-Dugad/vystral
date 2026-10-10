@@ -174,6 +174,13 @@
 - Automatic compaction needs ten idle minutes on mains power; a PC that is always busy or on battery only compacts with *Compact now*. Idle time is the time since the last input in this Windows session.
 - The real-app startup gain hasn't been measured yet (see PERFORMANCE.md); the numbers come from a WebView2 harness hosting the real interface.
 
+**Library power tools and records (0.9, Track D1)**
+- Bulk Undo works for 15 minutes and only for the last eight bulk changes, and not after VYSTRAL restarts (the previous values are kept in memory, not on disk).
+- "Mark played" only takes games out of *Never played* (and the backlog card's never-played list); it adds no playtime and doesn't count for records.
+- The update timeline knows builds only from when this version of VYSTRAL first scanned the game: the first build it sees is marked *first seen*, not as an update, and builds that came and went between two scans are missed. Patch notes come only from Steam news posts tagged (or titled) as patches, so other stores show builds VYSTRAL saw (Xbox package versions) and nothing for Epic, GOG, EA, Ubisoft or Battle.net. Mod dates are folder dates (installed = created, updated = newest file), which a backup restore or a manual copy can change.
+- *Similar in your library* reads community tags only for Steam games and IGDB's similar games and series only when IGDB facts are already cached for the game; series are otherwise guessed from titles, so differently named entries of one series may not match.
+- Speedrunner needs an IGDB time to beat and VYSTRAL-tracked play before you marked the game Beaten; play on other PCs or reported by stores doesn't count. Trophy day reads the most recent 3,000 cached achievement unlocks.
+
 **Immersive Discover and personal records (0.8, Track C6)**
 - Immersive Discover uses the same search channel as the desktop Discover page (they are never on screen together), so the last Immersive search replaces the page's cached answer and the page searches again when you return to it.
 - *More from series you play* is a search idea built from your own titles (subtitles, numerals and edition words removed), not a recommendation service; games with generic names give generic searches.

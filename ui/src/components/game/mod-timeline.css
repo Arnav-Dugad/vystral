@@ -1,0 +1,117 @@
+/* Track D1: the update / mod / session timeline on the game page (Sessions tab). */
+
+.mtl { margin-bottom: var(--s-8); }
+.mtl__controls { display: flex; align-items: center; gap: var(--s-1); flex-wrap: wrap; }
+.mtl__ranges { display: flex; gap: var(--s-1); margin-right: var(--s-2); }
+
+.mtl__frame {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--bg-1), oklch(from var(--bg-1) calc(l - 0.01) c h));
+  box-shadow: var(--inner-hi);
+  overflow: hidden;
+}
+.mtl__labels { display: grid; align-content: start; padding-left: var(--s-4); border-right: 1px solid var(--line); }
+.mtl__labels span { display: flex; align-items: center; color: var(--text-3); font-size: var(--fs-xs); font-weight: var(--fw-medium); letter-spacing: var(--tracking-caps); text-transform: uppercase; }
+
+.mtl__plot { position: relative; min-width: 0; touch-action: pan-y; cursor: grab; user-select: none; }
+.mtl__plot[data-dragging] { cursor: grabbing; }
+.mtl__svg { position: absolute; inset: 0; overflow: visible; }
+.mtl__lane-line { stroke: var(--line); stroke-width: 1; }
+.mtl__grid { stroke: var(--line); stroke-dasharray: 2 4; }
+.mtl__grid[data-major] { stroke: var(--line-strong); stroke-dasharray: none; }
+.mtl__tick { fill: var(--text-3); font-size: 11px; font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+.mtl__now { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3 3; opacity: 0.8; }
+.mtl__link { fill: none; stroke: var(--accent-hi); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.75; }
+
+.mtl__markers { position: absolute; inset: 0; }
+.mtl__m {
+  position: absolute;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  padding: 0;
+  background: var(--text-3);
+  box-shadow: 0 0 0 2px var(--bg-1);
+  transition: left var(--dur-base) var(--ease-out), scale var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+}
+.mtl__plot[data-dragging] .mtl__m, .mtl__plot[data-reduce] .mtl__m { transition: none; }
+.mtl__m::before { content: ''; position: absolute; inset: -6px; border-radius: inherit; } /* a bigger target than the dot */
+.mtl__m:hover, .mtl__m:focus-visible { scale: 1.25; z-index: 2; }
+.mtl__m:focus-visible { outline: var(--focus-outline-width) solid var(--focus-outline); outline-offset: 3px; }
+.mtl__m[data-pinned] { box-shadow: 0 0 0 2px var(--bg-1), 0 0 0 4px var(--accent-hi); z-index: 2; }
+
+/* Updates: diamonds. Patch notes are solid, builds VYSTRAL saw are ringed, the first version seen is hollow. */
+.mtl__m[data-lane='updates'] { border-radius: 3px; rotate: 45deg; width: 12px !important; height: 12px !important; background: var(--info); }
+.mtl__m[data-lane='updates'][data-kind='build'] { background: var(--bg-1); box-shadow: inset 0 0 0 3px var(--info), 0 0 0 2px var(--bg-1); }
+.mtl__m[data-lane='updates'][data-kind='firstSeen'] { background: transparent; box-shadow: inset 0 0 0 1.5px var(--text-3); }
+.mtl__m[data-lane='updates'] .mtl__count { rotate: -45deg; }
+
+/* Mods: rounded squares; installed is solid, updated is outlined. */
+.mtl__m[data-lane='mods'] { border-radius: 4px; width: 12px !important; height: 12px !important; background: var(--violet); }
+.mtl__m[data-lane='mods'][data-kind='updated'] { background: var(--bg-1); box-shadow: inset 0 0 0 2.5px var(--violet), 0 0 0 2px var(--bg-1); }
+.mtl__m[data-count] { width: 20px !important; height: 20px !important; }
+.mtl__count { font-size: 10px; font-weight: var(--fw-bold); color: var(--bg-0); line-height: 1; }
+.mtl__m[data-kind='updated'] .mtl__count, .mtl__m[data-kind='build'] .mtl__count { color: var(--text-1); }
+
+/* Sessions: sized by length, coloured by how smoothly they ran (the words are in the label and the legend). */
+.mtl__m[data-lane='sessions'] { opacity: 0.92; }
+.mtl__m[data-kind='smooth'] { background: var(--ok); }
+.mtl__m[data-kind='uneven'] { background: var(--warn); }
+.mtl__m[data-kind='rough'] { background: var(--danger); }
+.mtl__m[data-kind='unmeasured'] { background: var(--text-3); }
+.mtl__m[data-after] { box-shadow: 0 0 0 2px var(--bg-1), 0 0 0 4px var(--accent-hi), 0 0 18px 2px oklch(from var(--accent) l c h / 0.55); }
+
+.mtl__tip {
+  position: absolute;
+  z-index: 5;
+  translate: -50% -100%;
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--glass-strong);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-2), 0 0 0 1px var(--line-strong);
+  color: var(--text-1);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.mtl__legend { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin: var(--s-3) 0 0; padding: 0; list-style: none; color: var(--text-3); font-size: var(--fs-xs); }
+.mtl__legend li { display: inline-flex; align-items: center; gap: 6px; }
+.mtl__dot { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--text-3); }
+.mtl__dot[data-lane='updates'] { border-radius: 2px; rotate: 45deg; width: 9px; height: 9px; background: var(--info); }
+.mtl__dot[data-lane='updates'][data-kind='build'] { background: transparent; box-shadow: inset 0 0 0 2.5px var(--info); }
+.mtl__dot[data-lane='updates'][data-kind='firstSeen'] { background: transparent; box-shadow: inset 0 0 0 1.5px var(--text-3); }
+.mtl__dot[data-lane='mods'] { border-radius: 3px; background: var(--violet); }
+.mtl__dot[data-lane='mods'][data-kind='updated'] { background: transparent; box-shadow: inset 0 0 0 2px var(--violet); }
+.mtl__dot[data-kind='smooth'] { background: var(--ok); }
+.mtl__dot[data-kind='uneven'] { background: var(--warn); }
+.mtl__dot[data-kind='rough'] { background: var(--danger); }
+.mtl__dot[data-after] { box-shadow: 0 0 0 1.5px var(--bg-1), 0 0 0 3px var(--accent-hi); }
+
+.mtl__detail { margin-top: var(--s-3); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--bg-2); border: 1px solid var(--line); }
+.mtl__detail ul { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-2); }
+.mtl__detail li { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2) var(--s-3); }
+.mtl__detail-text { flex: 1 1 280px; min-width: 0; color: var(--text-1); font-size: var(--fs-sm); }
+.mtl__more { color: var(--text-3); font-size: var(--fs-xs); }
+
+.mtl__empty { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-5); border-radius: var(--r-lg); border: 1px dashed var(--line-strong); color: var(--text-2); }
+.mtl__empty p { margin: 0; }
+.mtl__empty svg { color: var(--text-3); flex: none; }
+.mtl__foot { margin: var(--s-3) 0 0; color: var(--text-3); font-size: var(--fs-xs); line-height: 1.5; max-width: 90ch; }
+
+:root[data-theme='contrast'] .mtl__frame { background: #000; border: 2px solid #fff; box-shadow: none; }
+:root[data-theme='contrast'] .mtl__m { box-shadow: 0 0 0 2px #000, 0 0 0 3px #fff; }
+:root[data-theme='contrast'] .mtl__tip { background: #000; backdrop-filter: none; border: 1px solid #fff; }
+@media (forced-colors: active) {
+  .mtl__m, .mtl__dot { forced-color-adjust: none; background: CanvasText !important; box-shadow: none !important; }
+  .mtl__m[data-after], .mtl__m[data-pinned] { outline: 2px solid Highlight; }
+  .mtl__tick { fill: CanvasText; }
+  .mtl__link, .mtl__now { stroke: Highlight; }
+}

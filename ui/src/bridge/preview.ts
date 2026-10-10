@@ -42,6 +42,7 @@ import { AI_CLOUD_DEFAULT_SETTINGS, aiCloudPreviewHandlers, previewAiSettings } 
 import { parseSmartFilter } from '../lib/smartFilter';
 import type { NewsFeed, ReplayData } from './types';
 import { decorateRigSession, previewCaptionInset, trackC2PreviewHandlers } from './preview.trackC2';
+import { trackD1PreviewHandlers } from './preview.trackD1';
 
 type Emit = (name: string, payload: unknown) => void;
 
@@ -561,6 +562,8 @@ export function createPreviewBackend() {
     // Track D4: cross-store identity (Circuit Apex matched, Velvet Orbit suggested, Kingsfall Remastered disputed; ?identity=off),
     // trailers from other sources (?youtube), free games (?freebies) and ProtonDB (?protondb). Overrides 'trailer.get'.
     ...identityPreviewHandlers({ lib, emit: () => emit, settings: () => settings }),
+    // Track D1: Library bulk actions with undo (?bulk seeds collections, ?bulkFail), observed game versions (?noVersions).
+    ...trackD1PreviewHandlers({ lib, collections, statusHistory, emit: () => emit }),
   };
   const slowLibrary = Math.min(10_000, Number(params.get('slowLibrary') ?? 0) || 0);
 

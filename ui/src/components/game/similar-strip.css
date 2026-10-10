@@ -1,0 +1,42 @@
+/* Track D1: "Similar in your library" strip on the game page. */
+
+.similar { margin-top: var(--s-12); }
+.similar__nav { display: flex; gap: var(--s-1); }
+
+.similar__rail {
+  --fade: 40px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(140px, 13vw, 176px);
+  gap: var(--s-5);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--s-1);
+  padding: var(--s-2) var(--s-1) var(--s-3);
+  scrollbar-width: thin;
+  mask-image: linear-gradient(90deg, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+}
+.similar__rail[data-start] { mask-image: linear-gradient(90deg, #000, #000 calc(100% - var(--fade)), transparent); }
+.similar__rail[data-end] { mask-image: linear-gradient(90deg, transparent, #000 var(--fade), #000); }
+.similar__rail[data-start][data-end] { mask-image: none; }
+
+.similar__item { scroll-snap-align: start; min-width: 0; }
+.similar__why {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 2px 2px 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+}
+.similar__why svg { flex: none; margin-top: 2px; color: var(--accent-text); }
+.similar__why span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.similar__item[data-forgotten] .similar__why { color: var(--text-2); }
+
+:root[data-theme='contrast'] .similar__rail { mask-image: none; }
+@media (forced-colors: active) {
+  .similar__rail { mask-image: none; }
+  .similar__why svg { color: CanvasText; }
+}

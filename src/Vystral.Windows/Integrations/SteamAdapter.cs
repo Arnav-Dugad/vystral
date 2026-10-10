@@ -145,6 +145,9 @@ public sealed class SteamAdapter(IRegistryReader registry) : IPlatformAdapter
             ClientRequired = true,
             SteamAppId = appId,
             LocalArtwork = FindLocalArtwork(steamPath, appId),
+            // Track D1: the installed build and when Steam installed it, for the game page's update timeline.
+            BuildId = state.GetString("buildid") is { Length: > 0 and <= 20 } build && build.All(char.IsAsciiDigit) && build != "0" ? build : null,
+            BuildUpdated = state.GetLong("LastUpdated") is > 946684800 and < 32503680000 and var updated ? DateTimeOffset.FromUnixTimeSeconds(updated) : null,
         };
     }
 
