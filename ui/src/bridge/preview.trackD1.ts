@@ -5,6 +5,7 @@
  *   ?bulk           start with two collections ("Couch co-op", and a smart one), for trying bulk collection actions
  *   ?bulkFail       library.bulkEdit fails (nothing changes; the page must put every game back)
  *   ?noVersions     no versions recorded yet (a fresh install of VYSTRAL)
+ *   ?timeline       Nebula Drift's last two sessions have frame-rate data, with an update between them
  */
 import type { BulkEditResult, BulkUndoResult, Game, GameStatus, LibrarySnapshot, Session, StatusHistoryEntry, VersionHistoryEntry } from './types';
 import { BridgeError } from './bridge';
@@ -42,6 +43,16 @@ export function previewVersions(g: Game, sessions: readonly Session[], now = Dat
     const h = hash(inst.id);
     const first = Math.min(own[0] ?? now - 40 * DAY, now - 40 * DAY) - (20 + (h % 30)) * DAY;
     const updates = own.length >= 3 ? own.filter((_, i) => i % 3 === 2).map((t) => t - 2 * DAY) : [now - 70 * DAY, now - 21 * DAY];
+    // An update between two sessions with frame-rate data, so the before/after comparison has something to show.
+    const measured = sessions.filter((s) => s.gameId === g.id).sort((a, b) => a.start.localeCompare(b.start));
+    for (let i = measured.length - 2; i >= 0; i--) {
+      const [a, b] = [measured[i], measured[i + 1]];
+      if (!a.perfSummary?.includes('"fpsAvg"') || !b.perfSummary?.includes('"fpsAvg"') || !a.end) continue;
+      const mid = (Date.parse(a.end) + Date.parse(b.start)) / 2;
+      if (Number.isFinite(mid) && !updates.some((u) => Math.abs(u - mid) < DAY)) updates.push(mid);
+      break;
+    }
+    updates.sort((a, b) => a - b);
     const times = [first, ...updates.filter((t) => t > first && t < now)];
     times.forEach((t, i) => {
       const value = inst.platform === 'steam' ? String(14_200_000 + (h % 90_000) + i * 381_117) : `1.${4 + i}.${(h % 300) + i * 17}.0`;
@@ -65,9 +76,23 @@ export function trackD1PreviewHandlers(ctx: {
   const find = (id: string) => ctx.lib.games.find((g) => g.id === id);
   const replace = (g: Game, patch: Partial<Game>) => {
     // A new object, as the native bridge would send, so views keyed on the game see the change.
-    const i = ctx.lib.games.indexOf(g);
-    if (i >= 0) ctx.lib.games[i] = { ...g, ...patch };
+    // A new array too, so the next library.get is a new snapshot rather than the one the page already holds.
+    ctx.lib.games = ctx.lib.games.map((x) => (x === g ? { ...g, ...patch } : x));
   };
+
+  // ?timeline: Nebula Drift's last two sessions have frame-rate data (an update lands between them), so the timeline's
+  // "first session after an update" has a before/after comparison to link to.
+  const nebula = params.has('timeline') ? ctx.lib.games.find((g) => g.title === 'Nebula Drift') : undefined;
+  if (nebula) {
+    const own = ctx.lib.sessions.filter((s) => s.gameId === nebula.id && s.perfSummary).sort((a, b) => a.start.localeCompare(b.start)).slice(-2);
+    own.forEach((s, i) => {
+      const base = JSON.parse(s.perfSummary!) as Record<string, unknown>;
+      s.perfSummary = JSON.stringify({
+        ...base, fpsAvg: i === 0 ? 96.4 : 81.2, fps1Low: i === 0 ? 71.8 : 44.5, frameTimeP50Ms: i === 0 ? 10.3 : 12.1, frameTimeP99Ms: i === 0 ? 16.9 : 27.4,
+        stutterCount: i === 0 ? 6 : 31, fpsSource: 'Intel PresentMon 2.6.0', fpsStatus: 'Measured with Intel PresentMon 2.6.0.',
+      });
+    });
+  }
 
   if (params.has('bulk') && ctx.collections.length === 0) {
     ctx.collections.push(

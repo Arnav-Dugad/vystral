@@ -6,7 +6,7 @@
 
 .mtl__frame {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: 104px minmax(0, 1fr);
   border-radius: var(--r-lg);
   border: 1px solid var(--line);
   background: linear-gradient(180deg, var(--bg-1), oklch(from var(--bg-1) calc(l - 0.01) c h));

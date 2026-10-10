@@ -116,6 +116,12 @@ export function RecordsPanel({ sessions, status, gamesById }: { sessions: Sessio
     const t = window.setTimeout(() => sound.chime(), reduce ? 150 : 900);
     return () => window.clearTimeout(t);
   }, [unlocked, records, reduce]);
+  // Once it has played, the badges go back to normal (nothing replays on a re-render).
+  useEffect(() => {
+    if (!fanfare.size) return;
+    const t = window.setTimeout(() => setFanfare(new Set()), 2600 + RECORD_IDS.length * 70);
+    return () => window.clearTimeout(t);
+  }, [fanfare]);
 
   if (status === 'loading') {
     return (
