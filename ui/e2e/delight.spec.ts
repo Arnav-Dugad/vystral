@@ -197,6 +197,8 @@ test.describe('achievement shimmer', () => {
     await expect(fresh.first()).toBeVisible();
     expect(await fresh.first().getAttribute('data-tier')).toMatch(/^(common|rare|ultra)$/);
     await nav(page, 'Home');
+    // Wait for the Journal to finish leaving: going back during its exit transition brings the same page back.
+    await expect(page.locator('.page.jr')).toHaveCount(0);
     await nav(page, 'Journal');
     await page.getByRole('tab', { name: /Achievements/ }).click();
     await expect(page.getByRole('heading', { name: 'Unlock timeline' })).toBeVisible();
