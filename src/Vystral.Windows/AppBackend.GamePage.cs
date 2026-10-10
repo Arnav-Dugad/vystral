@@ -28,7 +28,7 @@ public sealed partial class AppBackend
         var cache = Path.Combine(Paths.Root, "cache", "game-pages");
         _storeInsights = new StoreInsightsService(new SteamStoreInsightsClient(_dataSources.TransportFor("steamdeck")), Settings, () => _dataSources.Country, cache)
             { IsGameActive = () => IsGameActive };
-        _tags = new SteamTagsService(_steamApi, Settings, Repository.SteamAppToGame, _events, cache) { IsGameActive = () => IsGameActive };
+        _tags = new SteamTagsService(_steamApi, Settings, SteamAppToGameWithMatches, _events, cache) { IsGameActive = () => IsGameActive };
         _franchise = new FranchiseService(_dataSources, Repository, Artwork, Settings, cache) { IsGameActive = () => IsGameActive };
 
         Settings.Changed += key =>
@@ -90,7 +90,7 @@ public sealed partial class AppBackend
     /// <summary>The Steam app ID a request is about: the library game's own, or the one a Discover page showed.</summary>
     private string? PageAppId(GamePageParams p)
     {
-        if (p.GameId is not null) return Repository.GetGame(RequireId(p.GameId, "game"))?.SteamAppId;
+        if (p.GameId is not null) return SteamAppIdOf(RequireId(p.GameId, "game")); // Track D4: own, chosen or matched Steam app
         if (p.Key is not null && !DiscoverKeys.IsKey(p.Key)) throw new BridgeException("invalid", "Unknown game.");
         return RequireOptionalAppId(p.AppId) ?? (p.Key is not null ? DiscoverKeys.IdsFromKey(p.Key).Steam : null);
     }

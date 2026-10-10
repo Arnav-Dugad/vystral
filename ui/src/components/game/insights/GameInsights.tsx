@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { call, errorMessage } from '../../../bridge/bridge';
-import type { AchievementProgress, Compat, Deals, Enrichment, Game, ReviewsSnapshot, Session, StoreFacts } from '../../../bridge/types';
+import type { AchievementProgress, Compat, Deals, Enrichment, Game, ProtonSummary, ReviewsSnapshot, Session, StoreFacts } from '../../../bridge/types';
+import { useSteamLink } from '../../../state/identity';
+import { MatchedSteamNote, ProtonTile } from './TrackD4Tiles';
 import { ratingRows } from '../../../lib/gamePage';
 import { updateForGame } from '../../../lib/diskForecast';
 import { primaryInstallation } from '../../../lib/format';
@@ -27,9 +29,13 @@ export const openOnSteam = (params: Record<string, unknown>) => () =>
  * (a non-Steam game has no Steam reviews tile, a game nobody rated has no ratings tile), and each names its source.
  */
 export function GameInsights({ game, onOpenAchievements }: { game: Game; onOpenAchievements: () => void }) {
-  const steam = game.installations.some((i) => i.platform === 'steam');
+  // Track D4: a non-Steam game's Steam sections use its matched (or chosen) Steam app, labelled as such.
+  const { link } = useSteamLink(game);
+  const steam = !!link;
+  const ownSteam = !!link?.native;
   const settingsKey = useInsightSettingsKey();
-  const key = `${game.id}|${settingsKey}`;
+  const protonOn = useStore((s) => !!s.settings?.['dataSources.protondb']);
+  const key = `${game.id}|${settingsKey}|${link?.appId ?? ''}`;
   const ttb = useTimeToBeat(game.id);
   const p = { gameId: game.id };
   const reviews = useBridgeData<ReviewsSnapshot>('reviews.get', steam ? p : null, key);
@@ -37,7 +43,8 @@ export function GameInsights({ game, onOpenAchievements }: { game: Game; onOpenA
   const deals = useBridgeData<Deals>('deals.get', steam ? p : null, key);
   const enrichment = useBridgeData<Enrichment>('enrichment.get', p, key);
   const compat = useBridgeData<Compat>('compat.get', steam ? p : null, key);
-  const ach = useBridgeData<AchievementProgress | null>('gamePage.achievements', steam ? p : null, `${game.id}`);
+  const proton = useBridgeData<ProtonSummary>('protondb.get', steam && protonOn ? p : null, `${key}|${protonOn}`);
+  const ach = useBridgeData<AchievementProgress | null>('gamePage.achievements', ownSteam ? p : null, `${game.id}`);
   const sessions = useBridgeData<Session[]>('sessions.list', game.sessionCount ? { gameId: game.id, limit: 200 } : null, `${game.id}|${game.sessionCount}`);
   const forecast = useDiskForecast((s) => s.forecast);
   const drives = useStore((s) => s.drives);
@@ -64,6 +71,7 @@ export function GameInsights({ game, onOpenAchievements }: { game: Game; onOpenA
   return (
     <section className="gi" aria-labelledby={`gi-${game.id}`}>
       <h2 className="gi__title" id={`gi-${game.id}`}>At a glance</h2>
+      <MatchedSteamNote game={game} link={link} />
       <div className="gi__grid">
         <PlaytimeTile game={game} ttb={ttb} index={i++} />
         {sessions.data && sessions.data.length > 0 && <SessionsTile sessions={sessions.data} index={i++} />}
@@ -72,6 +80,7 @@ export function GameInsights({ game, onOpenAchievements }: { game: Game; onOpenA
         {rows.length > 0 && <RatingsTile rows={rows} index={i++} />}
         {showPrice ? <PriceTile facts={f} deals={deals.data} index={i++} /> : steam && facts.loading ? <TileSkeleton wide label="Price" /> : null}
         {c && (c.deck || c.antiCheat) && <CompatTile deck={c.deck} antiCheat={c.antiCheat} index={i++} />}
+        {proton.data && <ProtonTile p={proton.data} params={p} link={link} index={i++} />}
         <DiskTile game={game} update={hit ? { needBytes: hit.update.needBytes, fit: hit.update.fit } : null}
           freeBytes={hit?.drive.freeBytes ?? drive?.freeBytes ?? null} totalBytes={hit?.drive.totalBytes ?? drive?.totalBytes ?? null} drive={driveName} index={i++} />
         {(game.releaseDate || f?.releaseText) && (

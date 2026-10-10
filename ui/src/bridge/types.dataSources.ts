@@ -1,7 +1,8 @@
 // Track I: data sources. Mirror of the DTOs in src/Vystral.Windows/DataSources/DataSourcesService.cs.
 import type { PlatformKey, SettingKey } from './types';
 
-export type DataSourceId = 'steamgriddb' | 'igdb' | 'rawg' | 'itad' | 'cheapshark' | 'wikidata' | 'steamdeck' | 'awacy' | 'pcgamingwiki' | 'workshop';
+export type DataSourceId = 'steamgriddb' | 'igdb' | 'rawg' | 'itad' | 'cheapshark' | 'wikidata' | 'steamdeck' | 'awacy' | 'pcgamingwiki' | 'workshop'
+  | 'gamerpower' | 'epicfree' | 'protondb' | 'gogcatalog'; // Track D4
 
 export type DataSourceOutcome = 'ok' | 'invalidKey' | 'notConfigured' | 'rateLimited' | 'unavailable' | 'malformed' | 'offline' | 'disabled';
 

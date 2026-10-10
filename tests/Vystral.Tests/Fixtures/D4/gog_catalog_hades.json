@@ -1,0 +1,1794 @@
+{
+ "pages": 1,
+ "currentlyShownProductCount": 8,
+ "productCount": 8,
+ "products": [
+  {
+   "id": "1147295568",
+   "slug": "dont_wake_the_beast",
+   "title": "Don't Wake the Beast",
+   "releaseDate": null,
+   "storeReleaseDate": null,
+   "productType": "game",
+   "developers": [
+    "Artificial Disasters"
+   ],
+   "publishers": [
+    "better. publishing"
+   ],
+   "coverVertical": "https://images.gog-statics.com/6e05bef7ce64142b2080fff8af4f9ffb4aa6b33930be27d35b26dcf063222040.jpg",
+   "coverHorizontal": "https://images.gog-statics.com/c54474f53c41e5b6888890482651edf6509f94b0498754b0fd0519c3e6432d3a.png"
+  },
+  {
+   "id": "1314633115",
+   "slug": "dice_crawler",
+   "title": "Dice Crawler",
+   "releaseDate": null,
+   "storeReleaseDate": null,
+   "productType": "game",
+   "developers": [
+    "Karol Sollich"
+   ],
+   "publishers": [
+    "Karol Sollich"
+   ],
+   "coverVertical": "https://images.gog-statics.com/be1a1c9d4b4fcd6237086478561e6ec7b0e62790aa71298f2a61c92192d02963.jpg",
+   "coverHorizontal": "https://images.gog-statics.com/8b3f911f3285dcb3d43a962d7c454d6040bbe118fd45fdc00d0d7a66590b05a8.png"
+  },
+  {
+   "id": "1196903604",
+   "slug": "roguecraft_dx",
+   "title": "Roguecraft DX",
+   "releaseDate": null,
+   "storeReleaseDate": null,
+   "productType": "game",
+   "developers": [
+    "Badger Punch Games"
+   ],
+   "publishers": [
+    "Thalamus Digital"
+   ],
+   "coverVertical": "https://images.gog-statics.com/602cb37aa5cb032427590e7f634cfb9cc4ecafef696110fa13c0b14c00797575.jpg",
+   "coverHorizontal": "https://images.gog-statics.com/dd1c15f2ce8bdd10c951765bb248bda6a205db7ddea9919b3d763c36bcc77d81.png"
+  },
+  {
+   "id": "1355762673",
+   "slug": "theocracy",
+   "title": "Theocracy",
+   "releaseDate": null,
+   "storeReleaseDate": null,
+   "productType": "game",
+   "developers": [
+    "Philos Laboratories"
+   ],
+   "publishers": [
+    "SNEG"
+   ],
+   "coverVertical": "https://images.gog-statics.com/9d712d91661e66a4acc9f6c1653dc73990511412f3e4328fcac62937b2cd8659.jpg",
+   "coverHorizontal": "https://images.gog-statics.com/6b39441db8ca98c0c0b0fe4d87ed1ea6d1e9a67c64fbfd86e2525c46f198ac48.png"
+  },
+  {
+   "id": "1084437038",
+   "slug": "agony_lords_of_hell",
+   "title": "Agony: Lords of Hell",
+   "releaseDate": null,
+   "storeReleaseDate": null,
+   "productType": "game",
+   "developers": [
+    "Madmind Studio"
+   ],
+   "publishers": [
+    "Madmind Studio"
+   ],
+   "coverVertical": "https://images.gog-statics.com/85e65e989587216133844e4014c03ab35668c3aabebffe9ec5db44f9ecdf6455.jpg",
+   "coverHorizontal": "https://images.gog-statics.com/ea55a0c76d151533ddcee019a101c018dd4685f786ee1d0815c5794395c24b9d.png"
+  }
+ ],
+ "dreamlistGames": [
+  {
+   "id": "56054328071373203",
+   "slug": "hades-ii",
+   "features": [],
+   "screenshots": [
+    "https://images.gog-statics.com/ecd833136248ff07d40fbf47d4059d450163730e7daedfb22596b64413fd275e_{formatter}.jpg",
+    "https://images.gog-statics.com/3289740b698543a69f66a62ba2606fbf8180d5fbc450f56c8259e651b289bdd9_{formatter}.jpg",
+    "https://images.gog-statics.com/ad11257ae2d846fa8f687e6078fc6bba87b6ddf19b18f2e12697af2a1d3d1f3c_{formatter}.jpg",
+    "https://images.gog-statics.com/790629fbde286bbc928e46e58cceb3a69d85e65aeb6d9727a5bbef7ae24e42b5_{formatter}.jpg",
+    "https://images.gog-statics.com/32633e2599f7f2c0ba26101f015eeffce249b04125ea0eb2fcfe0d9ae2dabc61_{formatter}.jpg",
+    "https://images.gog-statics.com/419d76737b1d56510bdbb5a1416dbbf84337bacf0622177ff6755cb6a5a4cf6d_{formatter}.jpg"
+   ],
+   "userPreferredLanguage": null,
+   "releaseDate": "2025.09.25",
+   "storeReleaseDate": null,
+   "productType": "game",
+   "title": "Hades II",
+   "coverHorizontal": "https://images.gog-statics.com/04c683a521284cc7c1a77d690a6d43df19e338c349131f6542856e5f7e733737.jpg",
+   "coverVertical": "https://images.gog-statics.com/04c683a521284cc7c1a77d690a6d43df19e338c349131f6542856e5f7e733737.jpg",
+   "developers": [
+    "Supergiant Games"
+   ],
+   "publishers": [
+    "Supergiant Games"
+   ],
+   "operatingSystems": [],
+   "price": null,
+   "productState": "dreamlist",
+   "genres": [],
+   "tags": [],
+   "reviewsRating": 0,
+   "editions": [],
+   "ratings": [],
+   "storeLink": "https://gog.com/dreamlist/game/hades-ii"
+  },
+  {
+   "id": "54574350172667991",
+   "slug": "cinders-of-hades-2021",
+   "features": [],
+   "screenshots": [
+    "https://images.gog-statics.com/2b8e92f2a5fc48aebd16f156bc6c46c7f84c5973cd94404a16fbe508fd19c2b1_{formatter}.jpg",
+    "https://images.gog-statics.com/eb03f33fd56bf00ccc11afb1ce8a9508b209afda96ca3a940944762195dad6bd_{formatter}.jpg",
+    "https://images.gog-statics.com/aa44682b70d4727499cea82df3227cfc12e6e428536500c1d91f9d7b069e738e_{formatter}.jpg",
+    "https://images.gog-statics.com/086c7c040db51dd1ab4f40b2d18320179e4ac9e29ce864ec7c6e0e4c2d40ba56_{formatter}.jpg",
+    "https://images.gog-statics.com/d811a371b68505b2f4394bacc9757a403d012e8eedf80100cc1f8276bda3c2af_{formatter}.jpg",
+    "https://images.gog-statics.com/fc04a9ea2d735c6d85b418e642c3b50c73c75f8e959890ee3e4066e1c2d0eda1_{formatter}.jpg",
+    "https://images.gog-statics.com/0360e1bccc824c5e5028a74fe77eccec79e384770982bee027742bd6c9b9623a_{formatter}.jpg",
+    "https://images.gog-statics.com/c9be6015a3b0e809644da4732cc9ca9ad1b36b7cbc9d2c614d29365359aa38f3_{formatter}.jpg",
+    "https://images.gog-statics.com/7808fcc7048961f1ad4fca99b11d10d912920b813a0c3ad49b346c8aa86093fe_{formatter}.jpg",
+    "https://images.gog-statics.com/6027221480d339f144a350c792606fe644ec838633cd0cc9761a7f63ad892362_{formatter}.jpg",
+    "https://images.gog-statics.com/12f60823af6d5bca1826528cc649d8d8036a37efc91cdb1ba1958a758fb2bf6f_{formatter}.jpg",
+    "https://images.gog-statics.com/c8c499025c51232eafdbfca35f59c41ad565bb04f7932494aabdb7e24d9e4b6c_{formatter}.jpg",
+    "https://images.gog-statics.com/3520dbc7605fcb0a96376d35554aa7b3588276d5cbea63ebfe22fb695525ee38_{formatter}.jpg",
+    "https://images.gog-statics.com/8dd97d3de9fd50b384ef044473a514f924b291da548eef9002b9a6ea078c75ab_{formatter}.jpg",
+    "https://images.gog-statics.com/c13f524335a465e20b8e13adf90ba3123ab5ec4ca0286582b5640bbc9820ee51_{formatter}.jpg",
+    "https://images.gog-statics.com/ab0e5572cd0f1f174726da07f65f150c8367a4647c90b3c69e27b5e22046f05d_{formatter}.jpg"
+   ],
+   "userPreferredLanguage": null,
+   "releaseDate": "2021.01.26",
+   "storeReleaseDate": null,
+   "productType": "game",
+   "title": "Cinders of Hades",
+   "coverHorizontal": "https://images.gog-statics.com/58c647a6248e77cd522d5bcde8b34bdce6ad67a4ce99560d954c385680e8c969.jpg",
+   "coverVertical": "https://images.gog-statics.com/58c647a6248e77cd522d5bcde8b34bdce6ad67a4ce99560d954c385680e8c969.jpg",
+   "developers": [],
+   "publishers": [],
+   "operatingSystems": [],
+   "price": null,
+   "productState": "dreamlist",
+   "genres": [],
+   "tags": [],
+   "reviewsRating": 0,
+   "editions": [],
+   "ratings": [],
+   "storeLink": "https://gog.com/dreamlist/game/cinders-of-hades-2021"
+  },
+  {
+   "id": "51154156907662111",
+   "slug": "saint-seiya-the-hades-2006",
+   "features": [],
+   "screenshots": [
+    "https://images.gog-statics.com/62e6b6fbb0fbbd6b43d75ed5fc5eca93dcc9daa1919f1548f4642c5268704c27_{formatter}.jpg",
+    "https://images.gog-statics.com/691f877a1021469962dcfb1b8aa79c98d8b5d8bb79b7a6fa36aebe32b7a35526_{formatter}.jpg",
+    "https://images.gog-statics.com/0550b1f284531746e70d066ca96fe81a7b89bbce173b82a2e5df146c9a5bc032_{formatter}.jpg"
+   ],
+   "userPreferredLanguage": null,
+   "releaseDate": "2006.09.29",
+   "storeReleaseDate": null,
+   "productType": "game",
+   "title": "Saint Seiya: The Hades",
+   "coverHorizontal": "https://images.gog-statics.com/7b28754e8339ac902e2d30a1ffd5f173b8e5042284a12752a535385abdce8f2a.jpg",
+   "coverVertical": "https://images.gog-statics.com/7b28754e8339ac902e2d30a1ffd5f173b8e5042284a12752a535385abdce8f2a.jpg",
+   "developers": [
+    "Dimps"
+   ],
+   "publishers": [
+    "Bandai"
+   ],
+   "operatingSystems": [],
+   "price": null,
+   "productState": "dreamlist",
+   "genres": [],
+   "tags": [],
+   "reviewsRating": 0,
+   "editions": [],
+   "ratings": [],
+   "storeLink": "https://gog.com/dreamlist/game/saint-seiya-the-hades-2006"
+  },
+  {
+   "id": "51813465380088086",
+   "slug": "hades-2020",
+   "features": [],
+   "screenshots": [
+    "https://images.gog-statics.com/6238a63df3563ecf1b34b5460ee8f8eb61658c9193c96c1697e03d5423c7be56_{formatter}.jpg",
+    "https://images.gog-statics.com/dacfc9750c0966ee55bf415327339d47484b581da7c6b09bdc47e5695027060f_{formatter}.jpg",
+    "https://images.gog-statics.com/ec21364181af6c833daf7e893ff7b9f316808962a3fa34e8e162408aff40b918_{formatter}.jpg",
+    "https://images.gog-statics.com/347f09fb9dddbb3304e08a73ac1666d11df35304d772e052e9875884e00ba0a5_{formatter}.jpg",
+    "https://images.gog-statics.com/6c423e7283f8f0d50b07abf077fb8915b2b1cdc4a1c6adeefe93b98fe96611c8_{formatter}.jpg",
+    "https://images.gog-statics.com/e1dae485454daa1af34121b7f03592180bac1e16c3c9fc079e1f107a328bc08b_{formatter}.jpg",
+    "https://images.gog-statics.com/e5487ce2e00e384db47296d6578454bf5c75d606fa4f565149508b23872aab6a_{formatter}.jpg",
+    "https://images.gog-statics.com/25d6275904fbfad8fe285b60a380797ce3a4a2b130c6dcdae036aa2baed91c90_{formatter}.jpg",
+    "https://images.gog-statics.com/973a996d15617ff4522d85dffdb9f9e325e98cbf9c334949320dfede8415a53e_{formatter}.jpg",
+    "https://images.gog-statics.com/5c5ab21394e429a768cd095f5af5f05d4aa06cefaa55d677cb40992b8f5ec9a0_{formatter}.jpg",
+    "https://images.gog-statics.com/871f4301e21fa1d87b51cb995020a82ad5c24588362370608d3d1f2d7b167bff_{formatter}.jpg",
+    "https://images.gog-statics.com/ae5c7bc54624ac37af1cc5066cd0c1747a241d9acab1ed28b428364e679e5edd_{formatter}.jpg",
+    "https://images.gog-statics.com/f591fd7e7425e416dafff366fa41fba815d20cbd3be6766c7fe9a7419185d975_{formatter}.jpg",
+    "https://images.gog-statics.com/ee4f1b64c95aaf1dcb5eb22b636f3eff71d4f237982d49b74170b5e122945f52_{formatter}.jpg",
+    "https://images.gog-statics.com/26f264cba4efd71498933cccc2f1a260e8d01c35fb48106c42ea3af305264355_{formatter}.jpg"
+   ],
+   "userPreferredLanguage": null,
+   "releaseDate": "2020.09.17",
+   "storeReleaseDate": null,
+   "productType": "game",
+   "title": "Hades",
+   "coverHorizontal": "https://images.gog-statics.com/640696a9ededb419cde9d66881835102b6ac321c1bc428122c65de601b23ae52.jpg",
+   "coverVertical": "https://images.gog-statics.com/640696a9ededb419cde9d66881835102b6ac321c1bc428122c65de601b23ae52.jpg",
+   "developers": [
+    "Supergiant Games"
+   ],
+   "publishers": [
+    "Netflix",
+    "Supergiant Games"
+   ],
+   "operatingSystems": [],
+   "price": null,
+   "productState": "dreamlist",
+   "genres": [],
+   "tags": [],
+   "reviewsRating": 0,
+   "editions": [],
+   "ratings": [],
+   "storeLink": "https://gog.com/dreamlist/game/hades-2020"
+  },
+  {
+   "id": "55334965642874064",
+   "slug": "100-hidden-hares-2022",
+   "features": [],
+   "screenshots": [
+    "https://images.gog-statics.com/5ce6a9f210c84f29e53b7a6bf988bb55cb6b33255fe6be7eeb819713c3dc1ac2_{formatter}.jpg",
+    "https://images.gog-statics.com/7150213a14b1d9c1b38d3f723769c33530cea165938abf8a4fa8669214b1fec4_{formatter}.jpg",
+    "https://images.gog-statics.com/78f29da3b94770b102491042307579b26938d315babec2bc698c577620fed355_{formatter}.jpg",
+    "https://images.gog-statics.com/82e14295ee0decb882f3a3c56d2342574e7cc6dca64db06f0bd83051ac61b18c_{formatter}.jpg",
+    "https://images.gog-statics.com/69cccdcff745798338d0001207c7a7753ff2012d0c2fca57653201563d6fc3ab_{formatter}.jpg"
+   ],
+   "userPreferredLanguage": null,
+   "releaseDate": "2022.06.11",
+   "storeReleaseDate": null,
+   "productType": "game",
+   "title": "100 Hidden Hares",
+   "coverHorizontal": "https://images.gog-statics.com/a93296743c06f0cd9cb110d480d9f8c184e73461ee16ba0f18d41352691986a6.jpg",
+   "coverVertical": "https://images.gog-statics.com/a93296743c06f0cd9cb110d480d9f8c184e73461ee16ba0f18d41352691986a6.jpg",
+   "developers": [
+    "Anatoliy Loginovskikh"
+   ],
+   "publishers": [
+    "Anatoliy Loginovskikh"
+   ],
+   "operatingSystems": [],
+   "price": null,
+   "productState": "dreamlist",
+   "genres": [],
+   "tags": [],
+   "reviewsRating": 0,
+   "editions": [],
+   "ratings": [],
+   "storeLink": "https://gog.com/dreamlist/game/100-hidden-hares-2022"
+  },
+  {
+   "id": "58570630524224378",
+   "slug": "tuna-hake-s-underwater-2025",
+   "features": [],
+   "screenshots": [
+    "https://images.gog-statics.com/3f63426861760b294c1bff63b1af7a76be9016bbec48c404db48d901f564a076_{formatter}.jpg",
+    "https://images.gog-statics.com/05c1f3fd553f6fe15f92e4419133a6aa55b28ea71dd4e14aa7cfcc01d39c6073_{formatter}.jpg",
+    "https://images.gog-statics.com/878a97a0880703fc14a0ee5d001f6e4a6995be34309ccd0aafdb523d6b16602b_{formatter}.jpg",
+    "https://images.gog-statics.com/41fa8ecc5d324dd5f8c02f68cf4844cac5776fb617f0bac3e4c72ac1f0a58aa4_{formatter}.jpg",
+    "https://images.gog-statics.com/3456de5c4fea1526fdb979243a97d07d518a02bbc4eb60838228a72873e47272_{formatter}.jpg",
+    "https://images.gog-statics.com/5ecba65231eda46f4ef4d6075fd02a8f17db0e33e49fdf8ee52199174863925a_{formatter}.jpg"
+   ],
+   "userPreferredLanguage": null,
+   "releaseDate": "2025.04.24",
+   "storeReleaseDate": null,
+   "productType": "game",
+   "title": "Tuna Hake's Underwater",
+   "coverHorizontal": "https://images.gog-statics.com/f628ee9809a9349bfa3614caa7a4bee2b2432ca86f55bdf2bb17a5700b7471f5.jpg",
+   "coverVertical": "https://images.gog-statics.com/f628ee9809a9349bfa3614caa7a4bee2b2432ca86f55bdf2bb17a5700b7471f5.jpg",
+   "developers": [],
+   "publishers": [],
+   "operatingSystems": [],
+   "price": null,
+   "productState": "dreamlist",
+   "genres": [],
+   "tags": [],
+   "reviewsRating": 0,
+   "editions": [],
+   "ratings": [],
+   "storeLink": "https://gog.com/dreamlist/game/tuna-hake-s-underwater-2025"
+  },
+  {
+   "id": "59062495823449866",
+   "slug": "froggy-hates-snow",
+   "features": [],
+   "screenshots": [
+    "https://images.gog-statics.com/7ddcccc3494fa8a5e3709e4926b9b8bf508c5c3341ac6ffd91c1f0d0dd4407bf_{formatter}.jpg",
+    "https://images.gog-statics.com/d3f2b7e7d6a20f0bd7047d70efc64e1b00e50884991cd5b27f4381e3111a2c62_{formatter}.jpg",
+    "https://images.gog-statics.com/9b3f1975e4f3cee1180e670801e1f64e1fd0fac79db7aae49f78efb840e70cf5_{formatter}.jpg",
+    "https://images.gog-statics.com/e88e0d2d0cbf39fc6811009c0181285e12095fe5fa5402bf0af5dd24769c8928_{formatter}.jpg",
+    "https://images.gog-statics.com/ea9caab80242a96e1704a4fbe0ca286889cc1cc4ed407542a8dbbb1c40664454_{formatter}.jpg",
+    "https://images.gog-statics.com/47e15a15119c0297da4c2c7583208349fefddbe9a7c80ad3bcf31fdc132d137c_{formatter}.jpg",
+    "https://images.gog-statics.com/b17649a72fe7f43f0f840c50e80e3ec45b0dab1213ed98d5f215a08acbe7a14e_{formatter}.jpg",
+    "https://images.gog-statics.com/dd5a114ec1bf3f3164a028fae4ab08d935f06fd15f9e8e59addd6dbe7f694ac5_{formatter}.jpg",
+    "https://images.gog-statics.com/107021785f248d533c21a0da53249c9cc414027e5249b592ecaf520342505d7a_{formatter}.jpg",
+    "https://images.gog-statics.com/02027037f0d1d1c6afa393492fdd799b31b857ed442aae39b1ce26b1b7f96938_{formatter}.jpg"
+   ],
+   "userPreferredLanguage": null,
+   "releaseDate": "2026.05.07",
+   "storeReleaseDate": null,
+   "productType": "game",
+   "title": "Froggy Hates Snow",
+   "coverHorizontal": "https://images.gog-statics.com/0ca8d06289d9d952fa7633ecda46bebc3c98c0dda155050b728ae8f74aea7e29.jpg",
+   "coverVertical": "https://images.gog-statics.com/0ca8d06289d9d952fa7633ecda46bebc3c98c0dda155050b728ae8f74aea7e29.jpg",
+   "developers": [
+    "CRYING BRICK"
+   ],
+   "publishers": [
+    "Digital Bandidos"
+   ],
+   "operatingSystems": [],
+   "price": null,
+   "productState": "dreamlist",
+   "genres": [],
+   "tags": [],
+   "reviewsRating": 0,
+   "editions": [],
+   "ratings": [],
+   "storeLink": "https://gog.com/dreamlist/game/froggy-hates-snow"
+  },
+  {
+   "id": "51152946709589722",
+   "slug": "hades-1995",
+   "features": [],
+   "screenshots": [],
+   "userPreferredLanguage": null,
+   "releaseDate": "1995.05.01",
+   "storeReleaseDate": null,
+   "productType": "game",
+   "title": "Hades",
+   "coverHorizontal": "https://images.gog-statics.com/ea7756f58513c867fdccbdb41160c77994b6711586e292d8a042d5011de98ddd.jpg",
+   "coverVertical": "https://images.gog-statics.com/ea7756f58513c867fdccbdb41160c77994b6711586e292d8a042d5011de98ddd.jpg",
+   "developers": [
+    "Ablex"
+   ],
+   "publishers": [
+    "LG Software"
+   ],
+   "operatingSystems": [],
+   "price": null,
+   "productState": "dreamlist",
+   "genres": [],
+   "tags": [],
+   "reviewsRating": 0,
+   "editions": [],
+   "ratings": [],
+   "storeLink": "https://gog.com/dreamlist/game/hades-1995"
+  }
+ ],
+ "filters": {
+  "releaseDateRange": {
+   "min": 0,
+   "max": 0
+  },
+  "priceRange": {
+   "min": 0,
+   "max": 0,
+   "currency": "USD",
+   "decimalPlaces": 2
+  },
+  "genres": [
+   {
+    "name": "Action",
+    "slug": "action"
+   },
+   {
+    "name": "Adventure",
+    "slug": "adventure"
+   },
+   {
+    "name": "Racing",
+    "slug": "racing"
+   },
+   {
+    "name": "Role-playing",
+    "slug": "rpg"
+   },
+   {
+    "name": "Shooter",
+    "slug": "shooter"
+   },
+   {
+    "name": "Simulation",
+    "slug": "simulation"
+   },
+   {
+    "name": "Sports",
+    "slug": "sports"
+   },
+   {
+    "name": "Strategy",
+    "slug": "strategy"
+   }
+  ],
+  "languages": [
+   {
+    "slug": "ar",
+    "name": "العربية"
+   },
+   {
+    "slug": "br",
+    "name": "Português do Brasil"
+   },
+   {
+    "slug": "cn",
+    "name": "中文(简体)"
+   },
+   {
+    "slug": "cz",
+    "name": "český"
+   },
+   {
+    "slug": "da",
+    "name": "Dansk"
+   },
+   {
+    "slug": "de",
+    "name": "Deutsch"
+   },
+   {
+    "slug": "en",
+    "name": "English"
+   },
+   {
+    "slug": "es",
+    "name": "español"
+   },
+   {
+    "slug": "es_mx",
+    "name": "Español (AL)"
+   },
+   {
+    "slug": "fi",
+    "name": "Suomi"
+   },
+   {
+    "slug": "fr",
+    "name": "français"
+   },
+   {
+    "slug": "gk",
+    "name": "Ελληνικά"
+   },
+   {
+    "slug": "hu",
+    "name": "magyar"
+   },
+   {
+    "slug": "hr",
+    "name": "hrvatski"
+   },
+   {
+    "slug": "id",
+    "name": "bahasa Indonesia"
+   },
+   {
+    "slug": "it",
+    "name": "italiano"
+   },
+   {
+    "slug": "jp",
+    "name": "日本語"
+   },
+   {
+    "slug": "ko",
+    "name": "한국어"
+   },
+   {
+    "slug": "nl",
+    "name": "nederlands"
+   },
+   {
+    "slug": "no",
+    "name": "norsk"
+   },
+   {
+    "slug": "pl",
+    "name": "polski"
+   },
+   {
+    "slug": "pt",
+    "name": "português"
+   },
+   {
+    "slug": "ro",
+    "name": "română"
+   },
+   {
+    "slug": "ru",
+    "name": "русский"
+   },
+   {
+    "slug": "sv",
+    "name": "svenska"
+   },
+   {
+    "slug": "th",
+    "name": "ไทย"
+   },
+   {
+    "slug": "tr",
+    "name": "Türkçe"
+   },
+   {
+    "slug": "uk",
+    "name": "Українська"
+   },
+   {
+    "slug": "vi",
+    "name": "Tiếng Việt"
+   },
+   {
+    "slug": "zh",
+    "name": "中文(繁體)"
+   }
+  ],
+  "systems": [
+   {
+    "slug": "windows",
+    "name": "Windows"
+   },
+   {
+    "slug": "osx",
+    "name": "macOS"
+   },
+   {
+    "slug": "linux",
+    "name": "Linux"
+   }
+  ],
+  "tags": [
+   {
+    "name": "Adventure",
+    "slug": "adventure"
+   },
+   {
+    "name": "Indie",
+    "slug": "indie"
+   },
+   {
+    "name": "Action",
+    "slug": "action"
+   },
+   {
+    "name": "Story Rich",
+    "slug": "story-rich"
+   },
+   {
+    "name": "Atmospheric",
+    "slug": "atmospheric"
+   },
+   {
+    "name": "Fantasy",
+    "slug": "fantasy"
+   },
+   {
+    "name": "Strategy",
+    "slug": "strategy"
+   },
+   {
+    "name": "2D",
+    "slug": "two-dimensional"
+   },
+   {
+    "name": "Role-playing",
+    "slug": "role-playing"
+   },
+   {
+    "name": "Exploration",
+    "slug": "exploration"
+   }
+  ],
+  "discounted": false,
+  "features": [
+   {
+    "slug": "single",
+    "name": "Single-player"
+   },
+   {
+    "slug": "multi",
+    "name": "Multi-player"
+   },
+   {
+    "slug": "coop",
+    "name": "Co-op"
+   },
+   {
+    "slug": "achievements",
+    "name": "Achievements"
+   },
+   {
+    "slug": "leaderboards",
+    "name": "Leaderboards"
+   },
+   {
+    "slug": "controller_support",
+    "name": "Controller support"
+   },
+   {
+    "slug": "cloud_saves",
+    "name": "Cloud saves"
+   },
+   {
+    "slug": "overlay",
+    "name": "Overlay"
+   },
+   {
+    "slug": "galaxy_multiplayer",
+    "name": "Multi-player"
+   }
+  ],
+  "releaseStatuses": [
+   {
+    "slug": "new-arrival",
+    "name": "New Arrivals"
+   },
+   {
+    "slug": "upcoming",
+    "name": "Upcoming"
+   },
+   {
+    "slug": "early-access",
+    "name": "Early Access"
+   }
+  ],
+  "types": [
+   "game",
+   "dlc",
+   "extras",
+   "pack"
+  ],
+  "fullGenresList": [
+   {
+    "name": "Action",
+    "slug": "action",
+    "level": 1
+   },
+   {
+    "name": "Adventure",
+    "slug": "adventure",
+    "level": 1
+   },
+   {
+    "name": "Racing",
+    "slug": "racing",
+    "level": 1
+   },
+   {
+    "name": "Role-playing",
+    "slug": "rpg",
+    "level": 1
+   },
+   {
+    "name": "Shooter",
+    "slug": "shooter",
+    "level": 1
+   },
+   {
+    "name": "Simulation",
+    "slug": "simulation",
+    "level": 1
+   },
+   {
+    "name": "Sports",
+    "slug": "sports",
+    "level": 1
+   },
+   {
+    "name": "Strategy",
+    "slug": "strategy",
+    "level": 1
+   },
+   {
+    "name": "Action",
+    "slug": "action",
+    "level": 2
+   },
+   {
+    "name": "Adventure",
+    "slug": "adventure",
+    "level": 2
+   },
+   {
+    "name": "Arcade",
+    "slug": "arcade",
+    "level": 2
+   },
+   {
+    "name": "Building",
+    "slug": "building",
+    "level": 2
+   },
+   {
+    "name": "Card Game",
+    "slug": "card-game",
+    "level": 2
+   },
+   {
+    "name": "Combat",
+    "slug": "combat",
+    "level": 2
+   },
+   {
+    "name": "Economic",
+    "slug": "economic",
+    "level": 2
+   },
+   {
+    "name": "Educational",
+    "slug": "educational",
+    "level": 2
+   },
+   {
+    "name": "FPP",
+    "slug": "fpp",
+    "level": 2
+   },
+   {
+    "name": "Metroidvania",
+    "slug": "metroidvania",
+    "level": 2
+   },
+   {
+    "name": "Point-and-click",
+    "slug": "pointandclick",
+    "level": 2
+   },
+   {
+    "name": "Puzzle",
+    "slug": "puzzle",
+    "level": 2
+   },
+   {
+    "name": "Real-time",
+    "slug": "realtime",
+    "level": 2
+   },
+   {
+    "name": "Role-playing",
+    "slug": "rpg",
+    "level": 2
+   },
+   {
+    "name": "Simulation",
+    "slug": "simulation",
+    "level": 2
+   },
+   {
+    "name": "Strategy",
+    "slug": "strategy",
+    "level": 2
+   },
+   {
+    "name": "Survival",
+    "slug": "survival",
+    "level": 2
+   },
+   {
+    "name": "TPP",
+    "slug": "tpp",
+    "level": 2
+   },
+   {
+    "name": "Team sport",
+    "slug": "teamsport",
+    "level": 2
+   },
+   {
+    "name": "Turn-based",
+    "slug": "turnbased",
+    "level": 2
+   },
+   {
+    "name": "Visual Novel",
+    "slug": "visual-novel",
+    "level": 2
+   },
+   {
+    "name": "Chess",
+    "slug": "chess",
+    "level": 3
+   },
+   {
+    "name": "Comedy",
+    "slug": "comedy",
+    "level": 3
+   },
+   {
+    "name": "Detective-mystery",
+    "slug": "detective",
+    "level": 3
+   },
+   {
+    "name": "Espionage",
+    "slug": "espionage",
+    "level": 3
+   },
+   {
+    "name": "Exploration",
+    "slug": "exploration",
+    "level": 3
+   },
+   {
+    "name": "FPP",
+    "slug": "fpp",
+    "level": 3
+   },
+   {
+    "name": "Fantasy",
+    "slug": "fantasy",
+    "level": 3
+   },
+   {
+    "name": "Fighting",
+    "slug": "fighting",
+    "level": 3
+   },
+   {
+    "name": "Hidden Object",
+    "slug": "hidden-object",
+    "level": 3
+   },
+   {
+    "name": "Historical",
+    "slug": "historical",
+    "level": 3
+   },
+   {
+    "name": "Horror",
+    "slug": "horror",
+    "level": 3
+   },
+   {
+    "name": "JRPG",
+    "slug": "jrpg",
+    "level": 3
+   },
+   {
+    "name": "Managerial",
+    "slug": "managerial",
+    "level": 3
+   },
+   {
+    "name": "Metroidvania",
+    "slug": "metroidvania",
+    "level": 3
+   },
+   {
+    "name": "Modern",
+    "slug": "modern",
+    "level": 3
+   },
+   {
+    "name": "Mystery",
+    "slug": "mystery",
+    "level": 3
+   },
+   {
+    "name": "Narrative",
+    "slug": "narrative",
+    "level": 3
+   },
+   {
+    "name": "Naval",
+    "slug": "naval",
+    "level": 3
+   },
+   {
+    "name": "Off-road",
+    "slug": "offroad",
+    "level": 3
+   },
+   {
+    "name": "Open World",
+    "slug": "open-world",
+    "level": 3
+   },
+   {
+    "name": "Pinball",
+    "slug": "pinball",
+    "level": 3
+   },
+   {
+    "name": "Platformer",
+    "slug": "platformer",
+    "level": 3
+   },
+   {
+    "name": "Programming",
+    "slug": "programming",
+    "level": 3
+   },
+   {
+    "name": "Puzzle",
+    "slug": "puzzle",
+    "level": 3
+   },
+   {
+    "name": "Rally",
+    "slug": "rally",
+    "level": 3
+   },
+   {
+    "name": "Roguelike",
+    "slug": "rougelike",
+    "level": 3
+   },
+   {
+    "name": "Sandbox",
+    "slug": "sandbox",
+    "level": 3
+   },
+   {
+    "name": "Sci-fi",
+    "slug": "scifi",
+    "level": 3
+   },
+   {
+    "name": "Shoot 'em Up",
+    "slug": "shoot-em-up",
+    "level": 3
+   },
+   {
+    "name": "Soccer",
+    "slug": "soccer",
+    "level": 3
+   },
+   {
+    "name": "Stealth",
+    "slug": "stealth",
+    "level": 3
+   },
+   {
+    "name": "Survival",
+    "slug": "survival",
+    "level": 3
+   },
+   {
+    "name": "Tactical",
+    "slug": "tactical",
+    "level": 3
+   },
+   {
+    "name": "Touring",
+    "slug": "touring",
+    "level": 3
+   },
+   {
+    "name": "Virtual life",
+    "slug": "virtuallife",
+    "level": 3
+   }
+  ],
+  "fullTagsList": [
+   {
+    "name": "Adventure",
+    "slug": "adventure"
+   },
+   {
+    "name": "Indie",
+    "slug": "indie"
+   },
+   {
+    "name": "Action",
+    "slug": "action"
+   },
+   {
+    "name": "Story Rich",
+    "slug": "story-rich"
+   },
+   {
+    "name": "Atmospheric",
+    "slug": "atmospheric"
+   },
+   {
+    "name": "Fantasy",
+    "slug": "fantasy"
+   },
+   {
+    "name": "Strategy",
+    "slug": "strategy"
+   },
+   {
+    "name": "2D",
+    "slug": "two-dimensional"
+   },
+   {
+    "name": "Role-playing",
+    "slug": "role-playing"
+   },
+   {
+    "name": "Exploration",
+    "slug": "exploration"
+   },
+   {
+    "name": "Classic",
+    "slug": "classic"
+   },
+   {
+    "name": "Sci-fi",
+    "slug": "sci-fi"
+   },
+   {
+    "name": "Puzzle",
+    "slug": "puzzle"
+   },
+   {
+    "name": "Simulation",
+    "slug": "simulation"
+   },
+   {
+    "name": "Turn-Based",
+    "slug": "turn-based"
+   },
+   {
+    "name": "Casual",
+    "slug": "casual"
+   },
+   {
+    "name": "Female Protagonist",
+    "slug": "female-protagonist"
+   },
+   {
+    "name": "Pixel Graphics",
+    "slug": "pixel-graphics"
+   },
+   {
+    "name": "First-Person",
+    "slug": "first-person"
+   },
+   {
+    "name": "Dark",
+    "slug": "dark"
+   },
+   {
+    "name": "Science",
+    "slug": "science"
+   },
+   {
+    "name": "Great Soundtrack",
+    "slug": "great-soundtrack"
+   },
+   {
+    "name": "Choices Matter",
+    "slug": "choices-matter"
+   },
+   {
+    "name": "Funny",
+    "slug": "funny"
+   },
+   {
+    "name": "Horror",
+    "slug": "horror"
+   },
+   {
+    "name": "Tactical",
+    "slug": "tactical"
+   },
+   {
+    "name": "Management",
+    "slug": "management"
+   },
+   {
+    "name": "Mystery",
+    "slug": "mystery"
+   },
+   {
+    "name": "Visual Novel",
+    "slug": "visual-novel"
+   },
+   {
+    "name": "Third Person",
+    "slug": "third-person"
+   },
+   {
+    "name": "Open World",
+    "slug": "open-world"
+   },
+   {
+    "name": "OST",
+    "slug": "ost"
+   },
+   {
+    "name": "Mature",
+    "slug": "mature"
+   },
+   {
+    "name": "Multiplayer",
+    "slug": "multiplayer"
+   },
+   {
+    "name": "Sexual Content",
+    "slug": "sexual-content"
+   },
+   {
+    "name": "Sandbox",
+    "slug": "sandbox"
+   },
+   {
+    "name": "Nudity",
+    "slug": "nudity"
+   },
+   {
+    "name": "Platformer",
+    "slug": "platformer"
+   },
+   {
+    "name": "Point&Click",
+    "slug": "point-and-click"
+   },
+   {
+    "name": "Historical",
+    "slug": "historical"
+   },
+   {
+    "name": "Resource Management",
+    "slug": "resource-management"
+   },
+   {
+    "name": "Survival",
+    "slug": "survival"
+   },
+   {
+    "name": "Violent",
+    "slug": "violent"
+   },
+   {
+    "name": "Difficult",
+    "slug": "difficult"
+   },
+   {
+    "name": "Multiple Endings",
+    "slug": "multiple-endings"
+   },
+   {
+    "name": "Gore",
+    "slug": "gore"
+   },
+   {
+    "name": "NSFW",
+    "slug": "nsfw"
+   },
+   {
+    "name": "Family Friendly",
+    "slug": "family-friendly"
+   },
+   {
+    "name": "Retro",
+    "slug": "retro"
+   },
+   {
+    "name": "Real-Time",
+    "slug": "real-time"
+   },
+   {
+    "name": "JRPG",
+    "slug": "jrpg"
+   },
+   {
+    "name": "Roguelike",
+    "slug": "roguelike"
+   },
+   {
+    "name": "Isometric",
+    "slug": "isometric"
+   },
+   {
+    "name": "Relaxing",
+    "slug": "relaxing"
+   },
+   {
+    "name": "Magic",
+    "slug": "magic"
+   },
+   {
+    "name": "Top-Down",
+    "slug": "top-down"
+   },
+   {
+    "name": "Space",
+    "slug": "space"
+   },
+   {
+    "name": "Building",
+    "slug": "building"
+   },
+   {
+    "name": "FPS",
+    "slug": "fps"
+   },
+   {
+    "name": "Logic",
+    "slug": "logic"
+   },
+   {
+    "name": "Cartoony",
+    "slug": "cartoony"
+   },
+   {
+    "name": "Medieval",
+    "slug": "medieval"
+   },
+   {
+    "name": "Roguelite",
+    "slug": "roguelite"
+   },
+   {
+    "name": "War",
+    "slug": "war"
+   },
+   {
+    "name": "Narrative",
+    "slug": "narrative"
+   },
+   {
+    "name": "Hack and Slash",
+    "slug": "hack-and-slash"
+   },
+   {
+    "name": "Crafting",
+    "slug": "crafting"
+   },
+   {
+    "name": "Emotional",
+    "slug": "emotional"
+   },
+   {
+    "name": "Realistic",
+    "slug": "realistic"
+   },
+   {
+    "name": "Shooter",
+    "slug": "shooter"
+   },
+   {
+    "name": "Base Building",
+    "slug": "base-building"
+   },
+   {
+    "name": "Procedural Generation",
+    "slug": "procedural-generation"
+   },
+   {
+    "name": "Post-apocalyptic",
+    "slug": "post-apocalyptic"
+   },
+   {
+    "name": "Managerial",
+    "slug": "managerial"
+   },
+   {
+    "name": "Investigation",
+    "slug": "investigation"
+   },
+   {
+    "name": "City builder",
+    "slug": "city-builder"
+   },
+   {
+    "name": "RTS",
+    "slug": "rts"
+   },
+   {
+    "name": "Local Co-Op",
+    "slug": "local-co-op"
+   },
+   {
+    "name": "Choose Your Own Adventure",
+    "slug": "choose-your-own-adventure"
+   },
+   {
+    "name": "Romance",
+    "slug": "romance"
+   },
+   {
+    "name": "Artbook",
+    "slug": "artbook"
+   },
+   {
+    "name": "Dungeon Crawler",
+    "slug": "dungeon-crawler"
+   },
+   {
+    "name": "Stealth",
+    "slug": "stealth"
+   },
+   {
+    "name": "Psychological Horror",
+    "slug": "psychological-horror"
+   },
+   {
+    "name": "Survival Horror",
+    "slug": "survival-horror"
+   },
+   {
+    "name": "Military",
+    "slug": "military"
+   },
+   {
+    "name": "Tactical RPG",
+    "slug": "tactical-rpg"
+   },
+   {
+    "name": "Surreal",
+    "slug": "surreal"
+   },
+   {
+    "name": "Arcade",
+    "slug": "arcade"
+   },
+   {
+    "name": "Grand Strategy",
+    "slug": "grand-strategy"
+   },
+   {
+    "name": "Combat",
+    "slug": "combat"
+   },
+   {
+    "name": "LGBTQ+",
+    "slug": "lgbtq-plus"
+   },
+   {
+    "name": "Cyberpunk",
+    "slug": "cyberpunk"
+   },
+   {
+    "name": "CRPG",
+    "slug": "crpg"
+   },
+   {
+    "name": "Local Multiplayer",
+    "slug": "local-multiplayer"
+   },
+   {
+    "name": "Dating Sim",
+    "slug": "dating-sim"
+   },
+   {
+    "name": "Modern",
+    "slug": "modern"
+   },
+   {
+    "name": "Fighting",
+    "slug": "fighting"
+   },
+   {
+    "name": "Comedy",
+    "slug": "comedy"
+   },
+   {
+    "name": "Puzzle Platformer",
+    "slug": "puzzle-platformer"
+   },
+   {
+    "name": "Metroidvania",
+    "slug": "metroidvania"
+   },
+   {
+    "name": "Hentai",
+    "slug": "hentai"
+   },
+   {
+    "name": "Walking Simulator",
+    "slug": "walking-simulator"
+   },
+   {
+    "name": "Physics",
+    "slug": "physics"
+   },
+   {
+    "name": "Supernatural",
+    "slug": "supernatural"
+   },
+   {
+    "name": "Card Game",
+    "slug": "card-game"
+   },
+   {
+    "name": "Nature",
+    "slug": "nature"
+   },
+   {
+    "name": "Dark Comedy",
+    "slug": "dark-comedy"
+   },
+   {
+    "name": "Lovecraftian",
+    "slug": "lovecraftian"
+   },
+   {
+    "name": "Psychological",
+    "slug": "psychological"
+   },
+   {
+    "name": "Thriller",
+    "slug": "thriller"
+   },
+   {
+    "name": "Cozy",
+    "slug": "cozy"
+   },
+   {
+    "name": "Detective-mystery",
+    "slug": "detective"
+   },
+   {
+    "name": "Politics",
+    "slug": "politics"
+   },
+   {
+    "name": "Shoot'EmUp",
+    "slug": "shoot-em-up"
+   },
+   {
+    "name": "Bullet Hell",
+    "slug": "bullet-hell"
+   },
+   {
+    "name": "Dystopian",
+    "slug": "dystopian"
+   },
+   {
+    "name": "Good Old Game",
+    "slug": "good-old-game"
+   },
+   {
+    "name": "Robots",
+    "slug": "robots"
+   },
+   {
+    "name": "4X",
+    "slug": "four-x"
+   },
+   {
+    "name": "Souls-like",
+    "slug": "souls-like"
+   },
+   {
+    "name": "Demo",
+    "slug": "demo"
+   },
+   {
+    "name": "Perma Death",
+    "slug": "perma-death"
+   },
+   {
+    "name": "Text-Based",
+    "slug": "text-based"
+   },
+   {
+    "name": "Crime",
+    "slug": "crime"
+   },
+   {
+    "name": "Noir",
+    "slug": "noir"
+   },
+   {
+    "name": "Short",
+    "slug": "short"
+   },
+   {
+    "name": "Deckbuilding",
+    "slug": "deckbuilding"
+   },
+   {
+    "name": "Hidden Object",
+    "slug": "hidden-object"
+   },
+   {
+    "name": "Beat 'em up",
+    "slug": "beat-em-up"
+   },
+   {
+    "name": "Mythology",
+    "slug": "mythology"
+   },
+   {
+    "name": "Cats",
+    "slug": "cats"
+   },
+   {
+    "name": "Remake",
+    "slug": "remake"
+   },
+   {
+    "name": "World War II",
+    "slug": "world-war-ii"
+   },
+   {
+    "name": "LifeSim",
+    "slug": "lifesim"
+   },
+   {
+    "name": "Board Game",
+    "slug": "board-game"
+   },
+   {
+    "name": "Flight",
+    "slug": "flight"
+   },
+   {
+    "name": "Zombies",
+    "slug": "zombies"
+   },
+   {
+    "name": "Education",
+    "slug": "education"
+   },
+   {
+    "name": "Steampunk",
+    "slug": "steampunk"
+   },
+   {
+    "name": "Philosophical",
+    "slug": "philosophical"
+   },
+   {
+    "name": "Tabletop",
+    "slug": "tabletop"
+   },
+   {
+    "name": "Tower Defense",
+    "slug": "tower-defense"
+   },
+   {
+    "name": "Trading",
+    "slug": "trading"
+   },
+   {
+    "name": "Economic",
+    "slug": "economic"
+   },
+   {
+    "name": "Twin Stick Shooter",
+    "slug": "twin-stick-shooter"
+   },
+   {
+    "name": "Racing",
+    "slug": "racing"
+   },
+   {
+    "name": "LevelEditor",
+    "slug": "leveleditor"
+   },
+   {
+    "name": "Only On GOG",
+    "slug": "only-on-gog"
+   },
+   {
+    "name": "Vampire",
+    "slug": "vampire"
+   },
+   {
+    "name": "FMV",
+    "slug": "fmv"
+   },
+   {
+    "name": "Pirates",
+    "slug": "pirates"
+   },
+   {
+    "name": "Sports",
+    "slug": "sports"
+   },
+   {
+    "name": "Farming",
+    "slug": "farming"
+   },
+   {
+    "name": "Fishing",
+    "slug": "fishing"
+   },
+   {
+    "name": "Time Manipulation",
+    "slug": "time-manipulation"
+   },
+   {
+    "name": "Trains",
+    "slug": "trains"
+   },
+   {
+    "name": "Transportation",
+    "slug": "transportation"
+   },
+   {
+    "name": "Tanks",
+    "slug": "tanks"
+   },
+   {
+    "name": "Parody",
+    "slug": "parody"
+   },
+   {
+    "name": "Naval",
+    "slug": "naval"
+   },
+   {
+    "name": "Martial Arts",
+    "slug": "martial-arts"
+   },
+   {
+    "name": "Non Violent",
+    "slug": "non-violent"
+   },
+   {
+    "name": "Western",
+    "slug": "western"
+   },
+   {
+    "name": "Underwater",
+    "slug": "underwater"
+   },
+   {
+    "name": "Dog",
+    "slug": "dog"
+   },
+   {
+    "name": "Auto Battler",
+    "slug": "auto-battler"
+   },
+   {
+    "name": "Rhythm",
+    "slug": "rhythm"
+   },
+   {
+    "name": "Superhero",
+    "slug": "superhero"
+   },
+   {
+    "name": "Split Screen",
+    "slug": "split-screen"
+   },
+   {
+    "name": "Cooking",
+    "slug": "cooking"
+   },
+   {
+    "name": "Underground",
+    "slug": "underground"
+   },
+   {
+    "name": "Free Game",
+    "slug": "freegame"
+   },
+   {
+    "name": "Looter Shooter",
+    "slug": "looter-shooter"
+   },
+   {
+    "name": "VR",
+    "slug": "vr"
+   },
+   {
+    "name": "Ninja",
+    "slug": "ninja"
+   },
+   {
+    "name": "Virtual life",
+    "slug": "virtual-life"
+   },
+   {
+    "name": "Dinosaurs",
+    "slug": "dinosaurs"
+   },
+   {
+    "name": "Vikings",
+    "slug": "vikings"
+   },
+   {
+    "name": "Rally",
+    "slug": "rally"
+   },
+   {
+    "name": "Party Game",
+    "slug": "party-game"
+   },
+   {
+    "name": "Programming",
+    "slug": "programming"
+   },
+   {
+    "name": "Escape Room",
+    "slug": "escape-room"
+   },
+   {
+    "name": "World War I",
+    "slug": "world-war-i"
+   },
+   {
+    "name": "Typing",
+    "slug": "typing"
+   },
+   {
+    "name": "educational",
+    "slug": "educational"
+   },
+   {
+    "name": "Petting Dogs",
+    "slug": "petting-dogs"
+   },
+   {
+    "name": "Mod",
+    "slug": "mod"
+   },
+   {
+    "name": "Football",
+    "slug": "football"
+   },
+   {
+    "name": "Coming of age",
+    "slug": "coming-of-age"
+   },
+   {
+    "name": "Movie",
+    "slug": "movie"
+   },
+   {
+    "name": "Off-road",
+    "slug": "offroad"
+   },
+   {
+    "name": "Soccer",
+    "slug": "soccer"
+   },
+   {
+    "name": "Espionage",
+    "slug": "espionage"
+   },
+   {
+    "name": "Pinball",
+    "slug": "pinball"
+   },
+   {
+    "name": "Werewolves",
+    "slug": "werewolves"
+   },
+   {
+    "name": "Match3",
+    "slug": "match-three"
+   },
+   {
+    "name": "Crossplay",
+    "slug": "crossplay"
+   },
+   {
+    "name": "Team sport",
+    "slug": "team-sport"
+   },
+   {
+    "name": "Chess",
+    "slug": "chess"
+   },
+   {
+    "name": "Sniper",
+    "slug": "sniper"
+   },
+   {
+    "name": "Touring",
+    "slug": "touring"
+   },
+   {
+    "name": "Online-only",
+    "slug": "online-only"
+   }
+  ]
+ },
+ "searchAlgo": "similarity"
+}

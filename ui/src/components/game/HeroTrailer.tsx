@@ -9,6 +9,7 @@ import { attachHlsTrailer, type AttachedTrailer } from '../../lib/trailer/player
 import { autoplayBlock, effectiveQuality, IDLE_DELAY_MS, manualBlock, MAX_PLAYS, maxTrailerHeight, type TrailerConditions } from '../../lib/trailer/policy';
 import { followAllowed, SAMPLE_H, SAMPLE_INTERVAL_MS, SAMPLE_W, tintFromFrame, useHeroTrailer } from '../../lib/trailer/tint';
 import { useReducedMotion, useStore } from '../../state/store';
+import { YouTubeTrailer } from './YouTubeTrailer';
 import './trailer.css';
 
 type Phase = 'waiting' | 'loading' | 'playing' | 'paused' | 'ended' | 'failed';
@@ -125,7 +126,7 @@ export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
 
   const start = useCallback(async () => {
     const video = videoRef.current;
-    if (!video || !info?.available || !info.src) return;
+    if (!video || !info?.available || !info.src || info.kind === 'youtube') return; // Track D4: YouTube plays in its own frame
     teardown();
     const c = new AbortController();
     ctrl.current = c;
@@ -182,7 +183,7 @@ export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
   }, [hero]);
 
   useEffect(() => {
-    if (phase !== 'waiting' || autoBlocked || !info?.available || !inView) return;
+    if (phase !== 'waiting' || autoBlocked || !info?.available || info.kind === 'youtube' || !inView) return;
     const t = window.setTimeout(() => void start(), IDLE_DELAY_MS);
     return () => window.clearTimeout(t);
   }, [phase, autoBlocked, info, inView, idleKey, start]);
@@ -377,7 +378,7 @@ export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
     if (v) v.muted = next;
   };
 
-  const canOffer = !!info?.available && !blocked;
+  const canOffer = !!info?.available && info.kind !== 'youtube' && !blocked;
   const showControls = canOffer && phase !== 'failed';
   const live = phase === 'playing' || phase === 'paused';
   const fade = reduce ? { duration: 0.15 } : { duration: phase === 'ended' ? 0.7 : 0.9, ease: ease.cinematic };
@@ -397,7 +398,8 @@ export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
           <span className="htrailer-ctl__label">
             <Clapperboard size={13} aria-hidden />
             <span>{live ? 'Trailer' : phase === 'loading' ? 'Loading trailer…' : 'Trailer'}</span>
-            <span className="htrailer-ctl__src">from Steam</span>
+            {/* Track D4: Steam, RAWG, IGDB or GOG; a non-Steam game's Steam trailer says it's from its matched Steam app. */}
+            <span className="htrailer-ctl__src">from {info?.source ?? 'Steam'}{info?.via === 'matched' ? ' (matched game)' : info?.via === 'pinned' ? ' (your match)' : ''}</span>
           </span>
           <button
             type="button"
@@ -418,6 +420,13 @@ export function HeroTrailer({ game, active }: { game: Game; active: boolean }) {
       )}
     </AnimatePresence>
   );
+
+  if (info?.kind === 'youtube' && info.available)
+    return (
+      <div ref={rootRef} className="htrailer" aria-hidden>
+        <YouTubeTrailer info={info} hero={hero} autoBlocked={autoBlocked} blocked={blocked} inView={inView} reduce={reduce} />
+      </div>
+    );
 
   return (
     <div ref={rootRef} className="htrailer" aria-hidden>

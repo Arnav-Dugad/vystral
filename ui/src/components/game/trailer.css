@@ -39,3 +39,27 @@
 :root[data-theme='contrast'] .htrailer-ctl { backdrop-filter: none; background: oklch(0.1 0.01 282 / 0.88); }
 :root[data-mode='immersive'] .htrailer-ctl { top: var(--s-6); }
 :root[data-mode='immersive'] .htrailer-ctl__btn { width: 48px; height: 48px; }
+
+/* Track D4: a YouTube trailer (opt-in) — the 16:9 player covers the hero like the video does; YouTube's own UI is off. */
+.htrailer__yt { position: absolute; inset: 0; overflow: hidden; container-type: size; opacity: 0; }
+.htrailer__frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100cqw, calc(100cqh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  border: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.htrailer__ytpreview {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--s-2);
+  color: oklch(0.92 0.01 282);
+  font-size: var(--fs-sm);
+  background: radial-gradient(120% 90% at 30% 30%, oklch(0.32 0.08 25 / 0.85), oklch(0.12 0.02 282 / 0.92));
+}

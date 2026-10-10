@@ -171,6 +171,50 @@ Before you type, Discover is a storefront: featured picks, *Because you played �
 - **Game pages:** every card, Watching item, wishlist item and hero slide opens the VYSTRAL page: your own when you own it (found by Steam app ID too), else the Discover page (`discoverGame`, `steam-<appid>`). The Steam store stays a secondary action on the Wishlist.
 - **Search results** fold editions (“… Deluxe Edition”, “GOTY”, “Director's Cut”) and add-ons (an extra whose title starts with the game's) under the base game when it's in the list (`groupEditions`); nothing is dropped.
 
+## Every data source for every game (Track D4, 0.9)
+
+### Cross-store identity resolver
+
+Code: `src/Vystral.Windows/DataSources/Identity/` (`IdentityMerge` is pure; `IdentityResolverService` gathers evidence), wired in `AppBackend.TrackD4.cs`. For each library game it resolves the **Steam app ID, IGDB ID, RAWG slug, GOG product ID and Wikidata item**, each with a confidence, and says how.
+
+| Evidence | Confidence | Source |
+|---|---|---|
+| The store's own ID (Steam installation, GOG `goggame-<id>`) | 1.00, always wins | local |
+| Your choice (*Fix match*, or *It isn't on Steam*) | 1.00, final until you undo it | local (`provider_cache` `identity-pin`) |
+| Wikidata row by the game's own Steam/GOG ID (existing identity lookups) | 0.95 | `external_ids` |
+| Earlier IGDB/RAWG enrichment matches | as recorded (≤ 0.95) | `game_enrichment` |
+| Exact normalized title, unique, release year within ±1 | 0.85 (another edition's title: 0.75) | Wikidata entity search, IGDB search (+ its `external_games` store links), RAWG search, GOG catalogue |
+| Steam store search: unique exact title, then the app's own page must be a *game* whose year agrees | 0.85 (no year to compare: 0.70) | `storesearch` + `appdetails` |
+| Exact title without a year to compare | 0.70 | any title source |
+| RAWG lists the game on Steam under the candidate app | cross-check at RAWG's match confidence | RAWG `/games/{id}/stores` |
+
+Merge rules (`IdentityMerge.Merge`): independent sources add up (1 − Π(1 − cᵢ), one vote per source, capped at 0.99); a rival value ≥ 0.6 makes a **conflict** (nothing is used until you choose); a weaker rival costs half its score. **Used** for features at ≥ 0.80 (*matched*), shown as a *suggestion* at ≥ 0.60. Matching runs only for games without their own Steam app, uses only sources that are on (Wikidata switch, *Fetch game details* for Steam, your IGDB/RAWG keys, *GOG catalogue*), up to 25 games every 6 h in the background and on page open; answers are cached in `provider_cache` (`identity`, 30 days found / 7 days not; re-checked when the title changes). Everything read back from the cache is validated again, and cached evidence can never claim to be native or chosen.
+
+**Steam-keyed features for non-Steam games:** reviews, store facts and prices (Steam, CheapShark, ITAD), community tags (game page and Library filters), news and patch notes, Steam Deck and anti-cheat, friends who played it, ProtonDB, trailers and live tiles use `SteamAppIdOf(gameId)` (own → chosen → matched). The page labels every such section (*Steam data for “X” on Steam, matched automatically* / *the version you chose*) and offers *Wrong game?*; the hero trailer says *(matched game)*. Achievements, the achievement guide, art (SteamGridDB by Steam ID) and enrichment stay on the game's own Steam app only.
+
+Bridge: `identity.resolved({ gameId, refresh? })`, `identity.pin({ gameId, kind, value | null })`, `identity.unpin({ gameId, kind })`, `identity.searchSteam({ gameId, query })`, `identity.openId({ gameId, kind })`; event `identity.changed`.
+
+### Trailers from any source
+
+Order (`TrailerService` + `AppBackend.AlternativeTrailerAsync`): **Steam** (the own or resolved app's HLS/MP4) → **RAWG** `/games/{id}/movies` (MP4, your key; `max` then `480`) → with *Allow YouTube trailers* only: **IGDB** `game_videos` → **GOG** `api.gog.com/v2/games/{id}` `_embedded.videos` (both YouTube IDs). RAWG MP4s go through the same filtered proxy (`/trailer/{gameId}/video`) with an extended allow-list (`ExternalTrailers.FileHosts`: Steam's video CDNs and `media.rawg.io`; HTTPS, default port, no query, safe path segments, `.mp4` only; 4 MB range chunks, no redirects). Discover pages without a Steam trailer get RAWG's or IGDB's through a stand-in ID. Live tiles and Immersive's hero loops use Steam micro-trailers of the own or resolved Steam app (RAWG files are too large for the 6 MB tile cap).
+
+**YouTube** (`trailers.youtube`, off): the page embeds `https://www.youtube-nocookie.com/embed/{11-char id}` with fixed parameters (`autoplay=1&mute=1&playsinline=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&enablejsapi=1&origin=…`) in an iframe sandboxed with `allow-scripts allow-same-origin allow-presentation` only (no top navigation, popups, forms or downloads), `pointer-events: none` (VYSTRAL's own play/stop and sound buttons drive it through YouTube's documented iframe messages; messages are accepted only from that origin and window). The CSP allows `frame-src https://www.youtube-nocookie.com` only, and the window's `FrameNavigationStarting` handler (`YouTubeEmbed.IsAllowedFrame`) lets exactly that URL shape through, and only while the setting is on and no Offline mode, safe mode, Data saver or game blocks it — every other frame navigation (including anything the player tries to open inside itself) is cancelled. Autoplay follows the Steam-trailer rules (idle, visible, not reduced motion, *Autoplay trailers* on). The browser preview never loads YouTube (a local stand-in).
+
+### More free sources (all opt-in, all keyless)
+
+| Source | Endpoint | Used for | Limits |
+|---|---|---|---|
+| GamerPower (`dataSources.gamerpower`) | `www.gamerpower.com/api/giveaways?platform=pc&sort-by=date` (documented; free for personal and commercial use with an active link back) | `freebies.get` — free games and loot to claim (Track D5's *Free this week* shelf) | One request per 3 h (they ask for < 10/s); `provider_cache` `freebies-gamerpower`; 2 MB answers, 60 items |
+| Epic free games (`dataSources.epicFreeGames`, **grey**) | `store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=en-US&country=…` | `freebies.get` — this week's and next week's free Epic games with exact dates | Same; only 100 %-off promotions; links built from validated page slugs |
+| ProtonDB (`dataSources.protondb`, **grey**) | `www.protondb.com/api/v1/reports/summaries/{appid}.json` | *Runs on Linux* tile (own or matched Steam app) | On page open; a week's cache in `provider_cache` `protondb`; 64 KB answers; ODbL attribution |
+| GOG catalogue (`dataSources.gogCatalog`, **grey**) | `catalog.gog.com/v1/catalog?query=like:…`, `api.gog.com/v2/games/{id}` | GOG product IDs for the resolver; GOG's trailer list (YouTube) | Own lane, 1.5 s apart, 2 MB answers |
+
+`freebies.get({ refresh? })` → `{ items: Freebie[], sources, reason }` (types in `ui/src/bridge/types.identity.ts`); `freebies.image({ id })` caches an item's image through the artwork pipeline (hosts `www.gamerpower.com`, `cdn1.epicgames.com`) and returns an art-host URL; `freebies.open({ id })` opens GamerPower's own page or the Epic store page (the page never sends URLs). Epic's own entry wins over GamerPower's for the same Epic game. GamerPower must be credited with a link (`dataSources.openLink({ provider: 'gamerpower', link: 'home' })`).
+
+**Health (for Track D6):** every new source is a row in `dataSources.status` (last test, pause from a 429, licence, host, what's sent) and has `dataSources.test`; network probes `provider.gamerpower`, `provider.epicfree`, `provider.protondb`, `provider.gogcatalog` are registered with `NetworkHealthService` (visible while the source is on), so `network.health.list` / `network.health.check` cover them.
+
+Researched and **not** integrated (see `docs/research/GAME-DATA-SOURCES.md` §8): SteamSpy, OpenCritic, Giant Bomb, MobyGames, TheGamesDB.
+
 ## Cloud AI (Track C5; optional, Settings → AI; off by default)
 
 | Provider | Host | Calls | Key | Models |

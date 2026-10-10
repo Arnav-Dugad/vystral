@@ -402,6 +402,23 @@ public sealed partial class DiscoverService
 
     // ---------------- details ----------------
 
+    /// <summary>Track D4: a trailer for a Discover game without a Steam one. Failures only mean "no trailer".</summary>
+    private async Task<ExternalTrailer?> AlternativeTrailerAsync(DiscoverIds ids, IgdbDiscoverGame? igdb, CancellationToken ct)
+    {
+        try
+        {
+            if (ids.Rawg is { } slug && DetailsReady(DiscoverSources.Rawg) &&
+                ExternalTrailers.ParseRawgMovies(await _sources.Rawg.GetMoviesJsonAsync(slug, ct)) is { } rawg) return rawg;
+            if (_settings.GetBool(TrailerService.YouTubeSetting) && (igdb?.Id ?? ids.Igdb) is { } igdbId && DetailsReady(DiscoverSources.Igdb))
+                return ExternalTrailers.ParseIgdbVideos(await _sources.Igdb.GetVideosJsonAsync(igdbId, ct));
+        }
+        catch (DataSourceException ex)
+        {
+            Log.Warn("discover", "No trailer from another source", new { outcome = ex.Outcome.ToString() });
+        }
+        return null;
+    }
+
     public async Task<DiscoverDetailsDto> DetailsAsync(string key, bool refresh, CancellationToken ct)
     {
         if (!DiscoverKeys.IsKey(key)) throw new BridgeException("invalid", "Unknown game.");
@@ -548,6 +565,12 @@ public sealed partial class DiscoverService
         {
             trailerId = DiscoverKeys.TrailerId(tApp);
             trailers.RegisterExternal(trailerId, trailer);
+        }
+        else if (reason is null && _trailers() is { } alts && await AlternativeTrailerAsync(ids, igdb, ct) is { } alt)
+        {
+            // Track D4: no Steam trailer — RAWG's MP4, else (with "Allow YouTube trailers") IGDB's YouTube trailer.
+            trailerId = DiscoverKeys.TrailerId($"{key}:alt");
+            alts.RegisterExternalAlternative(trailerId, alt);
         }
 
         DeckDto? deck = null;

@@ -429,3 +429,48 @@ Rules: store `metadata_source`, `match_method`, `confidence` and `matched_id` pe
 
 **HowLongToBeat (no official API)**
 - https://github.com/ckatzorke/howlongtobeat (community scraper, for context only)
+
+---
+
+## 8. Track D4 decisions: every source for every game (2026-10-10)
+
+Checked on **2026-10-10** with live requests from the development PC (fixtures in `tests/Vystral.Tests/Fixtures/D4/`, trimmed) and the providers' own pages. Same markings as above.
+
+### 8.1 Cross-store identity
+
+Built (`src/Vystral.Windows/DataSources/Identity/`): a resolver that gives every library game a Steam app ID, IGDB ID, RAWG slug, GOG product ID and Wikidata item **with a confidence and the evidence**, following §5.1. Sources, in the order asked: Wikidata entity search (title → item with `P1733`/`P12727`/`P9968` and `P577` year) [verified], Steam `storesearch` (unique exact title) then `appdetails` (type `game`, year within ±1) [verified], IGDB search + `external_games` (your key), RAWG search + `/games/{id}/stores` cross-check (your key), GOG catalogue search (opt-in). Rules and thresholds are in INTEGRATIONS.md. Findings:
+
+- Steam's `storesearch` has **no release years** [verified], so a title match alone is 0.70 ("suggested"); the year comes from that one app's `appdetails`.
+- GOG's catalogue search must **not** use `order=desc:score`: with it, `query=like:Cyberpunk 2077` returned unrelated games; without it, the two Cyberpunk products [verified]. For a game GOG doesn't sell (Hades), `like:` returns fuzzy unrelated titles, which the exact-title rule rejects [verified, fixture `gog_catalog_hades.json`].
+- Xbox installations only carry a package family name (no Store ID) in VYSTRAL today, so Xbox games are matched by title + year; Microsoft's `displaycatalog` lookup by PFN (§3.3) would make that ID-based and is the obvious next step.
+
+### 8.2 Trailers from any source
+
+- **Steam** through the resolved app ID first (no new endpoint).
+- **RAWG** `/games/{id}/movies` — documented ("Get a list of game trailers"), `Movie.data` is an object keyed by quality [docs: RAWG OpenAPI]; from memory and community reports the values are `480`/`max` MP4 URLs that mostly point at Steam's CDN [unverified with a live key]. VYSTRAL accepts only allow-listed HTTPS hosts (Steam video CDNs, `media.rawg.io`) and `.mp4` paths.
+- **IGDB** `game_videos` → YouTube IDs only [docs]. **GOG** `api.gog.com/v2/games/{id}` → `_embedded.videos[]` with `provider: "youtube"` and `videoId` [verified: 1207664663].
+- **YouTube** is embedded only behind an opt-in, in privacy-enhanced mode (`www.youtube-nocookie.com/embed/{id}` returned 200 [verified]) in a sandboxed frame that the window's frame-navigation check pins to that exact URL shape. Reasoning for doing it at all: it's the only trailer source for most non-Steam games, and it can be contained (no navigation, no popups, no access to the page or the bridge). Residual: Google sees the viewer's IP and the video; documented in PRIVACY.md and next to the setting.
+
+### 8.3 New free sources: chosen
+
+| Source | Verdict | Why |
+|---|---|---|
+| **GamerPower** `www.gamerpower.com/api/giveaways` | **Integrated, opt-in** | Documented, keyless, "free for personal and commercial use" with an active link back to GamerPower.com; < 10 requests/s asked [docs: gamerpower.com/api-read]. Live list returned 6+ PC giveaways with worth, end date and a GamerPower page per item [verified]. Answers `201` when there are none [docs]. Feeds `freebies.get` for Track D5's shelf |
+| **Epic free-games feed** `store-site-backend-static.ak.epicgames.com/freeGamesPromotions` | **Integrated, opt-in (grey)** | Keyless JSON behind Epic's own store page [verified, 50 KB]. Free items are promotions with `discountPercentage: 0`; "upcoming" ones sit in `upcomingPromotionalOffers` and the feed is a snapshot, so a window that has started is "free now". Exact dates make it better than GamerPower for Epic |
+| **ProtonDB summaries** `www.protondb.com/api/v1/reports/summaries/{appid}.json` | **Integrated, opt-in (grey)** | `{tier, bestReportedTier, trendingTier, score, confidence, total}` [verified: 1245620 → gold, 2,105 reports]. Undocumented; dumps are ODbL. Useful as "Runs on Linux / Steam Deck" for Steam and matched games |
+| **GOG catalogue** `catalog.gog.com/v1/catalog`, `api.gog.com/v2/games/{id}` | **Integrated, opt-in (grey)** | Gives GOG product IDs for non-GOG games (identity) and GOG's trailer list. Product data (art, features) could follow later |
+
+### 8.4 New free sources: rejected
+
+| Source | Verdict | Why |
+|---|---|---|
+| **SteamSpy** | Rejected | Re-checked: `appdetails` for Hades still returns `average_forever: 0`, `median_forever: 0` [verified]; only a coarse owners range ("5,000,000 .. 10,000,000") and tags remain, and Steam's own tags are already used. No stated terms |
+| **OpenCritic** (RapidAPI) | Rejected for now | Needs a RapidAPI key; the free tier is ~25 searches a day [docs, via search], too small for library-wide matching; Steam's Metacritic field and IGDB's critic score already cover "critics" |
+| **Giant Bomb** | Rejected | The API page answers **403** to scripted requests [verified]; terms are non-commercial and unclear after the 2025 sale [unverified]; key in the query string; little over IGDB/Wikidata |
+| **MobyGames** | Rejected | Paid key (from $9.99/month) [docs, via search]; `api.mobygames.com` answers 401 without one [verified] |
+| **TheGamesDB** | Rejected | Key on request with a small monthly allowance; `api.thegamesdb.net` answers 418 without one [verified]; retro/console-centred |
+
+### 8.5 Health
+
+Each new source is a row in `dataSources.status` (last test, rate-limit pause, licence, host, what's sent) with *Test*, and a probe in `NetworkHealthService` (`provider.gamerpower`, `provider.epicfree`, `provider.protondb`, `provider.gogcatalog`), so Track D6's health page can list them without new plumbing.
+

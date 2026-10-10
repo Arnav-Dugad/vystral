@@ -10,6 +10,7 @@ import { HoldToConfirm } from '../../components/controller/HoldToConfirm';
 import { Dialog } from '../../components/ui/Dialog';
 import { ServiceLogo } from '../../components/ui/ServiceLogo';
 import { DATA_SOURCE_SERVICE } from '../../lib/serviceMarks';
+import { TrackD4Rows } from './TrackD4Rows';
 import './data-sources.css';
 
 const COUNTRIES: [string, string][] = [
@@ -79,6 +80,7 @@ export function DataSourcesSettings() {
           </div>
           <div className="srow__control"><Toggle id="dsrc-discover-toggle" label="Search stores and game databases" checked={searchOnline} onChange={(v) => void setSetting('discover.searchOnline', v)} /></div>
         </div>
+        <TrackD4Rows />
         <div className="srow" id="dsrc-store-shelves">
           <div className="srow__text">
             <label className="srow__label" htmlFor="dsrc-store-shelves-toggle">Steam store shelves in Discover</label>
