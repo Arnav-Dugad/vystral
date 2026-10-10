@@ -1,5 +1,5 @@
 import { memo, type CSSProperties } from 'react';
-import { Activity, BadgePercent, Database, Gift, Images, ShieldCheck, Tags, type LucideIcon } from 'lucide-react';
+import { Activity, BadgePercent, Database, Gift, Images, MessagesSquare, Network, ShieldCheck, Tags, type LucideIcon } from 'lucide-react';
 import { opticalSize } from '../../lib/storeMarks';
 import { hardwareVendor, SERVICE_MARKS, type GenericIcon, type ServiceId } from '../../lib/serviceMarks';
 import { LogoSvg } from './StoreLogo';
@@ -13,6 +13,8 @@ const GENERIC: Record<GenericIcon, LucideIcon> = {
   shield: ShieldCheck,
   pulse: Activity,
   gift: Gift,
+  chat: MessagesSquare,
+  endpoint: Network,
 };
 
 /**

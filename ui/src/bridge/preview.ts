@@ -38,6 +38,7 @@ import { decorateLibraryCorrectness, libraryCorrectnessPreviewHandlers } from '.
 import { GAME_PAGE_DEFAULT_SETTINGS, gamePagePreviewHandlers } from './preview.gamePage';
 import type { Deals, DiscoverDetails } from './types';
 import { AI_CLOUD_DEFAULT_SETTINGS, aiCloudPreviewHandlers, previewAiSettings } from './preview.ai'; // Track C5
+import { ASSISTANT_DEFAULT_SETTINGS, assistantPreviewHandlers } from './preview.assistant'; // Track D3
 import { parseSmartFilter } from '../lib/smartFilter';
 import type { NewsFeed, ReplayData } from './types';
 import { decorateRigSession, previewCaptionInset, trackC2PreviewHandlers } from './preview.trackC2';
@@ -100,6 +101,7 @@ const DEFAULT_SETTINGS: Settings = {
   ...MAINTENANCE_DEFAULT_SETTINGS, // Track AA
   ...GAME_PAGE_DEFAULT_SETTINGS, // Track C4
   ...AI_CLOUD_DEFAULT_SETTINGS, // Track C5
+  ...ASSISTANT_DEFAULT_SETTINGS, // Track D3
 };
 
 const SAMPLE: [string, string[], PlatformKey[], string, string][] = [
@@ -554,6 +556,8 @@ export function createPreviewBackend() {
       replay: (sessionId) => handlers['replay.get']({ sessionId }) as ReplayData,
       duplicates: () => snapshot().duplicateSuggestions,
     }),
+    // Track D3: the one Assistant with a fake provider (?aiCloud for a ready cloud AI, ?assistantFail, ?assistantSlow).
+    ...assistantPreviewHandlers({ lib, emit: () => emit, settings: () => settings, call: (m, p) => handlers[m]?.(p) }),
     // Track C2: rig summary, startup history (?startupSlow, ?startupNone, ?noRig), caption width (?caption=px).
     ...trackC2PreviewHandlers({ insightSamples: insight['sessions.insightSamples'] }),
   };

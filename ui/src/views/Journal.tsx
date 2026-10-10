@@ -31,7 +31,6 @@ import { openReplay } from '../state/recap';
 import { RollUp } from '../components/ui/RollUp';
 import { PlayInsights } from './journal/PlayInsights';
 import { RecordsPanel } from './journal/RecordsPanel';
-import { AskJournal } from '../components/ai/AskJournal'; // Track C5
 import './journal.css';
 
 const RANGE_OPTIONS: { value: Range; label: string }[] = [
@@ -277,8 +276,6 @@ export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab
             />
           </motion.div>
 
-          {/* Track C5: ask in your own words (with AI) or pick a ready-made question; numbers come from this PC. */}
-          <AskJournal />
 
           <motion.section className="surface vx-card jr-heatmap" {...reveal(2)} aria-labelledby="jr-heatmap-title">
             <SectionHead title={<span id="jr-heatmap-title">Play calendar</span>} meta="Tracked minutes per day" />

@@ -1,0 +1,36 @@
+import {
+  Activity, BarChart3, Bell, Cloud, CloudLightning, Compass, Cpu, Eye, FolderPlus, Gamepad2, HardDrive, Heart, Library, ListChecks, Newspaper, Search, Settings2,
+  ShieldCheck, Sparkles, Star, Tag, Trophy, Wand2, type LucideIcon,
+} from 'lucide-react';
+
+/** One icon per look-up, so the chips under an answer read at a glance. */
+export const TOOL_ICONS: Record<string, LucideIcon> = {
+  search_library: Search,
+  get_game: Gamepad2,
+  game_facts: ListChecks,
+  query_journal: BarChart3,
+  list_sessions: Activity,
+  weekly_recap: Star,
+  tonight_picks: Sparkles,
+  get_achievements: Trophy,
+  get_wishlist: Heart,
+  search_store: Compass,
+  get_subscriptions: Library,
+  cloud_availability: Cloud,
+  performance_overview: Cpu,
+  explain_stutter: CloudLightning,
+  get_storage: HardDrive,
+  get_health: ShieldCheck,
+  get_news: Newspaper,
+  notifications_digest: Bell,
+  suggest_tags: Tag,
+  get_settings: Settings2,
+  open_page: Compass,
+  open_game: Gamepad2,
+  create_collection: FolderPlus,
+  create_smart_collection: Wand2,
+  set_status: ListChecks,
+  set_favorite: Heart,
+  start_discover_search: Search,
+  watch_game: Eye,
+};

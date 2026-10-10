@@ -1,6 +1,6 @@
 import { useEffect, useId, useState, type KeyboardEvent } from 'react';
 import { NewBadge } from '../../whatsnew/NewBadge';
-import { AlertTriangle, CheckCircle2, CloudOff, Cpu, ExternalLink, KeyRound, Lock, PauseCircle, RefreshCw, ShieldCheck, Sparkles, Unplug } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CloudOff, ExternalLink, KeyRound, Lock, PauseCircle, RefreshCw, ShieldCheck, Sparkles, Unplug } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { AiCloudStatus, AiFeature, AiProviderChoice, CloudAiAction, CloudAiProviderId, CloudAiProviderStatus, CloudAiTest, Settings } from '../../bridge/types';
 import { formatRelative } from '../../lib/format';
@@ -9,9 +9,12 @@ import { useStore } from '../../state/store';
 import { Badge, Button, Skeleton, Toggle } from '../ui/primitives';
 import { Dialog } from '../ui/Dialog';
 import { HoldToConfirm } from '../controller/HoldToConfirm';
+import { ServiceLogo } from '../ui/ServiceLogo';
+import { providerMark } from '../../lib/assistant';
 import './ai.css';
 
-const MARK: Record<CloudAiProviderId, string> = { anthropic: 'C', openai: 'O', gemini: 'G', compatible: '{ }' };
+/** Track D3: each provider’s real mark (Simple Icons, CC0) or, where none is openly licensed, a plain icon. */
+const mark = (id: AiProviderChoice, baseUrl?: string | null) => <ServiceLogo service={providerMark(id, baseUrl) ?? 'ollama'} size={18} decorative />;
 const KEY_HINT: Record<CloudAiProviderId, string> = {
   anthropic: 'Starts with “sk-ant-”. Create one in the Anthropic Console.',
   openai: 'Starts with “sk-”. Create one on the OpenAI platform.',
@@ -95,7 +98,7 @@ export function AiProvidersSettings() {
               onClick={() => choose(c.id)}
               onKeyDown={(e) => onKey(e, i)}
             >
-              <span className="ai-choice__mark" aria-hidden>{c.id === 'local' ? <Cpu size={16} /> : MARK[c.id]}</span>
+              <span className="ai-choice__mark" aria-hidden>{mark(c.id, c.id === 'compatible' ? status.providers.find((x) => x.id === 'compatible')?.baseUrl : null)}</span>
               <span className="ai-choice__text">
                 <span className="ai-choice__name">{c.name}</span>
                 <span className="ai-choice__sub">{c.sub}</span>
@@ -224,7 +227,7 @@ function ProviderCard({ p, status }: { p: CloudAiProviderStatus; status: AiCloud
   return (
     <article className="dsrc-card surface ai-card" data-state={state} aria-labelledby={headingId}>
       <header className="dsrc-card__head">
-        <span className="dsrc-card__mark" aria-hidden>{MARK[p.id]}</span>
+        <span className="dsrc-card__mark" aria-hidden>{mark(p.id, p.baseUrl)}</span>
         <div className="dsrc-card__title">
           <h4 id={headingId}>{p.name}</h4>
           <span className="dsrc-card__access">{p.id === 'compatible' ? 'Any OpenAI-compatible HTTPS endpoint' : `${p.company} · your key`}</span>
