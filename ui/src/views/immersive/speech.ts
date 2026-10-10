@@ -6,6 +6,7 @@ import { PLATFORM_NAMES, plural } from '../../lib/format';
 import { progressFraction } from '../../lib/installProgress';
 import { gameState, sentence, spokenDuration } from '../../lib/voiceover';
 import { SORT_LABEL, type Row, type Tile } from './rows';
+import { discoverItemSpeech } from './discoverRows';
 
 export function tileSpeech(tile: Tile, now = Date.now()): string {
   switch (tile.kind) {
@@ -29,6 +30,13 @@ export function tileSpeech(tile: Tile, now = Date.now()): string {
     case 'tool':
       if (tile.tool.type === 'sort') return sentence(`Sort: ${SORT_LABEL[tile.tool.sort]}`, 'Press A to change');
       return sentence(`Show ${tile.tool.label}`, `${plural(tile.tool.count, 'game')}${tile.tool.active ? ', selected' : ''}`);
+    // Track C6: Immersive Discover.
+    case 'discover':
+      return sentence(discoverItemSpeech(tile.item), 'Press A for details');
+    case 'search':
+      return tile.query ? sentence(`Search for ${tile.query}`, 'Press A to search') : sentence('Search any game', 'Press A to type');
+    case 'note':
+      return sentence(tile.title, tile.busy ? null : tile.body);
   }
 }
 

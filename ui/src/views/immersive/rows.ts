@@ -7,6 +7,7 @@ import { importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from
 import { isWaiting } from '../../lib/neverPlayed';
 import { suggestGames } from '../../lib/recommend';
 import { applyRowOrder } from './rowOrder';
+import type { DiscoverItem, NoteAction } from './discoverRows';
 
 export type Tile =
   | { kind: 'game'; key: string; game: Game; /** The "Last played" slot: wider, labelled, always first. */ pinned?: boolean }
@@ -17,7 +18,13 @@ export type Tile =
   /** Track T: a Steam install or update in progress. */
   | { kind: 'download'; key: string; game: Game; progress: InstallProgress }
   /** Track T: a sort or filter chip on the All games toolbar. */
-  | { kind: 'tool'; key: string; tool: LibraryTool };
+  | { kind: 'tool'; key: string; tool: LibraryTool }
+  /** Track C6: a game you don't own (a search result, your Watching list, your Steam wishlist). */
+  | { kind: 'discover'; key: string; item: DiscoverItem }
+  /** Track C6: opens the search keyboard (query null) or runs a suggested search. */
+  | { kind: 'search'; key: string; query: string | null; label: string; sample: Game | null }
+  /** Track C6: a status card in Discover (searching, nothing found, offline…), with an optional action. */
+  | { kind: 'note'; key: string; title: string; body: string; action: NoteAction | null; busy?: boolean };
 
 export type LibrarySort = 'az' | 'recent' | 'played' | 'added';
 export const LIBRARY_SORTS: readonly LibrarySort[] = ['az', 'recent', 'played', 'added'];
@@ -27,7 +34,7 @@ export type LibraryTool =
   | { type: 'sort'; sort: LibrarySort }
   | { type: 'filter'; filter: LibraryFilter | null; label: string; count: number; active: boolean };
 
-export type RowKind = 'continue' | 'picked' | 'favorites' | 'installed' | 'new' | 'unplayed' | 'collection' | 'stores' | 'genres' | 'library' | 'playing' | 'downloads' | 'tools';
+export type RowKind = 'continue' | 'picked' | 'favorites' | 'installed' | 'new' | 'unplayed' | 'collection' | 'stores' | 'genres' | 'library' | 'playing' | 'downloads' | 'tools' | 'discover';
 
 export interface Row {
   id: string;
@@ -248,7 +255,10 @@ export function libraryRows(visible: readonly Game[], filter: LibraryFilter | nu
 
 /** The game a tile shows (browse tiles show a representative game's art). */
 export const tileGame = (t: Tile | null | undefined): Game | null =>
-  !t ? null : t.kind === 'game' || t.kind === 'playing' || t.kind === 'download' ? t.game : t.kind === 'tool' ? null : t.sample;
+  !t ? null
+    : t.kind === 'game' || t.kind === 'playing' || t.kind === 'download' ? t.game
+    : t.kind === 'store' || t.kind === 'genre' || t.kind === 'search' ? t.sample
+    : null;
 
 export function tileLabel(t: Tile): string {
   switch (t.kind) {
@@ -258,6 +268,9 @@ export function tileLabel(t: Tile): string {
     case 'playing': return `${t.phase === 'running' ? 'Now playing' : 'Starting'}: ${t.game.title}. Return to game`;
     case 'download': return `${t.game.title}, ${t.progress.kind === 'update' ? 'updating' : 'installing'}`;
     case 'tool': return toolLabel(t.tool);
+    case 'discover': return `${t.item.title}${t.item.year ? `, ${t.item.year}` : ''}${t.item.price ? `, ${t.item.price}` : ''}. Not in your library`;
+    case 'search': return t.query ? `Search for ${t.query}` : 'Search any game';
+    case 'note': return `${t.title}. ${t.body}`;
   }
 }
 

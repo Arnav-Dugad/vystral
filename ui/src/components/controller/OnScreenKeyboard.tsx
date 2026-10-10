@@ -50,13 +50,23 @@ export interface OskFilters {
   onChange: (id: string) => void;
 }
 
-export function OnScreenKeyboard({ games, onClose, onOpenGame, filters }: { games: Game[]; onClose: () => void; onOpenGame: (game: Game) => void; filters?: OskFilters }) {
+/** Track C6: Immersive Discover types a search for every store; Done (RT, Enter) hands the text over instead of picking a game. */
+export interface OskSubmit {
+  onSubmit: (text: string) => void;
+  /** What was searched last, to edit. */
+  initial?: string;
+}
+
+export function OnScreenKeyboard({ games, onClose, onOpenGame, filters, submit }: { games: Game[]; onClose: () => void; onOpenGame: (game: Game) => void; filters?: OskFilters; submit?: OskSubmit }) {
   const reduce = useReducedMotion();
   const isPresent = useIsPresent();
   const uid = useId();
   const [layoutName, setLayoutName] = useState<OskLayoutName>('letters');
   const layout = OSK_LAYOUTS[layoutName];
-  const [edit, setEdit] = useState<OskText>({ text: '', caret: 0 });
+  const [edit, setEdit] = useState<OskText>(() => {
+    const text = (submit?.initial ?? '').slice(0, OSK_MAX_LENGTH);
+    return { text, caret: text.length };
+  });
   const [rawNav, setNav] = useState<OskNav>(() => initialNav(OSK_LAYOUTS.letters));
   const [press, setPress] = useState<{ id: string; n: number } | null>(null);
   const [ring, setRing] = useState<RingRect | null>(null);
@@ -157,9 +167,23 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame, filters }: { game
     sound.select();
   };
 
+  /** Track C6: hands the text to Discover (two letters at least). */
+  const send = () => {
+    if (!submit) return;
+    if (query.length < 2) {
+      haptic('error');
+      setAnnounce('Type at least two letters to search');
+      return;
+    }
+    haptic('confirm');
+    sound.select();
+    submit.onSubmit(query);
+  };
+
   /** "Done": go to the results to pick one; with nothing typed, just close. */
   const done = () => {
     if (!query) return close();
+    if (submit) return send();
     if (results.length === 0) {
       haptic('error');
       setAnnounce('No matching games');
@@ -264,6 +288,7 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame, filters }: { game
       e.preventDefault();
       if (nav.zone !== 'keys') return activate();
       if (!query) return close();
+      if (submit) return send();
       if (results[0]) return openGame(results[0]);
       haptic('error');
       setAnnounce('No matching games');
@@ -300,7 +325,7 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame, filters }: { game
         transition={pick(reduce, spring.panel)}
         onKeyDown={onKeyDown}
       >
-        <h2 id={`${uid}-title`} className="visually-hidden">Search your library</h2>
+        <h2 id={`${uid}-title`} className="visually-hidden">{submit ? 'Search any game' : 'Search your library'}</h2>
         <div className="osk__field">
           <Search className="osk__field-icon" size="1.3em" aria-hidden />
           <input
@@ -310,8 +335,8 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame, filters }: { game
             role="searchbox"
             value={edit.text}
             maxLength={OSK_MAX_LENGTH}
-            placeholder={`Search ${total.toLocaleString()} ${total === 1 ? 'game' : 'games'}`}
-            aria-label="Search your library"
+            placeholder={submit ? 'Search any game, owned or not' : `Search ${total.toLocaleString()} ${total === 1 ? 'game' : 'games'}`}
+            aria-label={submit ? 'Search any game' : 'Search your library'}
             aria-activedescendant={activeId}
             autoComplete="off"
             spellCheck={false}
@@ -322,7 +347,7 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame, filters }: { game
             }}
           />
           <span className="osk__count num" aria-hidden>
-            {query ? (results.length ? `${results.length}${results.length === GAME_SLOTS ? '+' : ''} ${results.length === 1 ? 'match' : 'matches'}` : 'No matches') : ''}
+            {submit ? (query.length >= 2 ? 'Done to search' : '') : query ? (results.length ? `${results.length}${results.length === GAME_SLOTS ? '+' : ''} ${results.length === 1 ? 'match' : 'matches'}` : 'No matches') : ''}
           </span>
           <button type="button" className="osk__close" aria-label="Close search" onClick={close}>
             <X size="1.15em" aria-hidden />
@@ -353,10 +378,10 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame, filters }: { game
 
         <div className="osk__stage" ref={stageRef}>
           <section className="osk__zone" aria-labelledby={`${uid}-games`}>
-            <h3 id={`${uid}-games`} className="osk__caption">{query ? 'Top matches' : 'Recently played'}</h3>
+            <h3 id={`${uid}-games`} className="osk__caption">{submit ? (query ? 'Already in your library' : 'Recently played') : query ? 'Top matches' : 'Recently played'}</h3>
             <div className="osk__games" role="group" aria-labelledby={`${uid}-games`}>
               {results.length === 0 ? (
-                <p className="osk__empty">{query ? <>No games match “{query}”. Try fewer letters.</> : 'Start typing — matches from your library appear here.'}</p>
+                <p className="osk__empty">{submit ? (query ? <>Nothing in your library matches. Press Done to search every store.</> : 'Type a name, then press Done to search every store.') : query ? <>No games match “{query}”. Try fewer letters.</> : 'Start typing — matches from your library appear here.'}</p>
               ) : (
                 results.map((g, i) => {
                   const n: OskNav = { ...nav, zone: 'games', game: i };
@@ -457,7 +482,7 @@ export function OnScreenKeyboard({ games, onClose, onOpenGame, filters }: { game
           <PadHint button="X">Space</PadHint>
           <PadHint button={['LB', 'RB']}>Cursor</PadHint>
           <PadHint button="LT">Symbols</PadHint>
-          <PadHint button="RT">Results</PadHint>
+          <PadHint button="RT">{submit ? 'Search' : 'Results'}</PadHint>
           {filters && filters.options.length > 1 && <PadHint button="View">Filter</PadHint>}
           <PadHint button="Y">Close</PadHint>
         </footer>

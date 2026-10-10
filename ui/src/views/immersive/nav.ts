@@ -5,7 +5,11 @@
 import type { LibraryFilter, Row } from './rows';
 import { sameFilter } from './rows';
 
-export type ImmTab = 'home' | 'library';
+export type ImmTab = 'home' | 'library' | 'discover';
+
+/** The sections, left to right (LB/RB step through them). Track C6 added Discover. */
+export const IMM_TABS: readonly ImmTab[] = ['home', 'library', 'discover'];
+export const TAB_LABEL: Record<ImmTab, string> = { home: 'Home', library: 'All games', discover: 'Discover' };
 
 export interface NavState {
   tab: ImmTab;
@@ -60,10 +64,15 @@ export function moveNav(state: NavState, rows: readonly Row[], dr: number, dc: n
 }
 
 export function switchTab(state: NavState, tab?: ImmTab): NavState {
-  const next = tab ?? (state.tab === 'home' ? 'library' : 'home');
+  const next = tab ?? IMM_TABS[(IMM_TABS.indexOf(state.tab) + 1) % IMM_TABS.length];
   if (next === state.tab) return state;
   // The grid opens on its first row of games (the toolbar sits just above it).
   return { ...state, tab: next, row: 0, rowId: next === 'library' ? 'lib-0' : null };
+}
+
+/** LB/RB: the section to the left or right, or null at either end. */
+export function tabBeside(tab: ImmTab, dir: -1 | 1): ImmTab | null {
+  return IMM_TABS[IMM_TABS.indexOf(tab) + dir] ?? null;
 }
 
 /** Browse tiles open the A–Z grid filtered to that store or genre. */
