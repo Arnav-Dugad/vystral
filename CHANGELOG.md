@@ -2,6 +2,44 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
+## [0.8.0] — 2026-10-10
+
+Your library, settings and history carry over.
+
+### Game pages
+- **At a glance.** Both game pages open with tiles for playtime against time to beat, your weekly sessions, achievement progress, Steam reviews (all time against the last 30 days, with the trend), ratings, price history in your currency, Deck and anti-cheat, size on disk and release. Every number says where it came from.
+- **The whole series.** Every game in a series on a timeline from IGDB; games you own light up.
+- **What players call it.** Steam's community tags on game pages and as Library filters — a tag picker, or type `#co-op`.
+
+### Discover
+- **A storefront before you type.** Featured picks, "Because you played …" rows of games like yours that you don't own, wishlist games on sale, and genre and tag browsing.
+- **Steam shelves (opt-in).** Trending, Deals, New releases, Coming soon and Free to play for your price country — games only.
+- **Wishlist games open their own pages,** as do Watching items and every Discover card. Search folds editions and add-ons under their game.
+- **Discover in Immersive Mode.** Search with the on-screen keyboard, open a controller-friendly page, and press Y to watch a game.
+
+### AI (optional)
+- **Bring your own AI.** Use Claude, ChatGPT, Gemini or any OpenAI-compatible service with your own key — stored only in Windows Credential Manager, off until you turn it on, paused in Offline mode, and every feature says what it sends. Local AI (Ollama) still works as before.
+- **Ask the Journal** in your own words; the answer comes with the chart and the query it used, calculated on your PC.
+- **What should I play tonight?** Pick a mood and how long you have; get picks from your library and subscriptions with reasons.
+- **Smart collections from a sentence** that keep themselves up to date, **patch notes in three bullets**, **duplicate suggestions that explain themselves**, and optional **captions on replay cards**.
+
+### Performance
+- **Rebuilt Performance page.** Your rig, how your last sessions played and your frame-rate trend up top, then Overview, Sessions, Compare and System tabs, a session timeline, a plain verdict per session and markers on every sharp frame drop.
+- **Startup timings** in Settings › About: your last 20 starts, phase by phase, with a warning when one was much slower than usual.
+
+### Journal
+- **Personal records.** Nine collectible badges — longest session, biggest day and week, streaks, night owl, early bird, comeback and more — with a quiet toast when you beat one.
+
+### Library
+- **Refunded Steam games leave your library** after Steam's next complete owned list, with one notice and a "No longer owned" filter. Their history, notes and ratings are kept; buy one again and it comes back as it was.
+- **Xbox games, read properly.** Install sizes (so they appear in Storage Studio), publisher, version, install date, sharper artwork, the right app in multi-app packages, games on other drives, and a last-played date estimated from save data, clearly labelled.
+- **Continue playing** now includes the game in the Home hero as its first card.
+
+### Fixed
+- On a maximized window, the notification, rescan and Immersive buttons could sit under Windows' minimize and close buttons.
+- "Last played" ordering was wrong when dates carried different time-zone offsets.
+- The docked game-page header and tabs let the page show through; the Deck badge appeared twice on game pages.
+
 ## [0.7.0] — 2026-10-07
 
 Your library, settings and history carry over.

@@ -202,7 +202,7 @@ export function JournalView({ tab: routeTab, day: routeDay }: { tab?: JournalTab
           { value: 'achievements', label: <><Trophy size={14} aria-hidden style={{ marginRight: 6, verticalAlign: '-2px' }} />Achievements<NewBadge k="journal.achievements" /></> },
           { value: 'value', label: <>Library value<NewBadge k="journal.value" /></> },
           // Track C6: personal records as collectible badges.
-          { value: 'records', label: <><Medal size={14} aria-hidden style={{ marginRight: 6, verticalAlign: '-2px' }} />Records</> },
+          { value: 'records', label: <><Medal size={14} aria-hidden style={{ marginRight: 6, verticalAlign: '-2px' }} />Records<NewBadge k="journal.records" /></> },
         ]}
       />
 

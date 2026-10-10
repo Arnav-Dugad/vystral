@@ -55,6 +55,9 @@ export const NEW_FEATURES: NewFeature[] = [
   { key: 'settings.library.subscriptions', since: '0.7.0' },
   { key: 'settings.library.steam-extras', since: '0.7.0' },
   { key: 'journal.insights', since: '0.7.0', seenOn: { name: 'journal' } },
+  // 0.8.0
+  { key: 'settings.ai.cloud', since: '0.8.0' },
+  { key: 'journal.records', since: '0.8.0', seenOn: { name: 'journal', tab: 'records' } },
 ];
 
 const BY_KEY = new Map(NEW_FEATURES.map((f) => [f.key, f]));

@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type KeyboardEvent } from 'react';
+import { NewBadge } from '../../whatsnew/NewBadge';
 import { AlertTriangle, CheckCircle2, CloudOff, Cpu, ExternalLink, KeyRound, Lock, PauseCircle, RefreshCw, ShieldCheck, Sparkles, Unplug } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { AiCloudStatus, AiFeature, AiProviderChoice, CloudAiAction, CloudAiProviderId, CloudAiProviderStatus, CloudAiTest, Settings } from '../../bridge/types';
@@ -63,7 +64,7 @@ export function AiProvidersSettings() {
 
   return (
     <section className="sgroup ai-set" aria-labelledby="ai-set-title" id="ai-providers">
-      <h2 className="sgroup__title" id="ai-set-title">AI providers <Badge>Optional</Badge></h2>
+      <h2 className="sgroup__title" id="ai-set-title">AI providers <Badge>Optional</Badge><NewBadge k="settings.ai.cloud" variant="pill" seenWhenVisible /></h2>
       <p className="sgroup__desc">
         Use Claude, ChatGPT, Gemini or any OpenAI-compatible service with <strong>your own API key</strong> instead of local AI. Cloud AI is off until you turn a
         provider on, and then it sends that company only what a feature needs. Each feature below says exactly what. Everything in VYSTRAL works without AI.

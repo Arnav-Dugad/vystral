@@ -1,6 +1,6 @@
 # Progress
 
-Status as of **v0.7.0 (2026-10-07)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
+Status as of **v0.8.0 (2026-10-10)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
 
 ## Phase 1 — Foundation ✅
 - ✅ Repository, solution, CI and release workflows
@@ -70,6 +70,17 @@ Status as of **v0.7.0 (2026-10-07)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Velopack per-user installer, portable zip, delta updates, in-app update viewer
 - ✅ GitHub Releases with a stable "latest" download link
 - See "Verification record" below for the release check.
+
+## Verification record (v0.8.0)
+
+| Check | Result |
+|---|---|
+| .NET tests | **2248 passed, 0 failed** (one timing test occasionally flaky under load) |
+| UI unit tests | **829 passed, 0 failed** |
+| Playwright e2e + axe + visual regression | **293 tests: 292 passed or passed on retry**; the one consistent failure (a Library selector that now matched a new button) was fixed |
+| Real app (dev build, owner's library) | Title bar reserves 144 px for the caption buttons and the icons sit clear of them on the maximized 1920×1080 window; Forza Horizon 4 leads Continue playing and appears in Storage Studio at 79.4 GB; a Steam sync marked 17 games no longer owned (they were in the owned list imported on Oct 5 and are not in Steam's list now); Performance page with the real RTX 4060 Laptop, driver 617.42 and PresentMon numbers; Discover "Because you played Forza Horizon 4" from IGDB (Pacific Drive, NFS Heat, Halo Infinite, SnowRunner); game page tiles with real reviews (51% → 62%), ₹ prices, tags and size; no page errors |
+| Fixed during the check | Docked header and tabs too transparent; duplicate Deck badge on game pages |
+| Not verified | Cloud AI against a real provider key; IGDB franchise queries live; GeForce NOW queue titles; spoken voice-over by ear |
 
 ## Verification record (v0.7.0)
 

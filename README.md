@@ -36,7 +36,7 @@
 | **Living Canvas** | A calm animated background that takes on each game’s colours and mood (light trails for racing, stars for space, fog for horror…). It pauses whenever you’re playing. |
 | **Live Home** | Steam games’ tiles come alive with their short, silent store loops while on screen (two at a time, never on Data saver); an *Owned, never played* gallery with gentle picks for tonight; optional ambient sound that follows each game’s mood. |
 | **Command bar** (`Ctrl+K`) | “installed racing games under 20 GB”, “launch forza”, “not played in 3 months”, “everything on my second SSD” — understood instantly, on your PC, without AI. |
-| **Discover** | Search any game, owned or not, across Steam, Wikidata and (with your keys) IGDB and RAWG, with pages for games you don't own: trailer, prices, time to beat and where to get it. |
+| **Discover** | A storefront of picks, "Because you played" rows and Steam shelves; search any game, owned or not, across Steam, Wikidata and (with your keys) IGDB and RAWG, with pages for games you don't own: trailer, prices, time to beat and where to get it. |
 | **Immersive Mode** (`F11`) | A console-grade full-screen layout with a cinematic way in, trailer backdrops, a guide on the Menu button, a radial quick menu, Now playing and Downloads rows, letter jumps, a game page with tabs, a live system bar, couch text sizes, spatial sounds and optional voice-over with captions. |
 | **Performance Mode** | When a game starts, VYSTRAL minimizes and suspends its interface: **0% CPU** while minimized in our measurements. |
 | **Journal & Performance** | Private play history, when-you-play heatmaps, genre drift, completion forecasts, hardware history, an optional energy estimate, playtime charts, milestones, game status (Backlog → Completed) and per-session CPU/GPU/temperature graphs. Optional real FPS, 1% lows and stutters via Intel PresentMon. Nothing is estimated or faked. |
@@ -54,6 +54,7 @@
 | **Moments** | Your Steam screenshots and Xbox Game Bar captures in one gallery. Nothing is uploaded. |
 | **Constellation** | An optional 3D map of your library, with an accessible list view. |
 | **Local AI (optional)** | Natural-language search and an assistant powered by [Ollama](https://ollama.com) on your own PC. Never required, never in the cloud. |
+| **Cloud AI (optional)** | Bring your own Claude, ChatGPT, Gemini or OpenAI-compatible key (kept in Windows Credential Manager) to ask your Journal anything, pick tonight's game, build smart collections from a sentence and summarise patch notes. |
 
 ## Promises
 

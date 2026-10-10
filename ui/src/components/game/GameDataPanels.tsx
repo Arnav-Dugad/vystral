@@ -56,14 +56,15 @@ const openExternal = (method: string, params: unknown) => () => {
 export function GameExtras({ game }: { game: Game }) {
   return (
     <div className="gx">
-      <CompatRow game={game} />
+      {/* Deck and anti-cheat status now live in the "At a glance" Compatibility tile. */}
       <EnrichmentFacts game={game} />
       <DealsCard game={game} />
     </div>
   );
 }
 
-function CompatRow({ game }: { game: Game }) {
+/** Deck and anti-cheat badges as a row (the game page now uses the Compatibility tile instead). */
+export function CompatRow({ game }: { game: Game }) {
   const settingsKey = useStore((s) => `${s.settings?.['dataSources.steamDeck']}${s.settings?.['dataSources.antiCheat']}${s.settings?.['library.fetchMetadata']}${s.settings?.['privacy.localOnly']}`);
   const { data } = useBridge<Compat>('compat.get', game.id, [settingsKey]);
   if (!data || (!data.deck && !data.antiCheat)) return null;
