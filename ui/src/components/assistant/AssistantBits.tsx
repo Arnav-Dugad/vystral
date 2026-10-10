@@ -85,7 +85,7 @@ export function Byline({ provider, engine, cloud }: { provider?: string; engine?
   return (
     <span className="asx-byline" data-cloud={cloud || undefined}>
       {mark ? <ServiceLogo service={mark} size={14} decorative /> : <Sparkles size={12} aria-hidden />}
-      <span>{engine ?? 'Assistant'}</span>
+      <span title={engine}>{engine?.split(' · ').pop() ?? 'Assistant'}</span>
       <span className="asx-byline__where">{cloud ? 'cloud' : 'on this PC'}</span>
     </span>
   );

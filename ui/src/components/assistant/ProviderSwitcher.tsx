@@ -27,7 +27,8 @@ export function ProviderSwitcher({ compact }: { compact?: boolean }) {
   const provider = status.provider;
   const cloud = provider === 'local' ? null : status.providers.find((p) => p.id === provider) ?? null;
   const mark = providerMark(provider, cloud?.baseUrl);
-  const label = provider === 'local' ? `${LOCAL_LABEL} · ${settings['ai.model']}` : cloud ? cloud.modelLabel || cloud.name : 'AI';
+  const label = !status.active.ready && status.active.engine === 'none' ? 'Choose an AI'
+    : provider === 'local' ? `${LOCAL_LABEL} · ${settings['ai.model']}` : cloud ? cloud.modelLabel || cloud.name : 'AI';
 
   const ready = (id: AiProviderChoice) => {
     if (id === 'local') return status.localEnabled;
@@ -82,7 +83,7 @@ export function ProviderSwitcher({ compact }: { compact?: boolean }) {
         onClick={open}
         title={status.active.reason ?? `Answers come from ${status.active.label}`}
       >
-        {mark ? <ServiceLogo service={mark} size={16} decorative brand /> : null}
+        {mark && status.active.engine !== 'none' ? <ServiceLogo service={mark} size={16} decorative brand /> : null}
         <span className="asx-switch__label">{label}</span>
         <span className="visually-hidden">: change AI</span>
         <ChevronDown size={14} aria-hidden />

@@ -99,7 +99,7 @@ test.describe('the Assistant on every page', () => {
     await expect(panel(page).getByText(/I’d reach for/)).toBeVisible();
     await expect(panel(page).getByRole('region', { name: /VYSTRAL’s shortlist/ }).locator('.asx-pick')).toHaveCount(3);
     await expect(panel(page).getByText('Shared with Anthropic', { exact: false })).toBeVisible();
-    await expect(panel(page).locator('.asx-byline')).toContainText('Claude · Claude Sonnet 5.5');
+    await expect(panel(page).locator('.asx-byline')).toContainText('Claude Sonnet 5.5');
     await panel(page).getByRole('button', { name: 'What was sent' }).click();
     await expect(panel(page).getByText(/Sent to Anthropic \(Claude · Claude Sonnet 5\.5\)/)).toBeVisible();
     // Open goes to the game's page; nothing is launched.

@@ -126,7 +126,7 @@ function SetupCard({ compact, reason }: { compact?: boolean; reason: string | nu
       <AssistantAvatar size="md" />
       <h2 className="asx-welcome__title">Choose an AI for the Assistant</h2>
       <p className="asx-welcome__body">
-        {reason ?? 'The Assistant is off until you choose an AI.'} Use local AI on this PC, or your own key for a cloud AI.
+        {reason && !reason.startsWith('No AI is set up') ? `${reason} ` : ''}Use local AI on this PC, or your own key for a cloud AI.
       </p>
       <ul className="asx-setup__options">
         <li>
