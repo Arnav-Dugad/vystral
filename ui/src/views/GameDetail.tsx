@@ -141,7 +141,7 @@ function DetailHero({ game, onOpenAchievements }: { game: Game; onOpenAchievemen
   const coverRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
-  useFlightLanding(game.id, coverRef, !reduce);
+  useFlightLanding(game.id, coverRef, true, 0, reduce); // Track D5: reduced motion crossfades
   // Leaving the page, the cover becomes the start of the flight back into its card.
   useEffect(() => {
     const el = coverRef.current;

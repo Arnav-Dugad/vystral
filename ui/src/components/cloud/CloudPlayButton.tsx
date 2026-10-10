@@ -311,6 +311,12 @@ export function CloudSessionPill() {
           <button className="btn btn--sm btn--secondary" onClick={() => void endCloudSession()}>
             <CircleStop size={14} aria-hidden /> <span>I’m done</span>
           </button>
+          {/* Track D5: how much of the membership's session length is left, as a thin bar along the pill. */}
+          {active.state === 'running' && active.sessionLimitSeconds ? (
+            <span className="cloud-pillbar__limit" data-tone={left?.tone === 'danger' ? 'danger' : left?.tone === 'warn' ? 'warn' : undefined} aria-hidden>
+              <span style={{ transform: `scaleX(${Math.max(0, Math.min(1, 1 - elapsed / active.sessionLimitSeconds))})` }} />
+            </span>
+          ) : null}
         </motion.div>
       )}
     </AnimatePresence>

@@ -1148,3 +1148,22 @@ export interface BridgeEvents {
 }
 
 export type * from './types.ai';
+
+// ---------- Track D5: recommend.v2, "Free this week", cloud readiness (types in ./types.recommend, ./types.freebies) ----------
+
+export interface Settings {
+  /** "Free this week": public giveaways (GamerPower) on Discover. Opt-in. */
+  'freebies.enabled': boolean;
+  /** Also show "Free this week" as a row on Home. */
+  'freebies.homeRow': boolean;
+}
+
+export interface BridgeEvents {
+  /** "Not interested" changed. */
+  'recommend.dismissed': import('./types.recommend').RecommendDismissal[];
+  /** The giveaways list changed (a refresh finished). */
+  'freebies.changed': import('./types.freebies').Freebies;
+}
+
+export type * from './types.recommend';
+export type * from './types.freebies';

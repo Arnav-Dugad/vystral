@@ -33,9 +33,10 @@ export function captureFlight(id: string, el: Element | null | undefined) {
 
 /**
  * Lands a pending flight on `ref` when it mounts. `deferFrames` waits for scroll restoration
- * (cards on a restored page settle a frame after mounting).
+ * (cards on a restored page settle a frame after mounting). Track D5: with `reduce` (reduced
+ * motion) the element doesn't travel; it crossfades in where it is.
  */
-export function useFlightLanding(id: string, ref: RefObject<HTMLElement | null>, enabled: boolean, deferFrames = 0) {
+export function useFlightLanding(id: string, ref: RefObject<HTMLElement | null>, enabled: boolean, deferFrames = 0, reduce = false) {
   useLayoutEffect(() => {
     const el = ref.current;
     const flight = pending;
@@ -58,6 +59,12 @@ export function useFlightLanding(id: string, ref: RefObject<HTMLElement | null>,
       const to = el.getBoundingClientRect();
       el.style.opacity = '';
       if (to.width < 4 || to.bottom < 0 || to.top > innerHeight) return;
+      if (reduce) {
+        const fade = animate(el, { opacity: [0, 1] }, { duration: 0.22, ease: 'linear' });
+        stop = () => fade.stop();
+        void fade.finished.then(() => { el.style.opacity = ''; });
+        return;
+      }
       const sx = flight.rect.width / to.width;
       const sy = flight.rect.height / to.height;
       const dx = flight.rect.left - to.left;
@@ -84,7 +91,7 @@ export function useFlightLanding(id: string, ref: RefObject<HTMLElement | null>,
       stop?.();
       el.style.opacity = '';
     };
-  }, [id, ref, enabled, deferFrames]);
+  }, [id, ref, enabled, deferFrames, reduce]);
 }
 
 export interface LaunchOrigin {

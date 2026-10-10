@@ -121,7 +121,7 @@ function Hero({ itemKey, hint, d, onChange }: { itemKey: string; hint?: string; 
   const [getAt, setGetAt] = useState<{ x: number; y: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const flightId = `discover:${itemKey}`;
-  useFlightLanding(flightId, coverRef, !reduce);
+  useFlightLanding(flightId, coverRef, true, 0, reduce); // Track D5: reduced motion crossfades
   useEffect(() => {
     const el = coverRef.current;
     return () => {

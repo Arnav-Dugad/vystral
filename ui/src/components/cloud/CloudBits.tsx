@@ -1,8 +1,10 @@
-import { memo, useEffect, useState } from 'react';
-import { Cloud } from 'lucide-react';
+import { memo, useEffect, useMemo, useState } from 'react';
+import { Cloud, TrendingUp } from 'lucide-react';
 import type { CloudMeter as Meter, CloudService } from '../../bridge/types';
 import { badgeLabel, formatHours, meterSummary, resetLabel, SERVICE_NAME } from '../../lib/cloud';
 import { useCloudMap } from '../../state/cloud';
+import { meterForecast } from '../../lib/cloudPlus'; // Track D5
+import './cloud-plus.css';
 import { ServiceLogo } from '../ui/ServiceLogo';
 import './cloud.css';
 
@@ -66,6 +68,7 @@ export function CloudMeterView({ meter, compact }: { meter: Meter; compact?: boo
         </div>
       )}
       {!compact && <p className="cloud-meter__detail">{sum.detail}</p>}
+      <MeterForecastLine meter={meter} />
       <p className="cloud-meter__foot">
         Estimated from sessions VYSTRAL saw{meter.plan !== 'none' ? ` · ${resetLabel(meter)}` : ''}
       </p>
@@ -83,5 +86,16 @@ export function XboxCloudTime({ meter }: { meter: Meter }) {
         {meter.xboxSessions > 0 ? ` across ${meter.xboxSessions} session${meter.xboxSessions === 1 ? '' : 's'}` : ''}
       </span>
     </div>
+  );
+}
+
+/** Track D5: the GeForce NOW hours forecast under the meter, at this month's pace (an estimate, and it says so). */
+export function MeterForecastLine({ meter }: { meter: Meter }) {
+  const f = useMemo(() => meterForecast(meter, Date.now()), [meter]);
+  if (!f) return null;
+  return (
+    <p className="cforecast" data-tone={f.tone}>
+      <TrendingUp size={13} aria-hidden /> <span>{f.text}</span>
+    </p>
   );
 }
