@@ -101,14 +101,14 @@ public sealed class AssistantToolRunner(IAssistantHost host)
     internal static ToolOutcome Cap(ToolOutcome o)
     {
         var json = o.ForModel;
-        for (var guard = 0; guard < 40 && json.ToJsonString().Length > MaxResultChars; guard++)
+        for (var guard = 0; guard < 40 && json.ToJsonString(AssistantJson.Options).Length > MaxResultChars; guard++)
         {
-            var longest = Lists(json).OrderByDescending(a => a.ToJsonString().Length).FirstOrDefault();
+            var longest = Lists(json).OrderByDescending(a => a.ToJsonString(AssistantJson.Options).Length).FirstOrDefault();
             if (longest is null || longest.Count == 0) break;
             longest.RemoveAt(longest.Count - 1);
             json["truncated"] = true;
         }
-        if (json.ToJsonString().Length > MaxResultChars)
+        if (json.ToJsonString(AssistantJson.Options).Length > MaxResultChars)
             json = new JsonObject { ["error"] = "The result was too large to share.", ["truncated"] = true };
         return o with { ForModel = json };
     }
@@ -156,8 +156,7 @@ public sealed class AssistantToolRunner(IAssistantHost host)
 
     private static string? S(JsonNode? n, string name) => n is JsonObject o && o[name] is JsonValue v && v.TryGetValue<string>(out var s) ? s : null;
 
-    private static double? N(JsonNode? n, string name) =>
-        n is JsonObject o && o[name] is JsonValue v && v.TryGetValue<double>(out var d) && double.IsFinite(d) ? d : null;
+    private static double? N(JsonNode? n, string name) => n is JsonObject o ? AiText.Num(o[name]) : null;
 
     private static bool B(JsonNode? n, string name) => n is JsonObject o && o[name] is JsonValue v && v.TryGetValue<bool>(out var b) && b;
 

@@ -459,3 +459,12 @@ public static partial class AssistantTools
         return sb.ToString();
     }
 }
+
+/// <summary>Track D3: JSON for model-bound text keeps letters like ’ and é as they are (still valid JSON; just smaller and readable).</summary>
+public static class AssistantJson
+{
+    public static readonly System.Text.Json.JsonSerializerOptions Options = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+}

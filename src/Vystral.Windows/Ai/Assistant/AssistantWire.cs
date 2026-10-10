@@ -178,7 +178,7 @@ public static class AssistantWire
             case "assistant":
                 role = assistantRole;
                 text = m.Calls.Count > 0
-                    ? new JsonObject { ["tool"] = m.Calls[0].Name, ["arguments"] = ParseArgs(m.Calls[0].ArgsJson) }.ToJsonString()
+                    ? new JsonObject { ["tool"] = m.Calls[0].Name, ["arguments"] = ParseArgs(m.Calls[0].ArgsJson) }.ToJsonString(AssistantJson.Options)
                     : m.Text;
                 break;
             case "tool":
@@ -340,7 +340,7 @@ public static class AssistantWire
         catch (JsonException) { return null; }
     }
 
-    private static StringContent Json(JsonNode body) => new(body.ToJsonString(), Encoding.UTF8, "application/json");
+    private static StringContent Json(JsonNode body) => new(body.ToJsonString(AssistantJson.Options), Encoding.UTF8, "application/json");
 
     /// <summary>The text protocol's tool call ({"tool":"name","arguments":{...}}), tolerating a code fence. Null when the text is an answer.</summary>
     public static AsstToolCall? TextToolCall(string text, int n)

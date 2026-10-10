@@ -293,7 +293,7 @@ public sealed partial class AssistantService
             : $"Sent to {c.Company} ({c.Label}): your messages in this chat, the page you were on" +
               (shared.Count > 0 ? $", and what these look-ups found: {string.Join(", ", shared.Distinct())}." : ". No app data was looked up.");
 
-    private static string Error(string message) => new JsonObject { ["error"] = message }.ToJsonString();
+    private static string Error(string message) => new JsonObject { ["error"] = message }.ToJsonString(AssistantJson.Options);
 
     /// <summary>IDs from models go into events and the page: keep them short and plain.</summary>
     internal static string SafeId(string id)
@@ -316,7 +316,7 @@ public sealed partial class AssistantService
         if (parsed is null)
         {
             Emit(requestId, "tool", new { call = new { id = callId, name = spec.Name, label = spec.Label, kind, status = "error", summary = "Unreadable arguments" } });
-            return (new AsstToolResult(call.Id, spec.Name, new JsonObject { ["INVALID_JSON"] = call.ArgsJson.Length > 400 ? call.ArgsJson[..400] : call.ArgsJson }.ToJsonString(), true), spec, null);
+            return (new AsstToolResult(call.Id, spec.Name, new JsonObject { ["INVALID_JSON"] = call.ArgsJson.Length > 400 ? call.ArgsJson[..400] : call.ArgsJson }.ToJsonString(AssistantJson.Options), true), spec, null);
         }
         var v = AssistantTools.Validate(spec, parsed);
         if (!v.Ok)
@@ -340,7 +340,7 @@ public sealed partial class AssistantService
                 ["shownToUser"] = proposal.Title,
                 ["note"] = "Nothing has changed yet. The user sees a confirm button. Don't say it's done.",
             };
-            return (new AsstToolResult(call.Id, spec.Name, res.ToJsonString(), false), spec, null);
+            return (new AsstToolResult(call.Id, spec.Name, res.ToJsonString(AssistantJson.Options), false), spec, null);
         }
 
         Emit(requestId, "tool", new { call = new { id = callId, name = spec.Name, label = spec.Label, kind, status = "running", summary = (string?)null } });
@@ -350,7 +350,7 @@ public sealed partial class AssistantService
             call = new { id = callId, name = spec.Name, label = spec.Label, kind, status = outcome.IsError ? "error" : "done", summary = outcome.Summary },
             card = outcome.Card,
         });
-        return (new AsstToolResult(call.Id, spec.Name, outcome.ForModel.ToJsonString(), outcome.IsError), spec, outcome);
+        return (new AsstToolResult(call.Id, spec.Name, outcome.ForModel.ToJsonString(AssistantJson.Options), outcome.IsError), spec, outcome);
     }
 
     private async Task<(bool Allow, bool Always)> AskApprovalAsync(string requestId, EngineChoice c, List<(ToolSpec Spec, ToolOutcome Outcome)> items, CancellationToken ct)
@@ -540,7 +540,7 @@ public sealed partial class AssistantService
         if (!_settings.GetBool("ai.enabled")) throw new DataSourceException(DataSourceOutcome.Disabled, "Local AI is turned off in Settings → AI.");
         if (IsGameRunning()) throw new DataSourceException(DataSourceOutcome.Unavailable, "Local AI is paused while a game is running, to keep your game smooth.");
         var body = AssistantWire.BuildOllama(_settings.GetString("ai.model"), SystemPrompt, messages, tools, textTools, toolsOff: last);
-        using var req = new HttpRequestMessage(HttpMethod.Post, "api/chat") { Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json") };
+        using var req = new HttpRequestMessage(HttpMethod.Post, "api/chat") { Content = new StringContent(body.ToJsonString(AssistantJson.Options), Encoding.UTF8, "application/json") };
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct);
         limit.CancelAfter(TimeSpan.FromMinutes(5));
         HttpResponseMessage res;

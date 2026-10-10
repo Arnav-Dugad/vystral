@@ -71,8 +71,7 @@ public sealed record StutterAnalysis(
 {
     public static StutterAnalysis Analyze(JsonObject? summary, JsonArray samples, JsonArray insight, int durationSeconds)
     {
-        static double? N(JsonNode? n, string name) =>
-            n is JsonObject o && o[name] is JsonValue v && v.TryGetValue<double>(out var d) && double.IsFinite(d) ? d : null;
+        static double? N(JsonNode? n, string name) => n is JsonObject o ? AiText.Num(o[name]) : null;
 
         var stats = new JsonObject
         {
