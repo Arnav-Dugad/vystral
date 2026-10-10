@@ -53,7 +53,7 @@ public sealed class PlayDataRepositoryTests : IDisposable
         }
 
         Assert.Equal(7, db.Migrate());
-        Assert.Equal(8, db.SchemaVersion());
+        Assert.Equal(Database.LatestVersion, db.SchemaVersion()); // later migrations (Track C1: 9) run too
         using (var conn = db.Open())
         {
             var row = conn.QuerySingle<(long Duration, long? W, long? Hz, long? Hdr)>("SELECT duration_seconds, display_width, display_hz, display_hdr FROM sessions WHERE id='s1'");

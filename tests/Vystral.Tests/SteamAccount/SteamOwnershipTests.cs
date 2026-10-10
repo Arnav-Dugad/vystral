@@ -261,6 +261,37 @@ public sealed class SteamOwnershipTests : IDisposable
         Assert.Equal(3, Sync(many.Skip(3).ToArray()).NoLongerOwned);
     }
 
+    [Fact]
+    public void Migration_9_upgrades_a_version_8_database_keeping_every_installation_owned()
+    {
+        using var dir = new TempDir();
+        var db = new Database(Path.Combine(dir.Path, "v8.db"));
+        using (var conn = db.Open())
+        {
+            conn.Execute("CREATE TABLE schema_version (version INTEGER NOT NULL, applied TEXT NOT NULL, name TEXT NOT NULL);");
+            foreach (var (version, name, sql) in Migrations.All.Where(m => m.Version <= 8))
+            {
+                conn.Execute(sql);
+                conn.Execute("INSERT INTO schema_version VALUES (@version, '2026-01-01', @name)", new { version, name });
+            }
+            conn.Execute("INSERT INTO games(id, title, sort_title, added, updated) VALUES ('g1', 'Portal', 'portal', '2026-01-01', '2026-01-01')");
+            conn.Execute("""
+                INSERT INTO installations(id, game_id, platform, platform_game_id, title, state, launch_kind, launch_value, size_bytes, first_seen, last_seen)
+                VALUES ('i1', 'g1', 'steam', '400', 'Portal', 'notinstalled', 'Uri', 'steam://rungameid/400', NULL, '2026-01-01', '2026-01-01')
+                """);
+        }
+
+        Assert.Equal(8, db.Migrate());
+        var game = new LibraryRepository(db).LoadSnapshot((g, f) => f).Games.Single();
+        Assert.False(game.NotOwned);
+        Assert.False(game.Hidden);
+        var inst = game.Installations.Single();
+        Assert.Null(inst.NoLongerOwned);
+        Assert.Null(inst.LastPlayedSource);
+        Assert.Null(inst.Version);
+        TestDb.ReleasePool(db);
+    }
+
     // ---------- Parsing: what "complete" means ----------
 
     [Fact]
