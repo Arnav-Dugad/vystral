@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { moneyLabel, type MoneyOptions } from '../../lib/money';
 import { useMoney } from '../../state/money';
+import './price.css';
 
 /**
  * Track D6: one price, in the currency chosen in Settings. Exact when the store already priced it in that currency;

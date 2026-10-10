@@ -260,7 +260,7 @@ function View({ route }: { route: Route }) {
     case 'moments': return <MomentsView />;
     case 'constellation': return <ConstellationView />;
     case 'assistant': return <AssistantView />;
-    case 'settings': return <SettingsView section={route.section} />;
+    case 'settings': return <SettingsView section={route.section} row={route.row} />;
     case 'storage': return <StorageStudioView />;
     case 'health': return <HealthView />;
     case 'discover': return <DiscoverView query={route.query} genre={route.genre} />;

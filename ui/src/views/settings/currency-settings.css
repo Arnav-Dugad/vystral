@@ -1,0 +1,32 @@
+/* Track D6: Settings › Appearance › Currency. */
+.cur-select { min-width: 240px; }
+.cur-rates { align-items: flex-start; }
+.cur-rates__icon { flex: none; margin-top: 2px; color: var(--text-3); }
+.cur-rates .srow__hint svg { vertical-align: -2px; }
+.cur-samples {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-5);
+  padding: var(--s-4) var(--s-5);
+  border-top: 1px solid var(--line);
+  overflow: hidden;
+}
+.cur-sample { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: var(--r-pill); background: var(--bg-2); color: var(--text-2); font-size: var(--fs-sm); box-shadow: inset 0 0 0 1px var(--line); }
+.cur-sample svg { color: var(--text-3); }
+.cur-sample__to { color: var(--text-1); font-weight: var(--fw-medium); }
+.cur-samples__note { flex-basis: 100%; font-size: var(--fs-xs); color: var(--text-3); }
+.cur-samples__sym {
+  position: absolute;
+  right: var(--s-5);
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: 54px;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.12;
+  pointer-events: none;
+}
+html[data-theme='contrast'] .cur-samples__sym { display: none; }

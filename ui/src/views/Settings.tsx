@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  Bot, Cloud, Monitor, Database, Gamepad2, Info, LibraryBig, Palette, Rocket, Search, ShieldCheck, Sparkles, Download, AlertTriangle, CheckCircle2, XCircle,
+  Activity, Bot, Cloud, Monitor, Database, Gamepad2, Info, LibraryBig, Palette, Rocket, Search, ShieldCheck, Sparkles, Download, AlertTriangle, CheckCircle2, XCircle,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { AdapterInfo, DiagnosticsInfo, SettingKey, Settings } from '../bridge/types';
 import { formatBytes, formatDate, formatRelative } from '../lib/format';
 import { MOOD_LABEL } from '../lib/mood';
-import { useStore } from '../state/store';
+import { useReducedMotion, useStore } from '../state/store';
 import { Badge, Button, rovingKey, Segmented, Slider, Toggle, PlatformBadge, PadHint, type PadButton } from '../components/ui/primitives';
 import { HoldToConfirm } from '../components/controller/HoldToConfirm';
 import { Dialog } from '../components/ui/Dialog';
@@ -38,6 +38,14 @@ import { CloudQueueAlertSettings, SubscriptionsSettings } from './settings/Subsc
 import { CompactionSettings, SelfCheckSettings } from './settings/MaintenanceSettings';
 import { AiProvidersSettings } from '../components/ai/AiProvidersSettings'; // Track C5
 import { StartupTimings } from './settings/StartupTimings';
+// Track D6: currency, Data sources health, caches, crash-free streak, search with jump-to-row.
+import { CurrencySettings } from './settings/CurrencySettings';
+import { DataSourcesHealth } from './settings/DataSourcesHealth';
+import { CacheViewer } from './settings/CacheViewer';
+import { CrashFreeStreak } from './settings/CrashFreeStreak';
+import { SETTINGS_INDEX } from './settings/settingsIndex';
+import { RESULTS_ID, SettingsSearchResults, optionId, searchKeys } from './settings/SettingsSearch';
+import { findSettingsRow, revealSettingsRow, rowSlug, searchSettings, sectionsMatching, type SettingsHit } from '../lib/settingsSearch';
 import './settings.css';
 
 interface Section {
@@ -48,8 +56,9 @@ interface Section {
 }
 
 const SECTIONS: Section[] = [
-  { id: 'appearance', label: 'Appearance', icon: <Palette size={17} />, keywords: 'theme dark light oled contrast accent colour color living canvas background motion animation reduced intro quality grid home live tiles trailer' },
+  { id: 'appearance', label: 'Appearance', icon: <Palette size={17} />, keywords: 'theme dark light oled contrast accent colour color living canvas background motion animation reduced intro quality grid home live tiles trailer currency money prices exchange rates' },
   { id: 'library', label: 'Library & stores', icon: <LibraryBig size={17} />, keywords: 'steam xbox epic gog ea ubisoft battle.net integrations scan metadata artwork download data sources steamgriddb igdb twitch rawg isthereanydeal cheapshark prices deals wikidata deck anti-cheat api key art packs style covers logos backgrounds blurred material health broken shortcuts missing drive duplicates fix subscriptions game pass ultimate premium essential play ubisoft+ humble choice prime gaming luna leaving soon included price cost per hour wishlist sale lowest release friends played news patch notes updates discover store shelves trending deals new releases coming soon free to play genres' },
+  { id: 'sources', label: 'Data sources', icon: <Activity size={17} />, keywords: 'data sources health status api rate limit back-off errors requests online steam igdb rawg steamgriddb wikidata itad cheapshark pcgamingwiki geforce now game pass exchange rates' },
   { id: 'cloud', label: 'Cloud play', icon: <Cloud size={17} />, keywords: 'cloud streaming stream geforce now gfn nvidia xbox gaming game pass xcloud hours meter membership performance ultimate edge browser region queue alerts position' },
   { id: 'launching', label: 'Launching & sessions', icon: <Rocket size={17} />, keywords: 'launch cinematic instant minimize restore performance mode pulse metrics cpu gpu background apps processes driver tracker outside closed startup detected energy power watts electricity kwh cost price' },
   { id: 'controller', label: 'Controller & sound', icon: <Gamepad2 size={17} />, keywords: 'gamepad xbox controller vibration rumble on-screen keyboard typing text suggestions battery charge sound audio ambient volume mood immersive fullscreen' },
@@ -57,17 +66,26 @@ const SECTIONS: Section[] = [
   { id: 'ai', label: 'AI', icon: <Bot size={17} />, keywords: 'local ai ollama assistant model natural language cloud claude anthropic chatgpt openai gpt gemini google openrouter api key provider journal patch notes summary tonight smart collection duplicate caption' },
   { id: 'updates', label: 'Updates', icon: <Download size={17} />, keywords: 'update version release automatic download self-check health check after update rollback' },
   { id: 'privacy', label: 'Privacy', icon: <ShieldCheck size={17} />, keywords: 'privacy telemetry network offline local data' },
-  { id: 'data', label: 'Data & recovery', icon: <Database size={17} />, keywords: 'backup export delete history cache logs reset database safe mode recovery compact compaction vacuum size upkeep' },
-  { id: 'about', label: 'About', icon: <Info size={17} />, keywords: 'version licence license github credits' },
+  { id: 'data', label: 'Data & recovery', icon: <Database size={17} />, keywords: 'backup export delete history cache caches clear space disk logs reset database safe mode recovery compact compaction vacuum size upkeep' },
+  { id: 'about', label: 'About', icon: <Info size={17} />, keywords: 'version licence license github credits stability crash streak' },
 ];
 
-export function SettingsView({ section }: { section?: string }) {
+export function SettingsView({ section, row }: { section?: string; row?: string }) {
   const [active, setActive] = useState(section ?? 'appearance');
   const [query, setQuery] = useState('');
+  // Track D6: results show in the content column while a search is open; choosing one jumps to the row.
+  const [resultsOpen, setResultsOpen] = useState(false);
+  const [hitIndex, setHitIndex] = useState(0);
+  const [jump, setJump] = useState<{ row: string; n: number } | null>(row ? { row, n: 0 } : null);
+  const content = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
   const settings = useStore((s) => s.settings);
+  const hits = useMemo(() => searchSettings(SETTINGS_INDEX, query), [query]);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? SECTIONS.filter((s) => `${s.label} ${s.keywords}`.toLowerCase().includes(q)) : SECTIONS;
+    if (!q) return SECTIONS;
+    const rows = sectionsMatching(SETTINGS_INDEX, q);
+    return SECTIONS.filter((s) => `${s.label} ${s.keywords}`.toLowerCase().includes(q) || rows.has(s.id));
   }, [query]);
   useEffect(() => {
     if (shown.length && !shown.some((s) => s.id === active)) setActive(shown[0].id);
@@ -78,8 +96,47 @@ export function SettingsView({ section }: { section?: string }) {
     setLinked(section);
     if (section) setActive(section);
   }
+  const [linkedRow, setLinkedRow] = useState(row);
+  if (row !== linkedRow) {
+    setLinkedRow(row);
+    if (row) setJump({ row, n: Date.now() });
+  }
+
+  const choose = useCallback((hit: SettingsHit) => {
+    setQuery('');
+    setResultsOpen(false);
+    setActive(hit.entry.section);
+    setJump({ row: hit.row, n: Date.now() });
+    useStore.getState().navigate({ name: 'settings', section: hit.entry.section, row: hit.row }, { replace: true });
+  }, []);
+
+  // The jump: the section renders (some rows appear once their data loads), then the row is found, scrolled to and pulsed.
+  useEffect(() => {
+    if (!jump || resultsOpen) return;
+    const entry = SETTINGS_INDEX.find((e) => (e.row ?? rowSlug(e.label)) === jump.row && e.section === active)
+      ?? SETTINGS_INDEX.find((e) => (e.row ?? rowSlug(e.label)) === jump.row)
+      ?? { section: active, group: '', label: jump.row.replace(/-/g, ' '), row: jump.row };
+    let tries = 0;
+    let timer = 0;
+    const attempt = () => {
+      const root = content.current;
+      const el = root ? findSettingsRow(root, entry) : null;
+      if (el) {
+        revealSettingsRow(el, { reduce });
+        setJump(null);
+        return;
+      }
+      if (++tries < 25) timer = window.setTimeout(attempt, 80);
+      else setJump(null);
+    };
+    timer = window.setTimeout(attempt, 60);
+    return () => window.clearTimeout(timer);
+  }, [jump, active, resultsOpen, reduce]);
 
   if (!settings) return null;
+  const searching = resultsOpen && query.trim().length >= 2;
+  const listed = searching && hits.length > 0;
+  const sectionLabel = (id: string) => SECTIONS.find((s) => s.id === id)?.label ?? id;
   return (
     <div className="page settings">
       <h1 className="lib-head__title">Settings</h1>
@@ -87,15 +144,31 @@ export function SettingsView({ section }: { section?: string }) {
         <nav className="settings__nav" aria-label="Settings sections">
           <label className="settings__search">
             <Search size={15} aria-hidden />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search settings" aria-label="Search settings" />
+            <input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setResultsOpen(true); setHitIndex(0); }}
+              onFocus={() => { if (query.trim()) setResultsOpen(true); }}
+              onKeyDown={(e) => {
+                const handled = searchKeys(e, listed ? hits.length : 0, hitIndex, setHitIndex, () => { if (hits[hitIndex]) choose(hits[hitIndex]); }, () => { setQuery(''); setResultsOpen(false); });
+                if (handled) { e.preventDefault(); e.stopPropagation(); }
+              }}
+              placeholder="Search settings"
+              aria-label="Search settings"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={listed}
+              aria-controls={listed ? RESULTS_ID : undefined}
+              aria-activedescendant={listed ? optionId(hitIndex) : undefined}
+            />
           </label>
           {shown.map((s) => (
             <button
               key={s.id}
               className="settings__navitem"
-              aria-current={active === s.id ? 'true' : undefined}
+              aria-current={active === s.id && !searching ? 'true' : undefined}
               onClick={() => {
                 setActive(s.id);
+                setResultsOpen(false);
                 // Keep the route in step, so a later deep link to a section always lands.
                 useStore.getState().navigate({ name: 'settings', section: s.id }, { replace: true });
               }}
@@ -107,18 +180,25 @@ export function SettingsView({ section }: { section?: string }) {
           ))}
           {shown.length === 0 && <p className="stat__hint" style={{ padding: 12 }}>No settings match “{query}”.</p>}
         </nav>
-        <div className="settings__content">
-          {active === 'appearance' && <><Appearance s={settings} /><LiveTilesSettings /></>}
-          {active === 'library' && <><LibrarySection s={settings} /><SubscriptionsSettings /><HealthSettings /><SteamWebApiSettings /><SteamExtrasSettings /><GamePageSettings /><DataSourcesSettings /><TimeToBeatSettings /><ArtPacksSettings /></>}
-          {active === 'cloud' && <><CloudSettings /><CloudQueueAlertSettings /></>}
-          {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /><EnergySettings /><AntiCheatNotesSettings /></>}
-          {active === 'controller' && <><Controller s={settings} /><BatteryHistoryCard variant="settings" /><ImmersiveSettings /><SoundSettings /></>}
-          {active === 'ai' && <><AiSection s={settings} /><AiProvidersSettings /></>}
-          {active === 'updates' && <Updates s={settings} />}
-          {active === 'privacy' && <><Privacy s={settings} /><DataSaverSettings /><NetworkHealthSettings /></>}
-          {active === 'windows' && <WindowsIntegrationSettings />}
-          {active === 'data' && <DataSection />}
-          {active === 'about' && <About />}
+        <div className="settings__content" ref={content}>
+          {searching ? (
+            <SettingsSearchResults query={query} hits={hits} active={hitIndex} sectionLabel={sectionLabel} onActive={setHitIndex} onChoose={choose} />
+          ) : (
+            <>
+              {active === 'appearance' && <><Appearance s={settings} /><CurrencySettings /><LiveTilesSettings /></>}
+              {active === 'library' && <><LibrarySection s={settings} /><SubscriptionsSettings /><HealthSettings /><SteamWebApiSettings /><SteamExtrasSettings /><GamePageSettings /><DataSourcesSettings /><TimeToBeatSettings /><ArtPacksSettings /></>}
+              {active === 'sources' && <DataSourcesHealth />}
+              {active === 'cloud' && <><CloudSettings /><CloudQueueAlertSettings /></>}
+              {active === 'launching' && <><Launching s={settings} /><BackgroundTrackingSettings /><FpsCaptureSettings /><EnergySettings /><AntiCheatNotesSettings /></>}
+              {active === 'controller' && <><Controller s={settings} /><BatteryHistoryCard variant="settings" /><ImmersiveSettings /><SoundSettings /></>}
+              {active === 'ai' && <><AiSection s={settings} /><AiProvidersSettings /></>}
+              {active === 'updates' && <Updates s={settings} />}
+              {active === 'privacy' && <><Privacy s={settings} /><DataSaverSettings /><NetworkHealthSettings /></>}
+              {active === 'windows' && <WindowsIntegrationSettings />}
+              {active === 'data' && <DataSection />}
+              {active === 'about' && <About />}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -414,9 +494,10 @@ function DataSection() {
             <Button size="sm" onClick={() => void run('diagnostics.backupNow', (r) => `Backup saved to ${r.path}`)}>Back up now</Button>
           </div>
         } />
-        <Row label="Artwork cache" hint={diag ? formatBytes(diag.artCacheBytes) : '…'} control={<Button size="sm" onClick={() => void run('data.clearArtCache', (r) => `Freed ${formatBytes(r.freedBytes)}. Store artwork will be re-imported on the next scan.`)}>Clear</Button>} />
         <Row label="Export your journal" hint="Sessions, playtime, notes and ratings as a JSON file." control={<Button size="sm" onClick={() => void run('data.exportJournal', (r) => `Exported to ${r.path}`)}>Export…</Button>} />
       </Group>
+      {/* Track D6: every cache (artwork included) with its size and age, cleared one at a time. */}
+      <CacheViewer />
       <CompactionSettings />
 
       <Group title="Reset & delete">
@@ -460,7 +541,7 @@ function About() {
   const info = useStore((s) => s.info);
   return (
     <>
-    <div className="about surface">
+    <div className="about surface" data-row="version">
       <img src="./vystral-mark.svg" alt="" width={72} height={72} />
       <div>
         <div className="wordmark" style={{ fontSize: 20 }}>VYSTRAL</div>
@@ -479,6 +560,8 @@ function About() {
         {info?.os && <p className="srow__hint num" style={{ marginTop: 16 }}>{info.os} · {info.cpuCount} logical CPUs</p>}
       </div>
     </div>
+    {/* Track D6: days without a failed start, from the local start history. */}
+    <CrashFreeStreak />
     {/* Track C2: recent startup timings from the local log. */}
     <StartupTimings />
     </>
