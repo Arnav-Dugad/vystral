@@ -434,9 +434,9 @@ function OpenConfirm({ link, title, onCancel, onOpen }: { link: DiscoverLink; ti
     if (!present) return;
     return pushPadHandler((b, r) => handle.current(b, r));
   }, [present]);
-  useEffect(() => {
-    const t = window.setTimeout(() => ref.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus({ preventScroll: true }), 40);
-    return () => window.clearTimeout(t);
+  // Focus moves in at once, so an A pressed straight away confirms here and never reaches the page behind.
+  useLayoutEffect(() => {
+    ref.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus({ preventScroll: true });
   }, []);
   const where = link.kind === 'store' ? `the ${link.label} store page` : `the ${link.label} page`;
   return (
