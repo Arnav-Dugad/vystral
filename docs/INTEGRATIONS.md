@@ -135,6 +135,17 @@ Find any game, owned or not, from the command bar (Ctrl+K, a *Not in your librar
 - **Where to get it** links are built natively from validated IDs: Steam, GOG (`gog.com/en/<path>`), Epic (`store.epicgames.com/p/<slug>`), Microsoft Store (`apps.microsoft.com/detail/<ID>`), plus IGDB/RAWG/Wikidata pages. They open in the browser; nothing is bought, installed or launched.
 - **Watching** is a local list (`ui-state/discover-watching.json`); it doesn't sync with Steam's wishlist and checks prices only when you open a page.
 
+## Cloud AI (Track C5; optional, Settings → AI; off by default)
+
+| Provider | Host | Calls | Key | Models |
+|---|---|---|---|---|
+| Claude (Anthropic) | `api.anthropic.com` | `POST /v1/messages` (`anthropic-version: 2023-06-01`; Sonnet 5.5 and Opus 5.5 with `output_config.effort: low` and the server-side refusal fallback, `anthropic-beta: server-side-fallback-2026-07-01`, retried once without it if refused), `GET /v1/models` (key check) | `x-api-key` | `claude-sonnet-5-5` (default), `claude-opus-5-5`, `claude-haiku-4-5-20251001` |
+| ChatGPT (OpenAI) | `api.openai.com` | `POST /v1/chat/completions` (`max_completion_tokens`, JSON mode), `GET /v1/models` | `Authorization: Bearer` | Chat models from your key's list (default `gpt-5-mini`) |
+| Gemini (Google) | `generativelanguage.googleapis.com` | `POST /v1beta/models/{model}:generateContent` (`responseMimeType: application/json`), `GET /v1beta/models` | `x-goog-api-key` (never in the URL) | `gemini*` models that support `generateContent` (default `gemini-2.5-flash`) |
+| OpenAI-compatible | the `https://` address you enter (OpenRouter, Groq, Together, a self-hosted server…) | `POST {address}/chat/completions` (`max_tokens`), `GET {address}/models` | `Authorization: Bearer` | From the endpoint's list, or typed |
+
+Keys live only in Windows Credential Manager (`VYSTRAL/AI-<Provider>`). A key is saved only after the provider's models list accepts it; *Test* makes one tiny generation with the chosen model. Each provider also needs its own *Send data to …* opt-in, and *Which AI powers AI features* picks local AI or one provider. If the chosen provider fails, local AI is tried when it's on; otherwise each feature shows VYSTRAL's own deterministic answer. Requests: one lane per provider, ≥ 1 s apart, ≤ 30 per 10 minutes and 400 a day, 60 s each, 2 MB answers, no redirects, nothing in Offline mode or safe mode. What each feature sends is listed in PRIVACY.md and in Settings.
+
 ## Adding a store
 
 Implement `IPlatformAdapter` (see `SteamAdapter` for the reference pattern), keep it read-only and tolerant of malformed data, add fixture tests using `TempDir` and `FakeRegistry`, register it in `AdapterCatalog`, and add its launch scheme to `LaunchValidator`.
