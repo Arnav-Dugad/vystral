@@ -5,7 +5,7 @@
 import type { CollectionInfo, Game, InstallProgress, LaunchPhase, PlatformKey } from '../../bridge/types';
 import { byLastPlayed, importedMinutes, isInstalled, lastPlayed, PLATFORM_NAMES, plural } from '../../lib/format';
 import { isWaiting } from '../../lib/neverPlayed';
-import { suggestGames } from '../../lib/recommend';
+import { buildTasteProfile, recommendLibrary, type RecSignals } from '../../lib/recommendV2';
 import { applyRowOrder } from './rowOrder';
 import type { DiscoverItem, NoteAction } from './discoverRows';
 
@@ -34,7 +34,7 @@ export type LibraryTool =
   | { type: 'sort'; sort: LibrarySort }
   | { type: 'filter'; filter: LibraryFilter | null; label: string; count: number; active: boolean };
 
-export type RowKind = 'continue' | 'picked' | 'favorites' | 'installed' | 'new' | 'unplayed' | 'collection' | 'stores' | 'genres' | 'library' | 'playing' | 'downloads' | 'tools' | 'discover';
+export type RowKind = 'continue' | 'picked' | 'cloud' | 'favorites' | 'installed' | 'new' | 'unplayed' | 'collection' | 'stores' | 'genres' | 'library' | 'playing' | 'downloads' | 'tools' | 'discover';
 
 export interface Row {
   id: string;
@@ -48,6 +48,8 @@ export interface Row {
   browse?: boolean;
   /** Track T: a short row of chips (the All games toolbar). */
   compact?: boolean;
+  /** Track D5: why each tile is here (tile key → plain words), for recommended rows. */
+  reasons?: Record<string, string>;
 }
 
 /** Track T: what's live right now (a running game, Steam downloads) for the Home rows. */
@@ -89,10 +91,10 @@ export function greeting(hour: number): string {
  * familiar. Browse rows (stores, genres) always come last.
  */
 export const ROW_ORDER: Record<DayPart, RowKind[]> = {
-  morning: ['continue', 'picked', 'new', 'unplayed', 'favorites', 'collection', 'installed', 'stores', 'genres'],
-  afternoon: ['continue', 'picked', 'favorites', 'new', 'unplayed', 'collection', 'installed', 'genres', 'stores'],
-  evening: ['continue', 'favorites', 'picked', 'collection', 'unplayed', 'new', 'installed', 'genres', 'stores'],
-  night: ['continue', 'favorites', 'collection', 'picked', 'new', 'installed', 'unplayed', 'genres', 'stores'],
+  morning: ['continue', 'picked', 'new', 'unplayed', 'cloud', 'favorites', 'collection', 'installed', 'stores', 'genres'],
+  afternoon: ['continue', 'picked', 'favorites', 'cloud', 'new', 'unplayed', 'collection', 'installed', 'genres', 'stores'],
+  evening: ['continue', 'favorites', 'picked', 'cloud', 'collection', 'unplayed', 'new', 'installed', 'genres', 'stores'],
+  night: ['continue', 'favorites', 'collection', 'picked', 'cloud', 'new', 'installed', 'unplayed', 'genres', 'stores'],
 };
 
 /** Stable sort of rows by the time-of-day order; rows of the same kind keep their relative order. */
@@ -141,7 +143,14 @@ function pickSample(games: readonly Game[]): Game | null {
  * The Home rows. `order` (Track Z) is your own row order (row ids); empty = the automatic,
  * time-of-day order. Live rows are placed after it either way.
  */
-export function homeRows(visible: readonly Game[], collections: readonly CollectionInfo[], now: number, hour: number, live: LiveState = {}, order: readonly string[] = []): Row[] {
+export function homeRows(visible: readonly Game[], collections: readonly CollectionInfo[], now: number, hour: number, live: LiveState = {}, order: readonly string[] = [], signals: Omit<RecSignals, 'now'> = {}): Row[] {
+  // Track D5: one engine (recommend.v2) for "Picked for you" and "Play in the cloud".
+  const sig: RecSignals = { ...signals, now };
+  const profile = buildTasteProfile(visible, sig);
+  const picked = recommendLibrary(visible, profile, sig, { limit: 15 });
+  const cloud = signals.cloud ? recommendLibrary(visible, profile, sig, { limit: 20, mode: 'cloud' }) : [];
+  const byId = new Map(visible.map((g) => [g.id, g]));
+  const tilesFor = (ids: { id: string }[], rowId: string) => ids.flatMap((r) => { const g = byId.get(r.id); return g ? [gameTile(g, rowId)] : []; });
   const recent = visible
     .filter((g) => isInstalled(g) && lastPlayed(g).at)
     .sort((a, b) => byLastPlayed(a, b) || byTitle(a, b))
@@ -152,7 +161,8 @@ export function homeRows(visible: readonly Game[], collections: readonly Collect
     .slice(0, 20);
   const rows: Row[] = [
     { id: 'continue', kind: 'continue', title: 'Continue playing', wide: true, tiles: recent.map((g, i) => gameTile(g, 'continue', i === 0)) },
-    { id: 'picked', kind: 'picked', title: 'Picked for you', meta: 'From what you play', tiles: suggestGames([...visible], now, 15).map((s) => gameTile(s.game, 'picked')) },
+    { id: 'picked', kind: 'picked', title: 'Picked for you', meta: 'From what you play', tiles: tilesFor(picked, 'picked'), reasons: Object.fromEntries(picked.map((r) => [`picked:${r.id}`, r.reason])) },
+    { id: 'cloud', kind: 'cloud', title: 'Play in the cloud', meta: 'Not installed, ready to stream', tiles: tilesFor(cloud, 'cloud'), reasons: Object.fromEntries(cloud.map((r) => [`cloud:${r.id}`, r.reason])) },
     { id: 'favorites', kind: 'favorites', title: 'Favorites', tiles: visible.filter((g) => g.favorite).slice(0, ROW_CAP).map((g) => gameTile(g, 'favorites')) },
     { id: 'new', kind: 'new', title: 'Recently added', tiles: [...visible].sort((a, b) => b.added.localeCompare(a.added)).slice(0, 15).map((g) => gameTile(g, 'new')) },
     { id: 'unplayed', kind: 'unplayed', title: 'Never played', meta: 'Waiting in your library', tiles: unplayed.map((g) => gameTile(g, 'unplayed')) },

@@ -3,6 +3,7 @@ import type { Game } from '../../bridge/types';
 import { hashString } from '../../lib/color';
 import { titleHue } from '../../lib/palette';
 import './game.css';
+import './cover-shimmer.css'; // Track D5
 
 /**
  * Cover art, or — when a game has none — an original typographic cover generated from the
@@ -30,7 +31,7 @@ export const GameCover = memo(function GameCover({
   const showArt = src && !failed;
 
   return (
-    <div className={`cover cover--${kind}`} data-loaded={loaded || !showArt}>
+    <div className={`cover cover--${kind}`} data-loaded={loaded || !showArt} data-art-loading={(showArt && !loaded) || undefined}>
       {(!showArt || !loaded) && <GeneratedCover game={game} kind={kind} />}
       {showArt && (
         <img

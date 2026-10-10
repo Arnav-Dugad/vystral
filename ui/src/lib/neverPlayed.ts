@@ -95,9 +95,10 @@ export interface TonightPick {
 /**
  * Up to `count` gentle suggestions for tonight. Installed games come first (you can start right
  * away), then backlog-marked ones, then the longest-waiting. The order rotates daily with a stable
- * seed so the shelf changes from day to day but not between renders.
+ * seed so the shelf changes from day to day but not between renders. Track D5: `taste` (recommend.v2's
+ * match for a game, −1..1) lets games that fit what you play rise among the waiting ones.
  */
-export function tonightPicks(games: readonly Game[], now = Date.now(), count = 3): TonightPick[] {
+export function tonightPicks(games: readonly Game[], now = Date.now(), count = 3, taste?: (g: Game) => number): TonightPick[] {
   const pool = neverPlayedGames(games);
   if (pool.length === 0) return [];
   const day = Math.floor(now / DAY);
@@ -109,6 +110,7 @@ export function tonightPicks(games: readonly Game[], now = Date.now(), count = 3
     const since = ownedSince(g);
     if (since) s += Math.min(2, (now - Date.parse(since.at)) / (365 * DAY)); // up to +2 for two years waiting
     s += ((hashString(`${g.id}:${day}`) % 1000) / 1000) * 1.5; // daily rotation
+    if (taste) s += Math.max(0, taste(g)) * 2.5;
     return s;
   };
   return pool

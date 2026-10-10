@@ -61,3 +61,7 @@
 .notint__row { display: flex; align-items: center; gap: var(--s-3); padding: 8px 10px; border-radius: var(--r-md); background: oklch(1 0 0 / 0.03); box-shadow: inset 0 0 0 1px var(--line); }
 .notint__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notint__when { font-size: var(--fs-xs); color: var(--text-3); }
+
+.srow.srow--stack { flex-direction: column; align-items: stretch; gap: var(--s-3); }
+.srow[aria-disabled] .srow__label, .srow[aria-disabled] .srow__hint { opacity: 0.6; }
+.cloudplus-grid { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; }

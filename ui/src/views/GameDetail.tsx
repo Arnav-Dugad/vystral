@@ -12,6 +12,8 @@ import {
 import { ease, spring } from '../lib/motion';
 import { paletteFor } from '../lib/palette';
 import { captureFlight, useFlightLanding } from '../lib/flight';
+import { tintProps, useGameTint } from '../lib/skeletonTint'; // Track D5
+import { BestWayToPlay } from '../components/cloud/CloudPlus'; // Track D5
 import { phaseLabel, progressDetail } from '../lib/installProgress';
 import { useLogoTone } from '../lib/logoTone';
 import { openFolder, removeManualGame, setCollection, setHidden, setNotes, setPreferred, setRating, toggleFavorite } from '../state/actions';
@@ -76,6 +78,7 @@ export function GameDetailView({ id }: { id: string }) {
       void paletteFor(game);
     }
   }, [game, setFocusGame]);
+  const tint = useGameTint(game); // Track D5: skeletons on this page shimmer in the game's hue
 
   if (!game) {
     return (
@@ -92,10 +95,12 @@ export function GameDetailView({ id }: { id: string }) {
   }
 
   return (
-    <div className="detail">
+    <div className="detail" {...tintProps(tint)}>
       <DetailHero game={game} onOpenAchievements={() => setTab('achievements')} />
       <div className="page detail__body">
         <StatsRow game={game} />
+        {/* Track D5: installed or streamed? Only when a cloud service lists the game. */}
+        <BestWayToPlay game={game} />
         <div className="detail__tabbar">
           <Tabs
             label="Game sections"
