@@ -1,6 +1,6 @@
 # Progress
 
-Status as of **v0.8.0 (2026-10-10)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
+Status as of **v0.9.0 (2026-10-11)**. ✅ complete · 🟡 partial · ⛔ blocked · ⬜ not started.
 
 ## Phase 1 — Foundation ✅
 - ✅ Repository, solution, CI and release workflows
@@ -70,6 +70,16 @@ Status as of **v0.8.0 (2026-10-10)**. ✅ complete · 🟡 partial · ⛔ blocke
 - ✅ Velopack per-user installer, portable zip, delta updates, in-app update viewer
 - ✅ GitHub Releases with a stable "latest" download link
 - See "Verification record" below for the release check.
+
+## Verification record (v0.9.0)
+
+| Check | Result |
+|---|---|
+| .NET tests | **2585 passed, 0 failed** |
+| UI unit tests | **998 passed, 0 failed** |
+| Playwright e2e + axe + visual regression | **342 tests: 338 passed, 2 flaky, 2 skipped**; two currency tests that met the new wishlist calendar were updated and pass |
+| Real app (dev build, owner's library) | Wishlist calendar with real releases (Gears of War: E-Day, Phantom Blade Zero) in ₹ with lowest-ever markers; every wishlist poster now shows (ANANTA, Bancho the Chef, Bus Simulator 27, CLUTCH were blank); Forza Horizon 4 (Xbox) shows Steam's Deck rating and community tags through its matched Steam page, its IGDB series timeline and Similar in your library; the Assistant side panel opens on Ctrl+J with the owner's Gemini provider; no page errors |
+| Not verified | Assistant answers against a real provider key; YouTube trailer frame in the real WebView2; cloud readiness timings; chime by ear |
 
 ## Verification record (v0.8.0)
 

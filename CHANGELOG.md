@@ -2,6 +2,47 @@
 
 All notable changes to VYSTRAL. Versions follow [SemVer](https://semver.org). The section for each version is shown in the app's update viewer.
 
+## [0.9.0] — 2026-10-11
+
+Your library, settings and history carry over.
+
+### One Assistant
+- **On every page.** Press Ctrl+J or the corner button to chat with Claude, ChatGPT, Gemini, any OpenAI-compatible service or local AI, with streaming answers and each provider's own mark. It knows the page and game you're on; the full Assistant keeps your conversations on this PC.
+- **It can look across the app** — library, play history, achievements, wishlist, Discover, subscriptions, cloud play, performance, storage, health, news and settings. With a cloud AI it asks before sharing what it found.
+- **Nothing changes until you confirm.** It can prepare a collection, a status, a favorite, a page, a search or a Watching entry; it never launches or installs games or changes settings.
+- **New things to ask:** what to play tonight, your weekly recap, *Explain this stutter*, library search in plain words, game questions answered with sources, tag ideas and a "what needs my attention" digest. Ask the Journal and the Tonight tab now live in the Assistant.
+
+### Every game, every source
+- **Steam data for every game.** Xbox, Epic, GOG, EA, Ubisoft, Battle.net and manual games get Steam reviews, tags, prices, news, Steam Deck ratings, trailers and live tiles through their matched Steam page — always labelled, with *Wrong game?* to fix a match and a Matched IDs card on the Versions tab.
+- **Trailers from more places:** RAWG when Steam has none, and opt-in YouTube trailers in a locked-down privacy-enhanced player.
+- **New optional sources:** GamerPower giveaways, Epic's free games, ProtonDB "Runs on Linux" and GOG's catalogue.
+
+### Wishlist
+- **A release calendar.** Months with covers on release day, sale and lowest-ever markers, Next up, and honest lanes for "2027", "Q1 2027" and "To be announced". Show as list keeps the cards.
+- **Every poster shows**, including games with Steam's newer art names.
+
+### For you
+- **One recommendation engine** for Home, Discover and Immersive. Every pick says why, and "Not interested" teaches it.
+- **Free this week** on Discover (and optionally Home), marking what you already own.
+- **Play in the cloud** rows, cloud badges on Discover cards, *Best way to play* on game pages, a connection check and a GeForce NOW hours forecast.
+- **Similar in your library** on every game page, with the games you've forgotten first.
+
+### Library and Journal
+- **Bulk actions with Undo:** select many games (Ctrl/Shift-click, Space, Ctrl+A or X on a controller) to set status, collections, favorites, hide or *Mark played* together.
+- **Updates, mods and sessions timeline** on game pages, linking the first session after an update to a before/after frame-rate comparison.
+- **Eleven new records** — Weekend warrior, Marathon month, Speedrunner, Centurion, Silky, Cool customer and more — with a glint and a soft chime when you earn one.
+
+### Settings and polish
+- **Every price in your currency** (Settings › Appearance › Currency), converted with daily central-bank rates and marked ≈.
+- **Settings search** lists every matching setting and jumps straight to it.
+- **Data sources** health page, a **Caches** viewer with safe clearing, and your **crash-free streak** in About.
+- Covers fly back from a game page into their card; placeholders shimmer in each game's colours.
+
+### Fixed
+- Most wishlist games showed no poster.
+- "What you pay a month" for subscriptions cleared itself on amounts like 1,299.00 and refused larger amounts.
+- Disabled switches looked enabled; store filter chips had no gap; Performance tiles left one tile alone on a row.
+
 ## [0.8.0] — 2026-10-10
 
 Your library, settings and history carry over.

@@ -54,7 +54,7 @@
 | **Moments** | Your Steam screenshots and Xbox Game Bar captures in one gallery. Nothing is uploaded. |
 | **Constellation** | An optional 3D map of your library, with an accessible list view. |
 | **Local AI (optional)** | Natural-language search and an assistant powered by [Ollama](https://ollama.com) on your own PC. Never required, never in the cloud. |
-| **Cloud AI (optional)** | Bring your own Claude, ChatGPT, Gemini or OpenAI-compatible key (kept in Windows Credential Manager) to ask your Journal anything, pick tonight's game, build smart collections from a sentence and summarise patch notes. |
+| **Assistant (optional)** | One Assistant on every page (Ctrl+J) with Claude, ChatGPT, Gemini, an OpenAI-compatible service or local AI: it looks across your library, play history, wishlist and more, and only changes things after you confirm. Keys stay in Windows Credential Manager. |
 
 ## Promises
 
