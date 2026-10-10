@@ -22,7 +22,7 @@ public sealed record IgdbSearchHit(long Id, string Name, int? ReleaseYear);
 /// requested from id.twitch.tv with a form body (the secret never goes in a URL) and kept in memory
 /// only, until shortly before it expires. Requests are spaced to stay under IGDB's 4 per second.
 /// </summary>
-public sealed class IgdbClient(ProviderTransport transport, Func<(string ClientId, string Secret)?> credentials)
+public sealed partial class IgdbClient(ProviderTransport transport, Func<(string ClientId, string Secret)?> credentials)
 {
     public const string TokenUrl = "https://id.twitch.tv/oauth2/token";
     public const string ApiBase = "https://api.igdb.com/v4/";

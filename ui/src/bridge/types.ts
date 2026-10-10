@@ -1098,3 +1098,19 @@ export interface BridgeEvents {
 }
 
 export type * from './types.maintenance';
+
+// ---------- Track C4: visually helpful game pages (types in ./types.gamePage) ----------
+
+export interface Settings {
+  /** Steam's review snapshot (all time vs the last 30 days) on game pages. Also needs "Fetch game details". */
+  'dataSources.steamReviews': boolean;
+  /** Steam's community tags on game pages and as Library filters. Also needs "Fetch game details". */
+  'dataSources.steamTags': boolean;
+}
+
+export interface BridgeEvents {
+  /** Library tags changed (a background fill finished, or the setting changed). */
+  'tags.changed': { done: number };
+}
+
+export type * from './types.gamePage';

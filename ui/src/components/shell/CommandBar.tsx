@@ -9,6 +9,8 @@ import type { AiQuery, DiscoverResult, DiscoverSearch, Game } from '../../bridge
 import { byLastPlayed, formatRelative, isInstalled, lastPlayed, PLATFORM_NAMES } from '../../lib/format';
 import { exit, pick, spring } from '../../lib/motion';
 import { fromAiQuery, parseQuery, searchGames, type ParsedQuery } from '../../lib/search';
+import { extractTags, hasAllTags } from '../../lib/gamePage'; // Track C4: "tagged roguelike", "#co-op"
+import { useLibraryTags } from '../../state/libraryTags';
 import { addManualGame } from '../../state/actions';
 import { useReducedMotion, useStore } from '../../state/store';
 import { GameCover } from '../game/GameCover';
@@ -116,7 +118,10 @@ function CommandBody({ onClose }: { onClose: () => void }) {
     setAiBusy(false);
   }, [text]);
 
-  const parsed = useMemo(() => aiQuery ?? parseQuery(text, { genres, drives }), [aiQuery, text, genres, drives]);
+  const libTags = useLibraryTags();
+  const tagQuery = useMemo(() => (aiQuery ? null : extractTags(text, libTags?.tags ?? [])), [aiQuery, text, libTags]);
+  const tagged = !!tagQuery?.ids.length;
+  const parsed = useMemo(() => aiQuery ?? parseQuery(tagQuery?.text ?? text, { genres, drives }), [aiQuery, tagQuery, text, genres, drives]);
 
   const results = useMemo(() => {
     if (!text.trim()) {
@@ -126,18 +131,19 @@ function CommandBody({ onClose }: { onClose: () => void }) {
         .sort(byLastPlayed)
         .slice(0, 6);
     }
-    let found = searchGames(games, parsed);
+    const pool = tagged ? games.filter((g) => hasAllTags(g.id, tagQuery!.ids, libTags?.games)) : games;
+    let found = searchGames(pool, parsed);
     // If interpreting words as filters removed everything, fall back to plain title search
     // (a game called "Night Racing" should still be findable by typing "racing").
     if (found.length === 0 && parsed.chips.length > 0 && !aiQuery) {
-      found = searchGames(games, { intent: parsed.intent, text: text.replace(/^(launch|play|start|run|open)\s+/i, ''), filters: {}, chips: [], structured: false });
+      found = searchGames(pool, { intent: parsed.intent, text: (tagQuery?.text ?? text).replace(/^(launch|play|start|run|open)\s+/i, ''), filters: {}, chips: [], structured: false });
     }
-    return found.slice(0, parsed.structured ? 40 : 8);
-  }, [games, parsed, text, aiQuery]);
+    return found.slice(0, parsed.structured || tagged ? 40 : 8);
+  }, [games, parsed, text, aiQuery, tagged, tagQuery, libTags]);
 
   // Track U: plain title searches also ask the connected sources for games that aren't in the library.
   const remoteText = parsed.text || text.trim();
-  const remoteEligible = !!cleanQuery(text) && !aiQuery && parsed.intent !== 'launch' && parsed.chips.length === 0;
+  const remoteEligible = !!cleanQuery(text) && !aiQuery && parsed.intent !== 'launch' && parsed.chips.length === 0 && !tagged;
   const online = useDiscoverSearch(remoteText, 'bar', { enabled: remoteEligible, debounceMs: 300 });
   const shownIds = useMemo(() => new Set(results.map((g) => g.id)), [results]);
   const remote = useMemo(
@@ -265,9 +271,10 @@ function CommandBody({ onClose }: { onClose: () => void }) {
           spellCheck={false}
         />
       </div>
-      {parsed.chips.length > 0 && (
+      {(parsed.chips.length > 0 || tagged) && (
         <div className="cmd__chips" aria-label="How your search was understood">
           {parsed.intent === 'launch' && <Badge tone="accent" icon={<Play size={12} />}>Launch</Badge>}
+          {tagQuery?.names.map((n) => <Badge key={`tag-${n}`} tone="accent">Tagged {n}</Badge>)}
           {parsed.chips.map((c) => <Badge key={c}>{c}</Badge>)}
           {parsed.text && <Badge>Title: “{parsed.text}”</Badge>}
           <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', alignSelf: 'center' }}>{results.length} {results.length === 1 ? 'match' : 'matches'}</span>

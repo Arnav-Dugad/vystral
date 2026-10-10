@@ -161,7 +161,7 @@ test.describe('Performance play data', () => {
     await open(page);
     await nav(page, /Journal/);
     await page.locator('.jr-top__row').first().click();
-    await page.getByRole('tab', { name: /Sessions/ }).click();
+    await page.getByRole('tab', { name: /^Sessions ·/ }).click(); // the game page's tab (the Journal's own Sessions tab may still be leaving)
     const hw = section(page, /Hardware history/);
     await expect(hw).toBeVisible();
     await expect(hw.getByRole('img', { name: /Hardware history from/ })).toBeVisible();

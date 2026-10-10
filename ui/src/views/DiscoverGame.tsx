@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  AlertTriangle, ArrowLeft, BadgeCheck, Check, CircleDashed, Cloud, CloudOff, Compass, ExternalLink, Eye, Hourglass, Info, LibraryBig,
-  RefreshCw, ShieldAlert, ShoppingBag, Tag, TrendingDown, XCircle,
+  AlertTriangle, ArrowLeft, Check, Cloud, CloudOff, Compass, ExternalLink, Eye, Info, LibraryBig,
+  RefreshCw, ShoppingBag, Tag, TrendingDown,
 } from 'lucide-react';
 import { call, errorMessage } from '../bridge/bridge';
 import type { Deals, DiscoverDetails, DiscoverLink } from '../bridge/types';
-import { hoursLabel, noteText, SOURCE_NAMES } from '../lib/discover';
-import { DECK_LABEL, deckTone, formatMoney } from '../lib/dataSources';
+import { noteText, SOURCE_NAMES } from '../lib/discover';
+import { formatMoney } from '../lib/dataSources';
 import { formatDate, formatRelative, PLATFORM_NAMES } from '../lib/format';
 import { ease, spring } from '../lib/motion';
 import { captureFlight, useFlightLanding } from '../lib/flight';
@@ -22,6 +22,7 @@ import { DiscoverCover, pseudoGame } from '../components/discover/DiscoverBits';
 import './detail.css';
 import '../components/game/game-data.css';
 import './discover-game.css';
+import { CommunityTags, DiscoverInsights, FranchiseTimeline } from '../components/game/insights/lazy'; // Track C4
 
 const openExternal = (method: string, params: Record<string, unknown>) => () => {
   void call(method, params).catch((err) => useStore.getState().toast({ tone: 'info', title: errorMessage(err) }));
@@ -237,38 +238,10 @@ function BodySkeleton() {
 function Body({ d, onRefresh }: { d: DiscoverDetails; onRefresh: () => Promise<void> }) {
   const [refreshing, setRefreshing] = useState(false);
   const notes = d.notes.map(noteText).filter((n): n is string => !!n);
-  const ttb = d.timeToBeat;
-  const price = d.price;
-  const stats = [
-    {
-      label: 'Release', value: d.releaseDate ? formatDate(d.releaseDate) : d.year ? String(d.year) : 'Unknown',
-      hint: d.releaseDate && new Date(d.releaseDate) > new Date() ? 'not out yet' : price?.comingSoon ? 'coming soon on Steam' : undefined,
-    },
-    {
-      label: 'Steam price', value: price?.free ? 'Free to play' : price?.formatted ?? (price?.comingSoon ? 'Not yet' : d.steamAppId ? 'Not sold alone' : '—'),
-      hint: price?.discountPercent ? `−${price.discountPercent}% · was ${price.initial}` : price?.country ? `Steam store, ${price.country}` : d.steamAppId ? undefined : 'not on Steam',
-      tone: price?.discountPercent ? 'ok' : undefined,
-    },
-    {
-      label: 'Time to beat', value: hoursLabel(ttb?.hastilySeconds) ?? hoursLabel(ttb?.normallySeconds) ?? '—',
-      hint: ttb ? `${ttb.hastilySeconds ? 'main story' : 'main + extras'} · IGDB estimate${ttb.count ? `, ${ttb.count.toLocaleString()} players` : ''}` : d.notes.includes('igdb:noKey') ? 'connect IGDB to see it' : 'not reported',
-    },
-    {
-      label: d.metacritic != null ? 'Metacritic' : 'Rating', value: d.metacritic != null ? String(d.metacritic) : d.rating != null ? `${Math.round(d.rating)} / 100` : '—',
-      hint: d.metacritic != null ? 'reported by the Steam store' : d.rating != null ? `IGDB · ${d.ratingCount.toLocaleString()} ratings` : 'no score yet',
-    },
-  ];
   return (
     <>
-      <div className="stats-row">
-        {stats.map((s) => (
-          <div key={s.label} className="stat" data-tone={s.tone}>
-            <div className="caps">{s.label}</div>
-            <div className="stat__value">{s.value}</div>
-            {s.hint && <div className="stat__hint">{s.hint}</div>}
-          </div>
-        ))}
-      </div>
+      {/* Track C4: the same "At a glance" tiles as a library game page, each with its source. */}
+      <DiscoverInsights d={d} />
 
       {(notes.length > 0 || d.reason === 'offline') && (
         <ul className="ddetail__notes" aria-label="About these details">
@@ -284,9 +257,8 @@ function Body({ d, onRefresh }: { d: DiscoverDetails; onRefresh: () => Promise<v
             : <p className="overview__desc ddetail__muted">None of the connected sources has a description for this game.</p>}
           {d.descriptionSource && <p className="provenance">Description from {SOURCE_NAMES[d.descriptionSource]}{d.descriptionSource === 'steam' ? ' (the store page)' : ''}.</p>}
 
-          <Compat d={d} />
+          {d.steamAppId && <CommunityTags params={{ key: d.key, appId: d.steamAppId }} cacheKey={d.key} />}
           <CloudRow d={d} />
-          {ttb && <TtbCard ttb={ttb} />}
           {d.steamAppId && <DealsCard itemKey={d.key} />}
         </div>
 
@@ -317,6 +289,7 @@ function Body({ d, onRefresh }: { d: DiscoverDetails; onRefresh: () => Promise<v
           </div>
         </aside>
       </div>
+      <FranchiseTimeline params={{ key: d.key, appId: d.steamAppId }} cacheKey={d.key} />
     </>
   );
 }
@@ -364,30 +337,6 @@ function WhereToGet({ d }: { d: DiscoverDetails }) {
   );
 }
 
-function Compat({ d }: { d: DiscoverDetails }) {
-  if (!d.deck && !d.antiCheat) return null;
-  const deck = d.deck;
-  const tone = deck ? deckTone(deck.category) : undefined;
-  return (
-    <div className="gx-compat ddetail__compat" aria-label="Compatibility">
-      {deck && (
-        <span className={`gx-pill ${tone ? `gx-pill--${tone}` : ''}`} title={deck.tests.map((t) => t.text).join('\n') || 'Valve hasn’t published test results.'}>
-          <ServiceLogo service="steamdeck" size={14} decorative />
-          {DECK_LABEL[deck.category]}
-          {deck.category === 'verified' ? <BadgeCheck size={14} aria-hidden /> : deck.category === 'playable' ? <Info size={14} aria-hidden /> : deck.category === 'unsupported' ? <XCircle size={14} aria-hidden /> : <CircleDashed size={14} aria-hidden />}
-        </span>
-      )}
-      {d.antiCheat && (
-        <span className={`gx-pill ${d.antiCheat.kernel ? 'gx-pill--warn' : ''}`} title={`Linux/Steam Deck status per AreWeAntiCheatYet: ${d.antiCheat.statusLabel}`}>
-          <ShieldAlert size={14} aria-hidden />
-          {d.antiCheat.kernel ? `Kernel anti-cheat (${d.antiCheat.names[0] ?? 'unknown'})` : `Anti-cheat: ${d.antiCheat.names.join(', ')}`}
-        </span>
-      )}
-      <span className="ddetail__compat-src">{deck ? 'Steam Deck results as reported by Valve' : ''}{deck && d.antiCheat ? ' · ' : ''}{d.antiCheat ? 'anti-cheat per AreWeAntiCheatYet' : ''}</span>
-    </div>
-  );
-}
-
 function CloudRow({ d }: { d: DiscoverDetails }) {
   const navigate = useStore((s) => s.navigate);
   if (d.cloud.length > 0) {
@@ -416,35 +365,6 @@ function CloudRow({ d }: { d: DiscoverDetails }) {
   }
   if (d.cloudReason === 'none') return <p className="ddetail__muted ddetail__cloud-off"><Cloud size={14} aria-hidden /> Not listed on GeForce NOW or Xbox Cloud Gaming in your region.</p>;
   return null;
-}
-
-function TtbCard({ ttb }: { ttb: NonNullable<DiscoverDetails['timeToBeat']> }) {
-  const reduce = useReducedMotion();
-  const rows = [
-    { label: 'Main story', s: ttb.hastilySeconds },
-    { label: 'Main + extras', s: ttb.normallySeconds },
-    { label: 'Completionist', s: ttb.completelySeconds },
-  ].filter((r) => r.s);
-  const max = Math.max(...rows.map((r) => r.s ?? 0), 1);
-  return (
-    <section className="gx-card surface ddetail__ttb" aria-labelledby="dd-ttb">
-      <header className="gx-card__head">
-        <h3 id="dd-ttb"><Hourglass size={15} aria-hidden /> Time to beat</h3>
-        <span className="gx-card__meta">From IGDB{ttb.count ? ` · ${ttb.count.toLocaleString()} players` : ''}</span>
-      </header>
-      <ul className="ddetail__ttb-rows">
-        {rows.map((r, i) => (
-          <li key={r.label}>
-            <span className="caps">{r.label}</span>
-            <span className="ddetail__ttb-bar" aria-hidden>
-              <motion.span initial={reduce ? false : { scaleX: 0 }} animate={{ scaleX: (r.s ?? 0) / max }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 + i * 0.08 }} />
-            </span>
-            <strong className="num">{hoursLabel(r.s)}</strong>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
 }
 
 function DealsCard({ itemKey }: { itemKey: string }) {

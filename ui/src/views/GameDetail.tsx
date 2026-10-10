@@ -48,6 +48,8 @@ import { AchievementGuidePanel, CurrentGoalChip } from '../components/game/Achie
 import { FriendsPlayedChip } from '../components/game/FriendsPlayedChip';
 import { PatchNotes } from '../components/game/PatchNotes';
 import { PackageFacts } from '../components/game/NotOwned';
+// Track C4: the "At a glance" stat tiles, community tags and the franchise timeline.
+import { CommunityTags, FranchiseTimeline, GameInsights } from '../components/game/insights/lazy';
 
 // Track AA: tab panels that aren't on the first screen load when their tab opens (not at startup).
 const AchievementsPanel = lazy(() => import('../components/game/AchievementsPanel').then((m) => ({ default: m.AchievementsPanel })));
@@ -112,7 +114,7 @@ export function GameDetailView({ id }: { id: string }) {
           />
         </div>
         <div className="detail__panel">
-          {tab === 'overview' && <Overview game={game} />}
+          {tab === 'overview' && <Overview game={game} onOpenAchievements={() => setTab('achievements')} />}
           {tab === 'sessions' && <Sessions game={game} />}
           {tab === 'versions' && <Versions game={game} />}
           {tab === 'artwork' && <ArtworkTab game={game} />}
@@ -422,7 +424,7 @@ function useNotesAutosave(game: Game) {
   return { status, edit };
 }
 
-function Overview({ game }: { game: Game }) {
+function Overview({ game, onOpenAchievements }: { game: Game; onOpenAchievements: () => void }) {
   const [notes, setNotesText] = useState(game.notes ?? '');
   const notesSave = useNotesAutosave(game);
   useEffect(() => {
@@ -437,9 +439,12 @@ function Overview({ game }: { game: Game }) {
   ].filter(([, v]) => v);
 
   return (
+    <>
+    <GameInsights game={game} onOpenAchievements={onOpenAchievements} />
     <div className="overview">
       <div className="overview__main">
         {game.description ? <p className="overview__desc selectable">{game.description}</p> : <p className="overview__desc" style={{ color: 'var(--text-3)' }}>No description available. VYSTRAL only shows information it can source reliably.</p>}
+        <CommunityTags params={{ gameId: game.id }} cacheKey={game.id} />
         {/* Track I: compatibility badges, IGDB/RAWG facts and deals, each with its source. */}
         {/* Track M: playtime vs IGDB time to beat, and an informative kernel anti-cheat note (each renders nothing without data). */}
         <div className="gd-recap"><TimeToBeatPanel game={game} /><CompletionForecastPanel game={game} /><AntiCheatNote game={game} /></div>
@@ -471,6 +476,8 @@ function Overview({ game }: { game: Game }) {
         </p>
       </aside>
     </div>
+    <FranchiseTimeline params={{ gameId: game.id }} cacheKey={game.id} />
+    </>
   );
 }
 

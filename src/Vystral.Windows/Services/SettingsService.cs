@@ -175,6 +175,9 @@ public sealed class SettingsService
         new BoolDef("immersive.attractTrailers", true),
         // Track AA: the monthly quiet database compaction (VACUUM), only when the PC is idle and plugged in.
         new BoolDef("data.autoCompact", true),
+        // Track C4: Steam's review snapshot and community tags on game pages (and tags as Library filters); both also need "Fetch game details".
+        new BoolDef("dataSources.steamReviews", true),
+        new BoolDef("dataSources.steamTags", true),
     ];
 
     private readonly LibraryRepository _repo;
