@@ -88,6 +88,8 @@
   box-shadow: 0 1px 3px oklch(0 0 0 / 0.4);
 }
 .toggle[aria-checked='true'] .toggle__knob { background: oklch(0.99 0 0); }
+/* Track D6 polish: a switch that can't be changed right now looks it (like disabled buttons). */
+.toggle:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ===== Segmented control ===== */
 .segmented {
