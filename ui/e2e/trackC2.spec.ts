@@ -60,6 +60,20 @@ test.describe('title bar caption space', () => {
   });
 });
 
+for (const scale of [1.25, 1.5]) {
+  test.describe(`title bar at ${scale * 100}% scale`, () => {
+    test.use({ deviceScaleFactor: scale });
+    test('the reserved space is in CSS pixels, so it matches the native inset divided by the scale', async ({ page }) => {
+      // The native side reports RightInset / RasterizationScale: 207 physical px at 150% → 138.
+      await open(page, '?reduced&caption=138');
+      const box = await page.locator('.titlebar__caption-space').boundingBox();
+      expect(box!.width).toBeCloseTo(146, 0);
+      const last = await page.getByRole('button', { name: 'Immersive Mode (F11)' }).boundingBox();
+      expect(last!.x + last!.width).toBeLessThanOrEqual(page.viewportSize()!.width - 146 + 0.5);
+    });
+  });
+}
+
 test.describe('Performance page', () => {
   test('summary band, tabs, overview, sessions, compare and system; axe on every tab', async ({ page }) => {
     const { errors } = await open(page);

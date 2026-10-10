@@ -18,7 +18,8 @@ VYSTRAL is local-first software. There is no VYSTRAL account, no server, no tele
 
 - `ui-state\achievement-goals.json`: the achievement you pinned as *Current goal* on a game page (game ID, achievement name and when), at most one per game. Unpin it on the game page to remove it.
 
-- `logs\` also gets one *Startup timings* line per start (milliseconds for each startup step). It stays on this PC like the rest of the log; VYSTRAL has no telemetry.
+- `logs\` also gets one *Startup timings* line per start (milliseconds for each startup step). It stays on this PC like the rest of the log; VYSTRAL has no telemetry. Settings › About reads these lines back from the app's own daily logs (newest first, at most a few megabytes per file and 50 starts) to chart your recent starts; nothing else in the logs is read for it.
+- The Performance page's *Your rig* card reads the graphics card name and driver version (the same read-only registry entry the sessions use), the processor name, its thread count and the memory size. They're shown, never stored or sent.
 - `ui-state\first-paint.json`: a compact copy of what Home last showed (game titles and ids, cover file addresses in the art cache, a few counts, your theme), so the next start can draw Home at once. No notes, paths or launch options. It is replaced as your library changes and ignored after an update.
 - `update\self-check.json`: the last eight after-update checks (version, time, and passed/failed/skipped for each check). `maintenance\compaction.json`: when the database was last compacted and its size before and after. `backups\pre-compaction.db`: a copy of the database taken just before the last compaction, when there was room for it.
 - `ui-state\health.json`: the ids of library health issues you dismissed (for example `artMissing:<game id>-cover`), with when. *Show dismissed* on the health page clears it.

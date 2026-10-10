@@ -32,6 +32,7 @@ docs/                 documentation
 cd ui; npm run dev            # http://localhost:5173  (?games=5000 for a big library, ?empty, ?onboarding, ?reduced)
                               # Track AA: ?firstpaint (start from the saved Home snapshot), ?slowLibrary=1500,
                               # ?selfCheckFail, ?selfCheckNone, ?compactBusy
+                              # Track C2: ?caption=220 (caption-button width), ?startupSlow, ?startupNone, ?noRig
 
 # Full app
 cd ui; npm run build; cd ..
