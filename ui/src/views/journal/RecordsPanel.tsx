@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { CalendarHeart, Clapperboard, Compass, Flag, Flame, Layers, Lock, Moon, Sunrise, Timer, Undo2 } from 'lucide-react';
+import {
+  CalendarHeart, CalendarRange, Clapperboard, Compass, Crown, Flag, Flame, Gauge, History, Layers, Lock, Moon, Rabbit, Repeat, Shapes, Snowflake, Sofa,
+  Sunrise, Tag, Timer, Trophy, Undo2,
+} from 'lucide-react';
 import type { Game, Session } from '../../bridge/types';
 import { spring } from '../../lib/motion';
 import { useReducedMotion, useStore } from '../../state/store';
@@ -8,8 +11,10 @@ import { openReplay } from '../../state/recap';
 import { IconButton, Skeleton } from '../../components/ui/primitives';
 import { GameThumb } from '../perf/kit';
 import { gameTitle, shortDate, timeOfDay } from '../perf/text';
-import { computeRecords, improvedSince, RECORD_IDS, scoresOf, type PersonalRecord, type RecordId, type Records } from './records';
+import { computeRecords, improvedSince, RECORD_IDS, scoresOf, unlockedSince, type PersonalRecord, type RecordId, type Records } from './records';
 import { recordText } from './recordText';
+import { useRecordContext } from './useRecordContext';
+import { sound } from '../../lib/sound';
 import './records.css';
 
 const SEEN_KEY = 'vystral.records.seen';
@@ -24,12 +29,30 @@ const ICONS: Record<RecordId, ReactNode> = {
   earlyBird: <Sunrise aria-hidden />,
   comeback: <Undo2 aria-hidden />,
   first: <Flag aria-hidden />,
+  // Track D1
+  weekendWarrior: <Sofa aria-hidden />,
+  marathonMonth: <CalendarRange aria-hidden />,
+  gameStreak: <Repeat aria-hidden />,
+  varietyMonth: <Shapes aria-hidden />,
+  achievementDay: <Trophy aria-hidden />,
+  speedrun: <Rabbit aria-hidden />,
+  century: <Crown aria-hidden />,
+  genreHours: <Tag aria-hidden />,
+  oldestGame: <History aria-hidden />,
+  bestFps: <Gauge aria-hidden />,
+  coolest: <Snowflake aria-hidden />,
 };
 
 /** Each badge has its own hue, so the collection reads as a set of distinct medals. */
 const HUE: Record<RecordId, number> = {
   longestSession: 292, bestDay: 20, bestWeek: 55, varietyWeek: 158, streak: 40, nightOwl: 262, earlyBird: 80, comeback: 200, first: 320,
+  // Track D1
+  weekendWarrior: 340, marathonMonth: 10, gameStreak: 30, varietyMonth: 175, achievementDay: 70, speedrun: 130, century: 88, genreHours: 305,
+  oldestGame: 45, bestFps: 225, coolest: 210,
 };
+
+/** Track D1: badges whose unlock fanfare already played in this app session (it plays once). */
+const fanfared = new Set<RecordId>();
 
 function readSeen(): Partial<Record<RecordId, number>> | null {
   try {
@@ -54,7 +77,13 @@ function whenText(id: RecordId, r: PersonalRecord): string {
   if (id === 'streak' && r.until != null) return `${shortDate(r.at)} – ${shortDate(r.until, true)}`;
   if ((id === 'bestWeek' || id === 'varietyWeek') && r.until != null) return `Week of ${shortDate(r.at, true)}`;
   // The badge's value is already the date: say the time instead.
-  if (id === 'first') return `At ${timeOfDay(r.at)}`;
+  if (id === 'first' || id === 'century') return `At ${timeOfDay(r.at)}`;
+  // Track D1
+  if (id === 'weekendWarrior') return `Weekend of ${shortDate(r.at, true)}`;
+  if (id === 'gameStreak' && r.until != null) return `${shortDate(r.at)} – ${shortDate(r.until, true)}`;
+  if (id === 'marathonMonth' || id === 'varietyMonth') return new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(r.at);
+  if (id === 'speedrun') return `Finished ${shortDate(r.at, true)}`;
+  if (id === 'oldestGame') return `First played ${shortDate(r.at, true)}`;
   return shortDate(r.at, true);
 }
 
@@ -65,7 +94,8 @@ function whenText(id: RecordId, r: PersonalRecord): string {
  */
 export function RecordsPanel({ sessions, status, gamesById }: { sessions: Session[]; status: 'loading' | 'ready' | 'error'; gamesById: Map<string, Game> }) {
   const reduce = useReducedMotion();
-  const records = useMemo(() => computeRecords(sessions), [sessions]);
+  const ctx = useRecordContext(gamesById);
+  const records = useMemo(() => computeRecords(sessions, ctx), [sessions, ctx]);
   // "New since last visit" is decided once per visit, then the current scores are remembered.
   const seenAtOpen = useRef(readSeen());
   const fresh = useMemo(() => improvedSince(records, seenAtOpen.current), [records]);
@@ -74,6 +104,18 @@ export function RecordsPanel({ sessions, status, gamesById }: { sessions: Sessio
     const t = window.setTimeout(() => writeSeen(records), 1200);
     return () => window.clearTimeout(t);
   }, [records, status]);
+  // Track D1: a badge earned since the last visit gets a one-time fanfare — a metallic glint across it and a soft chime
+  // (only with interface sounds on; reduced motion keeps the chime and drops the sweep).
+  const unlocked = useMemo(() => (status === 'ready' ? unlockedSince(records, seenAtOpen.current).filter((id) => !fanfared.has(id)) : []), [records, status]);
+  const [fanfare, setFanfare] = useState<ReadonlySet<RecordId>>(() => new Set());
+  useEffect(() => {
+    if (!unlocked.length) return;
+    for (const id of unlocked) fanfared.add(id);
+    setFanfare((cur) => new Set([...cur, ...unlocked]));
+    writeSeen(records); // it plays once, even if the page is left at once
+    const t = window.setTimeout(() => sound.chime(), reduce ? 150 : 900);
+    return () => window.clearTimeout(t);
+  }, [unlocked, records, reduce]);
 
   if (status === 'loading') {
     return (
@@ -99,17 +141,18 @@ export function RecordsPanel({ sessions, status, gamesById }: { sessions: Sessio
       </header>
       <ol className="jr-recs__grid">
         {RECORD_IDS.map((id, i) => (
-          <Badge key={id} id={id} r={records[id]} game={records[id]?.gameId ? gamesById.get(records[id]!.gameId!) : undefined} index={i} isNew={fresh.has(id)} reduce={reduce} />
+          <Badge key={id} id={id} r={records[id]} game={records[id]?.gameId ? gamesById.get(records[id]!.gameId!) : undefined} index={i} isNew={fresh.has(id)} reduce={reduce} fanfare={fanfare.has(id)} />
         ))}
       </ol>
       <p className="jr-footnote">
         Records come only from finished sessions VYSTRAL recorded, in your time zone. A game that’s still running, and playtime your stores report, don’t count. A session past midnight counts for both days.
+        {' '}Achievement, genre and release-year badges also read your achievements and library; frame-rate and temperature badges count sessions of 20 minutes or more; Speedrunner compares your tracked play with IGDB’s time to beat, when you have one.
       </p>
     </section>
   );
 }
 
-function Badge({ id, r, game, index, isNew, reduce }: { id: RecordId; r: PersonalRecord | undefined; game: Game | undefined; index: number; isNew: boolean; reduce: boolean }) {
+function Badge({ id, r, game, index, isNew, reduce, fanfare }: { id: RecordId; r: PersonalRecord | undefined; game: Game | undefined; index: number; isNew: boolean; reduce: boolean; fanfare: boolean }) {
   const copy = recordText(id, r);
   const style = { ['--hue' as string]: HUE[id], ['--i' as string]: index } as React.CSSProperties;
   const entrance = {
@@ -138,7 +181,8 @@ function Badge({ id, r, game, index, isNew, reduce }: { id: RecordId; r: Persona
   const when = whenText(id, r);
   const openDay = () => useStore.getState().navigate({ name: 'journal', tab: 'sessions', day: r.day });
   return (
-    <motion.li className="jr-rec" data-new={isNew || undefined} style={style} {...entrance}>
+    <motion.li className="jr-rec" data-new={isNew || undefined} data-fanfare={fanfare || undefined} style={style} {...entrance}>
+      {fanfare && !reduce && <span className="jr-rec__fanfare" aria-hidden />}
       <button
         type="button"
         className="jr-rec__card"

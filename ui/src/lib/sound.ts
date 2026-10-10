@@ -166,5 +166,7 @@ export const sound = {
     playSpatial(spatialSound(kind, mood, p));
   },
   back: () => play([740, 520], 0.06, 0.06),
+  /** Track D1: a soft, rising three-note chime for a personal-record badge earned for the first time. */
+  chime: () => play([1318.5, 1975.5, 2637], 0.42, 0.045),
   launch: () => play([392, 523, 784], 0.16, 0.08),
 };
