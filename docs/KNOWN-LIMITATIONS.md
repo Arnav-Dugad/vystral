@@ -158,3 +158,9 @@
 - The self-check's bridge round trip is skipped (not failed) when the interface is suspended for a game or doesn't answer within 30 s.
 - Automatic compaction needs ten idle minutes on mains power; a PC that is always busy or on battery only compacts with *Compact now*. Idle time is the time since the last input in this Windows session.
 - The real-app startup gain hasn't been measured yet (see PERFORMANCE.md); the numbers come from a WebView2 harness hosting the real interface.
+
+**Immersive Discover and personal records (0.8, Track C6)**
+- Immersive Discover uses the same search channel as the desktop Discover page (they are never on screen together), so the last Immersive search replaces the page's cached answer and the page searches again when you return to it.
+- *More from series you play* is a search idea built from your own titles (subtitles, numerals and edition words removed), not a recommendation service; games with generic names give generic searches.
+- The Steam wishlist row only appears when the wishlist is on and was already loaded on the desktop; Immersive never starts a refresh. A wishlisted game no connected source knows can't be looked up, so its page shows what the wishlist knew and *Try again*.
+- Records count local days and weeks (Monday first) in the time zone the PC has now: changing the time zone, or travelling, can move a past session to another day. Sessions the background tracker recorded while VYSTRAL was closed never bring a toast, though the badges count them.
