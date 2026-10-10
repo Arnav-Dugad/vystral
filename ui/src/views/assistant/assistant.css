@@ -1,6 +1,10 @@
 /* ===== Assistant ===== */
 .as-page { display: flex; flex-direction: column; gap: var(--s-5); }
 .as-page--chat { padding-bottom: 0; }
+/* Track C5: Chat / Tonight tabs. */
+.as-tabs { display: flex; justify-content: center; }
+.as-tabpanel { display: flex; flex-direction: column; gap: var(--s-5); flex: 1; min-height: 0; }
+.as-tabpanel > .ai-tonight { width: 100%; margin: 0 auto; }
 
 .as-paused {
   display: flex;

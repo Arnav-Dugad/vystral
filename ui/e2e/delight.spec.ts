@@ -73,7 +73,7 @@ test.describe('store logos', () => {
     await expect(card('igdb')).toHaveAttribute('aria-hidden', 'true');
     expect(await seriousViolations(page)).toEqual([]);
 
-    await page.getByRole('button', { name: 'Local AI' }).click();
+    await page.getByRole('button', { name: 'AI', exact: true }).click(); // Track C5: the section is "AI" (local and cloud)
     await expect(page.locator('.sgroup__desc svg.service-logo[data-service="ollama"]')).toBeVisible();
 
     await nav(page, /Library/);
@@ -209,6 +209,8 @@ test.describe('achievement shimmer', () => {
     await expect(fresh.first()).toBeVisible();
     expect(await fresh.first().getAttribute('data-tier')).toMatch(/^(common|rare|ultra)$/);
     await nav(page, 'Home');
+    // Wait for the Journal to finish leaving: going back during its exit transition brings the same page back.
+    await expect(page.locator('.page.jr')).toHaveCount(0);
     await nav(page, 'Journal');
     await page.getByRole('tab', { name: /Achievements/ }).click();
     await expect(page.getByRole('heading', { name: 'Unlock timeline' })).toBeVisible();

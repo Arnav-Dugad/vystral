@@ -12,6 +12,7 @@ import { Dialog } from '../ui/Dialog';
 import { drawReplay, type ReplayImages, type ReplayTheme } from './drawReplay';
 import { logoTone } from '../../lib/logoTone';
 import './replay.css';
+import { RecapCaption } from '../ai/RecapCaption'; // Track C5
 
 /** Loads an image as a bitmap through fetch (art host or data: URL), so the canvas never becomes tainted. */
 async function bitmap(url: string | null | undefined): Promise<ImageBitmap | null> {
@@ -195,6 +196,7 @@ function ReplayDialog({ sessionId, onClose }: { sessionId: string | null; onClos
           <>
             <canvas ref={canvasRef} className="replay__canvas" role="img" aria-label={summary} data-done={done || undefined} />
             {model.achievementsNote && <p className="replay__note">{model.achievementsNote}.</p>}
+            <RecapCaption sessionId={model.sessionId} />
             <p className="replay__foot">Saved images are 1920×1080 PNG. Nothing is uploaded anywhere; you choose where the file goes.</p>
           </>
         )}

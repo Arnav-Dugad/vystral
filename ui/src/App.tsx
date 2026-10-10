@@ -29,6 +29,8 @@ import { GameDetailView } from './views/GameDetail';
 // Track U: eager for the same reason (the search result → page cover flight).
 import { DiscoverGameView } from './views/DiscoverGame';
 import { FieldKeyboardHost } from './components/controller/FieldKeyboard';
+import { Sparkles } from 'lucide-react';
+import { openSmartCollection, SmartCollectionHost } from './components/ai/SmartCollectionDialog'; // Track C5
 import './components/shell/shell.css';
 
 const SettingsView = lazy(() => import('./views/Settings').then((m) => ({ default: m.SettingsView })));
@@ -129,6 +131,7 @@ export default function App() {
       <UpdateCenterDialog />
       <WhatsNewHost />
       <NewCollectionDialog />
+      <SmartCollectionHost />
       <Toaster />
       <FieldKeyboardHost />
     </>
@@ -339,6 +342,11 @@ function NewCollectionDialog() {
       }
     >
       <p style={{ marginBottom: 12 }}>Group games however you like. Add games from their right-click menu or details page.</p>
+      {/* Track C5: or describe the games and let the collection keep itself up to date. */}
+      <p className="ai-smart-offer">
+        <Sparkles size={13} aria-hidden /> Or describe the games and let VYSTRAL keep it up to date:{' '}
+        <button type="button" className="ai-link" onClick={() => { setOpen(false); openSmartCollection(name.trim()); }}>Smart collection…</button>
+      </p>
       <input
         className="input"
         data-autofocus

@@ -140,6 +140,19 @@ public sealed partial class SteamNewsService
         return ToDto(cached, Now() - cached.Fetched >= Ttl, null);
     }
 
+    /// <summary>
+    /// Track C5: a cached post as plain blocks (kind + text, images and rules left out) for the optional AI summary.
+    /// Only posts this app already fetched and cached can be summarized; nothing is fetched here.
+    /// </summary>
+    public (string Title, DateTimeOffset Date, IReadOnlyList<(string Kind, string Text)> Blocks)? PostForSummary(string appId, string gid)
+    {
+        if (!IsAppId(appId) || Read(appId)?.Posts.FirstOrDefault(p => p.Gid == gid) is not { } post) return null;
+        var blocks = post.Blocks.Where(b => b.Kind is not ("img" or "hr"))
+            .Select(b => (b.Kind, Text: string.Concat(b.Spans.Select(s => s.Text)).Trim()))
+            .Where(b => b.Text.Length > 0).ToList();
+        return (post.Title, post.Date, blocks);
+    }
+
     /// <summary>The full post on Steam, built natively from the validated appid and a post id this app's cache lists.</summary>
     public Uri? PostUrl(string appId, string gid) =>
         IsAppId(appId) && Read(appId)?.Posts.Any(p => p.Gid == gid) == true ? new Uri($"https://store.steampowered.com/news/app/{appId}/view/{gid}") : null;

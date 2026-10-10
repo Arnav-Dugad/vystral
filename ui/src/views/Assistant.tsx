@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import type { AiStatus } from '../bridge/types';
 import { call, errorMessage, on } from '../bridge/bridge';
-import { Badge, Button, IconButton, Kbd, ProgressBar, Skeleton, Toggle } from '../components/ui/primitives';
+import { Badge, Button, IconButton, Kbd, ProgressBar, Skeleton, Tabs, Toggle, tabPanelProps } from '../components/ui/primitives';
+import { TonightPanel } from '../components/ai/TonightPanel'; // Track C5
 import { Dialog } from '../components/ui/Dialog';
 import { ServiceLogo } from '../components/ui/ServiceLogo';
 import { useGameRunning, useReducedMotion, useStore } from '../state/store';
@@ -31,6 +32,9 @@ export function AssistantView() {
   const [status, setStatus] = useState<AiStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Track C5: "Tonight" (picks from your library, with or without AI) beside the local chat.
+  const [view, setView] = useState<'chat' | 'tonight'>(() => (assistantView === 'tonight' ? 'tonight' : 'chat'));
+  useEffect(() => { assistantView = view; }, [view]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -60,7 +64,14 @@ export function AssistantView() {
   const chatMode = enabled && status?.running && status.selectedModelInstalled;
 
   return (
-    <div className={`page as-page ${chatMode ? 'as-page--chat' : ''}`}>
+    <div className={`page as-page ${chatMode && view === 'chat' ? 'as-page--chat' : ''}`}>
+      <div className="as-tabs">
+        <Tabs label="Assistant" idBase="assistant" value={view} onChange={setView} tabs={[{ value: 'chat', label: 'Chat' }, { value: 'tonight', label: 'Tonight' }]} />
+      </div>
+      {view === 'tonight' ? (
+        <div role="tabpanel" {...tabPanelProps('assistant', 'tonight')} className="as-tabpanel"><TonightPanel /></div>
+      ) : (
+      <div role="tabpanel" {...tabPanelProps('assistant', 'chat')} className="as-tabpanel">
       {enabled && running && (
         <div className="as-paused" role="status">
           <Pause size={16} aria-hidden />
@@ -70,9 +81,14 @@ export function AssistantView() {
         </div>
       )}
       {body}
+      </div>
+      )}
     </div>
   );
 }
+
+/** Track C5: the Assistant remembers its tab while the app runs. */
+let assistantView: 'chat' | 'tonight' = 'chat';
 
 /* ---------------------------------------------------------------------------------- (a) */
 

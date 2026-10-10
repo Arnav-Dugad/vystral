@@ -9,6 +9,7 @@ import { spring } from '../../lib/motion';
 import { useReducedMotion, useStore } from '../../state/store';
 import { Badge, Button, EmptyState, Skeleton } from '../ui/primitives';
 import './steam-extras.css';
+import { PatchSummary } from '../ai/PatchSummary'; // Track C5
 
 type Load = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'done'; data: NewsFeed };
 
@@ -164,6 +165,7 @@ function NewsItem({ game, post, index, fresh, open, onToggle, onChange }: {
             exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0, transition: { duration: 0.18 } }}
             transition={reduce ? { duration: 0.15 } : spring.panel}
           >
+            <PatchSummary gameId={game.id} gid={post.gid} />
             <NewsBody blocks={post.blocks} />
             <div className="news-item__foot">
               {post.author && <span className="news-item__author">Posted by {post.author}</span>}

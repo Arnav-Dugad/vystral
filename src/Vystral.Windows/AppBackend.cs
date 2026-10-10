@@ -121,6 +121,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterGamePageHandlers();       // AppBackend.GamePage.cs: review snapshot, store facts and price history, community tags, franchise timeline (Track C4)
         RegisterMaintenanceHandlers();    // AppBackend.Maintenance.cs: first-paint snapshot, startup timings, after-update self-check, compaction (Track AA)
         RegisterLibraryCorrectnessHandlers(); // AppBackend.LibraryCorrectness.cs: Xbox package sizes in the background (Track C1)
+        RegisterAiFeatureHandlers();      // AppBackend.AiFeatures.cs: optional cloud AI providers and AI-assisted features (Track C5)
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

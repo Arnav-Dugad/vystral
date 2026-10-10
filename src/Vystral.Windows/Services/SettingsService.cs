@@ -178,7 +178,28 @@ public sealed class SettingsService
         // Track C4: Steam's review snapshot and community tags on game pages (and tags as Library filters); both also need "Fetch game details".
         new BoolDef("dataSources.steamReviews", true),
         new BoolDef("dataSources.steamTags", true),
+        // Track C5: which AI powers AI features (local Ollama or one cloud provider), each cloud provider's explicit opt-in and
+        // model, the OpenAI-compatible endpoint's address (keys live only in Windows Credential Manager, never here), and a
+        // switch per AI feature.
+        new EnumDef("ai.provider", "local", "local", "anthropic", "openai", "gemini", "compatible"),
+        new BoolDef("ai.cloud.anthropic.optIn", false),
+        new BoolDef("ai.cloud.openai.optIn", false),
+        new BoolDef("ai.cloud.gemini.optIn", false),
+        new BoolDef("ai.cloud.compatible.optIn", false),
+        new EnumDef("ai.cloud.anthropic.model", "claude-sonnet-5-5", "claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-4-5-20251001"),
+        new StringDef("ai.cloud.openai.model", "", 120, CloudModelPattern),
+        new StringDef("ai.cloud.gemini.model", "", 120, CloudModelPattern),
+        new StringDef("ai.cloud.compatible.model", "", 120, CloudModelPattern),
+        new StringDef("ai.cloud.compatible.url", "", 200, @"^(https://[A-Za-z0-9.\-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~\-/]*)?)?\z"),
+        new BoolDef("ai.features.journal", true),
+        new BoolDef("ai.features.patchNotes", true),
+        new BoolDef("ai.features.tonight", true),
+        new BoolDef("ai.features.smartCollections", true),
+        new BoolDef("ai.features.duplicates", true),
+        new BoolDef("ai.features.recapCaptions", false),
     ];
+
+    private const string CloudModelPattern = @"^([A-Za-z0-9][A-Za-z0-9._:/\-]{0,119})?\z";
 
     private readonly LibraryRepository _repo;
     private readonly Dictionary<string, Def> _defs = Definitions.ToDictionary(d => d.Key);
