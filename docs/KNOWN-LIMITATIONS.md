@@ -158,3 +158,8 @@
 - The self-check's bridge round trip is skipped (not failed) when the interface is suspended for a game or doesn't answer within 30 s.
 - Automatic compaction needs ten idle minutes on mains power; a PC that is always busy or on battery only compacts with *Compact now*. Idle time is the time since the last input in this Windows session.
 - The real-app startup gain hasn't been measured yet (see PERFORMANCE.md); the numbers come from a WebView2 harness hosting the real interface.
+
+**Performance page and title bar (v0.8, Track C2)**
+- The startup chart in Settings › About reads the local logs, which are kept for 7 days, so it shows at most the starts of the last week (up to 20). A start that never reached "ready" isn't shown.
+- Session health ("smooth", "some hitches", "rough") needs frame-rate capture; without it a session is "FPS not measured", whatever its CPU or temperature figures. Sharp-drop markers come from two-second samples, so a single hitch shorter than that can be averaged away.
+- The title bar reserves the caption buttons' width reported by Windows; until the window has reported it (a fraction of a second after start), it assumes Windows 11's 138 px. The real-app check at 100/125/150% scaling, maximized and restored, is still to be done after merging (the scaling maths and the layout are covered by tests).
