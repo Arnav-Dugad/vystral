@@ -64,7 +64,7 @@ test.describe('library', () => {
   test('filters with quick filters and inline language', async ({ page }) => {
     await open(page);
     await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /Library/ }).click();
-    await page.getByRole('button', { name: 'Favorites' }).click();
+    await page.getByRole('toolbar', { name: 'Quick filters' }).getByRole('button', { name: 'Favorites', exact: true }).click();
     const cards = page.locator('.vgrid [data-game-id]');
     await expect(cards.first()).toBeVisible();
     const favCount = await cards.count();
