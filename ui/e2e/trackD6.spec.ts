@@ -50,6 +50,8 @@ test.describe('app currency', () => {
     const { errors, external } = await open(page, '?wishlist&reduced');
     // The browser region is US: prices are in dollars, exact.
     await nav(page, 'Wishlist');
+    // The wishlist opens as a release calendar (Track D2); the cards with prices are its list view (remembered).
+    await page.getByRole('button', { name: 'Show as list' }).click();
     const card = page.getByRole('list', { name: /wishlisted games/ }).getByRole('listitem').filter({ hasText: 'Starward Couriers' });
     await expect(card.locator('.wish-card__now')).toHaveText(/^\$\d/);
 
@@ -94,6 +96,8 @@ test.describe('app currency', () => {
   test('without exchange rates prices stay in their own currency', async ({ page }) => {
     const { errors } = await open(page, '?wishlist&reduced&fxNone&currency=INR');
     await nav(page, 'Wishlist');
+    // The wishlist opens as a release calendar (Track D2); the cards with prices are its list view (remembered).
+    await page.getByRole('button', { name: 'Show as list' }).click();
     const card = page.getByRole('list', { name: /wishlisted games/ }).getByRole('listitem').filter({ hasText: 'Starward Couriers' });
     await expect(card.locator('.wish-card__now')).toHaveText(/^\$\d/);
     await settings(page, 'Appearance');

@@ -77,7 +77,13 @@ export default defineConfig({
     chunkSizeWarningLimit: 900,
     rollupOptions: {
       output: {
-        manualChunks: (id) => (id.includes('node_modules/three') ? 'three' : id.includes('node_modules/motion') ? 'motion' : undefined),
+        manualChunks: (id) =>
+          id.includes('node_modules/three') ? 'three'
+          : id.includes('node_modules/motion') ? 'motion'
+          // React and the icon set change rarely: their own chunks keep the app's chunk small and cacheable.
+          : /node_modules[\/](react|react-dom|scheduler)[\/]/.test(id) ? 'react'
+          : id.includes('node_modules/lucide-react') ? 'icons'
+          : undefined,
       },
     },
   },
