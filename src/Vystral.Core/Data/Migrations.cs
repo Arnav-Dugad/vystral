@@ -361,5 +361,24 @@ internal static class Migrations
             ALTER TABLE installations ADD COLUMN installed_at TEXT;
             ALTER TABLE installations ADD COLUMN size_version TEXT;
             """),
+        (10, "library power tools: played marks, observed game versions", """
+            -- Track D1: when the user marked a game as played somewhere VYSTRAL can't see (another PC, a console, a store
+            -- that reports no playtime). NULL = not marked. It only takes the game out of "never played"; it adds no playtime.
+            ALTER TABLE games ADD COLUMN played_marked TEXT;
+
+            -- Track D1: game versions VYSTRAL has seen, for the game page's update timeline: Steam's appmanifest buildid
+            -- ('steamBuild') and the Xbox package version ('xboxPackage'). A row is added only when the value differs from
+            -- the installation's newest row (the first sighting is the baseline). store_updated = when the store says the
+            -- version was installed (Steam's LastUpdated, the package's install date), if it says. Newest 100 kept per copy.
+            CREATE TABLE installation_versions (
+                id              INTEGER PRIMARY KEY,
+                installation_id TEXT NOT NULL,
+                kind            TEXT NOT NULL,
+                value           TEXT NOT NULL,
+                seen            TEXT NOT NULL,
+                store_updated   TEXT
+            );
+            CREATE INDEX ix_installation_versions ON installation_versions(installation_id, kind, id);
+            """),
     ];
 }

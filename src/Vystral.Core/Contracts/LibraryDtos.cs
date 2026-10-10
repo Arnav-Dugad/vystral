@@ -62,6 +62,8 @@ public sealed record GameDto(
     /// </summary>
     public bool NotOwned { get; init; }
     public bool UserHidden { get; init; }
+    /// <summary>Track D1: when the user marked the game as played elsewhere (takes it out of "never played"); null = not marked.</summary>
+    public string? PlayedMarkedAt { get; init; }
 }
 
 public sealed record CollectionDto(string Id, string Name, string? Icon, int SortOrder, string? Rule, int Count);

@@ -199,6 +199,7 @@ public sealed partial class AppBackend
         }
 
         var report = Repository.ApplyScan([result]);
+        Library.RecordVersions([result]); // Track D1
         foreach (var found in result.Installations.Where(f => f.LocalArtwork.Count > 0))
         {
             var inst = Repository.GetInstallationsByPlatformId(found.Platform, found.PlatformGameId);

@@ -74,6 +74,7 @@ public sealed class LibraryService
             foreach (var r in results) _lastResults[r.Platform] = r;
 
             var report = _repo.ApplyScan(results);
+            RecordVersions(results); // Track D1: the game page's update timeline
             ImportLocalArtwork(results);
             Log.Info("library", "Scan applied", report);
             _events.Emit("library.scan", new
@@ -91,6 +92,16 @@ public sealed class LibraryService
         finally
         {
             _scanLock.Release();
+        }
+    }
+
+    /// <summary>Track D1: remembers Steam builds and Xbox package versions as they change (never fails a scan).</summary>
+    public void RecordVersions(IReadOnlyList<AdapterScanResult> results)
+    {
+        try { _repo.RecordVersions(ObservedVersions.From(results)); }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or InvalidOperationException)
+        {
+            Log.Warn("library", "Couldn't record game versions", ex: ex);
         }
     }
 
