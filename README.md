@@ -13,7 +13,7 @@
 
 ---
 
-## Install (for friends)
+## Install
 
 1. Click **[Download VYSTRAL for Windows](https://github.com/Arnav-Dugad/vystral/releases/latest/download/Vystral-win-Setup.exe)** — that link always points to the newest version.
 2. Run `Vystral-win-Setup.exe`. It installs just for you (no administrator rights) and adds Desktop and Start-menu shortcuts.
