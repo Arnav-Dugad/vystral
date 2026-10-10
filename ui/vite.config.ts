@@ -62,7 +62,7 @@ function changelog(): Plugin {
     load(id) {
       if (id !== '\0' + CHANGELOG_ID) return;
       this.addWatchFile(file);
-      const releases = existsSync(file) ? parseChangelog(readFileSync(file, 'utf8')).slice(0, 8) : [];
+      const releases = existsSync(file) ? parseChangelog(readFileSync(file, 'utf8')).slice(0, 12) : [];
       return `export const releases = ${JSON.stringify(releases)};`;
     },
   };

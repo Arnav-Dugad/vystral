@@ -63,9 +63,10 @@ describe('changelog parsing', () => {
 
   it('parses the real CHANGELOG.md at build time', () => {
     expect(RELEASES.length).toBeGreaterThan(3);
-    const v030 = RELEASES.find((r) => r.version === '0.3.0')!;
-    expect(v030.sections.some((s) => s.title === 'Library')).toBe(true);
-    expect(highlightsOf(v030).length).toBeGreaterThanOrEqual(3);
+    // Any recent feature release with a Library section (the build keeps only the newest ones).
+    const withLibrary = RELEASES.find((r) => r.sections.some((s) => s.title === 'Library'))!;
+    expect(withLibrary).toBeTruthy();
+    expect(highlightsOf(withLibrary).length).toBeGreaterThanOrEqual(3);
     for (const r of RELEASES) expect(r.version).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
