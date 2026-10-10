@@ -179,8 +179,10 @@ public static class JournalQuery
     public static JournalResultDto Execute(JournalSpec spec, IReadOnlyList<SessionDto> sessions, IReadOnlyList<GameDto> games, IReadOnlyList<string> unmatched, TimeZoneInfo? zone = null)
     {
         zone ??= TimeZoneInfo.Local;
-        var byId = games.ToDictionary(g => g.Id, StringComparer.Ordinal);
-        var installPlatform = games.SelectMany(g => g.Installations).ToDictionary(i => i.Id, i => i.Platform, StringComparer.Ordinal);
+        var byId = new Dictionary<string, GameDto>(StringComparer.Ordinal);
+        foreach (var g in games) byId.TryAdd(g.Id, g);
+        var installPlatform = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var i in games.SelectMany(g => g.Installations)) installPlatform.TryAdd(i.Id, i.Platform);
         DateOnly? from = spec.From is null ? null : DateOnly.ParseExact(spec.From, "yyyy-MM-dd", CultureInfo.InvariantCulture);
         DateOnly? to = spec.To is null ? null : DateOnly.ParseExact(spec.To, "yyyy-MM-dd", CultureInfo.InvariantCulture);
         var notes = new List<string>();
