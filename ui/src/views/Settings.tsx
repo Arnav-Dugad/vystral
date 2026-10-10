@@ -35,6 +35,7 @@ import { EnergySettings } from './settings/EnergySettings';
 import { BatteryHistoryCard } from '../components/controller/BatteryHistoryCard';
 import { CloudQueueAlertSettings, SubscriptionsSettings } from './settings/SubscriptionsSettings';
 import { CompactionSettings, SelfCheckSettings } from './settings/MaintenanceSettings';
+import { StartupTimings } from './settings/StartupTimings';
 import './settings.css';
 
 interface Section {
@@ -455,6 +456,7 @@ function DataSection() {
 function About() {
   const info = useStore((s) => s.info);
   return (
+    <>
     <div className="about surface">
       <img src="./vystral-mark.svg" alt="" width={72} height={72} />
       <div>
@@ -474,5 +476,8 @@ function About() {
         {info?.os && <p className="srow__hint num" style={{ marginTop: 16 }}>{info.os} · {info.cpuCount} logical CPUs</p>}
       </div>
     </div>
+    {/* Track C2: recent startup timings from the local log. */}
+    <StartupTimings />
+    </>
   );
 }
