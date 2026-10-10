@@ -42,8 +42,9 @@
 
 .gi-tile__head { display: flex; align-items: center; gap: 8px; min-height: 20px; }
 .gi-tile__icon { display: inline-grid; place-items: center; color: var(--gi-tone, var(--text-3)); }
-.gi-tile__label { font-size: var(--fs-xs); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gi-tile__action { margin-left: auto; }
+/* The label gives way (ellipsis) before the action does. */
+.gi-tile__label { flex: 1 1 auto; font-size: var(--fs-xs); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-3); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gi-tile__action { margin-left: auto; flex: none; white-space: nowrap; }
 .gi-tile__value { font-size: var(--fs-2xl); font-weight: var(--fw-semibold); letter-spacing: -0.015em; line-height: 1.15; color: var(--text-1); margin-top: 2px; }
 .gi-tile__sub { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.4; }
 .gi-tile__visual { margin-top: auto; padding-top: var(--s-3); }
@@ -54,6 +55,7 @@
 .gi-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .gi-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .gi-note { font-size: var(--fs-xs); color: var(--text-3); }
+.gi-note-inline { color: var(--text-3); }
 
 /* Meter: one hue on a lighter step of the same hue. */
 .gi-meter { position: relative; display: block; height: 6px; border-radius: 3px; background: oklch(from var(--gi-meter, var(--accent)) l c h / 0.16); overflow: hidden; }
@@ -89,7 +91,7 @@
 /* Review snapshot */
 .gi-verdict { font-weight: var(--fw-semibold); color: var(--text-1); }
 .gi-rev { display: grid; gap: 8px; }
-.gi-rev__row, .gi-ratings li { display: grid; grid-template-columns: 74px minmax(0, 1fr) 46px; align-items: center; gap: 10px; }
+.gi-rev__row, .gi-ratings li { display: grid; grid-template-columns: 92px minmax(0, 1fr) 46px; align-items: center; gap: 10px; }
 .gi-rev__k, .gi-ratings__k { font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gi-rev__v, .gi-ratings__v { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text-1); text-align: right; font-variant-numeric: tabular-nums; }
 .gi-trend { display: flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--text-2); }
@@ -108,7 +110,7 @@
 .gi-pchart__area { fill: oklch(from var(--accent) l c h / 0.1); stroke: none; }
 .gi-pchart__dot { fill: var(--accent); }
 .gi-pchart__low { stroke: var(--ok); stroke-width: 1; opacity: 0.8; shape-rendering: crispEdges; }
-.gi-pchart__tick { position: absolute; right: 0; top: -2px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); pointer-events: none; }
+.gi-pchart__tick { position: absolute; right: 0; top: -17px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); pointer-events: none; }
 .gi-pchart__lowlabel { position: absolute; left: 0; font-size: 10.5px; color: var(--text-3); pointer-events: none; }
 .gi-ppos__track { position: relative; display: block; height: 6px; border-radius: 3px; background: linear-gradient(90deg, oklch(from var(--ok) l c h / 0.55), oklch(from var(--accent) l c h / 0.2)); }
 .gi-ppos__mark { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--text-1); box-shadow: 0 0 0 2px var(--bg-1); }
@@ -240,6 +242,7 @@
   backdrop-filter: blur(20px);
   box-shadow: var(--shadow-3), 0 0 0 1px var(--line-strong);
 }
+.lib-tagpick__panel[data-align='right'] { left: auto; right: 0; }
 .lib-tagpick__list { overflow-y: auto; margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
 .lib-tagpick__opt { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border-radius: var(--r-sm); text-align: left; font-size: var(--fs-sm); color: var(--text-1); }
 .lib-tagpick__opt:hover, .lib-tagpick__opt[data-active] { background: var(--bg-3); }

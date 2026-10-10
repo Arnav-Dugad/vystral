@@ -105,7 +105,7 @@ function Timeline({ f }: { f: Franchise }) {
       <div className="gi-ft__scroller" ref={scroller} onScroll={updateEdges} data-start={edges.start || undefined} data-end={edges.end || undefined}>
         <ol className="gi-ft__track" aria-label={`${f.name}: ${f.entries.length} games by release year. Use the arrow keys to move between them.`} onKeyDown={onKey}>
           {cols.map((c, k) => c.kind === 'gap' ? (
-            <li key={`gap-${k}`} className="gi-ft__gap" aria-hidden><span>{c.to - c.from - 1} years</span></li>
+            <li key={`gap-${k}`} className="gi-ft__gap" aria-hidden><span>{c.to - c.from - 1}-year gap</span></li>
           ) : (
             <motion.li key={c.e.igdbId} className="gi-ft__item" data-owned={c.e.gameId ? true : undefined} data-current={c.e.current || undefined}
               initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: Math.min(c.i, 12) * 0.04, ease: [0.16, 1, 0.3, 1] }}>

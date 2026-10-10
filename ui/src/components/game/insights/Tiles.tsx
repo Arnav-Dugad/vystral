@@ -96,7 +96,7 @@ export function SessionsTile({ sessions, index }: { sessions: Session[]; index: 
     <StatTile
       index={index} testId="tile-sessions" label="Last 12 weeks" icon={<CalendarDays size={15} />}
       value={total ? formatDuration(total) : 'Not played'}
-      sub={total ? `${plural(count, 'session')} · busiest week ${weekLabel(busiest.start)}` : 'No sessions in the last 12 weeks'}
+      sub={total ? `${plural(count, 'session')}${weeks.filter((w) => w.seconds).length > 1 ? ` · busiest week ${weekLabel(busiest.start)}` : ''}` : 'No sessions in the last 12 weeks'}
       visual={
         <div className="vx-chart gi-spark" ref={ref} tabIndex={0} role="img" aria-roledescription="chart" aria-describedby={`${id}-read`}
           aria-label={`Play time per week for the last 12 weeks. ${total ? `${formatDuration(total)} in total.` : 'Not played.'} Use the arrow keys to read each week.`}
@@ -142,7 +142,7 @@ export function AchievementsTile({ p, onOpen, index }: { p: AchievementProgress;
       index={index} testId="tile-achievements" label="Achievements" icon={<Trophy size={15} />}
       tone={p.total > 0 && p.unlocked === p.total ? 'ok' : undefined}
       value={<span className="gi-split"><span>{p.unlocked}<span className="gi-of"> / {p.total}</span></span><Ring value={frac} label={`${Math.round(frac * 100)}% of achievements unlocked`} size={56} /></span>}
-      sub={p.unlocked === p.total && p.total ? 'Every achievement unlocked' : p.rarestName && p.rarestPercent != null ? <>Rarest: {p.rarestName} <span className="num">({p.rarestPercent.toFixed(1)}% of players)</span></> : `${p.total - p.unlocked} still to unlock`}
+      sub={p.unlocked === p.total && p.total ? 'Every achievement unlocked' : p.rarestName && p.rarestPercent != null ? <>Rarest: {p.rarestName} ({p.rarestPercent.toFixed(1)}% of players)</> : `${p.total - p.unlocked} still to unlock`}
       action={onOpen && <button className="gi-link" onClick={onOpen}>See all <ArrowRight size={12} aria-hidden /></button>}
       source={`Steam, as last saved by VYSTRAL${checked(p.fetchedAt)}`}
     />
@@ -305,9 +305,9 @@ export function PriceTile({ facts, deals, fallback, index }: {
             </div>
           )}
           <dl className="gi-regions">
-            {(sold || fallback?.text) && <div><dt>Steam · {facts?.country ?? 'store'}</dt><dd className="num">{sold ? facts!.priceText ?? headline : fallback?.text}</dd></div>}
-            {best && <div><dt>Best deal now</dt><dd><span className="num">{formatMoney(Math.round(best.o.price * 100), best.q.currency)}</span> at {best.o.shop}{best.o.cut > 0 ? ` (−${best.o.cut}%)` : ''}</dd></div>}
-            {anyLow && <div><dt>Lowest ever</dt><dd><span className="num">{formatMoney(Math.round(anyLow.historicalLow! * 100), anyLow.currency)}</span>{anyLow.historicalLowAt ? ` · ${formatDate(anyLow.historicalLowAt, { month: 'short', year: 'numeric' })}` : ''}</dd></div>}
+            {(sold || fallback?.text) && <div><dt>Steam · {facts?.country ?? 'store'}</dt><dd>{sold ? facts!.priceText ?? headline : fallback?.text}</dd></div>}
+            {best && <div><dt>Best deal now</dt><dd>{formatMoney(Math.round(best.o.price * 100), best.q.currency)} at {best.o.shop}{best.o.cut > 0 ? ` (−${best.o.cut}%)` : ''}</dd></div>}
+            {anyLow && <div><dt>Lowest ever</dt><dd>{formatMoney(Math.round(anyLow.historicalLow! * 100), anyLow.currency)}{anyLow.historicalLowAt ? ` · ${formatDate(anyLow.historicalLowAt, { month: 'short', year: 'numeric' })}` : ''}</dd></div>}
           </dl>
         </div>
       }
@@ -323,18 +323,21 @@ export function PriceTile({ facts, deals, fallback, index }: {
 
 // ---------- Compatibility ----------
 
+const DECK_SHORT = { verified: 'Deck Verified', playable: 'Deck Playable', unsupported: 'Deck Unsupported', unknown: 'Deck: not tested' } as const;
+
+/** Steam Deck rating (Valve) and anti-cheat (AreWeAntiCheatYet), each said in words beside its icon. */
 export function CompatTile({ deck, antiCheat, index }: { deck: Compat['deck']; antiCheat: Compat['antiCheat']; index: number }) {
   const tone = deck ? deckTone(deck.category) : undefined;
   const DeckIcon = deck?.category === 'verified' ? BadgeCheck : deck?.category === 'playable' ? Info : deck?.category === 'unsupported' ? XCircle : CircleDashed;
   const counts = deck ? (['pass', 'note', 'fail'] as const).map((k) => [k, deck.tests.filter((t) => t.kind === k).length] as const).filter(([, n]) => n > 0) : [];
   return (
     <StatTile
-      index={index} testId="tile-compat" label="Steam Deck and anti-cheat" icon={<ServiceLogo service="steamdeck" size={15} decorative />}
+      index={index} testId="tile-compat" label="Compatibility" icon={<ServiceLogo service="steamdeck" size={15} decorative />}
       tone={antiCheat?.kernel ? 'warn' : (tone as TileTone | undefined)}
-      value={deck ? <span className="gi-deck" data-tone={tone}><DeckIcon size={20} aria-hidden /> {DECK_LABEL[deck.category]}</span> : 'Not rated for Deck'}
-      sub={antiCheat
+      value={deck ? <span className="gi-deck" data-tone={tone} title={DECK_LABEL[deck.category]}><DeckIcon size={20} aria-hidden /> {DECK_SHORT[deck.category]}</span> : 'Not rated'}
+      sub={<>{antiCheat
         ? <span className="gi-ac" data-kernel={antiCheat.kernel || undefined}><ShieldAlert size={13} aria-hidden /> {antiCheat.kernel ? 'Kernel anti-cheat' : 'Anti-cheat'}: {antiCheat.names.join(', ') || 'unnamed'}</span>
-        : 'No anti-cheat listed'}
+        : 'No anti-cheat listed'}</>}
       visual={counts.length ? (
         <ul className="gi-tests" aria-label="Valve’s test results">
           {counts.map(([k, n]) => <li key={k} data-kind={k}>{n} {k === 'pass' ? 'passed' : k === 'note' ? (n === 1 ? 'note' : 'notes') : 'failed'}</li>)}
@@ -353,13 +356,15 @@ export function DiskTile({ game, update, freeBytes, totalBytes, drive, index }: 
   const installed = isInstalled(game);
   const size = sizeOf(game);
   const used = totalBytes && freeBytes != null ? totalBytes - freeBytes : null;
+  const lastKnown = Math.max(0, ...game.installations.map((i) => i.sizeBytes ?? 0)) || null;
   const tone: TileTone | undefined = update?.fit === 'short' ? 'danger' : update?.fit === 'tight' ? 'warn' : undefined;
   return (
     <StatTile
       index={index} testId="tile-disk" label="Size on disk" icon={<HardDrive size={15} />} tone={tone}
       value={installed && size ? formatBytes(size) : 'Not installed'}
       sub={update ? (update.needBytes ? `Next update needs ${formatBytes(update.needBytes)}${update.fit === 'short' ? ' — it won’t fit' : update.fit === 'tight' ? ' — space is tight' : ''}` : 'An update is pending')
-        : installed && drive ? `On ${drive}${freeBytes != null ? ` · ${formatBytes(freeBytes)} free` : ''}` : installed ? 'No update pending' : undefined}
+        : installed && drive ? `On ${drive}${freeBytes != null ? ` · ${formatBytes(freeBytes)} free` : ''}` : installed ? 'No update pending'
+          : lastKnown ? `${formatBytes(lastKnown)} when last installed` : 'The store shows the size when you install'}
       visual={installed && size && totalBytes && used != null ? (
         <div className="gi-disk" role="img" aria-label={`${drive}: this game ${formatBytes(size)}, other files ${formatBytes(Math.max(0, used - size))}, free ${formatBytes(freeBytes)}${update?.needBytes ? `, next update ${formatBytes(update.needBytes)}` : ''}`}>
           <span className="gi-disk__bar">

@@ -11,6 +11,7 @@ export function TagFilter({ data, selected, onChange }: { data: LibraryTags | nu
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
+  const [alignRight, setAlignRight] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -48,11 +49,16 @@ export function TagFilter({ data, selected, onChange }: { data: LibraryTags | nu
   return (
     <div className="lib-tags" ref={root}>
       <span className="lib-tagpick">
-        <button ref={button} className="chip" aria-haspopup="dialog" aria-expanded={open} aria-pressed={selected.length > 0} onClick={() => (open ? close() : setOpen(true))}>
+        <button ref={button} className="chip" aria-haspopup="dialog" aria-expanded={open} aria-pressed={selected.length > 0} onClick={() => {
+          if (open) return close();
+          const r = button.current?.getBoundingClientRect();
+          setAlignRight(!!r && r.left + 316 > window.innerWidth);
+          setOpen(true);
+        }}>
           <Hash size={13} aria-hidden /> Tags{selected.length ? ` · ${selected.length}` : ''}
         </button>
         {open && (
-          <div className="lib-tagpick__panel" role="dialog" aria-label="Filter by community tags">
+          <div className="lib-tagpick__panel" data-align={alignRight ? 'right' : undefined} role="dialog" aria-label="Filter by community tags">
             <label className="lib-search" style={{ height: 34 }}>
               <Search size={14} aria-hidden />
               <input
