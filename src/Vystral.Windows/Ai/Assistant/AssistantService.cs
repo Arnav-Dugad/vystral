@@ -95,7 +95,7 @@ public sealed partial class AssistantService
         var cts = new CancellationTokenSource();
         lock (_lock)
         {
-            foreach (var old in _running.Values) old.Cancel();
+            foreach (var old in _running.Values) SafeCancel(old);
             _running.Clear();
             _running[input.RequestId] = cts;
         }
@@ -115,9 +115,15 @@ public sealed partial class AssistantService
         lock (_lock)
         {
             if (!_running.Remove(requestId, out var cts)) return false;
-            cts.Cancel();
+            SafeCancel(cts);
             return true;
         }
+    }
+
+    private static void SafeCancel(CancellationTokenSource cts)
+    {
+        try { cts.Cancel(); }
+        catch (ObjectDisposedException) { } // the answer already finished
     }
 
     public bool Approve(string requestId, string approvalId, bool allow, bool always)

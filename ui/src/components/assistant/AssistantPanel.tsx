@@ -1,14 +1,10 @@
-import { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Maximize2, Plus, Sparkles, X } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { isPanelShortcut } from '../../lib/assistant';
 import { exit, pick, spring } from '../../lib/motion';
 import { openAssistant, useAssistant } from '../../state/assistant';
 import { useReducedMotion, useStore } from '../../state/store';
-import { IconButton } from '../ui/primitives';
-import { AssistantChat } from './AssistantChat';
-import { ProviderSwitcher } from './ProviderSwitcher';
 import './assistant-ui.css';
 
 /**
@@ -17,11 +13,16 @@ import './assistant-ui.css';
  * modal); Escape closes it and focus returns to where it was. Rendered only in the desktop shell, so Immersive Mode
  * stays controller-clean.
  */
+const Panel = lazy(() => import('./AssistantSheet'));
+
 export function AssistantHost() {
   const open = useAssistant((s) => s.panelOpen);
   const route = useStore((s) => s.route.name);
   const launcherOn = useStore((s) => s.settings?.['assistant.launcher'] ?? true);
   const onboarding = useStore((s) => !!s.settings && !s.settings['onboarding.completed']);
+  // The panel's code loads the first time it opens and then stays (its exit animation needs it mounted).
+  const [loaded, setLoaded] = useState(false);
+  if (open && !loaded) setLoaded(true);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -54,7 +55,7 @@ export function AssistantHost() {
   return (
     <>
       {launcherOn && route !== 'assistant' && <Launcher hidden={open} />}
-      <Panel open={open && route !== 'assistant'} />
+      {loaded && <Suspense fallback={null}><Panel open={open && route !== 'assistant'} /></Suspense>}
     </>
   );
 }
@@ -87,73 +88,3 @@ function Launcher({ hidden }: { hidden: boolean }) {
   );
 }
 
-function Panel({ open }: { open: boolean }) {
-  const reduce = useReducedMotion();
-  const ref = useRef<HTMLDivElement>(null);
-  const previous = useRef<HTMLElement | null>(null);
-  const close = useAssistant((s) => s.closePanel);
-  const newChat = useAssistant((s) => s.newChat);
-  const hasMessages = useAssistant((s) => s.conversation.messages.length > 0);
-  const busy = useAssistant((s) => !!s.activeRequest);
-  const navigate = useStore((s) => s.navigate);
-
-  useEffect(() => {
-    if (!open) return;
-    previous.current = document.activeElement as HTMLElement | null;
-    void useAssistant.getState().refreshStatus();
-    // Focus moves into the panel (the composer takes it when it can; otherwise the panel itself).
-    const t = window.setTimeout(() => {
-      if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
-    }, 120);
-    return () => {
-      window.clearTimeout(t);
-      const p = previous.current;
-      if (p && document.contains(p) && !p.closest('.asx-panel')) requestAnimationFrame(() => p.focus());
-      else requestAnimationFrame(() => document.querySelector<HTMLElement>('.asx-launcher')?.focus());
-    };
-  }, [open]);
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape' && !document.querySelector('[data-menu-open]')) {
-      e.stopPropagation();
-      e.preventDefault();
-      close();
-    }
-  };
-
-  return createPortal(
-    <AnimatePresence>
-      {open && (
-        <motion.aside
-          ref={ref}
-          className="asx-panel"
-          role="dialog"
-          aria-modal="false"
-          aria-labelledby="asx-panel-title"
-          tabIndex={-1}
-          onKeyDown={onKeyDown}
-          initial={reduce ? { opacity: 0 } : { opacity: 0, x: 28, scale: 0.98 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          exit={reduce ? { opacity: 0, transition: exit } : { opacity: 0, x: 24, scale: 0.98, transition: exit }}
-          transition={pick(reduce, spring.panel)}
-        >
-          <header className="asx-panel__head">
-            <div className="asx-panel__id">
-              <h2 id="asx-panel-title" className="asx-panel__title">Assistant</h2>
-              <ProviderSwitcher compact />
-            </div>
-            <div className="asx-panel__actions">
-              {hasMessages && (
-                <IconButton size="sm" label="New chat" onClick={newChat} disabled={busy}><Plus size={16} /></IconButton>
-              )}
-              <IconButton size="sm" label="Open full Assistant" onClick={() => navigate({ name: 'assistant' })}><Maximize2 size={15} /></IconButton>
-              <IconButton size="sm" label="Close the Assistant" onClick={close}><X size={16} /></IconButton>
-            </div>
-          </header>
-          <AssistantChat compact />
-        </motion.aside>
-      )}
-    </AnimatePresence>,
-    document.body,
-  );
-}

@@ -188,6 +188,51 @@ public sealed class AssistantServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ChatGPT_and_Gemini_run_the_same_tool_loop_through_their_own_formats()
+    {
+        _secrets.Items["VYSTRAL/AI-OpenAI"] = "sk-proj-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789wxyz";
+        _settings.Set("ai.provider", JsonValue.Create("openai"));
+        _settings.Set("ai.cloud.openai.optIn", JsonValue.Create(true));
+        _cloudAnswers.Enqueue(_ => Sse("""
+            data: {"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_x","type":"function","function":{"name":"get_storage","arguments":"{\"limit\":3}"}}]}}]}
+
+            data: {"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}
+
+            data: [DONE]
+
+            """));
+        _cloudAnswers.Enqueue(_ => Sse("""
+            data: {"choices":[{"index":0,"delta":{"content":"Your C: drive is fine."},"finish_reason":"stop"}]}
+
+            data: [DONE]
+
+            """));
+        await _svc.RunAsync(Ask("space?", shareApproved: true), CancellationToken.None);
+        Assert.Equal("Your C: drive is fine.", Text());
+        var second = JsonNode.Parse(_cloudBodies[1])!;
+        Assert.Equal("tool", second["messages"]!.AsArray().Last()!["role"]!.GetValue<string>());
+        Assert.Equal("call_x", second["messages"]!.AsArray().Last()!["tool_call_id"]!.GetValue<string>());
+
+        _events.Clear();
+        _cloudBodies.Clear();
+        _secrets.Items["VYSTRAL/AI-Gemini"] = "AIzaSyABCDEFGHIJKLMNOPQRSTUVWXYZ0123456";
+        _settings.Set("ai.provider", JsonValue.Create("gemini"));
+        _settings.Set("ai.cloud.gemini.optIn", JsonValue.Create(true));
+        _cloudAnswers.Enqueue(_ => Sse("""
+            data: {"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":"get_health","args":{}},"thoughtSignature":"SIG"}]},"finishReason":"STOP"}]}
+
+            """));
+        _cloudAnswers.Enqueue(_ => Sse("""
+            data: {"candidates":[{"content":{"role":"model","parts":[{"text":"All healthy."}]},"finishReason":"STOP"}]}
+
+            """));
+        await _svc.RunAsync(Ask("health?", shareApproved: true), CancellationToken.None);
+        Assert.Equal("All healthy.", Text());
+        Assert.Contains("SIG", _cloudBodies[1]); // the thought signature goes back with the function call
+        Assert.Contains("functionResponse", _cloudBodies[1]);
+    }
+
+    [Fact]
     public async Task Offline_mode_pauses_cloud_use()
     {
         UseClaude();
