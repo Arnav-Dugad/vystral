@@ -63,7 +63,8 @@ test.describe('cloud AI providers', () => {
     // Opting in shows exactly what each feature sends, then makes ChatGPT the active AI.
     await card.getByRole('switch', { name: 'Send data to ChatGPT' }).click();
     const consent = page.getByRole('dialog', { name: 'Send data to ChatGPT?' });
-    await expect(consent.getByText(/Ask the Journal:/)).toBeVisible();
+    await expect(consent.getByText(/^Assistant:/)).toBeVisible(); // Track D3: the one Assistant says what it sends
+    await expect(consent.getByText(/Play history questions \(Assistant\):/)).toBeVisible();
     await expect(consent.getByText(/File paths, notes, store accounts, other API keys/)).toBeVisible();
     await noSeriousViolations(page, '.dialog');
     await consent.getByRole('button', { name: 'Turn on and use ChatGPT' }).click();
@@ -117,102 +118,9 @@ test.describe('cloud AI providers', () => {
   });
 });
 
-test.describe('Ask the Journal', () => {
-  test('without AI: ready-made questions answer from this PC with a chart, a table view and the query used', async ({ page }) => {
-    const { errors, external } = await open(page);
-    await nav(page, 'Journal');
-    const card = page.getByRole('region', { name: 'Ask the Journal' });
-    await expect(card.getByLabel('Your question')).toBeDisabled();
-    await expect(card.getByRole('button', { name: 'Set up AI' })).toBeVisible();
-    await card.getByRole('button', { name: 'Which days of the week do I play most?' }).click();
-    await expect(card.getByText(/leads all time with/)).toBeVisible();
-    await expect(card.getByText('Calculated by VYSTRAL on this PC')).toBeVisible();
-    await expect(card.getByRole('list', { name: /Playtime by weekday/ }).getByRole('listitem')).toHaveCount(7);
-    await expect(card.getByText('Nothing left this PC.')).toBeVisible();
-    await card.getByRole('button', { name: 'Show as table' }).click();
-    await expect(card.getByRole('table')).toContainText('Monday');
-    await card.getByRole('button', { name: 'The query that was used' }).click();
-    await expect(card.getByText('A ready-made query, run on this PC.')).toBeVisible();
-    await noSeriousViolations(page, '.ai-ask');
-    expect(errors).toEqual([]);
-    expect(external).toEqual([]);
-  });
-
-  test('with a cloud AI: the question becomes a checked query, the chart shows its numbers and the AI only words them', async ({ page }) => {
-    const { errors } = await open(page, '?aiCloud&reduced');
-    await nav(page, 'Journal');
-    const card = page.getByRole('region', { name: 'Ask the Journal' });
-    await card.getByLabel('Your question').fill('What did I play most in August?');
-    await card.getByRole('button', { name: 'Ask' }).click();
-    await expect(card.locator('.ai-ask__text')).toContainText(/was your go-to in August/);
-    await expect(card.getByText('Worded by Claude · Claude Sonnet 5.5')).toBeVisible();
-    // The sentence quotes the chart's own top value.
-    const top = (await card.locator('.ai-bars__value').first().textContent())!.replace('h', ' h').replace('m', ' min');
-    await expect(card.locator('.ai-ask__text')).toContainText(top.replace(/\s+/g, ' ').trim());
-    await card.getByRole('button', { name: 'The query that was used' }).click();
-    await expect(card.locator('.ai-query__json')).toContainText('"groupBy": "game"');
-    await expect(card.getByText(/Planned by Claude · Claude Sonnet 5\.5, checked by VYSTRAL/)).toBeVisible();
-    await card.getByRole('button', { name: 'What was sent' }).click();
-    await expect(card.getByText(/Sent to Anthropic/)).toBeVisible();
-    // A question sessions can't answer says so.
-    await card.getByLabel('Your question').fill('What will the weather be?');
-    await card.getByRole('button', { name: 'Ask' }).click();
-    await expect(card.getByText(/can’t be answered from the Journal/)).toBeVisible();
-    await noSeriousViolations(page, '.ai-ask');
-    expect(errors).toEqual([]);
-  });
-
-  test('invented numbers are thrown away; a failing provider falls back to VYSTRAL’s own answer', async ({ page }) => {
-    await open(page, '?aiCloud&aiInvent&reduced');
-    await nav(page, 'Journal');
-    const card = page.getByRole('region', { name: 'Ask the Journal' });
-    await card.getByLabel('Your question').fill('What did I play most this year?');
-    await card.getByRole('button', { name: 'Ask' }).click();
-    await expect(card.getByText(/didn’t match the facts|didn’t match the numbers/)).toBeVisible();
-    await expect(card.getByText('Calculated by VYSTRAL on this PC')).toBeVisible();
-
-    await page.goto('/?aiCloud&aiFail&reduced');
-    await nav(page, 'Journal');
-    await card.getByLabel('Your question').fill('What did I play most?');
-    await card.getByRole('button', { name: 'Ask' }).click();
-    await expect(card.getByText(/is having trouble right now/)).toBeVisible();
-  });
-});
+// Track D3: “Ask the Journal” and the Tonight tab are now part of the one Assistant (see assistant.spec.ts).
 
 test.describe('AI features', () => {
-  test('what should I play tonight: picks only from the library, with reasons, and Open goes to the page (never launches)', async ({ page }) => {
-    const { errors, external } = await open(page, '?aiCloud&reduced');
-    await nav(page, 'Assistant');
-    await page.getByRole('tab', { name: 'Tonight' }).click();
-    await expect(page.getByRole('heading', { name: 'What should I play tonight?' })).toBeVisible();
-    await page.getByRole('radio', { name: 'Chill' }).click();
-    await page.getByRole('radio', { name: '2 h' }).click();
-    await page.getByLabel(/Anything else\?/).fill('something relaxing');
-    await page.getByRole('button', { name: 'Suggest' }).click();
-    const picks = page.locator('.ai-pick');
-    await expect(picks).toHaveCount(3);
-    await expect(page.getByText('Worded by Claude · Claude Sonnet 5.5')).toBeVisible();
-    await expect(page.getByText(/Chosen from \d+ candidates VYSTRAL shortlisted/)).toBeVisible();
-    await noSeriousViolations(page, '.ai-tonight');
-    const title = (await picks.first().locator('.ai-pick__title').textContent())!;
-    await picks.first().getByRole('button', { name: `Open ${title}` }).click();
-    await expect(page.getByRole('heading', { name: title, level: 1 })).toBeAttached();
-    await expect(page.locator('.launch-overlay, [data-launch-phase]')).toHaveCount(0);
-    expect(errors).toEqual([]);
-    expect(external).toEqual([]);
-  });
-
-  test('tonight works without AI too', async ({ page }) => {
-    await open(page);
-    await nav(page, 'Assistant');
-    await page.getByRole('tab', { name: 'Tonight' }).click();
-    await page.getByRole('button', { name: 'Suggest' }).click();
-    await expect(page.locator('.ai-pick')).toHaveCount(3);
-    await expect(page.getByText('Calculated by VYSTRAL on this PC')).toBeVisible();
-    await page.getByRole('tab', { name: 'Chat' }).click();
-    await expect(page.getByRole('heading', { name: /An assistant that knows your library/ })).toBeVisible();
-  });
-
   test('smart collection from a sentence: a checked filter with a live preview, saved and kept up to date', async ({ page }) => {
     const { errors } = await open(page, '?aiCloud&ttb&reduced');
     await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'New collection' }).click();

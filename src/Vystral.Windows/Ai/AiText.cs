@@ -36,8 +36,15 @@ public static partial class AiText
 
     public static bool? Bool(JsonNode? n) => n is JsonValue v && v.TryGetValue<bool>(out var b) ? b : null;
 
-    public static double? Num(JsonNode? n) =>
-        n is JsonValue v && v.TryGetValue<double>(out var d) && double.IsFinite(d) ? d : null;
+    public static double? Num(JsonNode? n)
+    {
+        if (n is not JsonValue v) return null;
+        // Parsed JSON reads as double; nodes built in code (Track D3's tool results and tests) may hold an int or long.
+        if (v.TryGetValue<double>(out var d)) return double.IsFinite(d) ? d : null;
+        if (v.TryGetValue<int>(out var i)) return i;
+        if (v.TryGetValue<long>(out var l)) return l;
+        return null;
+    }
 
     /// <summary>Plain, single-paragraph text: control and bidi/format characters removed, markdown emphasis dropped, whitespace collapsed, clipped.</summary>
     public static string Clean(string? s, int max)

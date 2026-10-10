@@ -1,46 +1,49 @@
-import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useReducer, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import {
-  ArrowUp, Bot, Check, CloudOff, Copy, Download, ExternalLink, Pause, Power, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Square, TriangleAlert, WifiOff,
-} from 'lucide-react';
+import { Bot, Download, ExternalLink, MessageSquarePlus, Pause, Power, RefreshCw, Trash2, TriangleAlert, WifiOff } from 'lucide-react';
 import type { AiStatus } from '../bridge/types';
 import { call, errorMessage, on } from '../bridge/bridge';
-import { Badge, Button, IconButton, Kbd, ProgressBar, Skeleton, Tabs, Toggle, tabPanelProps } from '../components/ui/primitives';
-import { TonightPanel } from '../components/ai/TonightPanel'; // Track C5
+import { Badge, Button, IconButton, ProgressBar, Skeleton } from '../components/ui/primitives';
 import { Dialog } from '../components/ui/Dialog';
 import { ServiceLogo } from '../components/ui/ServiceLogo';
-import { useGameRunning, useReducedMotion, useStore } from '../state/store';
-import { pick, spring } from '../lib/motion';
-import { IDLE_PULL, describePull, formatModelBytes, newId, reducePull, toWireMessages, type ChatMessage, type PullEvent, type PullState } from './assistant/chat';
-import { RichText } from './assistant/RichText';
+import { AssistantChat } from '../components/assistant/AssistantChat';
+import { AssistantAvatar } from '../components/assistant/AssistantBits';
+import { ProviderSwitcher } from '../components/assistant/ProviderSwitcher';
+import { useAssistant } from '../state/assistant';
+import { useGameRunning, useStore } from '../state/store';
+import { formatRelative } from '../lib/format';
+import { IDLE_PULL, describePull, formatModelBytes, reducePull, type PullEvent, type PullState } from './assistant/chat';
 import './assistant/assistant.css';
-
-const SUGGESTIONS = [
-  'What should I play tonight?',
-  'Which installed games haven’t I played in a while?',
-  'Summarize my gaming this month',
-  'Organize my library into collections',
-];
+import '../components/assistant/assistant-ui.css';
 
 const OLLAMA_URL = 'https://ollama.com/download';
 
+/**
+ * The Assistant page (Track D3: the one Assistant). The same conversation as the side panel, with the conversation list
+ * on the left. When local AI is chosen, Ollama's own setup (running? model installed?) is checked first.
+ */
 export function AssistantView() {
   const settingsLoaded = useStore((s) => s.settings != null);
-  const enabled = useStore((s) => s.settings?.['ai.enabled'] ?? false);
+  const provider = useStore((s) => s.settings?.['ai.provider'] ?? 'local');
+  const localOn = useStore((s) => s.settings?.['ai.enabled'] ?? false);
   const modelSetting = useStore((s) => s.settings?.['ai.model'] ?? '');
   const running = useGameRunning();
-  const [status, setStatus] = useState<AiStatus | null>(null);
+  const engine = useAssistant((s) => s.status?.engine);
+  const [ollama, setOllama] = useState<AiStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Track C5: "Tonight" (picks from your library, with or without AI) beside the local chat.
-  const [view, setView] = useState<'chat' | 'tonight'>(() => (assistantView === 'tonight' ? 'tonight' : 'chat'));
-  useEffect(() => { assistantView = view; }, [view]);
+  const localPath = provider === 'local' || engine?.engine === 'local';
+
+  useEffect(() => {
+    void useAssistant.getState().refreshStatus();
+    void useAssistant.getState().loadList();
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setStatus(await call<AiStatus>('ai.status', undefined, 20_000));
+      setOllama(await call<AiStatus>('ai.status', undefined, 20_000));
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -49,90 +52,95 @@ export function AssistantView() {
   }, []);
 
   useEffect(() => {
-    if (enabled) void refresh();
-  }, [enabled, modelSetting, refresh]);
+    if (localOn && localPath) void refresh();
+  }, [localOn, localPath, modelSetting, refresh]);
 
-  let body: ReactNode;
-  if (!settingsLoaded) body = <Skeleton height={320} radius={22} />;
-  else if (!enabled) body = <Intro />;
-  else if (error && !status) body = <Problem title="Couldn’t check local AI" detail={error} onRetry={refresh} retrying={loading} />;
-  else if (!status) body = <Skeleton height={320} radius={22} />;
-  else if (!status.running) body = <NotRunning status={status} onRetry={refresh} retrying={loading} />;
-  else if (!status.selectedModelInstalled) body = <ModelSetup status={status} onRefresh={refresh} />;
-  else body = <Chat status={status} running={running} />;
-
-  const chatMode = enabled && status?.running && status.selectedModelInstalled;
+  let gate: ReactNode = null;
+  if (!settingsLoaded) gate = <Skeleton height={320} radius={22} />;
+  else if (localOn && localPath) {
+    if (error && !ollama) gate = <Problem title="Couldn’t check local AI" detail={error} onRetry={refresh} retrying={loading} />;
+    else if (!ollama) gate = <Skeleton height={320} radius={22} />;
+    else if (!ollama.running) gate = <NotRunning status={ollama} onRetry={refresh} retrying={loading} />;
+    else if (!ollama.selectedModelInstalled) gate = <ModelSetup status={ollama} onRefresh={refresh} />;
+  }
 
   return (
-    <div className={`page as-page ${chatMode && view === 'chat' ? 'as-page--chat' : ''}`}>
-      <div className="as-tabs">
-        <Tabs label="Assistant" idBase="assistant" value={view} onChange={setView} tabs={[{ value: 'chat', label: 'Chat' }, { value: 'tonight', label: 'Tonight' }]} />
-      </div>
-      {view === 'tonight' ? (
-        <div role="tabpanel" {...tabPanelProps('assistant', 'tonight')} className="as-tabpanel"><TonightPanel /></div>
-      ) : (
-      <div role="tabpanel" {...tabPanelProps('assistant', 'chat')} className="as-tabpanel">
-      {enabled && running && (
-        <div className="as-paused" role="status">
-          <Pause size={16} aria-hidden />
-          <span>
-            <strong>Local AI is paused while you play.</strong> It resumes when your game closes, so it never competes with the game for your GPU.
-          </span>
-        </div>
-      )}
-      {body}
-      </div>
-      )}
+    <div className="page asx-page">
+      <ConversationRail />
+      <section className="asx-page__main" aria-labelledby="asx-page-title">
+        <header className="asx-page__head">
+          <div className="asx-page__id">
+            <AssistantAvatar size="sm" provider={engine && engine.engine !== 'none' ? engine.engine : null} />
+            <h1 id="asx-page-title" className="asx-page__title">Assistant</h1>
+            <ProviderSwitcher />
+          </div>
+          <NewChatButton />
+        </header>
+        {localOn && localPath && running && (
+          <div className="as-paused" role="status" style={{ margin: 'var(--s-4) var(--s-6) 0' }}>
+            <Pause size={16} aria-hidden />
+            <span>
+              <strong>Local AI is paused while you play.</strong> It resumes when your game closes, so it never competes with the game for your GPU.
+            </span>
+          </div>
+        )}
+        {gate ? <div className="asx-page__gate">{gate}</div> : <AssistantChat />}
+      </section>
     </div>
   );
 }
 
-/** Track C5: the Assistant remembers its tab while the app runs. */
-let assistantView: 'chat' | 'tonight' = 'chat';
-
-/* ---------------------------------------------------------------------------------- (a) */
-
-function Intro() {
-  const reduce = useReducedMotion();
-  const points = [
-    { icon: <ServiceLogo service="ollama" size={20} decorative />, title: 'Runs entirely on this PC', body: 'Powered by Ollama, a free local model runner. Your questions and library never leave this PC.' },
-    { icon: <CloudOff size={18} aria-hidden />, title: 'No account, no cloud', body: 'Nothing to sign in to and nothing sent to a server.' },
-    { icon: <Pause size={18} aria-hidden />, title: 'Paused during gameplay', body: 'It stops while a game is running so it never costs you frames.' },
-    { icon: <ShieldCheck size={18} aria-hidden />, title: 'Suggests, never acts', body: 'It can’t launch, install, delete or change anything. You stay in control.' },
-  ];
+function NewChatButton() {
+  const newChat = useAssistant((s) => s.newChat);
+  const has = useAssistant((s) => s.conversation.messages.length > 0);
+  const busy = useAssistant((s) => !!s.activeRequest);
+  if (!has) return null;
   return (
-    <motion.section
-      className="as-intro"
-      aria-labelledby="as-intro-title"
-      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={pick(reduce, spring.page)}
-    >
-      <div className="as-orb" aria-hidden>
-        <Sparkles size={30} />
+    <Button size="sm" variant="secondary" icon={<MessageSquarePlus size={15} aria-hidden />} onClick={newChat} disabled={busy}>
+      New chat
+    </Button>
+  );
+}
+
+/** Saved conversations (on this PC only, when Settings → AI → Keep conversations is on). */
+function ConversationRail() {
+  const list = useAssistant((s) => s.list);
+  const current = useAssistant((s) => s.conversation.id);
+  const keep = useAssistant((s) => s.status?.keepHistory ?? true);
+  const { open, remove } = useAssistant.getState();
+  return (
+    <nav className="asx-page__rail" aria-label="Conversations">
+      <div className="asx-page__railhead">
+        <h2 className="asx-page__railtitle">Conversations</h2>
       </div>
-      <div className="caps">Optional · Local AI</div>
-      <h1 id="as-intro-title" className="as-intro__title">An assistant that knows your library — and stays on your PC</h1>
-      <p className="as-intro__lead">Ask what to play tonight, find games you’ve forgotten, or get ideas for organizing collections.</p>
-      <ul className="as-points">
-        {points.map((p) => (
-          <li key={p.title}>
-            <span className="as-points__icon">{p.icon}</span>
-            <span>
-              <strong>{p.title}</strong>
-              <span>{p.body}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-      <label className="as-enable" htmlFor="as-enable-toggle">
-        <span>
-          <strong>Enable local AI</strong>
-          <span>Requires Ollama and a one-time model download. You’ll see the size and confirm before anything downloads.</span>
-        </span>
-        <Toggle id="as-enable-toggle" label="Enable local AI" checked={false} onChange={(v) => void useStore.getState().setSetting('ai.enabled', v)} />
-      </label>
-    </motion.section>
+      {list.length === 0 ? (
+        <p className="asx-convs__empty">{keep ? 'Your conversations will appear here. They stay on this PC.' : 'Conversations aren’t kept (Settings → AI).'}</p>
+      ) : (
+        <ul className="asx-convs">
+          <AnimatePresence initial={false}>
+            {list.map((c) => (
+              <motion.li
+                key={c.id}
+                className="asx-conv"
+                aria-current={c.id === current ? 'true' : undefined}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.16 }}
+              >
+                <button type="button" className="asx-conv__open" onClick={() => void open(c.id)}>
+                  <span className="asx-conv__title">{c.title || 'Untitled'}</span>
+                  <span className="asx-conv__when">{formatRelative(c.updatedAt)}</span>
+                </button>
+                <IconButton size="sm" className="asx-conv__del" label={`Delete “${c.title || 'Untitled'}”`} onClick={() => void remove(c.id)}>
+                  <Trash2 size={14} />
+                </IconButton>
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </ul>
+      )}
+    </nav>
   );
 }
 
@@ -369,308 +377,3 @@ function ModelSetup({ status, onRefresh }: { status: AiStatus; onRefresh: () => 
   );
 }
 
-/* ---------------------------------------------------------------------------------- (d) */
-
-function Chat({ status, running }: { status: AiStatus; running: boolean }) {
-  const reduce = useReducedMotion();
-  const toast = useStore((s) => s.toast);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [draft, setDraft] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [announce, setAnnounce] = useState('');
-  const active = useRef<{ requestId: string; messageId: string } | null>(null);
-  const pending = useRef('');
-  const flushRaf = useRef(0);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const endRef = useRef<HTMLDivElement>(null);
-  const stick = useRef(true);
-  const model = status.selectedModel;
-
-  const patch = useCallback((id: string, fn: (m: ChatMessage) => ChatMessage) => setMessages((ms) => ms.map((m) => (m.id === id ? fn(m) : m))), []);
-
-  const flush = useCallback(() => {
-    flushRaf.current = 0;
-    const a = active.current;
-    const text = pending.current;
-    pending.current = '';
-    if (a && text) patch(a.messageId, (m) => ({ ...m, content: m.content + text }));
-  }, [patch]);
-
-  const finish = useCallback(
-    (outcome: 'done' | 'stopped' | 'error', err?: string) => {
-      const a = active.current;
-      if (!a) return;
-      cancelAnimationFrame(flushRaf.current);
-      flush();
-      active.current = null;
-      patch(a.messageId, (m) => ({ ...m, status: outcome === 'done' && !m.content.trim() ? 'error' : outcome, error: outcome === 'done' && !m.content.trim() ? 'The model returned an empty answer.' : err }));
-      setBusy(false);
-      setAnnounce(outcome === 'done' ? 'Answer ready.' : outcome === 'stopped' ? 'Stopped.' : 'The answer failed.');
-    },
-    [flush, patch],
-  );
-
-  // Stream deltas, coalesced to one render per frame.
-  useEffect(
-    () =>
-      on('ai.chat', (e) => {
-        const a = active.current;
-        if (!a || e.requestId !== a.requestId) return;
-        if (e.delta) {
-          pending.current += e.delta;
-          flushRaf.current ||= requestAnimationFrame(flush);
-        }
-        if (e.error) finish('error', e.error);
-        else if (e.done) finish('done');
-      }),
-    [flush, finish],
-  );
-
-  // Leaving the view stops generation.
-  useEffect(
-    () => () => {
-      if (active.current) void call('ai.cancelChat').catch(() => {});
-      cancelAnimationFrame(flushRaf.current);
-    },
-    [],
-  );
-
-  // Follow the stream while the reader is at the bottom.
-  useEffect(() => {
-    const scroller = endRef.current?.closest<HTMLElement>('[data-scroll-main]');
-    if (!scroller) return;
-    const onScroll = () => {
-      stick.current = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 140;
-    };
-    scroller.addEventListener('scroll', onScroll, { passive: true });
-    return () => scroller.removeEventListener('scroll', onScroll);
-  }, []);
-  useLayoutEffect(() => {
-    if (!stick.current) return;
-    const scroller = endRef.current?.closest<HTMLElement>('[data-scroll-main]');
-    if (scroller) scroller.scrollTop = scroller.scrollHeight;
-  }, [messages]);
-
-  const ask = async (history: ChatMessage[]) => {
-    const reply: ChatMessage = { id: newId('m'), role: 'assistant', content: '', model, status: 'streaming' };
-    const requestId = newId('chat');
-    const wire = toWireMessages(history);
-    setMessages([...history, reply]);
-    active.current = { requestId, messageId: reply.id };
-    pending.current = '';
-    stick.current = true;
-    setBusy(true);
-    setAnnounce('');
-    try {
-      await call('ai.chat', { requestId, messages: wire }, 15 * 60_000);
-    } catch (err) {
-      if (active.current?.requestId === requestId) finish('error', errorMessage(err));
-    }
-  };
-
-  const send = (text: string) => {
-    const content = text.trim();
-    if (!content || busy || running) return;
-    setDraft('');
-    void ask([...messages, { id: newId('m'), role: 'user', content }]);
-    requestAnimationFrame(() => inputRef.current?.focus());
-  };
-
-  const stop = async () => {
-    finish('stopped');
-    try {
-      await call('ai.cancelChat');
-    } catch {
-      // Generation already ended.
-    }
-  };
-
-  const retry = () => {
-    if (busy || running) return;
-    const lastUser = messages.map((m) => m.role).lastIndexOf('user');
-    if (lastUser < 0) return;
-    void ask(messages.slice(0, lastUser + 1));
-  };
-
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast({ tone: 'success', title: 'Copied' });
-    } catch {
-      toast({ tone: 'warning', title: 'Couldn’t copy to the clipboard' });
-    }
-  };
-
-  const onKeyDown = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault();
-      send(draft);
-    }
-  };
-
-  // Auto-size the composer up to ~8 lines.
-  useLayoutEffect(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-  }, [draft]);
-
-  const switchModel = (name: string) => void useStore.getState().setSetting('ai.model', name);
-  const empty = messages.length === 0;
-  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
-
-  return (
-    <div className="as-chat">
-      <header className="as-chat__head">
-        <div className="as-chat__id">
-          <span className="as-orb as-orb--sm" aria-hidden>
-            <Sparkles size={16} />
-          </span>
-          <div>
-            <h1 className="as-chat__title">Assistant</h1>
-            <p className="as-chat__model">
-              <span className="as-dot" data-on={!running} aria-hidden />
-              {running ? 'Paused' : 'Local'} · <span className="num">{model}</span>
-            </p>
-          </div>
-        </div>
-        <div className="as-chat__actions">
-          {status.models.length > 1 && (
-            <label className="as-select">
-              <span className="visually-hidden">Model</span>
-              <select className="input" value={model} onChange={(e) => switchModel(e.target.value)} disabled={busy}>
-                {status.models.map((m) => (
-                  <option key={m.name} value={m.name}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {!empty && (
-            <Button variant="ghost" size="sm" icon={<RotateCcw size={14} aria-hidden />} disabled={busy} onClick={() => setMessages([])}>
-              New chat
-            </Button>
-          )}
-          <IconButton label="Turn off local AI" onClick={() => void useStore.getState().setSetting('ai.enabled', false)}>
-            <Power size={18} />
-          </IconButton>
-        </div>
-      </header>
-
-      <div className="as-log" role="log" aria-live="off" aria-label="Conversation">
-        {empty ? (
-          <motion.div className="as-welcome" initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={pick(reduce, spring.page)}>
-            <span className="as-orb" aria-hidden>
-              <Sparkles size={28} />
-            </span>
-            <h2 className="as-welcome__title">What’s on your mind tonight?</h2>
-            <p className="as-welcome__body">Ask about your library. Answers are generated on this PC and may be imperfect — playtime and install data shown elsewhere in VYSTRAL are the verified source.</p>
-            <div className="as-suggest" role="group" aria-label="Suggested questions">
-              {SUGGESTIONS.map((s) => (
-                <button key={s} type="button" className="as-chip" disabled={running} onClick={() => send(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        ) : (
-          messages.map((m) =>
-            m.role === 'user' ? (
-              <div key={m.id} className="as-msg as-msg--user">
-                <div className="as-bubble selectable">{m.content}</div>
-              </div>
-            ) : (
-              <div key={m.id} className="as-msg as-msg--assistant" aria-busy={m.status === 'streaming'}>
-                <span className="as-orb as-orb--xs" aria-hidden>
-                  <Sparkles size={12} />
-                </span>
-                <div className="as-answer">
-                  {m.status === 'streaming' && !m.content ? (
-                    <div className="as-thinking" aria-label="Thinking">
-                      <span />
-                      <span />
-                      <span />
-                    </div>
-                  ) : (
-                    <div className="selectable">
-                      <RichText text={m.content} streaming={m.status === 'streaming'} />
-                    </div>
-                  )}
-                  {m.status === 'error' && (
-                    <div className="as-answer__error" role="alert">
-                      <TriangleAlert size={14} aria-hidden />
-                      <span>{m.error ?? 'Something went wrong.'}</span>
-                      {m === lastAssistant && (
-                        <Button size="sm" variant="ghost" icon={<RefreshCw size={14} aria-hidden />} onClick={retry} disabled={running}>
-                          Try again
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  {m.status === 'stopped' && <div className="as-answer__stopped">Stopped</div>}
-                  {m.status !== 'streaming' && m.content.trim() && (
-                    <div className="as-answer__foot">
-                      <span>Generated locally by <span className="num">{m.model}</span> — may be inaccurate; verified library data is shown in VYSTRAL.</span>
-                      <IconButton size="sm" label="Copy answer" onClick={() => void copy(m.content)}>
-                        <Copy size={14} />
-                      </IconButton>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ),
-          )
-        )}
-        <div ref={endRef} />
-      </div>
-      <div className="visually-hidden" aria-live="polite">{announce}</div>
-
-      <div className="as-composer-wrap">
-        <form
-          className="as-composer"
-          data-disabled={running}
-          onSubmit={(e) => {
-            e.preventDefault();
-            send(draft);
-          }}
-        >
-          <label htmlFor="as-input" className="visually-hidden">
-            Message the assistant
-          </label>
-          <textarea
-            id="as-input"
-            ref={inputRef}
-            className="as-composer__input"
-            rows={1}
-            value={draft}
-            placeholder={running ? 'Paused while you play' : 'Ask about your games…'}
-            disabled={running}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={onKeyDown}
-            maxLength={4000}
-            data-autofocus
-          />
-          {busy ? (
-            <IconButton label="Stop generating" className="as-composer__btn as-composer__btn--stop" onClick={() => void stop()} type="button">
-              <Square size={14} fill="currentColor" />
-            </IconButton>
-          ) : (
-            <IconButton label="Send" className="as-composer__btn" type="submit" disabled={!draft.trim() || running}>
-              <ArrowUp size={18} />
-            </IconButton>
-          )}
-        </form>
-        <div className="as-composer__hint">
-          <span>
-            <Kbd>Enter</Kbd> send · <Kbd>Shift</Kbd>+<Kbd>Enter</Kbd> new line
-          </span>
-          <span className="as-composer__private">
-            <Check size={12} aria-hidden /> Stays on this PC · can’t take actions
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}

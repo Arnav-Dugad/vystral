@@ -33,6 +33,7 @@ import { Sparkles } from 'lucide-react';
 import { openSmartCollection, SmartCollectionHost } from './components/ai/SmartCollectionDialog'; // Track C5
 import { getMoneyContext, onMoneyContext } from './lib/money'; // Track D6
 import { ensureMoney } from './state/money';
+import { AssistantHost } from './components/assistant/AssistantPanel'; // Track D3
 import './components/shell/shell.css';
 
 const SettingsView = lazy(() => import('./views/Settings').then((m) => ({ default: m.SettingsView })));
@@ -127,6 +128,7 @@ export default function App() {
             <Routes />
           </main>
           <CloudSessionPill />
+          <AssistantHost />
         </div>
       )}
       {onboarding && (

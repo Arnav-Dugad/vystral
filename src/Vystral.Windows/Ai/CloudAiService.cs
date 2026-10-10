@@ -34,6 +34,7 @@ public sealed class CloudAiService
     private readonly Dictionary<CloudAiProvider, Queue<DateTime>> _recent = [];
     private readonly Dictionary<CloudAiProvider, IReadOnlyList<string>> _models = [];
     private readonly Lock _lock = new();
+    private readonly HttpClient _http;
 
     public Func<DateTime> UtcNow { get; set; } = () => DateTime.UtcNow;
 
@@ -42,6 +43,7 @@ public sealed class CloudAiService
         _settings = settings;
         _repo = repo;
         _keys = new CloudAiKeyStore(secrets);
+        _http = http;
         foreach (var p in CloudAiProviders.All)
         {
             _lanes[p] = new ProviderTransport(http, "ai-" + CloudAiProviders.Id(p), CloudAiProviders.Name(p), TimeSpan.FromMilliseconds(1000), 2 * 1024 * 1024)
@@ -61,6 +63,12 @@ public sealed class CloudAiService
     }
 
     internal ProviderTransport Lane(CloudAiProvider p) => _lanes[p];
+
+    /// <summary>Track D3: the assistant streams its answers over the same no-redirect client, with the key read on demand.</summary>
+    internal HttpClient Http => _http;
+
+    /// <summary>Track D3: the stored key for a streamed assistant request (never leaves native code).</summary>
+    internal string? KeyFor(CloudAiProvider p) => _keys.Get(p);
 
     public bool LocalOnly => _settings.GetBool("privacy.localOnly");
 

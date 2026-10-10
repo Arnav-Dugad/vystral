@@ -51,6 +51,17 @@ public sealed partial class BridgeDispatcher
             return handler(args ?? throw new BridgeException("invalid", $"Invalid parameters for {method}."), ct);
         };
 
+    /// <summary>
+    /// Track D3: runs a registered handler from native code (the assistant's read-only tools), with the same parameter
+    /// binding and validation as a call from the page. Errors surface as <see cref="BridgeException"/>.
+    /// </summary>
+    public async Task<object?> InvokeAsync(string method, object? parameters, CancellationToken ct)
+    {
+        if (!_handlers.TryGetValue(method, out var handler)) throw new BridgeException("unknown", "Unknown command.");
+        JsonElement? p = parameters is null ? null : JsonSerializer.SerializeToElement(parameters, Json);
+        return await handler(p, ct);
+    }
+
     /// <summary>Handles one raw message from the UI and returns the JSON reply (or null for malformed input).</summary>
     public async Task<string?> HandleAsync(string raw, CancellationToken ct)
     {

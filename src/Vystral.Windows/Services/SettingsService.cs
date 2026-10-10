@@ -207,6 +207,11 @@ public sealed class SettingsService
         new BoolDef("dataSources.gogCatalog", false),
         // Track D6: the currency every price is shown in (ISO 4217; '' = the Windows region's currency).
         new StringDef("app.currency", "", 3, @"^([A-Z]{3})?\z"),
+        // Track D3: the one Assistant (chat, side panel and tools over app data). Still off until an AI is set up.
+        new BoolDef("ai.features.assistant", true),
+        new BoolDef("assistant.launcher", true),
+        new BoolDef("assistant.askBeforeSharing", true),
+        new BoolDef("assistant.keepHistory", true),
     ];
 
     private const string CloudModelPattern = @"^([A-Za-z0-9][A-Za-z0-9._:/\-]{0,119})?\z";

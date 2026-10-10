@@ -122,6 +122,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterMaintenanceHandlers();    // AppBackend.Maintenance.cs: first-paint snapshot, startup timings, after-update self-check, compaction (Track AA)
         RegisterLibraryCorrectnessHandlers(); // AppBackend.LibraryCorrectness.cs: Xbox package sizes in the background (Track C1)
         RegisterAiFeatureHandlers();      // AppBackend.AiFeatures.cs: optional cloud AI providers and AI-assisted features (Track C5)
+        RegisterAssistantHandlers();      // AppBackend.Assistant.cs: the one Assistant: chat, tools over app data, proposals, history (Track D3)
         RegisterTrackC2Handlers();        // AppBackend.TrackC2.cs: Performance page rig summary, startup timing history (Track C2)
         RegisterTrackD4Handlers();        // AppBackend.TrackD4.cs: cross-store identity, trailers from any source, GamerPower/Epic freebies, ProtonDB, GOG (Track D4)
         RegisterTrackD1Handlers();        // AppBackend.TrackD1.cs: Library bulk actions with undo, observed game versions (Track D1)

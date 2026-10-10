@@ -31,13 +31,17 @@ public sealed class AiRouter(SettingsService settings, CloudAiService cloud, Oll
 
     public static readonly (string Id, string Label, string Sends, string WithoutAi, bool Default)[] Features =
     [
-        ("journal", "Ask the Journal",
+        // Track D3: the one Assistant. Its look-ups ("tools") are listed in Settings → AI; journal and tonight are two of them.
+        ("assistant", "Assistant",
+            "Your messages, the name of the page you’re on (and the game, if you’re on its page), and — only when the Assistant looks something up — what that look-up found: for example game titles, genres, statuses, hours played, sizes, play totals, prices or frame-rate statistics. Before look-up results go to a cloud AI you see exactly what and choose whether to share. Never folder paths, notes, keys or account details.",
+            "Without an AI, the Assistant can’t chat; every page still shows VYSTRAL’s own data.", true),
+        ("journal", "Play history questions (Assistant)",
             "Your question, today’s date, the names of games and genres in your library (to understand the question), then the totals VYSTRAL calculated for the chart (game titles or dates with hours and session counts).",
-            "Pick a ready-made question; the chart and a plain summary are still calculated on this PC.", true),
+            "The Assistant can’t look up your play history; the Journal page still shows it.", true),
         ("patchNotes", "Patch note summaries",
             "The game’s title and the text of the public news post you asked to summarize.",
             "The post’s first key lines are shown instead.", true),
-        ("tonight", "What should I play tonight?",
+        ("tonight", "What to play tonight (Assistant)",
             "Your mood, the time you have and anything you type, plus up to 8 candidate games VYSTRAL picked: title, genres, your hours, average session length, time to beat, install and subscription status.",
             "VYSTRAL’s own top three picks with their reasons.", true),
         ("smartCollections", "Smart collections from a sentence",

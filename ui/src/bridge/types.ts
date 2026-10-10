@@ -1197,3 +1197,22 @@ export interface BridgeEvents {
 }
 
 export type * from './types.trackD6';
+
+// ---------- Track D3: the one Assistant (types in ./types.assistant) ----------
+
+export interface Settings {
+  /** The Assistant chat, side panel and look-ups. Still does nothing until an AI is set up. */
+  'ai.features.assistant': boolean;
+  /** The floating Assistant button on every page. */
+  'assistant.launcher': boolean;
+  /** Before look-up results go to a cloud AI, show them and ask. */
+  'assistant.askBeforeSharing': boolean;
+  /** Keep conversations on this PC (data folder → assistant). */
+  'assistant.keepHistory': boolean;
+}
+
+export interface BridgeEvents {
+  'assistant.event': import('./types.assistant').AssistantEvent;
+}
+
+export type * from './types.assistant';
