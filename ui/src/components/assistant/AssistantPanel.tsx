@@ -6,7 +6,7 @@ import { isPanelShortcut } from '../../lib/assistant';
 import { exit, pick, spring } from '../../lib/motion';
 import { openAssistant, useAssistant } from '../../state/assistant';
 import { useReducedMotion, useStore } from '../../state/store';
-import { IconButton, Kbd } from '../ui/primitives';
+import { IconButton } from '../ui/primitives';
 import { AssistantChat } from './AssistantChat';
 import { ProviderSwitcher } from './ProviderSwitcher';
 import './assistant-ui.css';
@@ -135,7 +135,6 @@ function Panel({ open }: { open: boolean }) {
             </div>
           </header>
           <AssistantChat compact />
-          <p className="asx-panel__kbd" aria-hidden><Kbd>Ctrl</Kbd>+<Kbd>J</Kbd> to open or close</p>
         </motion.aside>
       )}
     </AnimatePresence>,

@@ -25,6 +25,7 @@ import { SessionOriginChip } from '../components/game/SessionOriginChip';
 import { useInstallFor } from '../state/installs';
 import { StatusPicker } from '../components/game/StatusPicker';
 import { HeroTrailer } from '../components/game/HeroTrailer';
+import { AskAssistantButton } from '../components/assistant/AskButton'; // Track D3
 import { Badge, Button, EmptyState, Field, IconButton, PlatformBadge, SectionHead, Stars, Tabs } from '../components/ui/primitives';
 import { StoreLogo } from '../components/ui/StoreLogo';
 import { DriverChangeCard } from './perf/DataInsightCards';
@@ -267,6 +268,7 @@ function DetailHero({ game, onOpenAchievements }: { game: Game; onOpenAchievemen
                 </div>
                 {/* Track O: Play in the cloud (renders nothing unless cloud play is on and a service lists this game). */}
                 <CloudPlayButton game={game} />
+                <AskAssistantButton icon label={`Ask the Assistant about ${game.title}`} className="dhero__icon" />{/* Track D3 */}
                 <IconButton label={game.favorite ? 'Remove from favorites' : 'Add to favorites'} pressed={game.favorite} onClick={() => void toggleFavorite(game)} className="dhero__icon">
                   <Heart size={19} fill={game.favorite ? 'currentColor' : 'none'} />
                 </IconButton>

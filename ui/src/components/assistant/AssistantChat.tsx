@@ -114,6 +114,13 @@ function SetupCard({ compact, reason }: { compact?: boolean; reason: string | nu
     useAssistant.getState().closePanel();
     navigate({ name: 'settings', section: 'ai' });
   };
+  const useLocal = async () => {
+    const s = useStore.getState();
+    await s.setSetting('ai.provider', 'local');
+    await s.setSetting('ai.enabled', true);
+    useAssistant.getState().closePanel();
+    s.navigate({ name: 'assistant' });
+  };
   return (
     <div className="asx-setup" data-compact={compact || undefined}>
       <AssistantAvatar size="md" />
@@ -135,9 +142,16 @@ function SetupCard({ compact, reason }: { compact?: boolean; reason: string | nu
           <span><strong>Claude, ChatGPT or Gemini</strong><span>Your own API key. You see what’s sent before it’s sent.</span></span>
         </li>
       </ul>
-      <Button variant="primary" icon={<Settings2 size={15} aria-hidden />} onClick={go} disabled={!settingsReady}>
-        Set up AI
-      </Button>
+      <div className="asx-setup__actions">
+        <Button variant="primary" icon={<Settings2 size={15} aria-hidden />} onClick={go} disabled={!settingsReady}>
+          Set up AI
+        </Button>
+        {ai && !ai.localEnabled && (
+          <Button variant="secondary" icon={<ServiceLogo service="ollama" size={14} decorative />} onClick={useLocal} disabled={!settingsReady}>
+            Use local AI
+          </Button>
+        )}
+      </div>
       {ai?.localOnly && <p className="asx-setup__note"><Lock size={12} aria-hidden /> Offline mode is on, so cloud AI is paused.</p>}
     </div>
   );

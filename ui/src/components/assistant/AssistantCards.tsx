@@ -174,7 +174,7 @@ export function ApprovalCard({ approval, onAnswer }: { approval: ChatApproval; o
         <span className="asx-approval__icon" aria-hidden><ShieldCheck size={16} /></span>
         <div>
           <h4 id={`${id}-t`} className="asx-approval__title">Share what I found with {approval.company}?</h4>
-          <p className="asx-approval__sub">To answer, {approval.engine} needs these results from your PC. Nothing is sent until you choose.</p>
+          <p className="asx-approval__sub">To answer, {approval.engine.split(' · ')[0]} needs these results from your PC. Nothing is sent until you choose.</p>
         </div>
       </div>
       <ul className="asx-approval__items">

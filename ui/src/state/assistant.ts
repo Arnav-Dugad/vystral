@@ -23,13 +23,13 @@ interface AssistantState {
   /** Bumped to ask the composer to take focus. */
   focusTick: number;
 
-  openPanel(opts?: { prompt?: string; send?: boolean }): void;
+  openPanel(opts?: { prompt?: string; send?: boolean; sessionId?: string }): void;
   closePanel(): void;
   togglePanel(): void;
   setDraft(text: string): void;
   refreshStatus(): Promise<void>;
   loadList(): Promise<void>;
-  send(text?: string): Promise<void>;
+  send(text?: string, extra?: { sessionId?: string }): Promise<void>;
   stop(): Promise<void>;
   retry(): void;
   newChat(): void;
@@ -109,6 +109,10 @@ function subscribe() {
   on('settings.changed', () => void useAssistant.getState().refreshStatus());
 }
 
+function withSession(c: ReturnType<typeof contextFromRoute>, sessionId?: string) {
+  return sessionId && /^[0-9a-f]{32}$/.test(sessionId) ? { ...c, sessionId } : c;
+}
+
 function routeContext(route: Route) {
   return contextFromRoute(route as { name: string; id?: string; sessionId?: string });
 }
@@ -126,7 +130,7 @@ export const useAssistant = create<AssistantState>((set, get) => ({
     subscribe();
     set((s) => ({ panelOpen: true, focusTick: s.focusTick + 1, draft: opts?.prompt && !opts.send ? opts.prompt : s.draft }));
     void get().refreshStatus();
-    if (opts?.prompt && opts.send) void get().send(opts.prompt);
+    if (opts?.prompt && opts.send) void get().send(opts.prompt, { sessionId: opts.sessionId });
   },
   closePanel() {
     set({ panelOpen: false });
@@ -156,7 +160,7 @@ export const useAssistant = create<AssistantState>((set, get) => ({
     }
   },
 
-  async send(text) {
+  async send(text, extra) {
     subscribe();
     const content = (text ?? get().draft).trim();
     if (!content || get().activeRequest) return;
@@ -173,7 +177,7 @@ export const useAssistant = create<AssistantState>((set, get) => ({
     });
     pendingText = '';
     try {
-      await call('assistant.chat', { requestId, messages: toWire(history), context: routeContext(app().route), shareApproved: conv.shareApproved }, 30_000);
+      await call('assistant.chat', { requestId, messages: toWire(history), context: withSession(routeContext(app().route), extra?.sessionId), shareApproved: conv.shareApproved }, 30_000);
     } catch (err) {
       if (get().activeRequest === requestId) {
         patchMessage(reply.id, (m) => ({ ...m, status: 'error', error: errorMessage(err) }));
@@ -343,15 +347,15 @@ async function perform(a: ChatAction): Promise<void> {
 }
 
 /** Ctrl+J and the launcher open the panel; the Assistant page shows the same conversation instead. */
-export function openAssistant(prompt?: string, send = false) {
+export function openAssistant(prompt?: string, send = false, sessionId?: string) {
   const s = app();
   if (s.route.name === 'assistant') {
     if (prompt) {
-      if (send) void useAssistant.getState().send(prompt);
+      if (send) void useAssistant.getState().send(prompt, { sessionId });
       else useAssistant.getState().setDraft(prompt);
     }
     useAssistant.setState((x) => ({ focusTick: x.focusTick + 1 }));
     return;
   }
-  useAssistant.getState().openPanel({ prompt, send });
+  useAssistant.getState().openPanel({ prompt, send, sessionId });
 }

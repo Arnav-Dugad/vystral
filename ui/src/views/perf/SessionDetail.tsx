@@ -3,6 +3,7 @@
  * frame rate with its frame-time histogram and stutter markers, and CPU / GPU / temperature / memory over the session
  * on one shared crosshair. Moved here from Performance.tsx by Track C2.
  */
+import { AskAssistantButton } from '../../components/assistant/AskButton'; // Track D3
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Clapperboard, Cpu, Gamepad2, MemoryStick, MonitorCog, Thermometer } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
@@ -116,6 +117,8 @@ export function SessionDetail({ entry, game }: { entry: PerfEntry; game: Game | 
         <div className="pf-hero__action">
           {/* Track M: ~10 s animated summary of this session, saveable as an image. */}
           <Button size="sm" icon={<Clapperboard size={14} />} onClick={() => openReplay(entry.id)}>Replay</Button>
+          {/* Track D3: the Assistant reads this session’s frame times and explains any stutter (it never changes settings). */}
+          <AskAssistantButton label="Explain this stutter" prompt="Explain the stutter in this session" send sessionId={entry.id} />
           {game && (
             <Button size="sm" icon={<Gamepad2 size={14} />} onClick={() => useStore.getState().navigate({ name: 'game', id: game.id })}>
               Open game
