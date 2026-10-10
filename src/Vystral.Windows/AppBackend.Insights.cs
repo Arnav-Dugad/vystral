@@ -190,7 +190,7 @@ public sealed partial class AppBackend : ILaunchFixRunner
     }
 
     /// <summary>library.changed reasons that never change the detector's targets (installations, hidden, merged games).</summary>
-    private static readonly HashSet<string> CosmeticLibraryReasons = ["artwork", "metadata", "enrichment", "session", "history"];
+    private static readonly HashSet<string> CosmeticLibraryReasons = ["artwork", "metadata", "enrichment", "session", "history", "packageSizes"];
 
     internal static bool IsCosmeticLibraryChange(string eventJson)
     {

@@ -100,9 +100,10 @@ const pct = (f: number | null) => (f == null ? null : `${Math.round(f * 100)}%`)
 
 /** The store that can install a game that isn't installed: Steam (in-app flow) first, then any store. */
 export function installSource(game: Game): { inst: Installation; steam: boolean } | null {
-  const steam = game.installations.find((i) => i.platform === 'steam' && i.state !== 'installed' && /^\d{1,10}$/.test(i.platformGameId));
+  // Track C1: a copy Steam no longer lists (refunded or removed) can't be installed from here.
+  const steam = game.installations.find((i) => i.platform === 'steam' && i.state !== 'installed' && !i.noLongerOwned && /^\d{1,10}$/.test(i.platformGameId));
   if (steam) return { inst: steam, steam: true };
-  const store = game.installations.find((i) => i.platform !== 'manual' && i.state !== 'installed');
+  const store = game.installations.find((i) => i.platform !== 'manual' && i.state !== 'installed' && !i.noLongerOwned);
   return store ? { inst: store, steam: false } : null;
 }
 
@@ -204,6 +205,9 @@ export function derivePlayState({ game, launch, install, now }: PlayInput): Play
     return { ...base, kind: 'play', label, name: label === 'Play' ? `Play ${title}` : `${label}: play ${title}`, announce: `Ready to play ${title}.`, tone: 'primary', icon: 'play' };
   }
 
+  if (game.notOwned) {
+    return { ...base, kind: 'unavailable', label: 'Not owned', name: `${title} is no longer in your Steam library`, announce: `${title} is no longer in your Steam library.`, tone: 'quiet', icon: 'none', actionable: false };
+  }
   const source = installSource(game);
   if (source?.steam) {
     return { ...base, kind: 'install', label: 'Install', name: `Install ${title} with Steam`, announce: `${title} isn’t installed.`, tone: 'primary', icon: 'download', store: source.inst };
@@ -235,7 +239,7 @@ export function familyLabels(game: Game, family: PlayState['family']): { label: 
     ];
   }
   const source = installSource(game);
-  const first = source ? (source.steam ? 'Install' : `Install in ${PLATFORM_NAMES[source.inst.platform as PlatformKey]}`) : game.installations.some((i) => i.state === 'missing') ? 'Rescan' : 'Not installed';
+  const first = game.notOwned ? 'Not owned' : source ? (source.steam ? 'Install' : `Install in ${PLATFORM_NAMES[source.inst.platform as PlatformKey]}`) : game.installations.some((i) => i.state === 'missing') ? 'Rescan' : 'Not installed';
   const rows: { label: string; detail: string | null; aux: boolean }[] = [{ label: first, detail: null, aux: false }];
   if (source?.steam) {
     rows.push(

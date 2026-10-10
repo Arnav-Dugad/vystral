@@ -111,7 +111,7 @@ export function LandscapeTile({ game, caption, live }: { game: Game; caption?: R
             open({ x: r.left + 40, y: r.top + 40 });
           }
         }}
-        aria-label={`${game.title}${lp.at ? `, last played ${formatRelative(lp.at).toLowerCase()}` : ''}`}
+        aria-label={`${game.title}${lp.at ? `, last played ${formatRelative(lp.at).toLowerCase()}${lp.source === 'estimated' ? ' (estimated from save data)' : ''}` : ''}`}
       >
         <div className="card__frame" data-live={live || undefined}>
           <GameCover game={game} kind="hero" />
@@ -123,7 +123,7 @@ export function LandscapeTile({ game, caption, live }: { game: Game; caption?: R
           <div className="tile__sub">
             {caption ?? (
               <>
-                <span>{lp.at ? formatRelative(lp.at) : 'Not played yet'}</span>
+                <span title={lp.source === 'estimated' ? 'Estimated from save data' : undefined}>{lp.at ? `${formatRelative(lp.at)}${lp.source === 'estimated' ? ' (est.)' : ''}` : 'Not played yet'}</span>
                 {game.trackedSeconds > 0 && <span>{formatDuration(game.trackedSeconds)} tracked</span>}
                 <StoreLogos platforms={game.installations.map((i) => i.platform)} />
               </>

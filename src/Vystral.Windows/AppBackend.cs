@@ -119,6 +119,7 @@ public sealed partial class AppBackend : IDisposable
         RegisterDiscoverHandlers();       // AppBackend.Discover.cs: universal game search, pages for games you don't own, Watching (Track U)
         RegisterTrackWHandlers();         // AppBackend.TrackW.cs: wishlist, friends' recent games, achievement guide, news (Track W)
         RegisterMaintenanceHandlers();    // AppBackend.Maintenance.cs: first-paint snapshot, startup timings, after-update self-check, compaction (Track AA)
+        RegisterLibraryCorrectnessHandlers(); // AppBackend.LibraryCorrectness.cs: Xbox package sizes in the background (Track C1)
         Log.Info("app", "Backend started", new { Version, SafeMode, PreviousRunCrashed });
     }
 

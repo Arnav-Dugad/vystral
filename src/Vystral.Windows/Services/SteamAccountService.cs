@@ -35,6 +35,9 @@ public sealed record AchievementDto(
     double? GlobalPercent,
     string? Icon);
 
+/// <summary>Track C1: how many games left the Steam owned list since the notice was last shown.</summary>
+public sealed record OwnershipNoticeDto(int Count, string At);
+
 /// <summary>Status: ok | none | private | error | notSteam | notConnected | noAccount | localOnly.</summary>
 public sealed record AchievementsDto(
     string Status,
@@ -238,14 +241,19 @@ public sealed class SteamAccountService
         if (!await _syncLock.WaitAsync(0, ct)) throw new BridgeException("busy", "A Steam sync is already running.");
         try
         {
-            var owned = await _api.GetOwnedGamesAsync(steamId, ct, keyOverride);
-            var report = _repo.ApplyOwnedSteamGames(owned);
+            var list = await _api.GetOwnedGamesListAsync(steamId, ct, keyOverride);
+            // Track C1: only a complete answer may mark games as no longer owned (refunded or removed).
+            var report = _repo.ApplyOwnedSteamGames(list.Games, list.Complete ? list.ListedAppIds : null);
             _repo.SetInternalValue(LastSyncKey, Stamp());
-            Log.Info("steamapi", "Owned games synced", report);
+            Log.Info("steamapi", "Owned games synced", new { report, list.Complete, list.ReportedCount });
+            if (report.NoLongerOwned > 0) RecordOwnershipNotice(report.NoLongerOwned);
             _events.Emit("library.changed", new { reason = "steamOwned" });
             StartBackgroundAchievements();
             var added = report.Added > 0 ? $" {report.Added} not-installed {(report.Added == 1 ? "game was" : "games were")} added to your library." : "";
-            return new("ok", $"Steam lists {report.Owned:N0} {(report.Owned == 1 ? "game" : "games")} on this account.{added}", report.Owned, Stamp());
+            var gone = report.NoLongerOwned > 0
+                ? $" {report.NoLongerOwned} {(report.NoLongerOwned == 1 ? "game is" : "games are")} no longer in your Steam library (refunded or removed)."
+                : "";
+            return new("ok", $"Steam lists {report.Owned:N0} {(report.Owned == 1 ? "game" : "games")} on this account.{added}{gone}", report.Owned, Stamp());
         }
         catch (SteamApiException ex)
         {
@@ -262,6 +270,36 @@ public sealed class SteamAccountService
         {
             _syncLock.Release();
         }
+    }
+
+    // ---------- Track C1: games no longer owned ----------
+
+    internal const string OwnershipNoticeKey = "steam.ownership.notice";
+
+    /// <summary>
+    /// Remembers that games left the owned list until the UI has shown it once (a sync can finish while VYSTRAL
+    /// is in the tray, or before the window subscribed). Counts add up until then.
+    /// </summary>
+    private void RecordOwnershipNotice(int count)
+    {
+        var pending = TakeOwnershipNotice(clear: false);
+        var total = Math.Min(100_000, (pending?.Count ?? 0) + count);
+        _repo.SetInternalValue(OwnershipNoticeKey, JsonSerializer.Serialize(new OwnershipNoticeDto(total, Stamp())));
+        _events.Emit("steam.ownershipChanged", new OwnershipNoticeDto(total, Stamp()));
+    }
+
+    /// <summary>The pending "no longer in your Steam library" notice, cleared once read (so it's shown only once).</summary>
+    public OwnershipNoticeDto? TakeOwnershipNotice(bool clear = true)
+    {
+        var raw = _repo.GetInternalValue(OwnershipNoticeKey);
+        if (raw is null) return null;
+        if (clear) _repo.SetInternalValue(OwnershipNoticeKey, null);
+        try
+        {
+            var notice = JsonSerializer.Deserialize<OwnershipNoticeDto>(raw);
+            return notice is { Count: > 0 } ? notice : null;
+        }
+        catch (JsonException) { return null; }
     }
 
     // ---------- Achievements ----------

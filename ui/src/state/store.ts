@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { call, errorMessage, isNative, on } from '../bridge/bridge';
 import { rarity, unlockToastText } from '../lib/achievements';
 import { readFirstPaint, type FirstPaint } from '../lib/firstPaint';
+import { startOwnershipNotices } from './ownership';
 import type {
   AdapterInfo, AppInfo, DriveInfo, Game, LaunchState, LibrarySnapshot, SettingKey, Settings, UpdateState, WindowState,
 } from '../bridge/types';
@@ -193,6 +194,8 @@ export const useStore = create<State>((set, get) => ({
     await Promise.allSettled([get().refreshLibrary(), get().refreshAdapters(), call<DriveInfo[]>('system.drives').then((drives) => set({ drives }))]);
     set({ ready: true });
     void call('app.ready');
+    // Track C1: games that left the Steam owned list (refunded or removed), told once.
+    startOwnershipNotices((t) => get().toast(t), () => get().navigate({ name: 'library', quick: 'notowned' }));
     const info = get().info!;
     if (info.startupProblem) get().toast({ tone: 'warning', title: 'Library database was reset', body: info.startupProblem, sticky: true });
     if (info.previousRunCrashed && !info.safeMode)

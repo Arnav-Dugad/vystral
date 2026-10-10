@@ -347,5 +347,19 @@ internal static class Migrations
             ) WITHOUT ROWID;
             CREATE INDEX ix_controller_battery_at ON controller_battery(at);
             """),
+        (9, "library correctness: Steam ownership, Xbox package details", """
+            -- Track C1: when Steam's complete owned-games list stopped including this not-installed Steam game
+            -- (refunded or removed from the account). NULL = owned, or not a Steam row. Cleared when Steam lists
+            -- the game again or it's installed. The row, its game and all user data are always kept.
+            ALTER TABLE installations ADD COLUMN unowned_since TEXT;
+            -- Where imported_last_played came from when the store didn't report it: 'saveData' = estimated from the
+            -- newest write time in the package's own data folders (Xbox). NULL = the store's own record.
+            ALTER TABLE installations ADD COLUMN last_played_source TEXT;
+            -- Package details read locally (Xbox): version, install date, and the version size_bytes was measured for
+            -- (sizes are measured in the background and only again after the package version changes).
+            ALTER TABLE installations ADD COLUMN package_version TEXT;
+            ALTER TABLE installations ADD COLUMN installed_at TEXT;
+            ALTER TABLE installations ADD COLUMN size_version TEXT;
+            """),
     ];
 }

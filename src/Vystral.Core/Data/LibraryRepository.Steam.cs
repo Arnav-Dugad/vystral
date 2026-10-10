@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Dapper;
+using Microsoft.Data.Sqlite;
 using Vystral.Core.Domain;
 using Vystral.Core.Matching;
 
@@ -8,7 +9,12 @@ namespace Vystral.Core.Data;
 /// <summary>A game the signed-in Steam account owns, as reported by IPlayerService/GetOwnedGames.</summary>
 public sealed record OwnedSteamGame(string AppId, string Name, int? PlaytimeMinutes, DateTimeOffset? LastPlayed);
 
-public sealed record OwnedSyncReport(int Owned, int Added, int Updated, int Restored);
+/// <param name="NoLongerOwned">Track C1: not-installed copies Steam stopped listing in this sync (refunded or removed).</param>
+/// <param name="OwnedAgain">Track C1: copies that were no longer owned and are listed again (bought again).</param>
+public sealed record OwnedSyncReport(int Owned, int Added, int Updated, int Restored, int NoLongerOwned = 0, int OwnedAgain = 0);
+
+/// <summary>Track C1: a Steam game that is no longer in the account's owned list, for the "no longer in your Steam library" notice.</summary>
+public sealed record NoLongerOwnedSteamGame(string GameId, string AppId, string Title, string Since);
 
 /// <summary>One cached achievement. Icon files are relative to the art cache.</summary>
 public sealed record SteamAchievementRow(
@@ -48,11 +54,19 @@ public sealed partial class LibraryRepository
     /// because ownership is now known. New appids become notinstalled installations, matched
     /// to existing games with the same conservative rules as a local scan.
     /// </summary>
-    public OwnedSyncReport ApplyOwnedSteamGames(IReadOnlyList<OwnedSteamGame> owned)
+    /// <param name="completeList">
+    /// Track C1: every appid of a complete, successful owned-games answer (entries Steam sent without a name too).
+    /// Only then are not-installed Steam copies missing from it marked "no longer owned" (refunded or removed).
+    /// Null — a partial, failed or private answer, or one that isn't known to be complete — never marks anything.
+    /// </param>
+    public OwnedSyncReport ApplyOwnedSteamGames(IReadOnlyList<OwnedSteamGame> owned, IReadOnlyCollection<string>? completeList = null)
     {
         using var conn = db.Open();
         using var tx = conn.BeginTransaction();
         var now = Now();
+
+        // The previous owned list (same account: switching accounts clears it), read before it is replaced.
+        var previouslyOwned = conn.Query<string>("SELECT app_id FROM steam_owned", transaction: tx).ToHashSet(StringComparer.Ordinal);
 
         // Our own cache of the owned list: replaced wholesale (it is not user data).
         conn.Execute("DELETE FROM steam_owned", transaction: tx);
@@ -69,7 +83,7 @@ public sealed partial class LibraryRepository
                       .Select(i => { PlatformInfo.TryParse(i.Platform, out var p); return (p, i.Pgid); }).ToList()
                 : [])));
 
-        int added = 0, updated = 0, restored = 0;
+        int added = 0, updated = 0, restored = 0, ownedAgain = 0;
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var game in owned)
         {
@@ -80,8 +94,8 @@ public sealed partial class LibraryRepository
                 VALUES (@AppId, @Name, @PlaytimeMinutes, @lastPlayed, @now)
                 """, new { game.AppId, game.Name, game.PlaytimeMinutes, lastPlayed, now }, tx);
 
-            var e = conn.Query<(string Id, string State, int? Playtime, string? LastPlayed)>(
-                "SELECT id, state, imported_playtime_minutes, imported_last_played FROM installations WHERE platform=@p AND platform_game_id=@g",
+            var e = conn.Query<(string Id, string State, int? Playtime, string? LastPlayed, string? Unowned)>(
+                "SELECT id, state, imported_playtime_minutes, imported_last_played, unowned_since FROM installations WHERE platform=@p AND platform_game_id=@g",
                 new { p = SteamKey, g = game.AppId }, tx).FirstOrDefault();
 
             if (e.Id is not null)
@@ -90,8 +104,11 @@ public sealed partial class LibraryRepository
                 var last = MaxIso(e.LastPlayed, lastPlayed);
                 var state = e.State == "missing" ? "notinstalled" : e.State;
                 if (state != e.State) restored++;
+                // Bought again (or listed again): the same row, game and history come back as they were.
+                if (e.Unowned is not null) ownedAgain++;
                 conn.Execute("""
-                    UPDATE installations SET imported_playtime_minutes=@playtime, imported_last_played=@last, state=@state
+                    UPDATE installations SET imported_playtime_minutes=@playtime, imported_last_played=@last, state=@state,
+                        unowned_since=NULL
                     WHERE id=@id
                     """, new { playtime, last, state, id = e.Id }, tx);
                 updated++;
@@ -135,9 +152,58 @@ public sealed partial class LibraryRepository
             added++;
         }
 
-        Audit(conn, tx, "steam.ownedSync", $"{seen.Count} owned, {added} added, {updated} updated, {restored} restored");
+        var noLongerOwned = completeList is null ? 0 : MarkNoLongerOwned(conn, tx, completeList, seen, previouslyOwned, now);
+
+        Audit(conn, tx, "steam.ownedSync",
+            $"{seen.Count} owned, {added} added, {updated} updated, {restored} restored, {noLongerOwned} no longer owned, {ownedAgain} owned again");
         tx.Commit();
-        return new OwnedSyncReport(seen.Count, added, updated, restored);
+        return new OwnedSyncReport(seen.Count, added, updated, restored, noLongerOwned, ownedAgain);
+    }
+
+    /// <summary>Above this many (and this share of the previous list), a sudden drop looks like a Steam hiccup, not refunds.</summary>
+    internal const int OwnershipDropFloor = 10;
+    internal const double OwnershipDropShare = 0.2;
+
+    /// <summary>
+    /// Track C1: marks Steam copies that came from the owned list and are missing from a complete new list. Only
+    /// rows that exist because of ownership qualify: "not installed" ones, and "missing" ones Steam listed last time
+    /// (installed copies always stay; borrowed Family Sharing games never enter the owned list). Rows the user linked
+    /// by hand are left alone. Nothing is marked on the first list for an account, on an empty list, or when the drop
+    /// is implausibly large. Nothing is deleted: the row only gets a date, and the game keeps all its data.
+    /// </summary>
+    private static int MarkNoLongerOwned(SqliteConnection conn, SqliteTransaction tx, IReadOnlyCollection<string> completeList,
+        HashSet<string> seen, HashSet<string> previouslyOwned, string now)
+    {
+        var listed = new HashSet<string>(completeList, StringComparer.Ordinal);
+        listed.UnionWith(seen);
+        if (listed.Count == 0 || previouslyOwned.Count == 0) return 0;
+
+        var candidates = conn.Query<(string Id, string AppId, string State)>("""
+            SELECT id, platform_game_id, state FROM installations
+            WHERE platform='steam' AND manual_link=0 AND unowned_since IS NULL AND state IN ('notinstalled', 'missing')
+            """, transaction: tx)
+            .Where(c => !listed.Contains(c.AppId) && (c.State == "notinstalled" || previouslyOwned.Contains(c.AppId)))
+            .ToList();
+        if (candidates.Count == 0) return 0;
+        if (candidates.Count > OwnershipDropFloor && candidates.Count > previouslyOwned.Count * OwnershipDropShare)
+        {
+            Audit(conn, tx, "steam.ownedSync.dropIgnored", $"{candidates.Count} of {previouslyOwned.Count} would no longer be owned");
+            return 0;
+        }
+        var ids = candidates.Select(c => c.Id).ToList();
+        conn.Execute("UPDATE installations SET unowned_since=@now, state='notinstalled' WHERE id IN @ids", new { now, ids }, tx);
+        return ids.Count;
+    }
+
+    /// <summary>Track C1: Steam games no longer in the owned list (refunded or removed), most recent first.</summary>
+    public IReadOnlyList<NoLongerOwnedSteamGame> NoLongerOwnedSteamGames()
+    {
+        using var conn = db.Open();
+        return conn.Query<(string GameId, string AppId, string Title, string Since)>("""
+            SELECT i.game_id, i.platform_game_id, g.title, i.unowned_since FROM installations i JOIN games g ON g.id = i.game_id
+            WHERE i.platform='steam' AND i.unowned_since IS NOT NULL AND i.state <> 'installed'
+            ORDER BY i.unowned_since DESC, g.sort_title
+            """).Select(r => new NoLongerOwnedSteamGame(r.GameId, r.AppId, r.Title, r.Since)).ToList();
     }
 
     /// <summary>After a local scan, owned Steam games the scan marked missing become notinstalled.</summary>

@@ -27,6 +27,13 @@ export interface Installation {
   userLaunchArgs: string | null;
   manualLink: boolean;
   lastSeen: string;
+  /** Track C1: when Steam's owned list stopped including this not-installed copy (refunded or removed); absent/null = owned. */
+  noLongerOwned?: string | null;
+  /** Track C1: 'saveData' when importedLastPlayed is estimated from the game's save-data write times (Xbox). */
+  lastPlayedSource?: 'saveData' | null;
+  /** Track C1: package version and install date read locally (Xbox), when known. */
+  version?: string | null;
+  installedAt?: string | null;
 }
 
 export interface Game {
@@ -56,6 +63,12 @@ export interface Game {
   status?: GameStatus | null;
   /** When the status last changed (ISO), absent when there is no status. */
   statusChangedAt?: string | null;
+  /**
+   * Track C1: every copy is one Steam no longer lists (refunded or removed). Such games arrive with `hidden: true`
+   * so every view leaves them out; `userHidden` is the user's own hidden flag.
+   */
+  notOwned?: boolean;
+  userHidden?: boolean;
 }
 
 export type GameStatus = 'backlog' | 'playing' | 'beaten' | 'completed' | 'abandoned';
@@ -448,6 +461,14 @@ export interface InstallProgress {
 export interface BridgeEvents {
   'install.progress': InstallProgress;
   'steam.achievementsUpdated': { count: number };
+  /** Track C1: games left the Steam owned list; fetch (and clear) the notice with steam.ownershipNotice. */
+  'steam.ownershipChanged': OwnershipNotice;
+}
+
+/** Track C1: how many games left the Steam owned list since the notice was last shown. */
+export interface OwnershipNotice {
+  count: number;
+  at: string;
 }
 
 // ---------- Track B: pre-flight, launch timing, fixes, throttling, FPS capture, hotkey, notifications ----------

@@ -127,7 +127,7 @@ export function UninstallAdvisor({ game, installationId, open, onClose }: { game
               <dl className="uadv__facts">
                 <Fact i={0} icon={<Clock3 size={16} />} label="Your time">
                   <strong className="num">{seconds > 0 ? formatDuration(seconds) : 'Not played'}</strong>
-                  <span>{lp?.at ? `Last played ${formatRelative(lp.at).toLowerCase()}${lp.source === 'imported' ? ` (from ${store})` : ''}` : 'No play recorded yet'}</span>
+                  <span>{lp?.at ? `Last played ${formatRelative(lp.at).toLowerCase()}${lp.source === 'imported' ? ` (from ${store})` : lp.source === 'estimated' ? ' (estimated from save data)' : ''}` : 'No play recorded yet'}</span>
                 </Fact>
                 <Fact i={1} icon={advice.saves.state === 'steamCloud' ? <Cloud size={16} /> : <CloudOff size={16} />} label="Saves" tone={advice.saves.state === 'localOnly' ? 'warn' : advice.saves.state === 'steamCloud' ? 'ok' : undefined}>
                   {advice.saves.state === 'steamCloud' ? (

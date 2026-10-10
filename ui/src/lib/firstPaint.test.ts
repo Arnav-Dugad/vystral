@@ -43,7 +43,7 @@ describe('home model', () => {
     const lib = library();
     const m = buildHomeModel(lib, NOW);
     expect(m.featuredId).toBe(lib[0].id);
-    expect(m.continueIds).toEqual([lib[1].id]); // the hero isn't repeated
+    expect(m.continueIds).toEqual([lib[0].id, lib[1].id]); // Track C1: the hero's game leads Continue playing too
     expect(m.favoriteIds).toHaveLength(2);
     expect(m.recentIds).toEqual([lib[2].id]);
     expect(m.pulse).toEqual({ installed: 5, needsClient: 1, missing: 1, platforms: [['steam', 4], ['epic', 1]] });

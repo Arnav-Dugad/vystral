@@ -6,7 +6,7 @@ import { call, errorMessage } from '../bridge/bridge';
 import type { Game, GameStatus, PlatformKey } from '../bridge/types';
 import { ArtPacksDialog } from '../components/artpacks/ArtPacksDialog';
 import {
-  formatBytes, formatDuration, formatRelative, importedMinutes, isInstalled, isMissing, lastPlayed, playSeconds, PLATFORM_NAMES, plural, sizeOf,
+  byLastPlayed, formatBytes, formatDuration, formatRelative, importedMinutes, isInstalled, isMissing, lastPlayed, playSeconds, PLATFORM_NAMES, plural, sizeOf,
 } from '../lib/format';
 import { parseQuery, searchGames, type ParsedQuery } from '../lib/search';
 import { addManualGame } from '../state/actions';
@@ -30,10 +30,12 @@ import { CloudBadge } from '../components/cloud/CloudBits';
 import { useSubsListed, useSubsMap } from '../state/subs';
 import { SubsBadge } from '../components/subs/SubsBits';
 import { ServiceLogo } from '../components/ui/ServiceLogo';
+import { NotOwnedNote } from '../components/game/NotOwned';
+import { PackageX } from 'lucide-react';
 import './library.css';
 
 type Sort = 'recent' | 'title' | 'playtime' | 'size' | 'added' | 'status' | 'waiting' | 'finishing';
-type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'notinstalled' | 'missing' | 'hidden' | 'cloud' | 'subs' | `status:${GameStatus}`;
+type Quick = 'all' | 'installed' | 'favorites' | 'unplayed' | 'new' | 'client' | 'notinstalled' | 'missing' | 'hidden' | 'cloud' | 'subs' | 'notowned' | `status:${GameStatus}`;
 
 const QUICK: { value: Quick; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -47,7 +49,7 @@ const QUICK: { value: Quick; label: string }[] = [
   { value: 'hidden', label: 'Hidden' },
 ];
 
-const isQuick = (v: string | undefined): v is Quick => !!v && (v === 'cloud' || v === 'subs' || QUICK.some((q) => q.value === v) || STATUSES.some((st) => `status:${st.value}` === v));
+const isQuick = (v: string | undefined): v is Quick => !!v && (v === 'cloud' || v === 'subs' || v === 'notowned' || QUICK.some((q) => q.value === v) || STATUSES.some((st) => `status:${st.value}` === v));
 
 const VIEW_KEY = 'vystral.library.view';
 const STORE_ORDER: PlatformKey[] = ['steam', 'xbox', 'epic', 'gog', 'ea', 'ubisoft', 'battlenet', 'manual'];
@@ -94,6 +96,8 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
   // Track V: "In my subscriptions" (only while the public Game Pass lists are on).
   const subsOn = useSubsListed();
   const subsMap = useSubsMap();
+  // Track C1: games Steam no longer lists (refunded or removed); the chip only appears when there are some.
+  const notOwnedCount = useMemo(() => games.filter((g) => g.notOwned).length, [games]);
 
   useEffect(() => {
     try { localStorage.setItem(VIEW_KEY, view); } catch { /* ignore */ }
@@ -108,7 +112,9 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
     if (store) base = base.filter((g) => g.installations.some((i) => i.platform === store));
     base = base.filter((g) => {
       switch (quick) {
-        case 'hidden': return g.hidden;
+        case 'hidden': return g.hidden && !g.notOwned;
+        // Track C1: games Steam no longer lists (refunded or removed); kept, with their history, out of every other view.
+        case 'notowned': return !!g.notOwned;
         case 'installed': return !g.hidden && isInstalled(g);
         case 'favorites': return !g.hidden && g.favorite;
         case 'unplayed': return isNeverPlayed(g);
@@ -121,20 +127,21 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
         default: return quick.startsWith('status:') ? !g.hidden && g.status === quick.slice(7) : true;
       }
     });
-    const filters = { ...parsed.filters, hidden: quick === 'hidden' ? true : parsed.filters.hidden };
+    const showHidden = quick === 'hidden' || quick === 'notowned';
+    const filters = { ...parsed.filters, hidden: showHidden ? true : parsed.filters.hidden };
     let found = searchGames(base, { ...parsed, filters }, now);
     if (found.length === 0 && parsed.chips.length && query.trim()) {
-      found = searchGames(base, { intent: 'search', text: query, filters: { hidden: quick === 'hidden' }, chips: [], structured: false }, now);
+      found = searchGames(base, { intent: 'search', text: query, filters: { hidden: showHidden }, chips: [], structured: false }, now);
     }
     if (!parsed.text) {
       const cmp: Record<Sort, (a: Game, b: Game) => number> = {
-        recent: (a, b) => (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? '') || a.sortTitle.localeCompare(b.sortTitle),
+        recent: (a, b) => byLastPlayed(a, b) || a.sortTitle.localeCompare(b.sortTitle),
         title: (a, b) => a.sortTitle.localeCompare(b.sortTitle),
         playtime: (a, b) => playSeconds(b) - playSeconds(a),
         size: (a, b) => (sizeOf(b) ?? -1) - (sizeOf(a) ?? -1),
         added: (a, b) => b.added.localeCompare(a.added),
         waiting: (a, b) => a.added.localeCompare(b.added) || a.sortTitle.localeCompare(b.sortTitle),
-        status: (a, b) => statusRank(a) - statusRank(b) || (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? '') || a.sortTitle.localeCompare(b.sortTitle),
+        status: (a, b) => statusRank(a) - statusRank(b) || byLastPlayed(a, b) || a.sortTitle.localeCompare(b.sortTitle),
         finishing: closestToFinishing(ttb?.games),
       };
       found = [...found].sort(cmp[sort]);
@@ -246,6 +253,11 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
             <ServiceLogo service="game-pass" size={14} decorative /> In my subscriptions
           </button>
         )}
+        {(notOwnedCount > 0 || quick === 'notowned') && (
+          <button className="chip" aria-pressed={quick === 'notowned'} onClick={() => setQuick(quick === 'notowned' ? 'all' : 'notowned')}>
+            <PackageX size={13} aria-hidden /> No longer owned <span className="num" aria-label={`${notOwnedCount} games`}>{notOwnedCount}</span>
+          </button>
+        )}
         <span className="lib-quick__sep" aria-hidden style={{ width: 1, alignSelf: 'stretch', margin: '4px 4px', background: 'var(--line-strong)' }} />
         {STATUSES.map((st) => {
           const Icon = st.icon;
@@ -269,6 +281,8 @@ export function LibraryView({ collectionId, quick: initialQuick }: { collectionI
           </>
         )}
       </div>
+
+      {quick === 'notowned' && <NotOwnedNote count={notOwnedCount} />}
 
       {parsed.chips.length > 0 && (
         <div className="lib-chips" aria-live="polite">

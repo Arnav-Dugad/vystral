@@ -74,17 +74,52 @@ export function formatDate(iso: string | null | undefined, opts: Intl.DateTimeFo
   return Number.isNaN(t) ? iso : new Intl.DateTimeFormat(undefined, opts).format(t);
 }
 
-/** Most recent play, from VYSTRAL's own sessions or a store's import, with its source. */
-export function lastPlayed(game: Game): { at: string | null; source: 'tracked' | 'imported' | null } {
-  let at = game.lastTrackedPlay;
-  let source: 'tracked' | 'imported' | null = at ? 'tracked' : null;
+/** Milliseconds for an ISO date, or NaN. Dates are compared as instants, never as strings (offsets differ). */
+const instant = (iso: string | null | undefined): number => (iso ? Date.parse(iso) : NaN);
+
+/**
+ * Where a "last played" came from: VYSTRAL's own sessions, the store's record, or (Track C1) an estimate from the
+ * game's save-data write times, which must always be labelled as an estimate.
+ */
+export type LastPlayedSource = 'tracked' | 'imported' | 'estimated';
+
+/**
+ * Most recent play, from VYSTRAL's own sessions or a store's import, with its source. An estimate from save data
+ * doesn't replace a session VYSTRAL tracked the day before it (saves are written while that session ran).
+ */
+export function lastPlayed(game: Game): { at: string | null; source: LastPlayedSource | null } {
+  const tracked = instant(game.lastTrackedPlay);
+  let at: string | null = Number.isNaN(tracked) ? null : game.lastTrackedPlay;
+  let best = Number.isNaN(tracked) ? -Infinity : tracked;
+  let source: LastPlayedSource | null = at ? 'tracked' : null;
   for (const i of game.installations) {
-    if (i.importedLastPlayed && (!at || i.importedLastPlayed > at)) {
-      at = i.importedLastPlayed;
-      source = 'imported';
-    }
+    const t = instant(i.importedLastPlayed);
+    if (Number.isNaN(t) || t <= best) continue;
+    const estimated = i.lastPlayedSource === 'saveData';
+    if (estimated && !Number.isNaN(tracked) && t - tracked < 86_400_000) continue;
+    at = i.importedLastPlayed;
+    best = t;
+    source = estimated ? 'estimated' : 'imported';
   }
   return { at, source };
+}
+
+/** {@link lastPlayed} as milliseconds; -Infinity for a game never played. */
+export function lastPlayedMs(game: Game): number {
+  const t = instant(lastPlayed(game).at);
+  return Number.isNaN(t) ? -Infinity : t;
+}
+
+/** Compares two instants (NaN = unknown) so the newer comes first and unknown ones go last. */
+export function newestFirst(x: number, y: number): number {
+  const a = Number.isNaN(x) ? -Infinity : x;
+  const b = Number.isNaN(y) ? -Infinity : y;
+  return a === b ? 0 : b > a ? 1 : -1;
+}
+
+/** Sort comparator: most recently played first, never-played last. */
+export function byLastPlayed(a: Game, b: Game): number {
+  return newestFirst(lastPlayedMs(a), lastPlayedMs(b));
 }
 
 /** Store-reported minutes (largest across stores; stores never double-count each other). */
@@ -127,7 +162,7 @@ export function primaryInstallation(game: Game): Installation | undefined {
   const installed = installedOf(game);
   return (
     installed.find((i) => i.id === game.preferredInstallationId) ??
-    installed.sort((a, b) => (b.importedLastPlayed ?? '').localeCompare(a.importedLastPlayed ?? ''))[0] ??
+    installed.sort((a, b) => newestFirst(instant(a.importedLastPlayed), instant(b.importedLastPlayed)))[0] ??
     game.installations[0]
   );
 }

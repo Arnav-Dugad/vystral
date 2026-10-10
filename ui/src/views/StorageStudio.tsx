@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { HardDrive, Recycle, ShieldCheck, Trash2 } from 'lucide-react';
 import { call } from '../bridge/bridge';
 import type { DriveInfo, Game, PlatformKey } from '../bridge/types';
-import { formatBytes, formatRelative, PLATFORM_NAMES } from '../lib/format';
+import { formatBytes, formatRelative, lastPlayed, PLATFORM_NAMES } from '../lib/format';
 import { exit, pick, spring } from '../lib/motion';
 import { bigAndUnplayed, driveUsage, gamesOnDrive, unplayedLabel, type DriveGame, type Suggestion } from '../lib/storage';
 import { neighbor, squarify, type Direction, type TreemapRect } from '../lib/treemap';
@@ -234,7 +234,10 @@ function Tile({
   const roomy = w > 110 && h > 54;
   const tiny = w < 34 || h < 24;
   // Wide tiles read best with landscape art; tall, narrow ones with the portrait cover.
-  const art = w >= h * 0.9 ? g.game.art.hero ?? g.game.art.header ?? g.game.art.cover : g.game.art.cover ?? g.game.art.hero;
+  const wideArt = w >= h * 0.9 ? g.game.art.hero ?? g.game.art.header ?? g.game.art.cover : g.game.art.cover ?? g.game.art.hero ?? g.game.art.header;
+  // Track C1: Store packages often ship only a square logo (the Xbox StoreLogo / tiles): shown whole, centred, never cropped.
+  const art = wideArt ?? g.game.art.icon;
+  const iconOnly = !wideArt && !!art;
   return (
     <motion.button
       ref={refCb}
@@ -254,7 +257,7 @@ function Tile({
       onMouseLeave={() => onHover(false)}
       onClick={onOpen}
     >
-      {!tiny && art && <img className="tile-t__art" src={art} alt="" loading="lazy" decoding="async" draggable={false} />}
+      {!tiny && art && <img className={iconOnly ? 'tile-t__art tile-t__art--icon' : 'tile-t__art'} src={art} alt="" loading="lazy" decoding="async" draggable={false} />}
       {roomy && (
         <span className="tile-t__label">
           <span className="tile-t__title">{g.game.title}</span>
@@ -272,7 +275,7 @@ function TileTip({ rect, width, height, driveTotal, reduce }: { rect: TreemapRec
   const below = rect.y + rect.h + 120 < height || rect.y < 110;
   const left = Math.max(0, Math.min(width - tipW, rect.x + rect.w / 2 - tipW / 2));
   const top = below ? Math.min(height - 8, rect.y + rect.h + 8) : Math.max(0, rect.y - 8);
-  const lp = lastPlayedOf(g.game);
+  const lp = lastPlayed(g.game);
   return (
     <motion.div
       className="tile-tip"
@@ -286,16 +289,10 @@ function TileTip({ rect, width, height, driveTotal, reduce }: { rect: TreemapRec
       <div className="tile-tip__title">{g.game.title}</div>
       <div className="tile-tip__row"><PlatformBadge platform={g.platform} /></div>
       <div className="tile-tip__row num">{formatBytes(g.sizeBytes)} · {driveTotal > 0 ? `${((g.sizeBytes / driveTotal) * 100).toFixed(1)}% of the drive` : ''}</div>
-      <div className="tile-tip__row">{lp ? `Last played ${formatRelative(lp).toLowerCase()}` : 'Never played'}</div>
+      <div className="tile-tip__row">{lp.at ? `Last played ${formatRelative(lp.at).toLowerCase()}${lp.source === 'estimated' ? ' (estimated from save data)' : ''}` : 'Never played'}</div>
       <div className="tile-tip__hint">Enter or click to open</div>
     </motion.div>
   );
-}
-
-function lastPlayedOf(game: Game): string | null {
-  let at = game.lastTrackedPlay;
-  for (const i of game.installations) if (i.importedLastPlayed && (!at || i.importedLastPlayed > at)) at = i.importedLastPlayed;
-  return at;
 }
 
 // ---------- Suggestions ----------

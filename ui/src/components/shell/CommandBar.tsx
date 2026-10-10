@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { call, errorMessage } from '../../bridge/bridge';
 import type { AiQuery, DiscoverResult, DiscoverSearch, Game } from '../../bridge/types';
-import { formatRelative, isInstalled, lastPlayed, PLATFORM_NAMES } from '../../lib/format';
+import { byLastPlayed, formatRelative, isInstalled, lastPlayed, PLATFORM_NAMES } from '../../lib/format';
 import { exit, pick, spring } from '../../lib/motion';
 import { fromAiQuery, parseQuery, searchGames, type ParsedQuery } from '../../lib/search';
 import { addManualGame } from '../../state/actions';
@@ -123,7 +123,7 @@ function CommandBody({ onClose }: { onClose: () => void }) {
       // Empty query: recently played first.
       return [...games]
         .filter((g) => !g.hidden)
-        .sort((a, b) => (lastPlayed(b).at ?? '').localeCompare(lastPlayed(a).at ?? ''))
+        .sort(byLastPlayed)
         .slice(0, 6);
     }
     let found = searchGames(games, parsed);
