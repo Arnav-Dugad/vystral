@@ -160,6 +160,7 @@ test.describe('Wishlist → game pages', () => {
   test('a wishlist game opens its VYSTRAL page; the Steam store stays a secondary action', async ({ page }) => {
     const { errors, external } = await open(page, '?reduced&wishlist');
     await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Wishlist' }).click();
+    await page.getByRole('button', { name: 'Show as list' }).click(); // Track D2: the calendar is the default view
     const list = page.getByRole('list', { name: /wishlisted games/ });
     await expect(list).toBeVisible({ timeout: 15_000 });
     await expect(list.getByRole('button', { name: 'Open Aurora Vanguard on the Steam store' })).toBeVisible();
