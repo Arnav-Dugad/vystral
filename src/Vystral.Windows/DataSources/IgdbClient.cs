@@ -128,6 +128,38 @@ public sealed class IgdbClient(ProviderTransport transport, Func<(string ClientI
         return await QueryAsync("games", $"{DiscoverGameFields} where slug = \"{slug}\"; limit 2;", ct);
     }
 
+    // ---------- Track C3: Discover browsing ("Because you played", genres) ----------
+
+    private static string IdList(IEnumerable<long> ids) =>
+        string.Join(',', ids.Where(i => i is > 0 and < 1_000_000_000_000).Distinct().Take(100).Select(i => i.ToString(CultureInfo.InvariantCulture)));
+
+    /// <summary>The similar_games ID lists of up to 10 games. Returns IGDB's raw answer (see DiscoverBrowseParsers.ParseIgdbSimilar).</summary>
+    public async Task<string> DiscoverSimilarIdsAsync(IReadOnlyList<long> ids, CancellationToken ct)
+    {
+        var list = IdList(ids.Take(10));
+        return list.Length == 0 ? "[]" : await QueryAsync("games", $"fields similar_games; where id = ({list}); limit 10;", ct);
+    }
+
+    /// <summary>Up to 100 games by ID with the fields Discover lists. Returns IGDB's raw answer.</summary>
+    public async Task<string> DiscoverGamesByIdsAsync(IReadOnlyList<long> ids, CancellationToken ct)
+    {
+        var list = IdList(ids);
+        return list.Length == 0 ? "[]" : await QueryAsync("games", $"{DiscoverSearchFields} where id = ({list}); limit 100;", ct);
+    }
+
+    /// <summary>
+    /// One page of well-known games of a genre or theme (IGDB's fixed IDs), most-rated first, main games and their
+    /// remakes, remasters, expansions and ports only. Returns IGDB's raw answer.
+    /// </summary>
+    public async Task<string> DiscoverGenreAsync(string field, int id, int page, CancellationToken ct)
+    {
+        if (field is not ("genres" or "themes" or "game_modes") || id is < 1 or > 1000) return "[]";
+        var offset = Math.Clamp(page, 0, 9) * DiscoverPageSize;
+        return await QueryAsync("games",
+            $"{DiscoverSearchFields} where {field} = ({id.ToString(CultureInfo.InvariantCulture)}) & total_rating_count > 20 & game_type = (0,4,8,9,10,11); " +
+            $"sort total_rating_count desc; limit {DiscoverPageSize}; offset {offset.ToString(CultureInfo.InvariantCulture)};", ct);
+    }
+
     // ---------- Transport ----------
 
     private async Task<string> QueryAsync(string endpoint, string body, CancellationToken ct, (string ClientId, string Secret)? overrideCreds = null)

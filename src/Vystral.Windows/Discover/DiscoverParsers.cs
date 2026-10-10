@@ -382,6 +382,9 @@ public static partial class DiscoverParsers
         };
     }
 
+    /// <summary>Soundtracks, season passes, demos and the like, by their title.</summary>
+    internal static bool IsExtraTitle(string name) => ExtraTitle().IsMatch(name);
+
     [GeneratedRegex(@"\b(soundtrack|ost|season pass|artbook|art book|dlc|demo|expansion pass|playtest|dedicated server|sdk)\b", RegexOptions.IgnoreCase)]
     private static partial Regex ExtraTitle();
 

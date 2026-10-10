@@ -79,9 +79,15 @@ public sealed record StorePrice(long FinalCents, long InitialCents, string Curre
 /// <param name="Platforms">Plain platform names ("PC", "PlayStation 5"), capped.</param>
 /// <param name="LibraryGameId">The library game it is, when VYSTRAL is sure (Steam app ID, or an exact title and year).</param>
 /// <param name="Cover">The cover's art-host URL when it is already cached; otherwise the page asks with discover.image.</param>
+/// <param name="ReleaseDate">Track C3 (browse shelves): ISO date (yyyy-MM-dd), or yyyy-MM when Steam only names the month.</param>
+/// <param name="ComingSoon">Track C3: not out yet, per the store.</param>
+/// <param name="Free">Track C3: free to play, per the store.</param>
+/// <param name="PriceText">Track C3: the store's own formatted price, when no price in cents with a currency is known.</param>
+/// <param name="DiscountPercent">Track C3: the store's discount with <paramref name="PriceText"/>.</param>
 public sealed record DiscoverResultDto(
     string Key, string Title, int? Year, IReadOnlyList<string> Stores, IReadOnlyList<string> Platforms, IReadOnlyList<string> Genres,
-    IReadOnlyList<string> Sources, string? SteamAppId, string? LibraryGameId, StorePrice? Price, bool HasCover, string? Cover, double Score, string Kind);
+    IReadOnlyList<string> Sources, string? SteamAppId, string? LibraryGameId, StorePrice? Price, bool HasCover, string? Cover, double Score, string Kind,
+    string? ReleaseDate = null, bool ComingSoon = false, bool Free = false, string? PriceText = null, int DiscountPercent = 0);
 
 /// <summary>Where one source stands in a search.</summary>
 /// <param name="State">pending, done, failed or skipped.</param>
