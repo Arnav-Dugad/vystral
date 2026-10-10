@@ -190,3 +190,11 @@
 - The startup chart in Settings › About reads the local logs, which are kept for 7 days, so it shows at most the starts of the last week (up to 20). A start that never reached "ready" isn't shown.
 - Session health ("smooth", "some hitches", "rough") needs frame-rate capture; without it a session is "FPS not measured", whatever its CPU or temperature figures. Sharp-drop markers come from two-second samples, so a single hitch shorter than that can be averaged away.
 - The title bar reserves the caption buttons' width reported by Windows; until the window has reported it (a fraction of a second after start), it assumes Windows 11's 138 px. The real-app check at 100/125/150% scaling, maximized and restored, is still to be done after merging (the scaling maths and the layout are covered by tests).
+
+**Every data source for every game (v0.9, Track D4)**
+- Non-Steam games are matched to Steam by title and release year (Xbox games carry no Store ID in VYSTRAL yet). A game with no year on record gets a *suggestion* at most, which you confirm on its Versions tab; two sources that agree on the wrong game would still be used (labelled as matched, with *Wrong game?*).
+- Achievements, the achievement guide, SteamGridDB art by Steam ID and IGDB/RAWG enrichment stay on a game's own Steam app; only public Steam data (reviews, tags, prices, news, Deck, trailers, live tiles, ProtonDB) uses a matched one.
+- RAWG's trailer list was checked against RAWG's published schema, not with a live key; trailers it lists on hosts outside the allow-list (Steam's video CDNs, `media.rawg.io`) are skipped. RAWG trailers play on game and Discover pages but not as live tiles (too large for the tile cache).
+- YouTube trailers (opt-in) have no colour-follow for the Living Canvas (the frame is cross-origin) and no pause-on-pointer-leave; they stop on their own when the video ends. The frame-navigation rule was verified in tests, not yet in the real WebView2 (the lead's after-merge check).
+- The Epic free-games feed, ProtonDB and GOG's catalogue are undocumented public endpoints: if they change, their rows say *unavailable* and nothing else is affected.
+

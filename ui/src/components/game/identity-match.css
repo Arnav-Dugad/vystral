@@ -10,7 +10,8 @@
 .idm__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .idm__row {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1.2fr) minmax(0, 1.6fr) auto;
+  /* Fixed outer columns so every row lines up whether or not it has actions. */
+  grid-template-columns: 84px minmax(0, 1.2fr) minmax(0, 1.6fr) 152px;
   align-items: center;
   gap: var(--s-3);
   padding: 10px var(--s-3);
@@ -32,11 +33,12 @@
 :root[data-theme='light'] .idm__conf[data-level='good'] { color: oklch(from var(--ok) 0.42 c h); }
 :root[data-theme='light'] .idm__conf[data-level='medium'] { color: oklch(from var(--warn) 0.42 c h); }
 .idm__via { color: var(--text-3); font-size: var(--fs-xs); line-height: 1.4; }
-.idm__actions { display: inline-flex; gap: 4px; }
+.idm__actions { display: inline-flex; justify-content: flex-end; gap: 4px; }
 .idm__foot { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
 
 @media (max-width: 900px) {
   .idm__row { grid-template-columns: 1fr auto; }
+  .idm__actions { min-width: 0; }
   .idm__kind { grid-column: 1 / -1; }
   .idm__how { grid-column: 1 / -1; }
 }
@@ -61,6 +63,9 @@
 .idm-choice:focus-within { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 .idm-choice__text { display: grid; gap: 2px; min-width: 0; }
 .idm-choice__name { color: var(--text-1); font-size: var(--fs-sm); font-weight: var(--fw-medium); }
+.idm-choice__year { color: var(--text-3); font-weight: var(--fw-regular); }
+.idm-choice__meta { color: var(--text-3); font-size: var(--fs-xs); }
+.idm__lede { margin: 0; color: var(--text-2); font-size: var(--fs-sm); line-height: 1.5; }
 
 /* The line above "At a glance" when Steam data is shown for a matched Steam app. */
 .gi-matched {

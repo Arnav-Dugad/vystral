@@ -202,7 +202,7 @@ export function FixMatchDialog({ game, identity, open, onClose }: { game: Game; 
         <Button variant="ghost" onClick={onClose}>Cancel</Button>
         <Button variant="primary" loading={saving} disabled={!choice} onClick={() => void save()}>Save</Button>
       </>}>
-      <p className="idm__muted">
+      <p className="idm__lede">
         VYSTRAL shows Steam reviews, tags, trailers, prices and news for <strong>{game.title}</strong> through the Steam game you pick, always labelled as Steam data.
       </p>
       <form className="idm-search" role="search" onSubmit={(e) => { e.preventDefault(); void search(); }}>
@@ -221,8 +221,8 @@ export function FixMatchDialog({ game, identity, open, onClose }: { game: Game; 
             <label key={v} className="idm-choice" data-selected={selected(v) || undefined}>
               <input type="radio" name={group} checked={selected(v)} onChange={() => setChoice({ kind: 'app', appId: v })} />
               <span className="idm-choice__text">
-                <span className="idm-choice__name">{'searched' in c ? c.name : c.name ?? `Steam app ${c.value}`}{!('searched' in c) && c.year ? <span className="idm__muted"> · {c.year}</span> : null}</span>
-                <span className="idm__muted">
+                <span className="idm-choice__name">{'searched' in c ? c.name : c.name ?? `Steam app ${c.value}`}{!('searched' in c) && c.year ? <span className="idm-choice__year"> · {c.year}</span> : null}</span>
+                <span className="idm-choice__meta">
                   App <span className="num">{v}</span>
                   {'searched' in c ? ' · from your search' : ` · ${c.sources.map((s) => SOURCE_LABEL[s]).join(', ')} · ${Math.min(99, Math.round(c.confidence * 100))}%`}
                 </span>
@@ -234,7 +234,7 @@ export function FixMatchDialog({ game, identity, open, onClose }: { game: Game; 
           <input type="radio" name={group} checked={choice?.kind === 'none'} onChange={() => setChoice({ kind: 'none' })} />
           <span className="idm-choice__text">
             <span className="idm-choice__name">It isn’t on Steam</span>
-            <span className="idm__muted">No Steam data is shown for this game.</span>
+            <span className="idm-choice__meta">No Steam data is shown for this game.</span>
           </span>
         </label>
       </div>
