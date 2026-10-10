@@ -120,7 +120,8 @@
 .gi-regions dd { margin: 2px 0 0; font-size: var(--fs-sm); color: var(--text-1); }
 
 /* Compatibility */
-.gi-deck { display: inline-flex; align-items: center; gap: 8px; }
+.gi-deck { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-xl); }
+.gi-link--icon { padding: 4px; }
 .gi-deck[data-tone='ok'] svg { color: var(--ok); }
 .gi-deck[data-tone='warn'] svg { color: var(--warn); }
 .gi-deck[data-tone='danger'] svg { color: var(--danger); }

@@ -158,3 +158,11 @@
 - The self-check's bridge round trip is skipped (not failed) when the interface is suspended for a game or doesn't answer within 30 s.
 - Automatic compaction needs ten idle minutes on mains power; a PC that is always busy or on battery only compacts with *Compact now*. Idle time is the time since the last input in this Windows session.
 - The real-app startup gain hasn't been measured yet (see PERFORMANCE.md); the numbers come from a WebView2 harness hosting the real interface.
+
+**Game page insights (v0.8, Track C4)**
+- The price chart starts empty: VYSTRAL draws only prices it saw itself (the first page visit records today's price), so a new game shows the lowest-ever/regular position bar until there are two days of prices. Lowest ever and best deals come from IsThereAnyDeal (your country, your key) or CheapShark (US dollars); a lowest-ever price in another currency is listed but not drawn on the chart.
+- Steam's "recent reviews" window is asked as an explicit 30-day date range; Steam's own store page may count only Steam purchases for its recent score, so the two can differ slightly. The review endpoint is the store page's public JSON (not a documented API) and may change.
+- Community tags exist only for Steam games (other stores have no equivalent public list); a game owned on several stores uses its Steam copy's tags. Tags are English names.
+- The series timeline needs IGDB. It lists main games, standalone expansions, remakes, remasters and expanded editions (not DLC, ports or bundles), at most 80; very large franchises are cut there. Owned games without a Steam app ID are matched by exact title only, so a differently named edition may show as "Discover".
+- IGDB's `collections`/`franchises` queries and the review date-range behaviour were checked against IGDB's documentation and a live Steam request respectively; the IGDB part hasn't been run against the real service with a key in this build.
+

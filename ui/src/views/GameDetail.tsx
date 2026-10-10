@@ -48,9 +48,7 @@ import { AchievementGuidePanel, CurrentGoalChip } from '../components/game/Achie
 import { FriendsPlayedChip } from '../components/game/FriendsPlayedChip';
 import { PatchNotes } from '../components/game/PatchNotes';
 // Track C4: the "At a glance" stat tiles, community tags and the franchise timeline.
-import { GameInsights } from '../components/game/insights/GameInsights';
-import { CommunityTags } from '../components/game/insights/CommunityTags';
-import { FranchiseTimeline } from '../components/game/insights/FranchiseTimeline';
+import { CommunityTags, FranchiseTimeline, GameInsights } from '../components/game/insights/lazy';
 
 // Track AA: tab panels that aren't on the first screen load when their tab opens (not at startup).
 const AchievementsPanel = lazy(() => import('../components/game/AchievementsPanel').then((m) => ({ default: m.AchievementsPanel })));

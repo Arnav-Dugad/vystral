@@ -57,7 +57,7 @@ export function PlaytimeTile({ game, ttb, index }: { game: Game; ttb: TimeToBeat
           </span>
         </div>
       ) : undefined}
-      source={pr ? 'Your time: tracked by VYSTRAL or reported by the store, whichever is larger · Estimates: IGDB players' : 'Tracked by VYSTRAL or reported by the store, whichever is larger'}
+      source={pr ? 'Your time: what VYSTRAL timed or the store reports, whichever is larger · Estimates: IGDB players' : 'What VYSTRAL timed or the store reports, whichever is larger'}
     />
   );
 }
@@ -143,7 +143,7 @@ export function AchievementsTile({ p, onOpen, index }: { p: AchievementProgress;
       tone={p.total > 0 && p.unlocked === p.total ? 'ok' : undefined}
       value={<span className="gi-split"><span>{p.unlocked}<span className="gi-of"> / {p.total}</span></span><Ring value={frac} label={`${Math.round(frac * 100)}% of achievements unlocked`} size={56} /></span>}
       sub={p.unlocked === p.total && p.total ? 'Every achievement unlocked' : p.rarestName && p.rarestPercent != null ? <>Rarest: {p.rarestName} ({p.rarestPercent.toFixed(1)}% of players)</> : `${p.total - p.unlocked} still to unlock`}
-      action={onOpen && <button className="gi-link" onClick={onOpen}>See all <ArrowRight size={12} aria-hidden /></button>}
+      action={onOpen && <button className="gi-link" onClick={onOpen} aria-label="See all achievements" title="See all achievements">All <ArrowRight size={12} aria-hidden /></button>}
       source={`Steam, as last saved by VYSTRAL${checked(p.fetchedAt)}`}
     />
   );
@@ -164,7 +164,7 @@ export function ReviewsTile({ r, onOpen, index }: { r: ReviewsSnapshot; onOpen?:
       index={index} testId="tile-reviews" label="Steam reviews" icon={<MessageSquareText size={15} />} tone={tone ?? undefined}
       value={<>{all.percent != null ? `${Math.round(all.percent)}%` : '—'}<span className="gi-of"> positive</span></>}
       sub={<><span className="gi-verdict" data-tone={tone ?? undefined}>{all.label}</span> · <span className="num">{compact(all.total)}</span> {all.total === 1 ? 'review' : 'reviews'}</>}
-      action={onOpen && <button className="gi-link" onClick={onOpen} aria-label="Read reviews on Steam (opens your browser)">Read <ExternalLink size={11} aria-hidden /></button>}
+      action={onOpen && <button className="gi-link gi-link--icon" onClick={onOpen} aria-label="Read reviews on Steam (opens your browser)" title="Read reviews on Steam"><ExternalLink size={13} aria-hidden /></button>}
       visual={
         <div className="gi-rev">
           <div className="gi-rev__row">

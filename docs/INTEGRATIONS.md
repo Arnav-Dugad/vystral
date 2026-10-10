@@ -61,6 +61,21 @@ All three use the official Steam Web API (`api.steampowered.com`), never in Offl
 | **News and patch notes** (game page → News) | `ISteamNews/GetNewsForApp/v2` (`feeds=steam_community_announcements`, ≤ 20 posts, ≤ 200 KB) | Nothing (public); on by default | Cached 6 h per game, on page open | `SteamNewsService.cs`, `SteamNewsText.cs` |
 | **Achievement guide** (game page → Achievements) | None: the achievements and global rarity VYSTRAL already cached | Achievements already fetched for the game | — | `AchievementGuideService.cs` |
 
+## Game page insights (v0.8, Track C4)
+
+The *At a glance* tiles on both game pages (library and Discover), community tags and the series timeline. JSON caches under `cache\game-pages\` (no database tables), size-capped and re-validated when read back. Code: `src/Vystral.Windows/GamePage/`, `AppBackend.GamePage.cs`, `Integrations/SteamWebApi.Tags.cs`, `DataSources/IgdbClient.Franchise.cs`; UI in `ui/src/components/game/insights/`.
+
+| Feature | Endpoints | Needs | Refresh | Code |
+|---|---|---|---|---|
+| **Review snapshot** | `store.steampowered.com/appreviews/<appid>?json=1&language=all&purchase_type=all&num_per_page=0` → `query_summary` (`review_score`, `review_score_desc`, `total_positive`, `total_reviews`). "Recent" adds `filter=all&start_date=<now−30d>&end_date=<now>&date_range_type=include` (checked live: `filter=recent` and `day_range` alone leave the summary all-time) | Public store JSON (grey area): opt-in through *Fetch game details*, on by default like Steam Deck reports | 24 h per game, on page open; the recent window is skipped for games with no reviews. Trend shown only with ≥ 10 reviews in both windows; ±3 points is "steady" | `SteamStoreInsights.cs`, `StoreInsightsService.cs` |
+| **Store facts** | `api/appdetails?appids=<id>&filters=price_overview,metacritic,release_date&cc=<country>` | *Store prices* on | 24 h per game and country; each fetch adds today's price to a local history | same |
+| **Community tags** | `IStoreBrowseService/GetItems/v1` with `data_request.include_tag_count=20` (tag ids and weights, 50 apps a request) and `IStoreService/GetTagList/v1?language=english` (≈ 450 names) on the shared Steam Web API lane (≥ 1.1 s apart) | Nothing (public Web API); *Community tags* and *Fetch game details* on | A week per game and for the names; the Library fills missing games in the background when it asks (≤ 2,000 apps per run, one run per 10 min) | `SteamTagsService.cs` |
+| **Series timeline** | IGDB `games` (`collections`, `franchise`, `franchises`), then `games where collections = (id)` (or the franchise) `& game_type = (0,4,8,9,10) & version_parent = null`, sorted by `first_release_date`, ≤ 80 | Your Twitch app (IGDB) and *Game details* on | Two weeks (a game with no series: 3 days) | `FranchiseService.cs` |
+| **Achievement progress** | None: the achievements VYSTRAL already saved | Achievements fetched before | — | `AppBackend.GamePage.cs` |
+
+- Tag weights are Steam's relative strength for a tag on a game, shown as a quiet bar, never as a vote count.
+- The series timeline matches games you own by Steam app ID first, then by exact normalized title; owned games open their page, the rest open Discover (`steam-<appid>` or `igdb-<id>`).
+
 - **Notifications:** with *Wishlist news* on (Settings → Windows integration → Windows notifications), a toast when a wishlisted game that was coming soon is out (within three days of its date), or when its Steam price drops to or below the lowest price the price source recorded, in the same currency. Each game and price notifies once (remembered across restarts), several are summed up in one toast, and nothing fires for games seen for the first time, so turning the wishlist on never floods you.
 - **Links** in posts keep their text only; they're never clickable.
 - **Patch-note safety:** BBCode and HTML are parsed into a fixed set of plain blocks (paragraph, heading, list item, quote, code, image, rule); no markup reaches the page. Links become text. Images survive only as HTTPS URLs on Steam's CDNs and are copied into the art cache (same size, type and magic-byte checks as all artwork) when you expand a post; the page only ever sees the local art-host URL. *Open full post* opens Steam's own news page for that post in your browser.

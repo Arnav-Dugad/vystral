@@ -22,9 +22,7 @@ import { DiscoverCover, pseudoGame } from '../components/discover/DiscoverBits';
 import './detail.css';
 import '../components/game/game-data.css';
 import './discover-game.css';
-import { DiscoverInsights } from '../components/game/insights/DiscoverInsights';
-import { CommunityTags } from '../components/game/insights/CommunityTags';
-import { FranchiseTimeline } from '../components/game/insights/FranchiseTimeline';
+import { CommunityTags, DiscoverInsights, FranchiseTimeline } from '../components/game/insights/lazy'; // Track C4
 
 const openExternal = (method: string, params: Record<string, unknown>) => () => {
   void call(method, params).catch((err) => useStore.getState().toast({ tone: 'info', title: errorMessage(err) }));
